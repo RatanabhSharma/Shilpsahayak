@@ -19,7 +19,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  // Only allow admins
   if (!isAdmin) {
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }

@@ -17,7 +17,6 @@ export function CustomService() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
-  // Form state
   const [material, setMaterial] = useState<MaterialType>('PLA');
   const [color, setColor] = useState('White');
   const [infill, setInfill] = useState(20);
@@ -25,7 +24,6 @@ export function CustomService() {
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
 
-  // Calculated values
   const [volume, setVolume] = useState<number | null>(null);
   const [estimatedWeight, setEstimatedWeight] = useState<number | null>(null);
   const [estimatedPrice, setEstimatedPrice] = useState<number | null>(null);
@@ -153,7 +151,6 @@ export function CustomService() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        {/* Left - Form */}
         <div className="lg:col-span-3">
           <Card className="p-6 border-none shadow-sm">
             <form onSubmit={handleSubmit} className="space-y-6">

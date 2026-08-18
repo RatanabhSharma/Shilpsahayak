@@ -31,12 +31,15 @@ export function useProducts() {
   return useQuery({
     queryKey: ['products'],
     queryFn: async () => {
-      const q = query(collection(db, 'products'), orderBy('name'));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({
+      const snapshot = await getDocs(collection(db, 'products'));
+      const products = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data()
       })) as Product[];
+
+      return products.sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '')
+      );
     }
   });
 }
