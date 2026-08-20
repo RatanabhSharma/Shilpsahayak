@@ -41,53 +41,17 @@ export function StorefrontLayout() {
       path: '/',
     },
     {
-      name: 'Gift For',
+      name: 'Shop',
       dropdown: [
-        {
-          name: 'Personalised',
-          path: '/catalog?category=Custom+%26+Personalised',
-        },
-        {
-          name: 'Couples',
-          path: '/catalog?occasion=Couples',
-        },
-        {
-          name: 'Home & Interior',
-          path: '/catalog?category=Decor',
-        },
-      ],
-    },
-    {
-      name: 'Categories',
-      dropdown: [
-        {
-          name: 'Lamps',
-          path: '/catalog?category=Lamps',
-        },
-        {
-          name: 'Vases',
-          path: '/catalog?category=Vases',
-        },
-        {
-          name: 'Decor',
-          path: '/catalog?category=Decor',
-        },
-        {
-          name: 'Keychains',
-          path: '/catalog?category=Keychains',
-        },
-        {
-          name: 'Idols',
-          path: '/catalog?category=Idols',
-        },
-        {
-          name: 'Custom & Personalised',
-          path: '/catalog?category=Custom+%26+Personalised',
-        },
-        {
-          name: 'Lithophanes',
-          path: '/catalog?category=Lithophanes',
-        },
+        { name: 'Shop All', path: '/catalog' },
+        { name: 'Lamps', path: '/catalog?category=Lamps' },
+        { name: 'Vases', path: '/catalog?category=Vases' },
+        { name: 'Decor & Home', path: '/catalog?category=Decor' },
+        { name: 'Keychains', path: '/catalog?category=Keychains' },
+        { name: 'Idols', path: '/catalog?category=Idols' },
+        { name: 'Custom & Personalised', path: '/catalog?category=Custom+%26+Personalised' },
+        { name: 'Lithophanes', path: '/catalog?category=Lithophanes' },
+        { name: 'Couples Gifts', path: '/catalog?occasion=Couples' },
       ],
     },
     {

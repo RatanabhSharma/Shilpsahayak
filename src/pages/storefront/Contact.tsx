@@ -25,7 +25,7 @@ export function Contact() {
                 <MessageCircle className="w-6 h-6 text-brand-500 mr-4 flex-shrink-0" />
                 <div>
                   <p className="font-medium text-charcoal">
-                    WhatsApp (Preferred)
+                    WhatsApp
                   </p>
                   <p className="text-charcoal-light text-sm mt-1">
                     +91 xxxxx xxxxx
