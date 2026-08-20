@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import {
   User,
+  ShoppingBag,
   Menu,
   X,
   Instagram,
@@ -10,7 +11,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-
+import { useStore } from '../store';
 import { useAuth } from '../hooks/useAuth';
 
 type NavLink = {
@@ -25,6 +26,13 @@ type NavLink = {
 export function StorefrontLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+
+  const cart = useStore((state) => state.cart);
+
+  const cartItemCount = cart.reduce(
+    (acc, item) => acc + item.quantity,
+    0
+  );
 
   const location = useLocation();
   const { isLoggedIn } = useAuth();
@@ -49,7 +57,10 @@ export function StorefrontLayout() {
         { name: 'Decor & Home', path: '/catalog?category=Decor' },
         { name: 'Keychains', path: '/catalog?category=Keychains' },
         { name: 'Idols', path: '/catalog?category=Idols' },
-        { name: 'Custom & Personalised', path: '/catalog?category=Custom+%26+Personalised' },
+        {
+          name: 'Custom & Personalised',
+          path: '/catalog?category=Custom+%26+Personalised',
+        },
         { name: 'Lithophanes', path: '/catalog?category=Lithophanes' },
         { name: 'Couples Gifts', path: '/catalog?occasion=Couples' },
       ],
@@ -70,7 +81,6 @@ export function StorefrontLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-surface">
-
       {/* Announcement Bar */}
       <div className="bg-brand-500 text-white text-xs font-medium py-2 text-center px-4">
         Free Pan-India shipping on orders over ₹2000. Crafted with precision.
@@ -80,7 +90,6 @@ export function StorefrontLayout() {
       <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-md border-b border-brand-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
-
             {/* Logo */}
             <Link to="/" className="flex flex-col">
               <span className="font-serif text-2xl font-bold text-charcoal leading-none">
@@ -104,9 +113,7 @@ export function StorefrontLayout() {
                     <>
                       <button
                         type="button"
-                        onMouseEnter={() =>
-                          setActiveDropdown(link.name)
-                        }
+                        onMouseEnter={() => setActiveDropdown(link.name)}
                         className={`flex items-center text-sm font-medium transition-colors hover:text-brand-500 ${
                           activeDropdown === link.name
                             ? 'text-brand-500'
@@ -114,12 +121,11 @@ export function StorefrontLayout() {
                         }`}
                       >
                         {link.name}
-
                         <ChevronDown className="w-3 h-3 ml-1" />
                       </button>
 
                       {activeDropdown === link.name && (
-                        <div className="absolute top-full left-0 pt-4 w-48 z-50">
+                        <div className="absolute top-full left-0 pt-4 w-56 z-50">
                           <div className="bg-white rounded-xl shadow-soft border border-brand-100 py-2 overflow-hidden">
                             {link.dropdown.map((dropItem) => (
                               <Link
@@ -152,7 +158,6 @@ export function StorefrontLayout() {
 
             {/* Actions */}
             <div className="flex items-center space-x-4">
-
               {/* Account / Login */}
               {isLoggedIn ? (
                 <Link
@@ -178,14 +183,30 @@ export function StorefrontLayout() {
                 </Link>
               )}
 
+              {/* Cart */}
+              <Link
+                to="/cart"
+                className="relative p-2 text-charcoal hover:text-brand-500 transition-colors"
+                aria-label={`Shopping cart with ${cartItemCount} items`}
+              >
+                <ShoppingBag className="w-6 h-6" />
+
+                {cartItemCount > 0 && (
+                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-brand-500 rounded-full">
+                    {cartItemCount}
+                  </span>
+                )}
+              </Link>
+
               {/* Mobile Menu Button */}
               <button
                 type="button"
                 className="md:hidden p-2 text-charcoal"
-                onClick={() =>
-                  setIsMobileMenuOpen(!isMobileMenuOpen)
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label={
+                  isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'
                 }
-                aria-label="Toggle menu"
+                aria-expanded={isMobileMenuOpen}
               >
                 {isMobileMenuOpen ? (
                   <X className="w-6 h-6" />
@@ -213,13 +234,11 @@ export function StorefrontLayout() {
                 opacity: 0,
                 height: 0,
               }}
-              className="md:hidden border-t border-brand-100 bg-surface"
+              className="md:hidden border-t border-brand-100 bg-surface overflow-hidden"
             >
               <div className="px-4 pt-2 pb-6 space-y-1">
-
                 {navLinks.map((link) => (
                   <div key={link.name}>
-
                     {link.dropdown ? (
                       <>
                         <div className="px-3 py-3 text-base font-medium text-charcoal">
@@ -246,7 +265,6 @@ export function StorefrontLayout() {
                         {link.name}
                       </Link>
                     )}
-
                   </div>
                 ))}
               </div>
@@ -263,9 +281,7 @@ export function StorefrontLayout() {
       {/* Footer */}
       <footer className="bg-surface-dark border-t border-brand-200 pt-16 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-
             {/* Brand */}
             <div className="col-span-1 md:col-span-2">
               <Link to="/" className="flex flex-col mb-6">
@@ -285,8 +301,8 @@ export function StorefrontLayout() {
                 care with precision engineering.
               </p>
 
+              {/* Social Links */}
               <div className="flex space-x-4">
-
                 <a
                   href="#"
                   className="text-charcoal-lighter hover:text-brand-500 transition-colors"
@@ -310,7 +326,6 @@ export function StorefrontLayout() {
                 >
                   <Twitter className="w-5 h-5" />
                 </a>
-
               </div>
             </div>
 
@@ -371,19 +386,16 @@ export function StorefrontLayout() {
                 <li>Studio: PATIALA, PUNJAB 147001</li>
               </ul>
             </div>
-
           </div>
 
           {/* Copyright */}
           <div className="border-t border-brand-200 pt-8 flex flex-col md:flex-row justify-between items-center">
-
             <p className="text-xs text-charcoal-lighter mb-4 md:mb-0">
               © {new Date().getFullYear()} Shilp Sahayak.
               All rights reserved.
             </p>
 
             <div className="flex space-x-6 text-xs text-charcoal-lighter">
-
               <a
                 href="#"
                 className="hover:text-brand-500"
@@ -404,10 +416,8 @@ export function StorefrontLayout() {
               >
                 Admin Login
               </Link>
-
             </div>
           </div>
-
         </div>
       </footer>
     </div>
