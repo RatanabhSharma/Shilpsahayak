@@ -16,7 +16,6 @@ import { Checkout } from './pages/storefront/Checkout';
 import { CustomService } from './pages/storefront/CustomService';
 import { About } from './pages/storefront/About';
 import { Contact } from './pages/storefront/Contact';
-import { PrinterInAction } from './pages/storefront/PrinterInAction';
 
 // Admin Pages
 import { AdminLogin } from './pages/admin/AdminLogin';
@@ -43,7 +42,6 @@ export function App() {
           <Route path="custom-service" element={<CustomService />} />
           <Route path="about" element={<About />} />
           <Route path="contact" element={<Contact />} />
-          <Route path="printer-in-action" element={<PrinterInAction />} />
           {/* Customer Auth */}
           <Route path="login" element={<Login />} />
           <Route

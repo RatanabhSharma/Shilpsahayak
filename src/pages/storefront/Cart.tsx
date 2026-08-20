@@ -14,20 +14,6 @@ export function Cart() {
   );
   const shipping = subtotal > 2000 ? 0 : 150;
   const total = subtotal + shipping;
-  const handleWhatsAppOrder = () => {
-    let message = `Hi Shilp Sahayak! I'd like to place an order for:\n\n`;
-    cart.forEach((item, index) => {
-      message += `${index + 1}. ${item.product.name} (x${item.quantity}) - ₹${item.product.price * item.quantity}\n`;
-      if (item.customNotes) {
-        message += `   Notes: ${item.customNotes}\n`;
-      }
-    });
-    message += `\nSubtotal: ₹${subtotal}\nShipping: ₹${shipping}\n*Total: ₹${total}*`;
-    window.open(
-      `https://wa.me/1234567890?text=${encodeURIComponent(message)}`,
-      '_blank'
-    );
-  };
   if (cart.length === 0) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-24 text-center">
@@ -206,23 +192,6 @@ export function Cart() {
                 onClick={() => navigate('/checkout')}>
                 
                 Proceed to Checkout <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-
-              <div className="relative py-3 flex items-center">
-                <div className="flex-grow border-t border-brand-100"></div>
-                <span className="flex-shrink-0 mx-4 text-xs text-charcoal-lighter uppercase tracking-wider">
-                  Or
-                </span>
-                <div className="flex-grow border-t border-brand-100"></div>
-              </div>
-
-              <Button
-                variant="whatsapp"
-                className="w-full"
-                size="lg"
-                onClick={handleWhatsAppOrder}>
-                
-                Order on WhatsApp
               </Button>
             </div>
           </Card>

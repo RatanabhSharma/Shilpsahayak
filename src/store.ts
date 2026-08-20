@@ -60,16 +60,6 @@ export type QuoteRequest = {
   estimatedPrice?: number;
 };
 
-export type Filament = {
-  id: string;
-  name: string;
-  material: string;
-  color: string;
-  colorHex: string;
-  stockKg: number;
-  lowStockThresholdKg: number;
-};
-
 export type Settings = {
   businessName: string;
   whatsappNumber: string;
@@ -86,7 +76,6 @@ interface StoreState {
   cart: CartItem[];
   orders: Order[];
   quotes: QuoteRequest[];
-  filaments: Filament[];
   settings: Settings;
 
   // Cart
@@ -117,9 +106,6 @@ interface StoreState {
   updateProduct: (id: string, product: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
   toggleProductActive: (id: string) => void;
-
-  // Inventory
-  updateFilamentStock: (id: string, stockKg: number) => void;
 
   // Settings
   updateSettings: (partial: Partial<Settings>) => void;
@@ -447,81 +433,6 @@ const INITIAL_QUOTES: QuoteRequest[] = [
 }];
 
 
-const INITIAL_FILAMENTS: Filament[] = [
-{
-  id: 'f1',
-  name: 'Warm White PLA',
-  material: 'PLA',
-  color: 'Warm White',
-  colorHex: '#f4ede0',
-  stockKg: 4.2,
-  lowStockThresholdKg: 1.5
-},
-{
-  id: 'f2',
-  name: 'Charcoal PETG',
-  material: 'PETG',
-  color: 'Charcoal',
-  colorHex: '#2b2724',
-  stockKg: 0.8,
-  lowStockThresholdKg: 1.0
-},
-{
-  id: 'f3',
-  name: 'Terracotta Silk PLA',
-  material: 'Silk PLA',
-  color: 'Terracotta',
-  colorHex: '#c15f3c',
-  stockKg: 2.6,
-  lowStockThresholdKg: 1.0
-},
-{
-  id: 'f4',
-  name: 'Marble Resin',
-  material: 'Resin',
-  color: 'Marble',
-  colorHex: '#e8e2d6',
-  stockKg: 1.1,
-  lowStockThresholdKg: 0.75
-},
-{
-  id: 'f5',
-  name: 'Deep Amber Silk PLA',
-  material: 'Silk PLA',
-  color: 'Deep Amber',
-  colorHex: '#c98a1e',
-  stockKg: 3.4,
-  lowStockThresholdKg: 1.0
-},
-{
-  id: 'f6',
-  name: 'Natural Wood PLA',
-  material: 'Wood PLA',
-  color: 'Natural Wood',
-  colorHex: '#a9773f',
-  stockKg: 0.5,
-  lowStockThresholdKg: 0.8
-},
-{
-  id: 'f7',
-  name: 'Forest Green PLA',
-  material: 'PLA',
-  color: 'Forest Green',
-  colorHex: '#3f6a4e',
-  stockKg: 2.0,
-  lowStockThresholdKg: 1.0
-},
-{
-  id: 'f8',
-  name: 'Clear Resin',
-  material: 'Resin',
-  color: 'Clear',
-  colorHex: '#dfe6e9',
-  stockKg: 1.9,
-  lowStockThresholdKg: 0.75
-}];
-
-
 const INITIAL_SETTINGS: Settings = {
   businessName: 'Shilp Sahayak',
   whatsappNumber: '+91 98765 43210',
@@ -538,7 +449,6 @@ export const useStore = create<StoreState>((set) => ({
   cart: [],
   orders: INITIAL_ORDERS,
   quotes: INITIAL_QUOTES,
-  filaments: INITIAL_FILAMENTS,
   settings: INITIAL_SETTINGS,
 
   addToCart: (product, quantity, customNotes, variantLabel) =>
@@ -644,13 +554,6 @@ export const useStore = create<StoreState>((set) => ({
   set((state) => ({
     products: state.products.map((p) =>
     p.id === id ? { ...p, active: p.active === false ? true : false } : p
-    )
-  })),
-
-  updateFilamentStock: (id, stockKg) =>
-  set((state) => ({
-    filaments: state.filaments.map((f) =>
-    f.id === id ? { ...f, stockKg: Math.max(0, stockKg) } : f
     )
   })),
 

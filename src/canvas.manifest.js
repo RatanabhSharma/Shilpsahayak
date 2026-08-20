@@ -6,7 +6,6 @@ export const manifest = {
     scr_wi5lbo: { name: "Cart", route: "/cart", position: { "x": 4360, "y": 220 } },
     scr_06d1gc: { name: "Checkout", route: "/checkout", position: { "x": 5760, "y": 220 } },
     scr_epbp4p: { name: "Custom Service", route: "/custom-service", position: { "x": 160, "y": 2200 } },
-    scr_ynhpuk: { name: "Printer in Action", route: "/printer-in-action", position: { "x": 1560, "y": 2200 } },
     scr_xuus80: { name: "About", route: "/about", position: { "x": 2960, "y": 2200 } },
     scr_nim0ko: { name: "Contact", route: "/contact", position: { "x": 4360, "y": 2200 } },
     scr_42dq97: { name: "Admin Login", route: "/admin/login", position: { "x": 160, "y": 4180 } },
@@ -34,7 +33,6 @@ export const manifest = {
   },
   { kind: "section", id: "sec_n7rnbh", children: [
     { kind: "screen", id: "scr_epbp4p" },
-    { kind: "screen", id: "scr_ynhpuk" },
     { kind: "screen", id: "scr_xuus80" },
     { kind: "screen", id: "scr_nim0ko" }]
   },

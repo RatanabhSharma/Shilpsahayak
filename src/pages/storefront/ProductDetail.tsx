@@ -65,15 +65,6 @@ const handleAddToCart = () => {
   setTimeout(() => setIsAdded(false), 2000);
 };
 
-  const handleWhatsAppOrder = () => {
-    const variantLabel = `Size: ${selectedVariant.size}, Color: ${selectedVariant.color}, Material: ${selectedVariant.material}`;
-    const message = `Hi Shilp Sahayak! I'd like to order:\n\nProduct: ${product.name}\nQuantity: ${quantity}\nPrice: ₹${product.price * quantity}\nVariants: ${variantLabel}${customNotes ? `\nNotes: ${customNotes}` : ''}`;
-    window.open(
-      `https://wa.me/919876543210?text=${encodeURIComponent(message)}`,
-      '_blank'
-    );
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <button
@@ -235,10 +226,10 @@ const handleAddToCart = () => {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 mt-auto">
+          <div className="flex flex-col gap-3 mt-auto">
             <Button
               size="lg"
-              className="flex-1"
+              className="w-full"
               onClick={handleAddToCart}
               disabled={isAdded || product.stock === 0}
             >
@@ -252,15 +243,14 @@ const handleAddToCart = () => {
                 'Add to Cart'
               )}
             </Button>
-            <Button
-              variant="whatsapp"
-              size="lg"
-              className="flex-1"
-              onClick={handleWhatsAppOrder}
-              disabled={product.stock === 0}
-            >
-              Order on WhatsApp
-            </Button>
+            {isAdded && (
+              <Link
+                to="/cart"
+                className="text-center text-sm font-medium text-brand-600 hover:text-brand-700 transition-colors"
+              >
+                View Cart &amp; Checkout &rarr;
+              </Link>
+            )}
           </div>
 
           {/* Guarantees */}

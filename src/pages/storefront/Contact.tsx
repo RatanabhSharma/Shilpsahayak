@@ -28,7 +28,7 @@ export function Contact() {
                     WhatsApp (Preferred)
                   </p>
                   <p className="text-charcoal-light text-sm mt-1">
-                    +91 98765 43210
+                    +91 xxxxx xxxxx
                   </p>
                 </div>
               </div>
@@ -37,7 +37,7 @@ export function Contact() {
                 <div>
                   <p className="font-medium text-charcoal">Phone</p>
                   <p className="text-charcoal-light text-sm mt-1">
-                    +91 98765 43210
+                    +91 xxxxx xxxxx
                   </p>
                   <p className="text-xs text-charcoal-lighter mt-1">
                     Mon-Sat, 10am - 6pm
@@ -58,9 +58,8 @@ export function Contact() {
                 <div>
                   <p className="font-medium text-charcoal">Studio</p>
                   <p className="text-charcoal-light text-sm mt-1">
-                    123, Maker's Lane, Andheri West
+                    PATIALA, PUNJAB 147001 <br />
                     <br />
-                    Mumbai, Maharashtra 400053
                   </p>
                   <p className="text-xs text-charcoal-lighter mt-1">
                     By appointment only

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import {
   User,
-  ShoppingBag,
   Menu,
   X,
   Instagram,
@@ -13,8 +12,6 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 
 import { useAuth } from '../hooks/useAuth';
-import { useStore } from '../store';
-import { Button } from './ui';
 
 type NavLink = {
   name: string;
@@ -28,12 +25,6 @@ type NavLink = {
 export function StorefrontLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-
-  const cart = useStore((state) => state.cart);
-  const cartItemCount = cart.reduce(
-    (acc, item) => acc + item.quantity,
-    0
-  );
 
   const location = useLocation();
   const { isLoggedIn } = useAuth();
@@ -104,10 +95,6 @@ export function StorefrontLayout() {
       path: '/custom-service',
     },
     {
-      name: 'Printer in Action',
-      path: '/printer-in-action',
-    },
-    {
       name: 'About',
       path: '/about',
     },
@@ -116,9 +103,6 @@ export function StorefrontLayout() {
       path: '/contact',
     },
   ];
-
-  const whatsappNumber = '919876543210';
-  const whatsappUrl = `https://wa.me/${whatsappNumber}`;
 
   return (
     <div className="min-h-screen flex flex-col bg-surface">
@@ -230,33 +214,6 @@ export function StorefrontLayout() {
                 </Link>
               )}
 
-              {/* Cart */}
-              <Link
-                to="/cart"
-                className="relative p-2 text-charcoal hover:text-brand-500 transition-colors"
-              >
-                <ShoppingBag className="w-6 h-6" />
-
-                {cartItemCount > 0 && (
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-brand-500 rounded-full">
-                    {cartItemCount}
-                  </span>
-                )}
-              </Link>
-
-              {/* WhatsApp */}
-              <div className="hidden sm:block">
-                <Button
-                  variant="whatsapp"
-                  size="sm"
-                  onClick={() =>
-                    window.open(whatsappUrl, '_blank')
-                  }
-                >
-                  Order on WhatsApp
-                </Button>
-              </div>
-
               {/* Mobile Menu Button */}
               <button
                 type="button"
@@ -328,20 +285,6 @@ export function StorefrontLayout() {
 
                   </div>
                 ))}
-
-                {/* Mobile WhatsApp */}
-                <div className="pt-4 px-3">
-                  <Button
-                    variant="whatsapp"
-                    className="w-full"
-                    onClick={() =>
-                      window.open(whatsappUrl, '_blank')
-                    }
-                  >
-                    Order on WhatsApp
-                  </Button>
-                </div>
-
               </div>
             </motion.div>
           )}
