@@ -366,9 +366,9 @@ export function StorefrontLayout() {
               </h3>
 
               <ul className="space-y-3 text-sm text-charcoal-light">
-                <li>WhatsApp: +91 98765 43210</li>
+                <li>WhatsApp: +91 xxxxx xxxxx</li>
                 <li>Email: hello@shilpsahayak.in</li>
-                <li>Studio: Mumbai, Maharashtra</li>
+                <li>Studio: PATIALA, PUNJAB 147001</li>
               </ul>
             </div>
 
