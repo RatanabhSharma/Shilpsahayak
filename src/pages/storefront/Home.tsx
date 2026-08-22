@@ -63,148 +63,328 @@ export function Home() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-surface-dark py-20 sm:py-28">
-        <div
-          className="absolute inset-0 opacity-10 pointer-events-none"
-          style={{
-            backgroundImage: 'radial-gradient(#c98a1e 1px, transparent 1px)',
-            backgroundSize: '32px 32px'
-          }}
-        ></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          {slideCount > 0 && currentSlide ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-              {/* Text side */}
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentSlide.id}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -16 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <p className="text-xs uppercase tracking-widest text-brand-500 font-semibold mb-4">
-                    Featured &middot; {currentSlide.category}
-                  </p>
-                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-charcoal leading-tight mb-6">
-                    {currentSlide.name}
-                  </h1>
-                  <p className="text-lg text-charcoal-light mb-8 max-w-xl leading-relaxed">
-                    {currentSlide.description ||
-                      'Studio-crafted precision 3D printing, made to order.'}
-                  </p>
-                  <div className="flex items-center gap-4 mb-8">
-                    <span className="text-2xl font-semibold text-brand-600">
-                      ₹{currentSlide.price.toLocaleString('en-IN')}
-                    </span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <Link to={`/product/${currentSlide.id}`}>
-                      <Button size="lg" className="w-full sm:w-auto">
-                        Shop This Piece
-                      </Button>
-                    </Link>
-                    <Link to="/catalog">
-                      <Button
-                        variant="outline"
-                        size="lg"
-                        className="w-full sm:w-auto bg-white/50 backdrop-blur-sm"
-                      >
-                        Explore Catalog
-                      </Button>
-                    </Link>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
+     {/* Hero Section */}
+<section className="relative overflow-hidden bg-surface-dark min-h-[680px] flex items-center">
 
-              {/* Image side */}
-              <div className="relative">
-                <div className="relative aspect-square rounded-2xl overflow-hidden shadow-xl">
-                  <AnimatePresence mode="wait">
-                    <motion.img
-                      key={currentSlide.id}
-                      src={currentSlide.image}
-                      alt={currentSlide.name}
-                      initial={{ opacity: 0, scale: 1.05 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.5 }}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  </AnimatePresence>
+  {/* Background Pattern */}
+  <div
+    className="absolute inset-0 pointer-events-none opacity-[0.08]"
+    style={{
+      backgroundImage:
+        'radial-gradient(#c98a1e 1px, transparent 1px)',
+      backgroundSize: '28px 28px'
+    }}
+  />
+
+  {/* Decorative Glow */}
+  <div className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full bg-brand-500/10 blur-3xl pointer-events-none" />
+  <div className="absolute -bottom-40 -left-40 w-[400px] h-[400px] rounded-full bg-brand-500/5 blur-3xl pointer-events-none" />
+
+  <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 relative z-10 py-16 lg:py-20">
+
+    {slideCount > 0 && currentSlide ? (
+
+      <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-12 lg:gap-16 items-center">
+
+        {/* =========================
+            LEFT — PRODUCT CONTENT
+        ========================== */}
+        <AnimatePresence mode="wait">
+
+          <motion.div
+            key={currentSlide.id}
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 30 }}
+            transition={{
+              duration: 0.45,
+              ease: 'easeOut'
+            }}
+            className="order-2 lg:order-1"
+          >
+
+            {/* Category */}
+            <div className="flex items-center gap-3 mb-6">
+
+              <span className="inline-flex items-center rounded-full bg-brand-500/10 border border-brand-500/20 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-600">
+                Featured
+              </span>
+
+              <span className="h-px w-8 bg-brand-300" />
+
+              <span className="text-xs uppercase tracking-[0.16em] text-charcoal-lighter">
+                {currentSlide.category}
+              </span>
+
+            </div>
+
+            {/* Product Name */}
+            <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl font-bold text-charcoal leading-[0.95] tracking-tight mb-6 max-w-xl">
+              {currentSlide.name}
+            </h1>
+
+            {/* Description */}
+            <p className="text-base sm:text-lg text-charcoal-light leading-relaxed max-w-lg mb-8">
+              {currentSlide.description ||
+                'Studio-crafted precision 3D printing, made to order.'}
+            </p>
+
+            {/* Price */}
+            <div className="mb-9">
+
+              <p className="text-xs uppercase tracking-[0.18em] text-charcoal-lighter mb-2">
+                Starting from
+              </p>
+
+              <span className="font-serif text-3xl sm:text-4xl font-semibold text-brand-600">
+                ₹{currentSlide.price.toLocaleString('en-IN')}
+              </span>
+
+            </div>
+
+            {/* Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3">
+
+              <Link
+                to={`/product/${currentSlide.id}`}
+                className="w-full sm:w-auto"
+              >
+                <Button
+                  size="lg"
+                  className="w-full sm:w-auto px-8 group"
+                >
+                  Shop This Piece
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+
+              <Link
+                to="/catalog"
+                className="w-full sm:w-auto"
+              >
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto px-8 bg-white/60 backdrop-blur-sm"
+                >
+                  Explore Catalog
+                </Button>
+              </Link>
+
+            </div>
+
+            {/* Slide Counter */}
+            {slideCount > 1 && (
+              <div className="flex items-center gap-4 mt-10">
+
+                <span className="text-xs font-medium text-charcoal-light">
+                  {String(slideIndex + 1).padStart(2, '0')}
+                </span>
+
+                <div className="w-20 h-px bg-charcoal/15 relative overflow-hidden">
+                  <motion.div
+                    key={currentSlide.id}
+                    initial={{ width: 0 }}
+                    animate={{ width: '100%' }}
+                    transition={{
+                      duration: 5,
+                      ease: 'linear'
+                    }}
+                    className="absolute inset-y-0 left-0 bg-brand-500"
+                  />
                 </div>
 
-                {/* Nav arrows */}
-                {slideCount > 1 && (
-                  <>
-                    <button
-                      onClick={prevSlide}
-                      aria-label="Previous slide"
-                      className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-md transition-colors"
-                    >
-                      <ArrowLeft className="w-4 h-4 text-charcoal" />
-                    </button>
-                    <button
-                      onClick={nextSlide}
-                      aria-label="Next slide"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-md transition-colors"
-                    >
-                      <ArrowRight className="w-4 h-4 text-charcoal" />
-                    </button>
-                  </>
-                )}
+                <span className="text-xs text-charcoal-lighter">
+                  {String(slideCount).padStart(2, '0')}
+                </span>
 
-                {/* Dots */}
-                {slideCount > 1 && (
-                  <div className="flex justify-center gap-2 mt-4">
-                    {featuredProducts.map((p, i) => (
-                      <button
-                        key={p.id}
-                        onClick={() => goToSlide(i)}
-                        aria-label={`Go to slide ${i + 1}`}
-                        className={`h-1.5 rounded-full transition-all ${
-                          i === slideIndex
-                            ? 'w-6 bg-brand-500'
-                            : 'w-1.5 bg-charcoal/20'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                )}
               </div>
+            )}
+
+          </motion.div>
+
+        </AnimatePresence>
+
+
+        {/* =========================
+            RIGHT — PRODUCT IMAGE
+        ========================== */}
+        <div className="relative order-1 lg:order-2">
+
+          {/* Decorative Frame */}
+          <div className="absolute -inset-3 rounded-[2rem] border border-brand-200/50 pointer-events-none" />
+
+          <div className="relative">
+
+            {/* Image */}
+            <div className="relative aspect-[4/3] sm:aspect-[16/11] lg:aspect-[4/3] rounded-[1.75rem] overflow-hidden bg-white shadow-2xl">
+
+              <AnimatePresence mode="wait">
+
+                <motion.img
+                  key={currentSlide.id}
+                  src={currentSlide.image}
+                  alt={currentSlide.name}
+                  initial={{
+                    opacity: 0,
+                    scale: 1.08
+                  }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1
+                  }}
+                  exit={{
+                    opacity: 0,
+                    scale: 0.98
+                  }}
+                  transition={{
+                    duration: 0.55,
+                    ease: 'easeOut'
+                  }}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+
+              </AnimatePresence>
+
+              {/* Image Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
+
+              {/* Price Badge */}
+              <motion.div
+                key={`price-${currentSlide.id}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                className="absolute bottom-5 left-5 bg-white/95 backdrop-blur-md rounded-xl px-4 py-3 shadow-lg"
+              >
+
+                <p className="text-[10px] uppercase tracking-[0.15em] text-charcoal-lighter">
+                  From
+                </p>
+
+                <p className="font-serif text-lg font-semibold text-brand-600">
+                  ₹{currentSlide.price.toLocaleString('en-IN')}
+                </p>
+
+              </motion.div>
+
             </div>
-          ) : (
-            <div className="max-w-3xl">
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-serif font-bold text-charcoal leading-tight mb-6">
-                Memories, Illuminated. <br />
-                <span className="text-brand-500 italic">Gifts, Re-imagined.</span>
-              </h1>
-              <p className="text-lg sm:text-xl text-charcoal-light mb-10 max-w-2xl leading-relaxed">
-                Studio-crafted precision 3D printing. From personalized lithophane
-                lamps to bespoke decor, we turn your ideas into heirloom-quality
-                physical objects.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/catalog">
-                  <Button size="lg" className="w-full sm:w-auto">
-                    Explore Catalog
-                  </Button>
-                </Link>
-                <Link to="/custom-service">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="w-full sm:w-auto bg-white/50 backdrop-blur-sm"
-                  >
-                    Request Custom Piece
-                  </Button>
-                </Link>
-              </div>
+
+
+            {/* Previous */}
+            {slideCount > 1 && (
+              <button
+                type="button"
+                onClick={prevSlide}
+                aria-label="Previous featured product"
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm shadow-lg flex items-center justify-center text-charcoal hover:bg-brand-500 hover:text-white transition-all duration-200"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Next */}
+            {slideCount > 1 && (
+              <button
+                type="button"
+                onClick={nextSlide}
+                aria-label="Next featured product"
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm shadow-lg flex items-center justify-center text-charcoal hover:bg-brand-500 hover:text-white transition-all duration-200"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            )}
+
+          </div>
+
+
+          {/* Slide Indicators */}
+          {slideCount > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-6">
+
+              {featuredProducts.map((product, index) => (
+                <button
+                  key={product.id}
+                  type="button"
+                  onClick={() => goToSlide(index)}
+                  aria-label={`Go to featured product ${index + 1}`}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    index === slideIndex
+                      ? 'w-10 bg-brand-500'
+                      : 'w-2 bg-charcoal/20 hover:bg-charcoal/40'
+                  }`}
+                />
+              ))}
+
             </div>
           )}
-        </div>
-      </section>
 
+        </div>
+
+      </div>
+
+    ) : (
+
+      /* =========================
+         FALLBACK HERO
+      ========================== */
+      <div className="max-w-3xl">
+
+        <div className="inline-flex items-center gap-3 mb-6">
+
+          <span className="h-px w-8 bg-brand-500" />
+
+          <span className="text-xs uppercase tracking-[0.2em] font-semibold text-brand-600">
+            Made in India
+          </span>
+
+        </div>
+
+        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-serif font-bold text-charcoal leading-[0.95] mb-7">
+          Memories,
+          <br />
+          <span className="text-brand-500 italic">
+            Illuminated.
+          </span>
+        </h1>
+
+        <p className="text-lg sm:text-xl text-charcoal-light mb-10 max-w-2xl leading-relaxed">
+          Studio-crafted precision 3D printing.
+          From personalized lithophane lamps to
+          bespoke decor, we turn your ideas into
+          physical objects worth keeping.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-3">
+
+          <Link to="/catalog">
+            <Button
+              size="lg"
+              className="w-full sm:w-auto px-8"
+            >
+              Explore Catalog
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </Link>
+
+          <Link to="/custom-service">
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full sm:w-auto px-8 bg-white/50 backdrop-blur-sm"
+            >
+              Request Custom Piece
+            </Button>
+          </Link>
+
+        </div>
+
+      </div>
+
+    )}
+
+  </div>
+</section>
       {/* Trust Badges */}
       <section className="border-y border-brand-200 bg-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

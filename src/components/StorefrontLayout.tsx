@@ -209,162 +209,183 @@ export function StorefrontLayout() {
         <Outlet />
       </main>
 
-      {/* Footer */}
-      <footer className="bg-surface-dark border-t border-brand-200 pt-16 pb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+     {/* Footer */}
+<footer className="bg-surface-dark border-t border-brand-200">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            {/* Brand */}
-            <div className="col-span-1 md:col-span-2">
-              <Link to="/" className="flex flex-col mb-6">
-                <span className="font-serif text-2xl font-bold text-charcoal leading-none">
-                  Shilp Sahayak
-                </span>
+    {/* Main Footer */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-16 py-14">
 
-                <span className="text-xs text-charcoal-lighter uppercase tracking-widest mt-1">
-                  Crafted with Precision
-                </span>
-              </Link>
+      {/* Brand */}
+      <div className="lg:col-span-2">
 
-              <p className="text-charcoal-light text-sm max-w-md mb-6 leading-relaxed">
-                A boutique 3D printing studio in India,
-                specializing in custom gifts, decor, lithophane
-                lamps, and personalized keepsakes. We blend artisan
-                care with precision engineering.
-              </p>
+        <Link
+          to="/"
+          className="inline-flex flex-col group"
+        >
+          <span className="font-serif text-3xl font-bold text-charcoal leading-none group-hover:text-brand-500 transition-colors">
+            Shilp Sahayak
+          </span>
 
-              {/* Social Links */}
-              <div className="flex space-x-4">
+          <span className="text-[11px] text-charcoal-lighter uppercase tracking-[0.25em] mt-2">
+            Crafted with Precision
+          </span>
+        </Link>
 
-                <a
-                  href="#"
-                  className="text-charcoal-lighter hover:text-brand-500 transition-colors"
-                  aria-label="Instagram"
-                >
-                  <Instagram className="w-5 h-5" />
-                </a>
+        <div className="mt-7">
+          <p className="text-xs uppercase tracking-[0.2em] text-charcoal-lighter mb-4">
+            Follow our work
+          </p>
 
-                <a
-                  href="#"
-                  className="text-charcoal-lighter hover:text-brand-500 transition-colors"
-                  aria-label="Facebook"
-                >
-                  <Facebook className="w-5 h-5" />
-                </a>
+          <div className="flex items-center gap-3">
 
-                <a
-                  href="#"
-                  className="text-charcoal-lighter hover:text-brand-500 transition-colors"
-                  aria-label="Twitter"
-                >
-                  <Twitter className="w-5 h-5" />
-                </a>
+            <a
+              href="#"
+              aria-label="Instagram"
+              className="w-10 h-10 rounded-full border border-brand-200 flex items-center justify-center text-charcoal-light hover:bg-brand-500 hover:text-white hover:border-brand-500 transition-all duration-200"
+            >
+              <Instagram className="w-4 h-4" />
+            </a>
 
-              </div>
-            </div>
+            <a
+              href="#"
+              aria-label="Facebook"
+              className="w-10 h-10 rounded-full border border-brand-200 flex items-center justify-center text-charcoal-light hover:bg-brand-500 hover:text-white hover:border-brand-500 transition-all duration-200"
+            >
+              <Facebook className="w-4 h-4" />
+            </a>
 
-            {/* Quick Links */}
-            <div>
-              <h3 className="font-serif font-semibold text-charcoal mb-4">
-                Quick Links
-              </h3>
+            <a
+              href="#"
+              aria-label="Twitter"
+              className="w-10 h-10 rounded-full border border-brand-200 flex items-center justify-center text-charcoal-light hover:bg-brand-500 hover:text-white hover:border-brand-500 transition-all duration-200"
+            >
+              <Twitter className="w-4 h-4" />
+            </a>
 
-              <ul className="space-y-3">
-                <li>
-                  <Link
-                    to="/catalog"
-                    className="text-sm text-charcoal-light hover:text-brand-500"
-                  >
-                    Shop All
-                  </Link>
-                </li>
-
-                <li>
-                  <Link
-                    to="/custom-service"
-                    className="text-sm text-charcoal-light hover:text-brand-500"
-                  >
-                    Custom Printing
-                  </Link>
-                </li>
-
-                <li>
-                  <Link
-                    to="/about"
-                    className="text-sm text-charcoal-light hover:text-brand-500"
-                  >
-                    Our Story
-                  </Link>
-                </li>
-
-                <li>
-                  <Link
-                    to="/contact"
-                    className="text-sm text-charcoal-light hover:text-brand-500"
-                  >
-                    Contact Us
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Contact */}
-            <div>
-              <h3 className="font-serif font-semibold text-charcoal mb-4">
-                Contact
-              </h3>
-
-              <ul className="space-y-3 text-sm text-charcoal-light">
-                <li>
-                  WhatsApp: +91 xxxxx xxxxx
-                </li>
-
-                <li>
-                  Email: hello@shilpsahayak.in
-                </li>
-
-                <li>
-                  Studio: PATIALA, PUNJAB 147001
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Copyright */}
-          <div className="border-t border-brand-200 pt-8 flex flex-col md:flex-row justify-between items-center">
-
-            <p className="text-xs text-charcoal-lighter mb-4 md:mb-0">
-              © {new Date().getFullYear()} Shilp Sahayak.
-              All rights reserved.
-            </p>
-
-            <div className="flex space-x-6 text-xs text-charcoal-lighter">
-
-              <a
-                href="#"
-                className="hover:text-brand-500"
-              >
-                Privacy Policy
-              </a>
-
-              <a
-                href="#"
-                className="hover:text-brand-500"
-              >
-                Terms of Service
-              </a>
-
-              <Link
-                to="/admin/login"
-                className="hover:text-brand-500"
-              >
-                Admin Login
-              </Link>
-
-            </div>
           </div>
         </div>
-      </footer>
+      </div>
+
+
+      {/* Explore */}
+      <div>
+        <h3 className="font-serif text-base font-semibold text-charcoal mb-5">
+          Explore
+        </h3>
+
+        <ul className="space-y-3">
+
+          <li>
+            <Link
+              to="/catalog"
+              className="text-sm text-charcoal-light hover:text-brand-500 transition-colors"
+            >
+              Shop All
+            </Link>
+          </li>
+
+          <li>
+            <Link
+              to="/custom-service"
+              className="text-sm text-charcoal-light hover:text-brand-500 transition-colors"
+            >
+              Custom Printing
+            </Link>
+          </li>
+
+          <li>
+            <Link
+              to="/about"
+              className="text-sm text-charcoal-light hover:text-brand-500 transition-colors"
+            >
+              Our Story
+            </Link>
+          </li>
+
+          <li>
+            <Link
+              to="/contact"
+              className="text-sm text-charcoal-light hover:text-brand-500 transition-colors"
+            >
+              Contact Us
+            </Link>
+          </li>
+
+        </ul>
+      </div>
+
+
+      {/* Contact */}
+      <div>
+        <h3 className="font-serif text-base font-semibold text-charcoal mb-5">
+          Get in Touch
+        </h3>
+
+        <ul className="space-y-4 text-sm text-charcoal-light">
+
+          <li>
+            <a
+              href="https://wa.me/91XXXXXXXXXX"
+              className="hover:text-brand-500 transition-colors"
+            >
+              WhatsApp
+            </a>
+          </li>
+
+          <li>
+            <a
+              href="mailto:hello@shilpsahayak.in"
+              className="hover:text-brand-500 transition-colors"
+            >
+              hello@shilpsahayak.in
+            </a>
+          </li>
+
+          <li className="leading-relaxed">
+            Patiala, Punjab<br />
+            India — 147001
+          </li>
+
+        </ul>
+      </div>
+
+    </div>
+
+
+    {/* Bottom Bar */}
+    <div className="border-t border-brand-200 py-6">
+
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+
+        <p className="text-xs text-charcoal-lighter">
+          © {new Date().getFullYear()} Shilp Sahayak. All rights reserved.
+        </p>
+
+        <div className="flex items-center gap-6 text-xs text-charcoal-lighter">
+
+          <a
+            href="#"
+            className="hover:text-brand-500 transition-colors"
+          >
+            Privacy Policy
+          </a>
+
+          <a
+            href="#"
+            className="hover:text-brand-500 transition-colors"
+          >
+            Terms of Service
+          </a>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+</footer>
     </div>
   );
 }

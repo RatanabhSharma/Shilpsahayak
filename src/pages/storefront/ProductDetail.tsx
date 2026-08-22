@@ -55,24 +55,25 @@ export function ProductDetail() {
     setQuantity(1);
   };
 
-  const handleAddToCart = () => {
-    if (!product || outOfStock) return;
+ const handleAddToCart = () => {
+  if (!product || outOfStock) return;
 
-    addToCart(
-  {
-    ...product,
-    price: currentPrice,
-    stock: currentStock,
-    image: activeImage || product.image
-  } as any,
-  quantity,
-  customNotes || undefined,
-  selectedVariant?.label
-);
+  addToCart(
+    {
+      ...product,
+      price: currentPrice,
+      stock: currentStock,
+      image: activeImage || product.image
+    },
+    quantity,
+    customNotes || undefined,
+    selectedVariant?.label,
+    selectedVariant?.id
+  );
 
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
-  };
+  setAdded(true);
+  setTimeout(() => setAdded(false), 2000);
+};
 
   if (isLoading) {
     return (

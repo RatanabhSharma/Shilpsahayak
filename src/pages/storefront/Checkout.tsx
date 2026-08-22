@@ -2,10 +2,17 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
 import { useStore } from '../../store';
+import { useAuth } from '../../hooks/useAuth';
+import { useUserProfile } from '../../hooks/useUserProfile';
 import { useCreateOrder } from '../../hooks/useOrders';
 import { Button, Input, Textarea, Card } from '../../components/ui';
 
 export function Checkout() {
+    const { user, loading: authLoading } = useAuth();
+  const {
+    data: profile,
+    isLoading: profileLoading
+  } = useUserProfile();
   const navigate = useNavigate();
   const cart = useStore((state) => state.cart);
   const clearCart = useStore((state) => state.clearCart);
@@ -22,31 +29,45 @@ export function Checkout() {
   const shipping = subtotal >= 499 ? 0 : 150;
   const total = subtotal + shipping;
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (cart.length === 0) return;
+ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
 
-    setIsSubmitting(true);
+  if (!user) {
+    alert('Please login to continue.');
+    navigate('/login');
+    return;
+  }
+
+  if (cart.length === 0) return;
+
+  setIsSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
 
     const orderData = {
-      customerName: formData.get('name') as string,
-      customerEmail: formData.get('email') as string,
-      customerPhone: formData.get('phone') as string,
-      address: formData.get('address') as string,
-      items: cart.map((item) => ({
-        productId: item.product.id,
-        productName: item.product.name,
-        quantity: item.quantity,
-        price: item.product.price,
-        customNotes: item.customNotes,
-        variantLabel: item.variantLabel
-      })),
-      total,
-      notes: (formData.get('notes') as string) || ''
-    };
+  customerId: user.uid,
 
+  customerName: formData.get('name') as string,
+  customerEmail: formData.get('email') as string,
+  customerPhone: formData.get('phone') as string,
+
+  address: formData.get('address') as string,
+
+items: cart.map((item) => ({
+  productId: item.product.id,
+  productName: item.product.name,
+  quantity: item.quantity,
+  price: item.product.price,
+  customNotes: item.customNotes,
+  variantId: item.variantId,
+  variantLabel: item.variantLabel
+})),
+
+  total,
+
+  notes: (formData.get('notes') as string) || ''
+};
+      
     try {
       const newOrder = await createOrder.mutateAsync(orderData);
       setOrderId(newOrder.id);
@@ -86,7 +107,45 @@ export function Checkout() {
       </div>
     );
   }
+  if (authLoading) {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-20 text-center">
+        <Loader2 className="w-8 h-8 animate-spin text-brand-500 mx-auto" />
+        <p className="text-sm text-charcoal-light mt-4">
+          Checking your account...
+        </p>
+      </div>
+    );
+  }
 
+  if (!user) {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-20 text-center">
+        <h2 className="text-2xl font-serif font-bold text-charcoal mb-3">
+          Login Required
+        </h2>
+
+        <p className="text-charcoal-light mb-8">
+          Please login to continue with your order.
+        </p>
+
+        <Button onClick={() => navigate('/login')}>
+          Login to Continue
+        </Button>
+      </div>
+    );
+  }
+  if (profileLoading) {
+  return (
+    <div className="max-w-lg mx-auto px-4 py-20 text-center">
+      <Loader2 className="w-8 h-8 animate-spin text-brand-500 mx-auto" />
+
+      <p className="text-sm text-charcoal-light mt-4">
+        Loading your information...
+      </p>
+    </div>
+  );
+}
   if (cart.length === 0) {
     return (
       <div className="max-w-lg mx-auto px-4 py-20 text-center">
@@ -122,36 +181,73 @@ export function Checkout() {
               Shipping Details
             </h2>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <Input name="name" label="Full Name" required />
-                <Input name="phone" label="Phone Number" type="tel" required />
-              </div>
+           <form onSubmit={handleSubmit} className="space-y-5">
 
-              <Input name="email" label="Email Address" type="email" required />
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
-              <Textarea
-                name="address"
-                label="Full Address"
-                placeholder="House no, Street, Area, City, Pincode"
-                required
-              />
+    <Input
+      name="name"
+      label="Full Name"
+      defaultValue={profile?.name || user.displayName || ''}
+      required
+    />
 
-              <Textarea
-                name="notes"
-                label="Order Notes (optional)"
-                placeholder="Any special instructions..."
-              />
+    <Input
+      name="phone"
+      label="Phone Number"
+      type="tel"
+      defaultValue={profile?.phone || ''}
+      required
+    />
 
-              <Button
-                type="submit"
-                size="lg"
-                className="w-full mt-4"
-                isLoading={isSubmitting}
-              >
-                {isSubmitting ? 'Placing Order...' : `Place Order • ₹${total.toLocaleString('en-IN')}`}
-              </Button>
-            </form>
+  </div>
+
+  <Input
+    name="email"
+    label="Email Address"
+    type="email"
+    defaultValue={profile?.email || user.email || ''}
+    required
+  />
+
+  <Textarea
+    name="address"
+    label="Full Address"
+    defaultValue={
+      profile?.address
+        ? [
+            profile.address.line1,
+            profile.address.line2,
+            profile.address.city,
+            profile.address.state,
+            profile.address.pincode
+          ]
+            .filter(Boolean)
+            .join(', ')
+        : ''
+    }
+    placeholder="House no, Street, Area, City, Pincode"
+    required
+  />
+
+  <Textarea
+    name="notes"
+    label="Order Notes (optional)"
+    placeholder="Any special instructions..."
+  />
+
+  <Button
+    type="submit"
+    size="lg"
+    className="w-full mt-4"
+    isLoading={isSubmitting}
+  >
+    {isSubmitting
+      ? 'Placing Order...'
+      : `Place Order • ₹${total.toLocaleString('en-IN')}`}
+  </Button>
+
+</form>
           </Card>
         </div>
 

@@ -27,6 +27,7 @@ export type OrderItem = {
   quantity: number;
   price: number;
   customNotes?: string;
+  variantId?: string;
   variantLabel?: string;
 };
 

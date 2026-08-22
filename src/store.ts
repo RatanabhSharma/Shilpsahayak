@@ -4,6 +4,17 @@ import { persist } from 'zustand/middleware';
 export type ProductMaterial = 'PLA' | 'PETG' | 'Resin' | 'Wood PLA' | 'Silk PLA';
 export type Occasion = 'Personalised' | 'Couples' | 'Home & Interior' | null;
 
+export type ProductVariant = {
+  id: string;
+  label: string;
+  price: number;
+  stock: number;
+  image?: string;
+  theme?: string;
+  color?: string;
+  size?: string;
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -11,18 +22,22 @@ export type Product = {
   price: number;
   category: string;
   image: string;
+  images?: string[];
   stock: number;
-  material?: ProductMaterial;
-  occasion?: Occasion;
+  material?: ProductMaterial | string;
+  occasion?: Occasion | string;
   isCustomizable?: boolean;
   featured?: boolean;
   active?: boolean;
+  hasVariants?: boolean;
+  variants?: ProductVariant[];
 };
 
 export type CartItem = {
   product: Product;
   quantity: number;
   customNotes?: string;
+  variantId?: string;
   variantLabel?: string;
 };
 
@@ -83,10 +98,17 @@ interface StoreState {
     product: Product,
     quantity: number,
     customNotes?: string,
-    variantLabel?: string
+    variantLabel?: string,
+    variantId?: string
   ) => void;
-  removeFromCart: (productId: string) => void;
-  updateCartQuantity: (productId: string, quantity: number) => void;
+
+  removeFromCart: (cartItemId: string) => void;
+
+  updateCartQuantity: (
+    cartItemId: string,
+    quantity: number
+  ) => void;
+
   clearCart: () => void;
 
   placeOrder: (orderData: Omit<Order, 'id' | 'date' | 'status'>) => void;
@@ -118,6 +140,25 @@ const INITIAL_SETTINGS: Settings = {
   upiId: 'shilpsahayak@okhdfcbank'
 };
 
+/**
+ * Creates a unique identity for one specific cart line.
+ *
+ * Same product + different variant = different cart item.
+ * Same product + same variant + different custom note = different cart item.
+ */
+export const getCartItemId = (item: {
+  product: Product;
+  variantId?: string;
+  variantLabel?: string;
+  customNotes?: string;
+}) => {
+  return [
+    item.product.id,
+    item.variantId || item.variantLabel || 'default',
+    item.customNotes || ''
+  ].join('::');
+};
+
 export const useStore = create<StoreState>()(
   persist(
     (set) => ({
@@ -127,20 +168,34 @@ export const useStore = create<StoreState>()(
       quotes: [],
       settings: INITIAL_SETTINGS,
 
-      addToCart: (product, quantity, customNotes, variantLabel) =>
+      addToCart: (
+        product,
+        quantity,
+        customNotes,
+        variantLabel,
+        variantId
+      ) =>
         set((state) => {
-          const existingItem = state.cart.find(
+          const newCartItemId = getCartItemId({
+            product,
+            variantId,
+            variantLabel,
+            customNotes
+          });
+
+          const existingItemIndex = state.cart.findIndex(
             (item) =>
-              item.product.id === product.id &&
-              item.customNotes === customNotes &&
-              item.variantLabel === variantLabel
+              getCartItemId(item) === newCartItemId
           );
 
-          if (existingItem) {
+          if (existingItemIndex !== -1) {
             return {
-              cart: state.cart.map((item) =>
-                item === existingItem
-                  ? { ...item, quantity: item.quantity + quantity }
+              cart: state.cart.map((item, index) =>
+                index === existingItemIndex
+                  ? {
+                      ...item,
+                      quantity: item.quantity + quantity
+                    }
                   : item
               )
             };
@@ -149,23 +204,35 @@ export const useStore = create<StoreState>()(
           return {
             cart: [
               ...state.cart,
-              { product, quantity, customNotes, variantLabel }
+              {
+                product,
+                quantity,
+                customNotes,
+                variantId,
+                variantLabel
+              }
             ]
           };
         }),
 
-      removeFromCart: (productId) =>
+      removeFromCart: (cartItemId) =>
         set((state) => ({
-          cart: state.cart.filter((item) => item.product.id !== productId)
+          cart: state.cart.filter(
+            (item) => getCartItemId(item) !== cartItemId
+          )
         })),
 
-      updateCartQuantity: (productId, quantity) =>
+      updateCartQuantity: (cartItemId, quantity) =>
         set((state) => ({
           cart:
             quantity <= 0
-              ? state.cart.filter((item) => item.product.id !== productId)
+              ? state.cart.filter(
+                  (item) => getCartItemId(item) !== cartItemId
+                )
               : state.cart.map((item) =>
-                  item.product.id === productId ? { ...item, quantity } : item
+                  getCartItemId(item) === cartItemId
+                    ? { ...item, quantity }
+                    : item
                 )
         })),
 
@@ -188,7 +255,9 @@ export const useStore = create<StoreState>()(
       updateOrderStatus: (orderId, status) =>
         set((state) => ({
           orders: state.orders.map((order) =>
-            order.id === orderId ? { ...order, status } : order
+            order.id === orderId
+              ? { ...order, status }
+              : order
           )
         })),
 
@@ -209,7 +278,12 @@ export const useStore = create<StoreState>()(
         set((state) => ({
           quotes: state.quotes.map((quote) =>
             quote.id === quoteId
-              ? { ...quote, status, estimatedPrice: price ?? quote.estimatedPrice }
+              ? {
+                  ...quote,
+                  status,
+                  estimatedPrice:
+                    price ?? quote.estimatedPrice
+                }
               : quote
           )
         })),
@@ -218,38 +292,54 @@ export const useStore = create<StoreState>()(
         set((state) => ({
           products: [
             ...state.products,
-            { ...product, id: `p${Date.now()}`, active: product.active ?? true }
+            {
+              ...product,
+              id: `p${Date.now()}`,
+              active: product.active ?? true
+            }
           ]
         })),
 
       updateProduct: (id, productUpdate) =>
         set((state) => ({
           products: state.products.map((product) =>
-            product.id === id ? { ...product, ...productUpdate } : product
+            product.id === id
+              ? { ...product, ...productUpdate }
+              : product
           )
         })),
 
       deleteProduct: (id) =>
         set((state) => ({
-          products: state.products.filter((product) => product.id !== id)
+          products: state.products.filter(
+            (product) => product.id !== id
+          )
         })),
 
       toggleProductActive: (id) =>
         set((state) => ({
           products: state.products.map((product) =>
             product.id === id
-              ? { ...product, active: !(product.active !== false) }
+              ? {
+                  ...product,
+                  active: !(product.active !== false)
+                }
               : product
           )
         })),
 
       updateSettings: (partial) =>
         set((state) => ({
-          settings: { ...state.settings, ...partial }
+          settings: {
+            ...state.settings,
+            ...partial
+          }
         }))
     }),
+
     {
       name: 'shilp-sahayak-store',
+
       partialize: (state) => ({
         cart: state.cart,
         settings: state.settings
