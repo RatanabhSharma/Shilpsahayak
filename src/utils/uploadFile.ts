@@ -1,4 +1,4 @@
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from '../lib/firebase';
 
 export async function upload3DFile(
@@ -30,4 +30,17 @@ export async function upload3DFile(
       }
     );
   });
+}
+
+// Delete a previously-uploaded 3D file from Storage, given its download URL.
+// Safe to call even if the file was already removed (ignores "not found" errors).
+export async function deleteUploadedFile(fileUrl: string): Promise<void> {
+  try {
+    const fileRef = ref(storage, fileUrl);
+    await deleteObject(fileRef);
+  } catch (error: any) {
+    if (error?.code !== 'storage/object-not-found') {
+      throw error;
+    }
+  }
 }

@@ -12,7 +12,7 @@ export function AdminLogin() {
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true); 
+    setIsLoading(true);
     setError('');
 
     const formData = new FormData(e.currentTarget);
@@ -23,9 +23,11 @@ export function AdminLogin() {
       await signInWithEmailAndPassword(auth, email, password);
       navigate('/admin/dashboard');
     } catch (err: any) {
-      setError(err.message.includes('auth/invalid-credential') 
-        ? 'Invalid email or password' 
-        : 'Login failed. Please try again.');
+      setError(
+        err.message.includes('auth/invalid-credential')
+          ? 'Invalid email or password'
+          : 'Login failed. Please try again.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -51,19 +53,8 @@ export function AdminLogin() {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
-            <Input
-              name="email"
-              type="email"
-              label="Email Address"
-              
-              required />
-
-            <Input
-              name="password"
-              type="password"
-              label="Password"
-              
-              required />
+            <Input name="email" type="email" label="Email Address" required />
+            <Input name="password" type="password" label="Password" required />
 
             {error && (
               <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-lg">
@@ -72,11 +63,7 @@ export function AdminLogin() {
               </div>
             )}
 
-            <Button
-              type="submit"
-              className="w-full"
-              size="lg"
-              isLoading={isLoading}>
+            <Button type="submit" className="w-full" size="lg" isLoading={isLoading}>
               Sign In
             </Button>
           </form>

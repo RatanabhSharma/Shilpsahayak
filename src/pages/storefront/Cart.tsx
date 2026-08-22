@@ -12,7 +12,7 @@ export function Cart() {
     (sum, item) => sum + item.product.price * item.quantity,
     0
   );
-  const shipping = subtotal > 2000 ? 0 : 150;
+  const shipping = subtotal > 499 ? 0 : 150;
   const total = subtotal + shipping;
   if (cart.length === 0) {
     return (
@@ -165,7 +165,7 @@ export function Cart() {
               </div>
               {shipping > 0 &&
               <p className="text-xs text-brand-600 bg-brand-50 p-2 rounded text-center">
-                  Add ₹{(2000 - subtotal).toLocaleString('en-IN')} more for free
+                  Add ₹{(499 - subtotal).toLocaleString('en-IN')} more for free
                   shipping!
                 </p>
               }

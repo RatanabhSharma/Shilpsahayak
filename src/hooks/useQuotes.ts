@@ -4,6 +4,7 @@ import {
   getDocs,
   addDoc,
   updateDoc,
+  deleteDoc,
   doc,
   query,
   orderBy,
@@ -11,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
+import { deleteUploadedFile } from '../utils/uploadFile';
 
 export type QuoteStatus = 'Pending' | 'Quoted' | 'Accepted' | 'Rejected' | 'Completed';
 
@@ -109,6 +111,25 @@ export function useUpdateQuote() {
       ...data
     }: Partial<Quote> & { id: string }) => {
       await updateDoc(doc(db, 'quotes', id), data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quotes'] });
+      queryClient.invalidateQueries({ queryKey: ['my-quotes'] });
+    }
+  });
+}
+
+// Delete a quote (customer withdrawing their own request, or admin cleanup).
+// Removes both the Firestore record and the uploaded file in Storage.
+export function useDeleteQuote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, fileUrl }: { id: string; fileUrl?: string }) => {
+      if (fileUrl) {
+        await deleteUploadedFile(fileUrl);
+      }
+      await deleteDoc(doc(db, 'quotes', id));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotes'] });

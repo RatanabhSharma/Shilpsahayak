@@ -1,13 +1,41 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, X, Image as ImageIcon, Loader2 } from 'lucide-react';
-import { Card, Button, Input, Textarea } from '../../components/ui';
+import { Plus, Pencil, Trash2, Loader2, X } from 'lucide-react';
 import {
   useProducts,
   useAddProduct,
   useUpdateProduct,
   useDeleteProduct,
-  Product
+  Product,
+  ProductVariant
 } from '../../hooks/useProducts';
+import { Button, Card, Input, Textarea } from '../../components/ui';
+
+const emptyVariant = (): ProductVariant => ({
+  id: crypto.randomUUID(),
+  label: '',
+  price: 0,
+  stock: 0,
+  image: '',
+  theme: '',
+  color: '',
+  size: ''
+});
+
+const emptyForm = {
+  name: '',
+  description: '',
+  price: 0,
+  category: 'Keychains',
+  image: '',
+  stock: 0,
+  material: 'PLA',
+  occasion: '',
+  isCustomizable: false,
+  featured: false,
+  active: true,
+  hasVariants: false,
+  variants: [] as ProductVariant[]
+};
 
 export function Catalog() {
   const { data: products = [], isLoading, isError } = useProducts();
@@ -15,49 +43,118 @@ export function Catalog() {
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
 
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState({ ...emptyForm });
+  const [saving, setSaving] = useState(false);
 
-  const handleOpenForm = (product?: Product) => {
-    setEditingProduct(product || null);
-    setIsFormOpen(true);
+  const openCreate = () => {
+    setEditingId(null);
+    setForm({ ...emptyForm, variants: [] });
+    setIsOpen(true);
   };
 
-  const handleCloseForm = () => {
-    setIsFormOpen(false);
-    setEditingProduct(null);
+  const openEdit = (product: Product) => {
+    setEditingId(product.id);
+    setForm({
+      name: product.name || '',
+      description: product.description || '',
+      price: product.price || 0,
+      category: product.category || 'Keychains',
+      image: product.image || '',
+      stock: product.stock || 0,
+      material: product.material || 'PLA',
+      occasion: product.occasion || '',
+      isCustomizable: !!product.isCustomizable,
+      featured: !!product.featured,
+      active: product.active !== false,
+      hasVariants: !!product.hasVariants,
+      variants: product.variants ? [...product.variants] : []
+    });
+    setIsOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const updateVariant = (index: number, field: keyof ProductVariant, value: string | number) => {
+    const next = [...form.variants];
+    next[index] = { ...next[index], [field]: value };
+    setForm({ ...form, variants: next });
+  };
+
+  const addVariantRow = () => {
+    setForm({ ...form, variants: [...form.variants, emptyVariant()] });
+  };
+
+  const removeVariantRow = (index: number) => {
+    setForm({
+      ...form,
+      variants: form.variants.filter((_, i) => i !== index)
+    });
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-
-    const productData = {
-      name: formData.get('name') as string,
-      description: formData.get('description') as string,
-      price: parseInt(formData.get('price') as string, 10),
-      category: formData.get('category') as string,
-      image:
-        (formData.get('image') as string) ||
-        'https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&q=80&w=800',
-      stock: parseInt(formData.get('stock') as string, 10),
-      isCustomizable: formData.get('isCustomizable') === 'on',
-      featured: formData.get('featured') === 'on',
-      active: true
-    };
+    setSaving(true);
 
     try {
-      if (editingProduct) {
-        await updateProduct.mutateAsync({ id: editingProduct.id, ...productData });
+      const cleanVariants = form.hasVariants
+  ? form.variants
+      .filter((v) => v.label.trim())
+      .map((v) => ({
+        id: v.id || crypto.randomUUID(),
+        label: v.label.trim(),
+        price: Number(v.price) || 0,
+        stock: Number(v.stock) || 0,
+        image: v.image?.trim() || '',
+        theme: v.theme || '',
+        color: v.color || '',
+        size: v.size || ''
+      }))
+  : [];
+
+const payload: any = {
+  name: form.name.trim(),
+  description: form.description.trim(),
+  price: Number(form.price) || 0,
+  category: form.category,
+  image: form.image.trim(),
+  stock: form.hasVariants
+    ? cleanVariants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
+    : Number(form.stock) || 0,
+  material: form.material || '',
+  occasion: form.occasion || '',
+  isCustomizable: !!form.isCustomizable,
+  featured: !!form.featured,
+  active: !!form.active,
+  hasVariants: !!form.hasVariants,
+  variants: cleanVariants
+};
+
+      if (editingId) {
+        await updateProduct.mutateAsync({ id: editingId, ...payload });
       } else {
-        await addProduct.mutateAsync(productData);
+        await addProduct.mutateAsync(payload);
       }
-      handleCloseForm();
+
+      setIsOpen(false);
+      setEditingId(null);
+      setForm({ ...emptyForm });
     } catch (error) {
-      console.error('Error saving product:', error);
-      alert('Failed to save product. Check console for details.');
+      console.error(error);
+      alert('Failed to save product');
+    } finally {
+      setSaving(false);
     }
   };
+
+ const handleDelete = async (id: string) => {
+  if (!confirm('Delete this product?')) return;
+  try {
+    await deleteProduct.mutateAsync(id);
+  } catch (error: any) {
+    console.error(error);
+    alert(error?.message || 'Failed to delete product');
+  }
+};
 
   if (isLoading) {
     return (
@@ -68,230 +165,255 @@ export function Catalog() {
   }
 
   if (isError) {
-    return (
-      <div className="text-center py-12 text-red-600">
-        Failed to load products. Please check your Firebase connection.
-      </div>
-    );
+    return <div className="text-red-600">Failed to load products.</div>;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-serif font-bold text-charcoal">
-            Catalog Management
-          </h1>
-          <p className="text-charcoal-light text-sm mt-1">
-            Manage your products, pricing, and inventory.
+          <h1 className="text-2xl font-serif font-bold text-charcoal">Catalog</h1>
+          <p className="text-sm text-charcoal-light mt-1">
+            Manage products and variants
           </p>
         </div>
-        {!isFormOpen && (
-          <Button onClick={() => handleOpenForm()}>
-            <Plus className="w-4 h-4 mr-2" /> Add Product
-          </Button>
-        )}
+        <Button onClick={openCreate}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Product
+        </Button>
       </div>
 
-      {isFormOpen ? (
-        <Card className="p-6 border-none shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="font-serif font-semibold text-xl text-charcoal">
-              {editingProduct ? 'Edit Product' : 'Add New Product'}
-            </h2>
+      {/* Product list */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {products.map((product) => (
+          <Card key={product.id} className="p-4 border-none shadow-sm">
+            <div className="flex gap-3">
+              <img
+                src={product.image}
+                alt={product.name}
+                className="w-16 h-16 rounded-lg object-cover bg-surface"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    'https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&q=80&w=200';
+                }}
+              />
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-charcoal truncate">{product.name}</h3>
+                <p className="text-xs text-charcoal-lighter">{product.category}</p>
+                <p className="text-sm text-brand-600 mt-1">
+                  ₹{product.price.toLocaleString('en-IN')}
+                  {product.hasVariants ? ' · has variants' : ''}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <Button size="sm" variant="outline" onClick={() => openEdit(product)}>
+                <Pencil className="w-3.5 h-3.5 mr-1" />
+                Edit
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => handleDelete(product.id)}>
+                <Trash2 className="w-3.5 h-3.5 mr-1" />
+                Delete
+              </Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {products.length === 0 && (
+        <Card className="p-10 text-center text-charcoal-light border-none shadow-sm">
+          No products yet. Click Add Product.
+        </Card>
+      )}
+
+      {/* Modal form */}
+      {isOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 overflow-y-auto">
+          <Card className="w-full max-w-2xl my-8 p-6 border-none shadow-lg relative">
             <button
-              onClick={handleCloseForm}
-              className="text-charcoal-lighter hover:text-charcoal"
+              className="absolute right-4 top-4 text-charcoal-light hover:text-charcoal"
+              onClick={() => setIsOpen(false)}
             >
               <X className="w-5 h-5" />
             </button>
-          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <h2 className="text-xl font-serif font-bold text-charcoal mb-6">
+              {editingId ? 'Edit Product' : 'Add Product'}
+            </h2>
+
+            <form onSubmit={handleSave} className="space-y-4">
               <Input
-                name="name"
                 label="Product Name"
-                defaultValue={editingProduct?.name}
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
               />
-              <Input
-                name="category"
-                label="Category"
-                defaultValue={editingProduct?.category}
-                required
+
+              <Textarea
+                label="Description"
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
-              <Input
-                name="price"
-                type="number"
-                label="Price (₹)"
-                defaultValue={editingProduct?.price}
-                required
-              />
-              <Input
-                name="stock"
-                type="number"
-                label="Stock Quantity"
-                defaultValue={editingProduct?.stock}
-                required
-              />
-              <div className="md:col-span-2">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-charcoal mb-2">
+                    Category
+                  </label>
+                  <select
+                    value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    className="w-full rounded-lg border border-brand-200 px-3 py-2.5 text-sm"
+                  >
+                    <option>Keychains</option>
+                    <option>Lamps</option>
+                    <option>Lithophanes</option>
+                    <option>Vases</option>
+                    <option>Decor</option>
+                    <option>Idols</option>
+                    <option>Custom & Personalised</option>
+                  </select>
+                </div>
+
                 <Input
-                  name="image"
-                  label="Image URL"
-                  defaultValue={editingProduct?.image}
-                  placeholder="https://images.unsplash.com/..."
+                  label="Material"
+                  value={form.material}
+                  onChange={(e) => setForm({ ...form, material: e.target.value })}
                 />
               </div>
-              <div className="md:col-span-2">
-                <Textarea
-                  name="description"
-                  label="Description"
-                  defaultValue={editingProduct?.description}
-                  required
-                />
+
+              <Input
+                label="Main Image URL"
+                value={form.image}
+                onChange={(e) => setForm({ ...form, image: e.target.value })}
+                required
+              />
+
+              <div className="flex flex-wrap gap-4 text-sm">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.hasVariants}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        hasVariants: e.target.checked,
+                        variants: e.target.checked && form.variants.length === 0
+                          ? [emptyVariant()]
+                          : form.variants
+                      })
+                    }
+                  />
+                  Has Variants
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.featured}
+                    onChange={(e) => setForm({ ...form, featured: e.target.checked })}
+                  />
+                  Featured
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.isCustomizable}
+                    onChange={(e) => setForm({ ...form, isCustomizable: e.target.checked })}
+                  />
+                  Customizable
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.active}
+                    onChange={(e) => setForm({ ...form, active: e.target.checked })}
+                  />
+                  Active
+                </label>
               </div>
-            </div>
 
-            <div className="flex gap-6 pt-4 border-t border-brand-100">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="isCustomizable"
-                  defaultChecked={editingProduct?.isCustomizable}
-                  className="rounded border-brand-300 text-brand-500 focus:ring-brand-500"
-                />
-                <span className="text-sm text-charcoal font-medium">
-                  Allow Personalisation
-                </span>
-              </label>
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="featured"
-                  defaultChecked={editingProduct?.featured}
-                  className="rounded border-brand-300 text-brand-500 focus:ring-brand-500"
-                />
-                <span className="text-sm text-charcoal font-medium">
-                  Feature on Homepage
-                </span>
-              </label>
-            </div>
+              {!form.hasVariants ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="Price (₹)"
+                    type="number"
+                    value={form.price}
+                    onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+                    required
+                  />
+                  <Input
+                    label="Stock"
+                    type="number"
+                    value={form.stock}
+                    onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
+                    required
+                  />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-charcoal">Variants</p>
+                    <Button type="button" size="sm" variant="outline" onClick={addVariantRow}>
+                      <Plus className="w-3.5 h-3.5 mr-1" />
+                      Add Variant
+                    </Button>
+                  </div>
 
-            <div className="flex justify-end gap-3 pt-6">
-              <Button type="button" variant="outline" onClick={handleCloseForm}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                isLoading={addProduct.isPending || updateProduct.isPending}
-              >
-                {editingProduct ? 'Save Changes' : 'Add Product'}
-              </Button>
-            </div>
-          </form>
-        </Card>
-      ) : (
-        <Card className="border-none shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-surface text-xs uppercase tracking-wider text-charcoal-light border-b border-brand-100">
-                  <th className="px-6 py-4 font-medium">Product</th>
-                  <th className="px-6 py-4 font-medium">Category</th>
-                  <th className="px-6 py-4 font-medium">Price</th>
-                  <th className="px-6 py-4 font-medium">Stock</th>
-                  <th className="px-6 py-4 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-brand-50">
-                {products.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-charcoal-light">
-                      No products yet. Click “Add Product” to create your first one.
-                    </td>
-                  </tr>
-                ) : (
-                  products.map((product) => (
-                    <tr key={product.id} className="hover:bg-brand-50/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg overflow-hidden bg-surface-dark flex-shrink-0">
-                            {product.image ? (
-                              <img
-                                src={product.image}
-                                alt={product.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-charcoal-lighter">
-                                <ImageIcon className="w-4 h-4" />
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium text-charcoal">{product.name}</p>
-                            <div className="flex gap-2 mt-1">
-                              {product.featured && (
-                                <span className="text-[10px] bg-brand-100 text-brand-700 px-1.5 py-0.5 rounded">
-                                  Featured
-                                </span>
-                              )}
-                              {product.isCustomizable && (
-                                <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
-                                  Custom
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-charcoal-light">
-                        {product.category}
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium text-charcoal">
-                        ₹{product.price.toLocaleString('en-IN')}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`text-sm font-medium px-2.5 py-1 rounded-full ${
-                            product.stock > 10
-                              ? 'bg-green-50 text-green-700'
-                              : product.stock > 0
-                              ? 'bg-amber-50 text-amber-700'
-                              : 'bg-red-50 text-red-700'
-                          }`}
-                        >
-                          {product.stock} in stock
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => handleOpenForm(product)}
-                            className="p-2 text-charcoal-light hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={async () => {
-                              if (confirm('Are you sure you want to delete this product?')) {
-                                await deleteProduct.mutateAsync(product.id);
-                              }
-                            }}
-                            className="p-2 text-charcoal-light hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                  {form.variants.map((variant, index) => (
+                    <div
+                      key={variant.id}
+                      className="p-3 rounded-xl bg-surface space-y-2 border border-brand-100"
+                    >
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <Input
+                          label="Label (e.g. One Piece)"
+                          value={variant.label}
+                          onChange={(e) => updateVariant(index, 'label', e.target.value)}
+                          required
+                        />
+                        <Input
+                          label="Image URL (optional)"
+                          value={variant.image || ''}
+                          onChange={(e) => updateVariant(index, 'image', e.target.value)}
+                        />
+                        <Input
+                          label="Price (₹)"
+                          type="number"
+                          value={variant.price}
+                          onChange={(e) => updateVariant(index, 'price', Number(e.target.value))}
+                          required
+                        />
+                        <Input
+                          label="Stock"
+                          type="number"
+                          value={variant.stock}
+                          onChange={(e) => updateVariant(index, 'stock', Number(e.target.value))}
+                          required
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        className="text-xs text-red-600"
+                        onClick={() => removeVariantRow(index)}
+                      >
+                        Remove variant
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <Button type="submit" className="flex-1" isLoading={saving}>
+                  {editingId ? 'Update Product' : 'Save Product'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
       )}
     </div>
   );

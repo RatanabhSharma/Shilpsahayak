@@ -19,7 +19,7 @@ export function Checkout() {
     (sum, item) => sum + item.product.price * item.quantity,
     0
   );
-  const shipping = subtotal >= 2000 ? 0 : 150;
+  const shipping = subtotal >= 499 ? 0 : 150;
   const total = subtotal + shipping;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

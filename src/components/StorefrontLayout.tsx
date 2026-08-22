@@ -8,7 +8,6 @@ import {
   Instagram,
   Facebook,
   Twitter,
-  ChevronDown,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useStore } from '../store';
@@ -16,16 +15,11 @@ import { useAuth } from '../hooks/useAuth';
 
 type NavLink = {
   name: string;
-  path?: string;
-  dropdown?: {
-    name: string;
-    path: string;
-  }[];
+  path: string;
 };
 
 export function StorefrontLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   const cart = useStore((state) => state.cart);
 
@@ -37,10 +31,9 @@ export function StorefrontLayout() {
   const location = useLocation();
   const { isLoggedIn } = useAuth();
 
-  // Close mobile menu and dropdown when route changes
+  // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
-    setActiveDropdown(null);
   }, [location.pathname]);
 
   const navLinks: NavLink[] = [
@@ -50,20 +43,7 @@ export function StorefrontLayout() {
     },
     {
       name: 'Shop',
-      dropdown: [
-        { name: 'Shop All', path: '/catalog' },
-        { name: 'Lamps', path: '/catalog?category=Lamps' },
-        { name: 'Vases', path: '/catalog?category=Vases' },
-        { name: 'Decor & Home', path: '/catalog?category=Decor' },
-        { name: 'Keychains', path: '/catalog?category=Keychains' },
-        { name: 'Idols', path: '/catalog?category=Idols' },
-        {
-          name: 'Custom & Personalised',
-          path: '/catalog?category=Custom+%26+Personalised',
-        },
-        { name: 'Lithophanes', path: '/catalog?category=Lithophanes' },
-        { name: 'Couples Gifts', path: '/catalog?occasion=Couples' },
-      ],
+      path: '/catalog',
     },
     {
       name: 'Services',
@@ -83,13 +63,14 @@ export function StorefrontLayout() {
     <div className="min-h-screen flex flex-col bg-surface">
       {/* Announcement Bar */}
       <div className="bg-brand-500 text-white text-xs font-medium py-2 text-center px-4">
-        Free Pan-India shipping on orders over ₹2000. Crafted with precision.
+        Free Pan-India shipping on orders over ₹499. Crafted with precision.
       </div>
 
       {/* Header */}
       <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-md border-b border-brand-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
+            
             {/* Logo */}
             <Link to="/" className="flex flex-col">
               <span className="font-serif text-2xl font-bold text-charcoal leading-none">
@@ -104,60 +85,23 @@ export function StorefrontLayout() {
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-6 lg:space-x-8">
               {navLinks.map((link) => (
-                <div
+                <Link
                   key={link.name}
-                  className="relative"
-                  onMouseLeave={() => setActiveDropdown(null)}
+                  to={link.path}
+                  className={`text-sm font-medium transition-colors hover:text-brand-500 ${
+                    location.pathname === link.path
+                      ? 'text-brand-500'
+                      : 'text-charcoal-light'
+                  }`}
                 >
-                  {link.dropdown ? (
-                    <>
-                      <button
-                        type="button"
-                        onMouseEnter={() => setActiveDropdown(link.name)}
-                        className={`flex items-center text-sm font-medium transition-colors hover:text-brand-500 ${
-                          activeDropdown === link.name
-                            ? 'text-brand-500'
-                            : 'text-charcoal-light'
-                        }`}
-                      >
-                        {link.name}
-                        <ChevronDown className="w-3 h-3 ml-1" />
-                      </button>
-
-                      {activeDropdown === link.name && (
-                        <div className="absolute top-full left-0 pt-4 w-56 z-50">
-                          <div className="bg-white rounded-xl shadow-soft border border-brand-100 py-2 overflow-hidden">
-                            {link.dropdown.map((dropItem) => (
-                              <Link
-                                key={dropItem.name}
-                                to={dropItem.path}
-                                className="block px-4 py-2 text-sm text-charcoal hover:bg-brand-50 hover:text-brand-600 transition-colors"
-                              >
-                                {dropItem.name}
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <Link
-                      to={link.path || '/'}
-                      className={`text-sm font-medium transition-colors hover:text-brand-500 ${
-                        location.pathname === link.path
-                          ? 'text-brand-500'
-                          : 'text-charcoal-light'
-                      }`}
-                    >
-                      {link.name}
-                    </Link>
-                  )}
-                </div>
+                  {link.name}
+                </Link>
               ))}
             </nav>
 
             {/* Actions */}
             <div className="flex items-center space-x-4">
+
               {/* Account / Login */}
               {isLoggedIn ? (
                 <Link
@@ -202,9 +146,13 @@ export function StorefrontLayout() {
               <button
                 type="button"
                 className="md:hidden p-2 text-charcoal"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                onClick={() =>
+                  setIsMobileMenuOpen(!isMobileMenuOpen)
+                }
                 aria-label={
-                  isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'
+                  isMobileMenuOpen
+                    ? 'Close navigation menu'
+                    : 'Open navigation menu'
                 }
                 aria-expanded={isMobileMenuOpen}
               >
@@ -238,34 +186,17 @@ export function StorefrontLayout() {
             >
               <div className="px-4 pt-2 pb-6 space-y-1">
                 {navLinks.map((link) => (
-                  <div key={link.name}>
-                    {link.dropdown ? (
-                      <>
-                        <div className="px-3 py-3 text-base font-medium text-charcoal">
-                          {link.name}
-                        </div>
-
-                        <div className="pl-6 space-y-1 border-l-2 border-brand-100 ml-3 mb-2">
-                          {link.dropdown.map((dropItem) => (
-                            <Link
-                              key={dropItem.name}
-                              to={dropItem.path}
-                              className="block px-3 py-2 text-sm text-charcoal-light hover:text-brand-500 rounded-lg"
-                            >
-                              {dropItem.name}
-                            </Link>
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      <Link
-                        to={link.path || '/'}
-                        className="block px-3 py-3 text-base font-medium text-charcoal hover:bg-brand-50 hover:text-brand-500 rounded-lg"
-                      >
-                        {link.name}
-                      </Link>
-                    )}
-                  </div>
+                  <Link
+                    key={link.name}
+                    to={link.path}
+                    className={`block px-3 py-3 text-base font-medium rounded-lg transition-colors ${
+                      location.pathname === link.path
+                        ? 'bg-brand-50 text-brand-500'
+                        : 'text-charcoal hover:bg-brand-50 hover:text-brand-500'
+                    }`}
+                  >
+                    {link.name}
+                  </Link>
                 ))}
               </div>
             </motion.div>
@@ -282,6 +213,7 @@ export function StorefrontLayout() {
       <footer className="bg-surface-dark border-t border-brand-200 pt-16 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+
             {/* Brand */}
             <div className="col-span-1 md:col-span-2">
               <Link to="/" className="flex flex-col mb-6">
@@ -303,6 +235,7 @@ export function StorefrontLayout() {
 
               {/* Social Links */}
               <div className="flex space-x-4">
+
                 <a
                   href="#"
                   className="text-charcoal-lighter hover:text-brand-500 transition-colors"
@@ -326,6 +259,7 @@ export function StorefrontLayout() {
                 >
                   <Twitter className="w-5 h-5" />
                 </a>
+
               </div>
             </div>
 
@@ -381,21 +315,31 @@ export function StorefrontLayout() {
               </h3>
 
               <ul className="space-y-3 text-sm text-charcoal-light">
-                <li>WhatsApp: +91 xxxxx xxxxx</li>
-                <li>Email: hello@shilpsahayak.in</li>
-                <li>Studio: PATIALA, PUNJAB 147001</li>
+                <li>
+                  WhatsApp: +91 xxxxx xxxxx
+                </li>
+
+                <li>
+                  Email: hello@shilpsahayak.in
+                </li>
+
+                <li>
+                  Studio: PATIALA, PUNJAB 147001
+                </li>
               </ul>
             </div>
           </div>
 
           {/* Copyright */}
           <div className="border-t border-brand-200 pt-8 flex flex-col md:flex-row justify-between items-center">
+
             <p className="text-xs text-charcoal-lighter mb-4 md:mb-0">
               © {new Date().getFullYear()} Shilp Sahayak.
               All rights reserved.
             </p>
 
             <div className="flex space-x-6 text-xs text-charcoal-lighter">
+
               <a
                 href="#"
                 className="hover:text-brand-500"
@@ -416,6 +360,7 @@ export function StorefrontLayout() {
               >
                 Admin Login
               </Link>
+
             </div>
           </div>
         </div>

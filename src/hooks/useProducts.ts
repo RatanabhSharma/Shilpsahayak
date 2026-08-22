@@ -11,6 +11,17 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
+export type ProductVariant = {
+  id: string;
+  label: string;
+  price: number;
+  stock: number;
+  image?: string;
+  theme?: string;
+  color?: string;
+  size?: string;
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -18,12 +29,15 @@ export type Product = {
   price: number;
   category: string;
   image: string;
+  images?: string[];
   stock: number;
   material?: string;
   occasion?: string;
   isCustomizable?: boolean;
   featured?: boolean;
   active?: boolean;
+  hasVariants?: boolean;
+  variants?: ProductVariant[];
 };
 
 // Get all products

@@ -1,7 +1,9 @@
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRight,
+  ArrowLeft,
   Star,
   ShieldCheck,
   Truck,
@@ -14,52 +16,54 @@ import { Button, Card } from '../../components/ui';
 export function Home() {
   const { data: products = [], isLoading } = useProducts();
 
-  const featuredProducts = products
-    .filter((p) => p.featured && p.active !== false)
-    .slice(0, 4);
+  const activeProducts = useMemo(
+    () => products.filter((p) => p.active !== false),
+    [products]
+  );
 
-  const categories = [
-    {
-      name: 'Lamps',
-      image:
-        'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&q=80&w=400'
-    },
-    {
-      name: 'Vases',
-      image:
-        'https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&q=80&w=400'
-    },
-    {
-      name: 'Decor',
-      image:
-        'https://images.unsplash.com/photo-1584589167171-541ce45f1eea?auto=format&fit=crop&q=80&w=400'
-    },
-    {
-      name: 'Keychains',
-      image:
-        'https://5.imimg.com/data5/SELLER/Default/2024/4/409600524/VJ/WW/OL/83399193/3d-silicone-keychain-stylish-one-piece-anime-keychain-collection.jpeg'
-    },
-    {
-      name: 'Idols',
-      image:
-        'https://images.unsplash.com/photo-1580130379624-3a06943c6462?auto=format&fit=crop&q=80&w=400'
-    },
-    {
-      name: 'Custom & Personalised',
-      image:
-        'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&q=80&w=400'
-    },
-    {
-      name: 'Lithophanes',
-      image:
-        'https://images.unsplash.com/photo-1516589178581-6cd7853d1152?auto=format&fit=crop&q=80&w=400'
+  const featuredProducts = useMemo(
+    () => activeProducts.filter((p) => p.featured).slice(0, 4),
+    [activeProducts]
+  );
+
+  // Categories are derived live from real products - never hardcoded.
+  // Each category tile shows a real photo from a real product in that category,
+  // so updating the Shop automatically updates the Home page too.
+  const categories = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const product of activeProducts) {
+      if (product.category && !map.has(product.category)) {
+        map.set(product.category, product.image);
+      }
     }
-  ];
+    return Array.from(map.entries()).map(([name, image]) => ({ name, image }));
+  }, [activeProducts]);
+
+  const [slideIndex, setSlideIndex] = useState(0);
+  const slideCount = featuredProducts.length;
+
+  useEffect(() => {
+    if (slideCount === 0) return;
+    const timer = setInterval(() => {
+      setSlideIndex((i) => (i + 1) % slideCount);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [slideCount]);
+
+  useEffect(() => {
+    if (slideIndex >= slideCount) setSlideIndex(0);
+  }, [slideCount, slideIndex]);
+
+  const goToSlide = (i: number) => setSlideIndex(i);
+  const nextSlide = () => setSlideIndex((i) => (i + 1) % slideCount);
+  const prevSlide = () => setSlideIndex((i) => (i - 1 + slideCount) % slideCount);
+
+  const currentSlide = featuredProducts[slideIndex];
 
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-surface-dark py-20 sm:py-32">
+      <section className="relative overflow-hidden bg-surface-dark py-20 sm:py-28">
         <div
           className="absolute inset-0 opacity-10 pointer-events-none"
           style={{
@@ -68,48 +72,136 @@ export function Home() {
           }}
         ></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="max-w-3xl">
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-5xl sm:text-6xl lg:text-7xl font-serif font-bold text-charcoal leading-tight mb-6"
-            >
-              Memories, Illuminated. <br />
-              <span className="text-brand-500 italic">Gifts, Re-imagined.</span>
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-lg sm:text-xl text-charcoal-light mb-10 max-w-2xl leading-relaxed"
-            >
-              Studio-crafted precision 3D printing. From personalized lithophane
-              lamps to bespoke decor, we turn your ideas into heirloom-quality
-              physical objects.
-            </motion.p>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="flex flex-col sm:flex-row gap-4"
-            >
-              <Link to="/catalog">
-                <Button size="lg" className="w-full sm:w-auto">
-                  Explore Catalog
-                </Button>
-              </Link>
-              <Link to="/custom-service">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="w-full sm:w-auto bg-white/50 backdrop-blur-sm"
+          {slideCount > 0 && currentSlide ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+              {/* Text side */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentSlide.id}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -16 }}
+                  transition={{ duration: 0.5 }}
                 >
-                  Request Custom Piece
-                </Button>
-              </Link>
-            </motion.div>
-          </div>
+                  <p className="text-xs uppercase tracking-widest text-brand-500 font-semibold mb-4">
+                    Featured &middot; {currentSlide.category}
+                  </p>
+                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-charcoal leading-tight mb-6">
+                    {currentSlide.name}
+                  </h1>
+                  <p className="text-lg text-charcoal-light mb-8 max-w-xl leading-relaxed">
+                    {currentSlide.description ||
+                      'Studio-crafted precision 3D printing, made to order.'}
+                  </p>
+                  <div className="flex items-center gap-4 mb-8">
+                    <span className="text-2xl font-semibold text-brand-600">
+                      ₹{currentSlide.price.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Link to={`/product/${currentSlide.id}`}>
+                      <Button size="lg" className="w-full sm:w-auto">
+                        Shop This Piece
+                      </Button>
+                    </Link>
+                    <Link to="/catalog">
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="w-full sm:w-auto bg-white/50 backdrop-blur-sm"
+                      >
+                        Explore Catalog
+                      </Button>
+                    </Link>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Image side */}
+              <div className="relative">
+                <div className="relative aspect-square rounded-2xl overflow-hidden shadow-xl">
+                  <AnimatePresence mode="wait">
+                    <motion.img
+                      key={currentSlide.id}
+                      src={currentSlide.image}
+                      alt={currentSlide.name}
+                      initial={{ opacity: 0, scale: 1.05 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.5 }}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  </AnimatePresence>
+                </div>
+
+                {/* Nav arrows */}
+                {slideCount > 1 && (
+                  <>
+                    <button
+                      onClick={prevSlide}
+                      aria-label="Previous slide"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-md transition-colors"
+                    >
+                      <ArrowLeft className="w-4 h-4 text-charcoal" />
+                    </button>
+                    <button
+                      onClick={nextSlide}
+                      aria-label="Next slide"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-md transition-colors"
+                    >
+                      <ArrowRight className="w-4 h-4 text-charcoal" />
+                    </button>
+                  </>
+                )}
+
+                {/* Dots */}
+                {slideCount > 1 && (
+                  <div className="flex justify-center gap-2 mt-4">
+                    {featuredProducts.map((p, i) => (
+                      <button
+                        key={p.id}
+                        onClick={() => goToSlide(i)}
+                        aria-label={`Go to slide ${i + 1}`}
+                        className={`h-1.5 rounded-full transition-all ${
+                          i === slideIndex
+                            ? 'w-6 bg-brand-500'
+                            : 'w-1.5 bg-charcoal/20'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="max-w-3xl">
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-serif font-bold text-charcoal leading-tight mb-6">
+                Memories, Illuminated. <br />
+                <span className="text-brand-500 italic">Gifts, Re-imagined.</span>
+              </h1>
+              <p className="text-lg sm:text-xl text-charcoal-light mb-10 max-w-2xl leading-relaxed">
+                Studio-crafted precision 3D printing. From personalized lithophane
+                lamps to bespoke decor, we turn your ideas into heirloom-quality
+                physical objects.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link to="/catalog">
+                  <Button size="lg" className="w-full sm:w-auto">
+                    Explore Catalog
+                  </Button>
+                </Link>
+                <Link to="/custom-service">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full sm:w-auto bg-white/50 backdrop-blur-sm"
+                  >
+                    Request Custom Piece
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -153,89 +245,49 @@ export function Home() {
         </div>
       </section>
 
-      {/* Categories */}
+      {/* Categories - derived live from real products, always in sync with the Shop */}
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-serif font-bold text-charcoal mb-4">
-              Choose your piece
+              Shop by category
             </h2>
             <p className="text-charcoal-light">
               Explore our collection of studio-crafted items
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            {categories.map((cat, i) => (
-              <Link
-                key={i}
-                to={`/catalog?category=${encodeURIComponent(cat.name)}`}
-                className="group block"
-              >
-                <div className="relative rounded-2xl overflow-hidden aspect-[4/5] mb-4">
-                  <div className="absolute inset-0 bg-charcoal/20 group-hover:bg-transparent transition-colors duration-300 z-10" />
-                  <img
-                    src={cat.image}
-                    alt={cat.name}
-                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                  />
-                </div>
-                <h3 className="font-serif font-medium text-lg text-charcoal text-center group-hover:text-brand-500 transition-colors">
-                  {cat.name}
-                </h3>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Gift For Collections */}
-      <section className="py-20 bg-surface">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-charcoal mb-4">
-              Gift For
-            </h2>
-            <p className="text-charcoal-light">
-              Find the perfect crafted piece for every occasion
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                name: 'Personalised',
-                img: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&q=80&w=600',
-                link: '/catalog?category=Custom+%26+Personalised'
-              },
-              {
-                name: 'Couples',
-                img: 'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&q=80&w=600',
-                link: '/catalog?occasion=Couples'
-              },
-              {
-                name: 'Home & Interior',
-                img: 'https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&q=80&w=600',
-                link: '/catalog?category=Decor'
-              }
-            ].map((col, i) => (
-              <Link
-                key={i}
-                to={col.link}
-                className="group relative rounded-2xl overflow-hidden aspect-[4/3]"
-              >
-                <img
-                  src={col.img}
-                  alt={col.name}
-                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-charcoal/30 group-hover:bg-charcoal/40 transition-colors flex items-center justify-center">
-                  <h3 className="font-serif text-2xl font-bold text-white">
-                    {col.name}
+          {isLoading ? (
+            <div className="flex justify-center py-16">
+              <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
+            </div>
+          ) : categories.length === 0 ? (
+            <div className="text-center py-16 text-charcoal-light">
+              No products yet. Add products in Admin to see categories here.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+              {categories.map((cat) => (
+                <Link
+                  key={cat.name}
+                  to={`/catalog?category=${encodeURIComponent(cat.name)}`}
+                  className="group block"
+                >
+                  <div className="relative rounded-2xl overflow-hidden aspect-[4/5] mb-4 bg-surface-dark">
+                    <div className="absolute inset-0 bg-charcoal/20 group-hover:bg-transparent transition-colors duration-300 z-10" />
+                    <img
+                      src={cat.image}
+                      alt={cat.name}
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                    />
+                  </div>
+                  <h3 className="font-serif font-medium text-lg text-charcoal text-center group-hover:text-brand-500 transition-colors">
+                    {cat.name}
                   </h3>
-                </div>
-              </Link>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -265,7 +317,7 @@ export function Home() {
             </div>
           ) : featuredProducts.length === 0 ? (
             <div className="text-center py-16 text-charcoal-light">
-              No featured products yet. Mark some products as “Featured” in Admin.
+              No featured products yet. Mark some products as "Featured" in Admin.
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -317,8 +369,6 @@ export function Home() {
         </div>
       </section>
 
-      {/* Custom Order Teaser + Testimonials remain the same */}
-      {/* You can keep the rest of the original sections as they are */}
     </div>
   );
 }
