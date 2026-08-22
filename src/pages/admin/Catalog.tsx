@@ -8,7 +8,13 @@ import {
   Product,
   ProductVariant
 } from '../../hooks/useProducts';
-import { Button, Card, Input, Textarea } from '../../components/ui';
+import {
+  Button,
+  Card,
+  Input,
+  Textarea,
+  Select
+} from '../../components/ui';
 import {
   useCategories,
   useAddCategory
@@ -329,29 +335,23 @@ const payload: any = {
                     </button>
                   </div>
 
-                  <select
-                    value={form.category}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        category: e.target.value
-                      })
-                    }
-                    className="w-full rounded-lg border border-brand-200 px-3 py-2.5 text-sm bg-white"
-                  >
-                    <option value="">
-                      Select category
-                    </option>
-
-                    {categories.map((category) => (
-                      <option
-                        key={category.id}
-                        value={category.name}
-                      >
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
+                 <Select
+  value={form.category}
+  onChange={(value) =>
+    setForm({
+      ...form,
+      category: value
+    })
+  }
+  placeholder="Select category"
+  className="w-full"
+options={categories.map(
+  (category: { id: string; name: string }) => ({
+    value: category.name,
+    label: category.name
+  })
+)}
+/>
 
                   {categories.length === 0 && (
                     <p className="text-xs text-charcoal-light mt-2">

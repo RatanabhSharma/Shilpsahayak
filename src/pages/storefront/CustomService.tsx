@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, Calculator, Loader2, CheckCircle, FileBox } from 'lucide-react';
-import { Button, Input, Textarea, Card } from '../../components/ui';
+import { Button, Input, Textarea, Card, Select } from '../../components/ui';
 import { calculateSTLVolume } from '../../utils/calculateVolume';
 import { MATERIAL_CONFIG, BASE_FEE, MaterialType } from '../../config/pricing';
 import { useSubmitQuote } from '../../hooks/useQuotes';
@@ -27,6 +27,28 @@ export function CustomService() {
   const [volume, setVolume] = useState<number | null>(null);
   const [estimatedWeight, setEstimatedWeight] = useState<number | null>(null);
   const [estimatedPrice, setEstimatedPrice] = useState<number | null>(null);
+
+  const MATERIAL_OPTIONS = Object.keys(MATERIAL_CONFIG).map((mat) => ({
+    value: mat,
+    label: mat
+  }));
+
+  const COLOR_OPTIONS = [
+    'White',
+    'Black',
+    'Grey',
+    'Red',
+    'Blue',
+    'Natural',
+    'Marble'
+  ].map((value) => ({ value, label: value }));
+
+  const LAYER_HEIGHT_OPTIONS = [
+    { value: '0.12', label: '0.12 mm (High Detail)' },
+    { value: '0.16', label: '0.16 mm' },
+    { value: '0.2', label: '0.20 mm (Standard)' },
+    { value: '0.28', label: '0.28 mm (Draft)' }
+  ];
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -203,36 +225,24 @@ export function CustomService() {
                   <label className="block text-sm font-medium text-charcoal mb-2">
                     Material
                   </label>
-                  <select
+                  <Select
                     value={material}
-                    onChange={(e) => setMaterial(e.target.value as MaterialType)}
-                    className="w-full rounded-lg border border-brand-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  >
-                    {Object.keys(MATERIAL_CONFIG).map((mat) => (
-                      <option key={mat} value={mat}>
-                        {mat}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) => setMaterial(value as MaterialType)}
+                    className="w-full"
+                    options={MATERIAL_OPTIONS}
+                  />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-charcoal mb-2">
                     Color
                   </label>
-                  <select
+                  <Select
                     value={color}
-                    onChange={(e) => setColor(e.target.value)}
-                    className="w-full rounded-lg border border-brand-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  >
-                    <option>White</option>
-                    <option>Black</option>
-                    <option>Grey</option>
-                    <option>Red</option>
-                    <option>Blue</option>
-                    <option>Natural</option>
-                    <option>Marble</option>
-                  </select>
+                    onChange={setColor}
+                    className="w-full"
+                    options={COLOR_OPTIONS}
+                  />
                 </div>
 
                 <div>
@@ -254,16 +264,12 @@ export function CustomService() {
                   <label className="block text-sm font-medium text-charcoal mb-2">
                     Layer Height
                   </label>
-                  <select
-                    value={layerHeight}
-                    onChange={(e) => setLayerHeight(Number(e.target.value))}
-                    className="w-full rounded-lg border border-brand-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  >
-                    <option value={0.12}>0.12 mm (High Detail)</option>
-                    <option value={0.16}>0.16 mm</option>
-                    <option value={0.2}>0.20 mm (Standard)</option>
-                    <option value={0.28}>0.28 mm (Draft)</option>
-                  </select>
+                  <Select
+                    value={String(layerHeight)}
+                    onChange={(value) => setLayerHeight(Number(value))}
+                    className="w-full"
+                    options={LAYER_HEIGHT_OPTIONS}
+                  />
                 </div>
 
                 <div>

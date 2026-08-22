@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Loader2, FileBox, ChevronRight } from 'lucide-react';
-import { Card, Input, Button } from '../../components/ui';
+import { Card, Input, Button, Select } from '../../components/ui';
 import { useQuotes, useUpdateQuote, QuoteStatus } from '../../hooks/useQuotes';
 
 const STATUS_COLORS: Record<QuoteStatus, string> = {
@@ -10,6 +10,19 @@ const STATUS_COLORS: Record<QuoteStatus, string> = {
   Rejected: 'bg-red-50 text-red-700',
   Completed: 'bg-purple-50 text-purple-700'
 };
+
+const QUOTE_STATUS_OPTIONS = [
+  { value: 'Pending', label: 'Pending' },
+  { value: 'Quoted', label: 'Quoted' },
+  { value: 'Accepted', label: 'Accepted' },
+  { value: 'Rejected', label: 'Rejected' },
+  { value: 'Completed', label: 'Completed' }
+];
+
+const QUOTE_FILTER_OPTIONS = [
+  { value: 'All', label: 'All Status' },
+  ...QUOTE_STATUS_OPTIONS
+];
 
 export function Quotes() {
   const { data: quotes = [], isLoading, isError } = useQuotes();
@@ -91,18 +104,12 @@ export function Quotes() {
               className="pl-10"
             />
           </div>
-          <select
+          <Select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-brand-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-          >
-            <option value="All">All Status</option>
-            <option value="Pending">Pending</option>
-            <option value="Quoted">Quoted</option>
-            <option value="Accepted">Accepted</option>
-            <option value="Rejected">Rejected</option>
-            <option value="Completed">Completed</option>
-          </select>
+            onChange={setStatusFilter}
+            className="w-full sm:w-52"
+            options={QUOTE_FILTER_OPTIONS}
+          />
         </div>
       </Card>
 
@@ -216,22 +223,17 @@ export function Quotes() {
                   )}
 
                   <div className="space-y-2">
-                    <select
+                    <Select
                       value={quote.status}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         handleStatusChange(
                           quote.id,
-                          e.target.value as QuoteStatus
+                          value as QuoteStatus
                         )
                       }
-                      className="w-full rounded-lg border border-brand-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="Quoted">Quoted</option>
-                      <option value="Accepted">Accepted</option>
-                      <option value="Rejected">Rejected</option>
-                      <option value="Completed">Completed</option>
-                    </select>
+                      className="w-full"
+                      options={QUOTE_STATUS_OPTIONS}
+                    />
 
                     <div className="flex gap-2">
                       <Input

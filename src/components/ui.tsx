@@ -297,38 +297,173 @@ export function Select({
   className
 }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
+
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+    openUpward: boolean;
+  } | null>(null);
+
   const selectRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = options.find(
     (option) => option.value === value
   );
 
+  const updateDropdownPosition = () => {
+    if (!selectRef.current) return;
+
+    const rect =
+      selectRef.current.getBoundingClientRect();
+
+    const viewportPadding = 12;
+    const gap = 8;
+    const maxMenuHeight = 360;
+
+    const spaceAbove = rect.top - viewportPadding;
+    const spaceBelow =
+      window.innerHeight -
+      rect.bottom -
+      viewportPadding;
+
+    const openUpward =
+      spaceBelow < 220 &&
+      spaceAbove > spaceBelow;
+
+    const availableSpace = openUpward
+      ? spaceAbove - gap
+      : spaceBelow - gap;
+
+    const maxHeight = Math.max(
+      180,
+      Math.min(maxMenuHeight, availableSpace)
+    );
+
+    const top = openUpward
+      ? Math.max(
+          viewportPadding,
+          rect.top - maxHeight - gap
+        )
+      : Math.min(
+          window.innerHeight -
+            viewportPadding -
+            maxHeight,
+          rect.bottom + gap
+        );
+
+    const left = Math.max(
+      viewportPadding,
+      Math.min(
+        rect.left,
+        window.innerWidth -
+          rect.width -
+          viewportPadding
+      )
+    );
+
+    setDropdownPosition({
+      top,
+      left,
+      width: rect.width,
+      maxHeight,
+      openUpward
+    });
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    updateDropdownPosition();
+
+    const handleResize = () => {
+      updateDropdownPosition();
+    };
+
+    const handleScroll = () => {
+      updateDropdownPosition();
+    };
+
+    window.addEventListener(
+      'resize',
+      handleResize
+    );
+
+    window.addEventListener(
+      'scroll',
+      handleScroll,
+      true
+    );
+
+    return () => {
+      window.removeEventListener(
+        'resize',
+        handleResize
+      );
+
+      window.removeEventListener(
+        'scroll',
+        handleScroll,
+        true
+      );
+    };
+  }, [isOpen, options.length]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         selectRef.current &&
-        !selectRef.current.contains(event.target as Node)
+        !selectRef.current.contains(
+          event.target as Node
+        )
       ) {
-        setIsOpen(false);
+        const target = event.target as HTMLElement;
+
+        if (
+          !target.closest(
+            '[data-select-dropdown="true"]'
+          )
+        ) {
+          setIsOpen(false);
+        }
       }
     };
 
-    const handleEscape = (event: KeyboardEvent) => {
+    const handleEscape = (
+      event: KeyboardEvent
+    ) => {
       if (event.key === 'Escape') {
         setIsOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEscape);
+    document.addEventListener(
+      'mousedown',
+      handleClickOutside
+    );
+
+    document.addEventListener(
+      'keydown',
+      handleEscape
+    );
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener(
+        'mousedown',
+        handleClickOutside
+      );
+
+      document.removeEventListener(
+        'keydown',
+        handleEscape
+      );
     };
   }, []);
 
-  const handleSelect = (optionValue: string) => {
+  const handleSelect = (
+    optionValue: string
+  ) => {
     onChange(optionValue);
     setIsOpen(false);
   };
@@ -345,7 +480,9 @@ export function Select({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={() => {
+          setIsOpen((prev) => !prev);
+        }}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         className={cn(
@@ -364,7 +501,8 @@ export function Select({
         <span
           className={cn(
             'truncate leading-none',
-            !selectedOption && 'text-charcoal-lighter'
+            !selectedOption &&
+              'text-charcoal-lighter'
           )}
         >
           {selectedOption?.label || placeholder}
@@ -376,37 +514,46 @@ export function Select({
             'text-charcoal-light',
             'transition-all duration-200 ease-out',
             'group-hover:text-brand-500',
-            isOpen && 'rotate-180 text-brand-500'
+            isOpen &&
+              'rotate-180 text-brand-500'
           )}
         />
       </button>
 
-      {/* Dropdown Menu */}
-      {isOpen && (
+      {/* Dropdown */}
+      {isOpen && dropdownPosition && (
         <div
+          data-select-dropdown="true"
           role="listbox"
-          className="
-            absolute
-            left-0
-            right-0
-            z-50
-            mt-2
-            rounded-2xl
-            border
-            border-brand-100
-            bg-white
-            p-2
-            shadow-xl
-            origin-top
-            animate-in
-            fade-in
-            zoom-in-95
-            duration-150
-          "
+          style={{
+            position: 'fixed',
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            width: dropdownPosition.width,
+            maxHeight:
+              dropdownPosition.maxHeight
+          }}
+          className={cn(
+            'z-[9999]',
+            'rounded-2xl',
+            'border border-brand-100',
+            'bg-white',
+            'p-2',
+            'shadow-xl',
+            'overflow-y-auto',
+            'origin-top',
+            'animate-in',
+            'fade-in',
+            'zoom-in-95',
+            'duration-150',
+            dropdownPosition.openUpward &&
+              'origin-bottom'
+          )}
         >
           <div className="space-y-1">
             {options.map((option) => {
-              const isSelected = option.value === value;
+              const isSelected =
+                option.value === value;
 
               return (
                 <button
@@ -414,7 +561,9 @@ export function Select({
                   type="button"
                   role="option"
                   aria-selected={isSelected}
-                  onClick={() => handleSelect(option.value)}
+                  onClick={() =>
+                    handleSelect(option.value)
+                  }
                   className={cn(
                     'flex w-full items-center justify-between',
                     'rounded-xl px-3.5 py-2.5',
@@ -422,7 +571,8 @@ export function Select({
                     'font-medium tracking-[0.01em]',
                     'transition-all duration-150 ease-out',
                     'text-charcoal-light',
-                    'hover:bg-brand-50 hover:text-brand-700',
+                    'hover:bg-brand-50',
+                    'hover:text-brand-700',
                     'hover:translate-x-0.5',
                     isSelected &&
                       'bg-brand-50 text-brand-700'
@@ -433,7 +583,19 @@ export function Select({
                   </span>
 
                   {isSelected && (
-                    <span className="ml-3 flex h-5 w-5 items-center justify-center rounded-full bg-brand-500">
+                    <span
+                      className="
+                        ml-3
+                        flex
+                        h-5
+                        w-5
+                        flex-shrink-0
+                        items-center
+                        justify-center
+                        rounded-full
+                        bg-brand-500
+                      "
+                    >
                       <Check className="h-3 w-3 text-white" />
                     </span>
                   )}

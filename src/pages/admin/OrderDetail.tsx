@@ -1,44 +1,118 @@
-import React from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Loader2, Package, User, MapPin, Phone, Mail } from 'lucide-react';
-import { useOrders, useUpdateOrderStatus, OrderStatus } from '../../hooks/useOrders';
-import { Card, Button } from '../../components/ui';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  Search,
+  Filter,
+  ChevronRight,
+  Loader2
+} from 'lucide-react';
 
-const STATUS_OPTIONS: OrderStatus[] = [
-  'Pending',
-  'Confirmed',
-  'Printing',
-  'Quality Check',
-  'Shipped',
-  'Delivered',
-  'Cancelled'
-];
+import {
+  Card,
+  Input,
+  Button,
+  Select
+} from '../../components/ui';
+
+import {
+  useOrders,
+  OrderStatus,
+  useUpdateOrderStatus
+} from '../../hooks/useOrders';
 
 const STATUS_COLORS: Record<OrderStatus, string> = {
-  Pending: 'bg-amber-50 text-amber-700 border-amber-200',
-  Confirmed: 'bg-blue-50 text-blue-700 border-blue-200',
-  Printing: 'bg-purple-50 text-purple-700 border-purple-200',
-  'Quality Check': 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  Shipped: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-  Delivered: 'bg-green-50 text-green-700 border-green-200',
-  Cancelled: 'bg-red-50 text-red-700 border-red-200'
+  Pending: 'bg-amber-50 text-amber-700',
+  Confirmed: 'bg-blue-50 text-blue-700',
+  Printing: 'bg-purple-50 text-purple-700',
+  'Quality Check': 'bg-indigo-50 text-indigo-700',
+  Shipped: 'bg-cyan-50 text-cyan-700',
+  Delivered: 'bg-green-50 text-green-700',
+  Cancelled: 'bg-red-50 text-red-700'
 };
 
+const STATUS_OPTIONS = [
+  {
+    value: 'Pending',
+    label: 'Pending'
+  },
+  {
+    value: 'Confirmed',
+    label: 'Confirmed'
+  },
+  {
+    value: 'Printing',
+    label: 'Printing'
+  },
+  {
+    value: 'Quality Check',
+    label: 'Quality Check'
+  },
+  {
+    value: 'Shipped',
+    label: 'Shipped'
+  },
+  {
+    value: 'Delivered',
+    label: 'Delivered'
+  },
+  {
+    value: 'Cancelled',
+    label: 'Cancelled'
+  }
+];
+
 export function OrderDetail() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { data: orders = [], isLoading } = useOrders();
+  const {
+    data: orders = [],
+    isLoading,
+    isError
+  } = useOrders();
+
   const updateStatus = useUpdateOrderStatus();
 
-  const order = orders.find((o) => o.id === id);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] =
+    useState<string>('All');
 
-  const handleStatusChange = async (newStatus: OrderStatus) => {
-    if (!order) return;
+  const filteredOrders = orders.filter((order) => {
+    const searchValue = search.toLowerCase();
+
+    const matchesSearch =
+      order.customerName
+        .toLowerCase()
+        .includes(searchValue) ||
+      order.id
+        .toLowerCase()
+        .includes(searchValue) ||
+      order.customerEmail
+        .toLowerCase()
+        .includes(searchValue);
+
+    const matchesStatus =
+      statusFilter === 'All' ||
+      order.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const handleStatusChange = async (
+    orderId: string,
+    newStatus: OrderStatus
+  ) => {
     try {
-      await updateStatus.mutateAsync({ id: order.id, status: newStatus });
+      await updateStatus.mutateAsync({
+        id: orderId,
+        status: newStatus
+      });
     } catch (error) {
-      console.error(error);
-      alert('Failed to update status');
+      console.error(
+        'Failed to update status:',
+        error
+      );
+
+      alert(
+        'Failed to update order status'
+      );
     }
   };
 
@@ -50,189 +124,295 @@ export function OrderDetail() {
     );
   }
 
-  if (!order) {
+  if (isError) {
     return (
-      <div className="text-center py-20">
-        <h2 className="text-xl font-serif text-charcoal mb-4">Order not found</h2>
-        <Button onClick={() => navigate('/admin/orders')}>Back to Orders</Button>
+      <div className="text-center py-12 text-red-600">
+        Failed to load orders. Please try again.
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+
+      {/* =====================================================
+          Header
+      ===================================================== */}
+
+      <div className="flex justify-between items-center">
+
         <div>
-          <button
-            onClick={() => navigate('/admin/orders')}
-            className="flex items-center text-sm text-charcoal-light hover:text-brand-500 mb-3"
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Back to Orders
-          </button>
           <h1 className="text-2xl font-serif font-bold text-charcoal">
-            Order #{order.id.slice(0, 8)}
+            Orders
           </h1>
+
           <p className="text-charcoal-light text-sm mt-1">
-            Placed on{' '}
-            {new Date(order.date).toLocaleDateString('en-IN', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
+            Manage and track customer orders
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-charcoal-light">Status:</span>
-          <select
-            value={order.status}
-            onChange={(e) => handleStatusChange(e.target.value as OrderStatus)}
-            className={`text-sm font-medium px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-brand-500 ${STATUS_COLORS[order.status]}`}
-          >
-            {STATUS_OPTIONS.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Order Items */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="p-6 border-none shadow-sm">
-            <h2 className="font-serif font-semibold text-lg text-charcoal mb-5 flex items-center">
-              <Package className="w-5 h-5 mr-2 text-brand-500" />
-              Order Items
-            </h2>
+      {/* =====================================================
+          Filters
+      ===================================================== */}
 
-            <div className="space-y-4">
-              {order.items.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex gap-4 p-4 bg-surface rounded-xl"
-                >
-                  <div className="w-16 h-16 rounded-lg bg-surface-dark flex-shrink-0 flex items-center justify-center text-charcoal-lighter text-xs">
-                    Item
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-charcoal">{item.productName}</p>
-                    <p className="text-sm text-charcoal-light mt-1">
-                      Qty: {item.quantity} × ₹{item.price.toLocaleString('en-IN')}
-                    </p>
-                    {item.variantLabel && (
-                      <p className="text-xs text-charcoal-lighter mt-1">
-                        {item.variantLabel}
-                      </p>
-                    )}
-                    {item.customNotes && (
-                      <p className="text-xs text-brand-600 mt-1">
-                        Note: {item.customNotes}
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-charcoal">
-                      ₹{(item.price * item.quantity).toLocaleString('en-IN')}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+      <Card className="p-4 border-none shadow-sm">
 
-            <div className="border-t border-brand-100 mt-6 pt-4 flex justify-between">
-              <span className="font-medium text-charcoal">Total</span>
-              <span className="text-xl font-semibold text-brand-600">
-                ₹{order.total.toLocaleString('en-IN')}
-              </span>
-            </div>
-          </Card>
+        <div className="flex flex-col sm:flex-row gap-4">
 
-          {order.notes && (
-            <Card className="p-6 border-none shadow-sm">
-              <h3 className="font-medium text-charcoal mb-2">Customer Notes</h3>
-              <p className="text-charcoal-light text-sm">{order.notes}</p>
-            </Card>
-          )}
+          {/* Search */}
+
+          <div className="relative flex-1">
+
+            <Search
+              className="
+                absolute
+                left-3
+                top-1/2
+                -translate-y-1/2
+                w-4
+                h-4
+                text-charcoal-lighter
+              "
+            />
+
+            <Input
+              placeholder="Search by name, email or order ID..."
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+              className="pl-10"
+            />
+
+          </div>
+
+          {/* Status Filter */}
+
+          <div className="flex items-center gap-2">
+
+            <Filter className="w-4 h-4 text-charcoal-lighter flex-shrink-0" />
+
+            <Select
+              value={statusFilter}
+              onChange={setStatusFilter}
+              className="w-52"
+              options={[
+                {
+                  value: 'All',
+                  label: 'All Status'
+                },
+                ...STATUS_OPTIONS
+              ]}
+            />
+
+          </div>
+
         </div>
 
-        {/* Customer Info */}
-        <div className="space-y-6">
-          <Card className="p-6 border-none shadow-sm">
-            <h2 className="font-serif font-semibold text-lg text-charcoal mb-5 flex items-center">
-              <User className="w-5 h-5 mr-2 text-brand-500" />
-              Customer Details
-            </h2>
+      </Card>
 
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs text-charcoal-lighter uppercase tracking-wider mb-1">
-                  Name
-                </p>
-                <p className="font-medium text-charcoal">{order.customerName}</p>
-              </div>
+      {/* =====================================================
+          Orders Table
+      ===================================================== */}
 
-              <div className="flex items-start gap-2">
-                <Mail className="w-4 h-4 text-charcoal-lighter mt-0.5" />
-                <div>
-                  <p className="text-xs text-charcoal-lighter uppercase tracking-wider mb-1">
-                    Email
-                  </p>
-                  <p className="text-sm text-charcoal">{order.customerEmail}</p>
-                </div>
-              </div>
+      <Card className="border-none shadow-sm overflow-hidden">
 
-              <div className="flex items-start gap-2">
-                <Phone className="w-4 h-4 text-charcoal-lighter mt-0.5" />
-                <div>
-                  <p className="text-xs text-charcoal-lighter uppercase tracking-wider mb-1">
-                    Phone
-                  </p>
-                  <p className="text-sm text-charcoal">{order.customerPhone}</p>
-                </div>
-              </div>
+        <div className="overflow-x-auto">
 
-              <div className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-charcoal-lighter mt-0.5" />
-                <div>
-                  <p className="text-xs text-charcoal-lighter uppercase tracking-wider mb-1">
-                    Shipping Address
-                  </p>
-                  <p className="text-sm text-charcoal leading-relaxed">
-                    {order.address}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </Card>
+          <table className="w-full text-left border-collapse">
 
-          <Card className="p-6 border-none shadow-sm bg-brand-50">
-            <h3 className="font-medium text-charcoal mb-3">Quick Actions</h3>
-            <div className="space-y-2">
-              <a
-                href={`https://wa.me/${order.customerPhone.replace(/\D/g, '')}?text=Hi ${order.customerName}, regarding your order #${order.id.slice(0, 8)}...`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
-              >
-                <Button variant="outline" className="w-full justify-start">
-                  Contact on WhatsApp
-                </Button>
-              </a>
-              <a href={`mailto:${order.customerEmail}`} className="block">
-                <Button variant="outline" className="w-full justify-start">
-                  Send Email
-                </Button>
-              </a>
-            </div>
-          </Card>
+            <thead>
+
+              <tr className="
+                bg-surface
+                text-xs
+                uppercase
+                tracking-wider
+                text-charcoal-light
+                border-b
+                border-brand-100
+              ">
+
+                <th className="px-6 py-4 font-medium">
+                  Order ID
+                </th>
+
+                <th className="px-6 py-4 font-medium">
+                  Customer
+                </th>
+
+                <th className="px-6 py-4 font-medium">
+                  Date
+                </th>
+
+                <th className="px-6 py-4 font-medium">
+                  Total
+                </th>
+
+                <th className="px-6 py-4 font-medium">
+                  Status
+                </th>
+
+                <th className="px-6 py-4 font-medium text-right">
+                  Actions
+                </th>
+
+              </tr>
+
+            </thead>
+
+            <tbody className="divide-y divide-brand-50">
+
+              {filteredOrders.length === 0 ? (
+
+                <tr>
+
+                  <td
+                    colSpan={6}
+                    className="
+                      px-6
+                      py-12
+                      text-center
+                      text-charcoal-light
+                    "
+                  >
+                    No orders found.
+                  </td>
+
+                </tr>
+
+              ) : (
+
+                filteredOrders.map((order) => (
+
+                  <tr
+                    key={order.id}
+                    className="
+                      hover:bg-brand-50/50
+                      transition-colors
+                    "
+                  >
+
+                    {/* Order ID */}
+
+                    <td className="px-6 py-4">
+
+                      <Link
+                        to={`/admin/orders/${order.id}`}
+                        className="
+                          font-medium
+                          text-brand-600
+                          hover:text-brand-700
+                          transition-colors
+                        "
+                      >
+                        #{order.id.slice(0, 8)}
+                      </Link>
+
+                    </td>
+
+                    {/* Customer */}
+
+                    <td className="px-6 py-4">
+
+                      <div>
+
+                        <p className="font-medium text-charcoal">
+                          {order.customerName}
+                        </p>
+
+                        <p className="text-xs text-charcoal-lighter">
+                          {order.customerEmail}
+                        </p>
+
+                      </div>
+
+                    </td>
+
+                    {/* Date */}
+
+                    <td className="px-6 py-4 text-sm text-charcoal-light">
+
+                      {new Date(
+                        order.date
+                      ).toLocaleDateString(
+                        'en-IN',
+                        {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric'
+                        }
+                      )}
+
+                    </td>
+
+                    {/* Total */}
+
+                    <td className="px-6 py-4 font-medium text-charcoal">
+
+                      ₹
+                      {order.total.toLocaleString(
+                        'en-IN'
+                      )}
+
+                    </td>
+
+                    {/* Status */}
+
+                    <td className="px-6 py-4">
+
+                      <Select
+                        value={order.status}
+                        onChange={(value) =>
+                          handleStatusChange(
+                            order.id,
+                            value as OrderStatus
+                          )
+                        }
+                        className="w-44"
+                        options={STATUS_OPTIONS}
+                      />
+
+                    </td>
+
+                    {/* Actions */}
+
+                    <td className="px-6 py-4 text-right">
+
+                      <Link
+                        to={`/admin/orders/${order.id}`}
+                        className="
+                          inline-flex
+                          items-center
+                          text-sm
+                          text-charcoal-light
+                          hover:text-brand-600
+                          transition-colors
+                        "
+                      >
+                        View
+
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Link>
+
+                    </td>
+
+                  </tr>
+
+                ))
+
+              )}
+
+            </tbody>
+
+          </table>
+
         </div>
-      </div>
+
+      </Card>
+
     </div>
   );
 }
