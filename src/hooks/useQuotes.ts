@@ -338,4 +338,45 @@ export function useDeleteQuote() {
       });
     }
   });
+}/* -------------------------------------------------------------------------- */
+/* Customer: Accept / Reject quote                                             */
+/* -------------------------------------------------------------------------- */
+
+export function useRespondToQuote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      status,
+    }: {
+      id: string;
+      status: 'Accepted' | 'Rejected';
+    }) => {
+      if (!id) {
+        throw new Error('Quote ID is required.');
+      }
+
+      await updateDoc(
+        doc(db, 'quotes', id),
+        {
+          status,
+        }
+      );
+    },
+
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['my-quotes'],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ['quotes'],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ['my-quote', variables.id],
+      });
+    },
+  });
 }

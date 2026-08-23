@@ -1,14 +1,21 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
+
 import {
   collection,
   getDocs,
+  getDoc,
   addDoc,
   updateDoc,
   doc,
   query,
   orderBy,
-  where
+  where,
 } from 'firebase/firestore';
+
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
 
@@ -45,102 +52,191 @@ export type Order = {
   notes?: string;
 };
 
-// Admin: Get all orders
+/* -------------------------------------------------------------------------- */
+/* Admin: Get ALL orders                                                       */
+/* -------------------------------------------------------------------------- */
+
 export function useOrders() {
-  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['orders'],
 
- return useQuery({
-  queryKey: ['my-orders', user?.uid],
+    queryFn: async (): Promise<Order[]> => {
+      const ordersQuery = query(
+        collection(db, 'orders'),
+        orderBy('date', 'desc')
+      );
 
-  queryFn: async () => {
-    if (!user) return [];
+      const snapshot = await getDocs(ordersQuery);
 
-    const q = query(
-      collection(db, 'orders'),
-      where('customerId', '==', user.uid),
-      orderBy('date', 'desc')
-    );
+      return snapshot.docs.map((orderDoc) => ({
+        id: orderDoc.id,
+        ...orderDoc.data(),
+      })) as Order[];
+    },
 
-    const snapshot = await getDocs(q);
-
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Order[];
-  },
-
-  enabled: !!user,
-
-  // Keep orders cached for 5 minutes.
-  staleTime: 5 * 60 * 1000,
-
-  // Don't refetch just because the user switches browser tabs.
-  refetchOnWindowFocus: false,
-
-  // Don't refetch every time Account component mounts.
-  refetchOnMount: false,
-});
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
 }
 
-// Customer: Get only my orders
+/* -------------------------------------------------------------------------- */
+/* Admin: Get ONE order                                                       */
+/* -------------------------------------------------------------------------- */
+
+export function useOrder(orderId?: string) {
+  return useQuery({
+    queryKey: ['order', orderId],
+
+    queryFn: async (): Promise<Order | null> => {
+      if (!orderId) {
+        return null;
+      }
+
+      const orderRef = doc(db, 'orders', orderId);
+      const snapshot = await getDoc(orderRef);
+
+      if (!snapshot.exists()) {
+        return null;
+      }
+
+      return {
+        id: snapshot.id,
+        ...snapshot.data(),
+      } as Order;
+    },
+
+    enabled: !!orderId,
+
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Customer: Get only current user's orders                                   */
+/* -------------------------------------------------------------------------- */
+
 export function useMyOrders(enabled = true) {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: ['my-orders', user?.uid],
-    queryFn: async () => {
-      if (!user) return [];
 
-      const q = query(
+    queryFn: async (): Promise<Order[]> => {
+      if (!user) {
+        return [];
+      }
+
+      const ordersQuery = query(
         collection(db, 'orders'),
         where('customerId', '==', user.uid),
         orderBy('date', 'desc')
       );
 
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
+      const snapshot = await getDocs(ordersQuery);
+
+      return snapshot.docs.map((orderDoc) => ({
+        id: orderDoc.id,
+        ...orderDoc.data(),
       })) as Order[];
     },
-    enabled: !!user && enabled
+
+    enabled: !!user && enabled,
+
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }
 
-// Create new order
+/* -------------------------------------------------------------------------- */
+/* Create new order                                                           */
+/* -------------------------------------------------------------------------- */
+
 export function useCreateOrder() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (orderData: Omit<Order, 'id' | 'date' | 'status'>) => {
+    mutationFn: async (
+      orderData: Omit<Order, 'id' | 'date' | 'status'>
+    ) => {
+      if (!user) {
+        throw new Error(
+          'You must be logged in to create an order.'
+        );
+      }
+
       const newOrder = {
         ...orderData,
-        customerId: user?.uid || null,
+        customerId: user.uid,
         date: new Date().toISOString(),
-        status: 'Pending' as OrderStatus
+        status: 'Pending' as OrderStatus,
       };
-      const docRef = await addDoc(collection(db, 'orders'), newOrder);
-      return { id: docRef.id, ...newOrder };
+
+      const docRef = await addDoc(
+        collection(db, 'orders'),
+        newOrder
+      );
+
+      return {
+        id: docRef.id,
+        ...newOrder,
+      };
     },
+
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['my-orders'] });
-    }
+      queryClient.invalidateQueries({
+        queryKey: ['orders'],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ['my-orders'],
+      });
+    },
   });
 }
 
-// Update order status (Admin)
+/* -------------------------------------------------------------------------- */
+/* Update order status                                                        */
+/* -------------------------------------------------------------------------- */
+
 export function useUpdateOrderStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: OrderStatus }) => {
-      await updateDoc(doc(db, 'orders', id), { status });
+    mutationFn: async ({
+      id,
+      status,
+    }: {
+      id: string;
+      status: OrderStatus;
+    }) => {
+      if (!id) {
+        throw new Error('Order ID is required.');
+      }
+
+      await updateDoc(
+        doc(db, 'orders', id),
+        {
+          status,
+        }
+      );
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['my-orders'] });
-    }
+
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['orders'],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ['my-orders'],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ['order', variables.id],
+      });
+    },
   });
 }
