@@ -131,7 +131,7 @@ export function AdminLayout() {
             <div className="text-sm text-right hidden sm:block">
               <p className="font-medium text-charcoal">Admin User</p>
               <p className="text-xs text-charcoal-lighter">
-                admin@shilpsahayak.in
+                Onwer
               </p>
             </div>
             <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-serif font-bold">

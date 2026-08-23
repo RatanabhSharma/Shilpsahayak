@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { Search, Loader2, FileBox, ChevronRight } from 'lucide-react';
 import { Card, Input, Button, Select } from '../../components/ui';
-import { useQuotes, useUpdateQuote, QuoteStatus } from '../../hooks/useQuotes';
+import {
+  useQuotes,
+  useUpdateQuote,
+  QuoteStatus
+} from '../../hooks/useQuotes';
 
 const STATUS_COLORS: Record<QuoteStatus, string> = {
   Pending: 'bg-amber-50 text-amber-700',
@@ -25,17 +29,24 @@ const QUOTE_FILTER_OPTIONS = [
 ];
 
 export function Quotes() {
-  const { data: quotes = [], isLoading, isError } = useQuotes();
+  const {
+    data: quotes = [],
+    isLoading,
+    isError
+  } = useQuotes();
+
   const updateQuote = useUpdateQuote();
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
   const filteredQuotes = quotes.filter((quote) => {
-    const matchesSearch =
-      quote.customerName.toLowerCase().includes(search.toLowerCase()) ||
-      quote.fileName.toLowerCase().includes(search.toLowerCase()) ||
-      quote.customerEmail.toLowerCase().includes(search.toLowerCase());
+   const searchTerm = search.toLowerCase();
+
+const matchesSearch =
+  (quote.customerName || '').toLowerCase().includes(searchTerm) ||
+  (quote.fileName || '').toLowerCase().includes(searchTerm) ||
+  (quote.customerEmail || '').toLowerCase().includes(searchTerm);;
 
     const matchesStatus =
       statusFilter === 'All' || quote.status === statusFilter;
@@ -43,27 +54,44 @@ export function Quotes() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleStatusChange = async (id: string, status: QuoteStatus) => {
-    try {
-      await updateQuote.mutateAsync({ id, status });
-    } catch (error) {
-      console.error(error);
-      alert('Failed to update status');
-    }
-  };
+const handleStatusChange = async (
+  id: string,
+  status: QuoteStatus
+) => {
+  try {
+    await updateQuote.mutateAsync({
+      id,
+      status
+    });
+  } catch (error) {
+    console.error(
+      'Failed to update quote status:',
+      error
+    );
 
-  const handlePriceUpdate = async (id: string, adminPrice: number) => {
-    try {
-      await updateQuote.mutateAsync({
-        id,
-        adminPrice,
-        status: 'Quoted'
-      });
-    } catch (error) {
-      console.error(error);
-      alert('Failed to update price');
-    }
-  };
+    alert('Failed to update status');
+  }
+};
+
+const handlePriceUpdate = async (
+  id: string,
+  adminPrice: number
+) => {
+  try {
+    await updateQuote.mutateAsync({
+      id,
+      adminPrice,
+      status: 'Quoted'
+    });
+  } catch (error) {
+    console.error(
+      'Failed to update quote price:',
+      error
+    );
+
+    alert('Failed to update price');
+  }
+};
 
   if (isLoading) {
     return (
@@ -207,11 +235,11 @@ export function Quotes() {
                       Customer Estimate
                     </p>
                     <p className="text-2xl font-bold text-brand-600">
-                      ₹{quote.estimatedPrice.toLocaleString('en-IN')}
+                     ₹{(quote.estimatedPrice ?? 0).toLocaleString('en-IN')}
                     </p>
                   </div>
 
-                  {quote.adminPrice && (
+                 {quote.adminPrice !== undefined && (
                     <div className="bg-green-50 rounded-xl p-4 text-center">
                       <p className="text-xs text-charcoal-light mb-1">
                         Your Quote

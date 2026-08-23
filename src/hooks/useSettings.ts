@@ -20,10 +20,10 @@ const SETTINGS_DOCUMENT_ID = 'business';
 
 const DEFAULT_SETTINGS: Settings = {
   businessName: 'Shilp Sahayak',
-  whatsappNumber: '+91 98765 43210',
-  email: 'hello@shilpsahayak.com',
-  phone: '+91 98765 43210',
-  address: 'Patiala, Punjab 147001',
+  whatsappNumber: '',
+  email: '',
+  phone: '',
+  address: '',
   shippingFlatRate: 150,
   freeShippingThreshold: 499,
   upiId: ''

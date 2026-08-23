@@ -47,21 +47,43 @@ export type Order = {
 
 // Admin: Get all orders
 export function useOrders() {
-  return useQuery({
-    queryKey: ['orders'],
-    queryFn: async () => {
-      const q = query(collection(db, 'orders'), orderBy('date', 'desc'));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Order[];
-    }
-  });
+  const { user } = useAuth();
+
+ return useQuery({
+  queryKey: ['my-orders', user?.uid],
+
+  queryFn: async () => {
+    if (!user) return [];
+
+    const q = query(
+      collection(db, 'orders'),
+      where('customerId', '==', user.uid),
+      orderBy('date', 'desc')
+    );
+
+    const snapshot = await getDocs(q);
+
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Order[];
+  },
+
+  enabled: !!user,
+
+  // Keep orders cached for 5 minutes.
+  staleTime: 5 * 60 * 1000,
+
+  // Don't refetch just because the user switches browser tabs.
+  refetchOnWindowFocus: false,
+
+  // Don't refetch every time Account component mounts.
+  refetchOnMount: false,
+});
 }
 
 // Customer: Get only my orders
-export function useMyOrders() {
+export function useMyOrders(enabled = true) {
   const { user } = useAuth();
 
   return useQuery({
@@ -81,7 +103,7 @@ export function useMyOrders() {
         ...doc.data()
       })) as Order[];
     },
-    enabled: !!user
+    enabled: !!user && enabled
   });
 }
 

@@ -167,11 +167,11 @@ export type Settings = {
 
 const INITIAL_SETTINGS: Settings = {
   businessName: 'Shilp Sahayak',
-  whatsappNumber: '+91 98765 43210',
-  email: 'hello@shilpsahayak.com',
-  phone: '+91 98765 43210',
+  whatsappNumber: '',
+  email: '',
+  phone: '',
   address:
-    '123, Maker’s Lane, Andheri West, Mumbai, Maharashtra 400053',
+    '',
 
   shippingFlatRate: 150,
   freeShippingThreshold: 499,

@@ -22,13 +22,13 @@ export function Contact() {
     settings?.email || 'hello@shilpsahayak.com';
 
   const phone =
-    settings?.phone || '+91 xxxxx xxxxx';
+    settings?.phone || '';
 
   const whatsapp =
-    settings?.whatsappNumber || '+91 xxxxx xxxxx';
+    settings?.whatsappNumber || '';
 
   const address =
-    settings?.address || 'Patiala, Punjab 147001';
+    settings?.address || '';
 
   const whatsappLink = whatsapp
     ? `https://wa.me/${whatsapp.replace(/\D/g, '')}`

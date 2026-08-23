@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Upload,
   Calculator,
@@ -6,9 +6,12 @@ import {
   CheckCircle,
   FileBox,
   Lock,
-  UserRound
+  Image as ImageIcon,
+  Lightbulb,
+  Box,
+  ShoppingCart
 } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import {
   Button,
@@ -19,21 +22,42 @@ import {
 } from '../../components/ui';
 
 import { calculateSTLVolume } from '../../utils/calculateVolume';
+
 import {
   MATERIAL_CONFIG,
   BASE_FEE,
   MaterialType
 } from '../../config/pricing';
 
-import { useSubmitQuote } from '../../hooks/useQuotes';
+import {
+  useSubmitQuote,
+  QuoteRequestType
+} from '../../hooks/useQuotes';
+
 import { useAuth } from '../../hooks/useAuth';
 import { useUserProfile } from '../../hooks/useUserProfile';
+
 import { upload3DFile } from '../../utils/uploadFile';
+
+import {
+  CustomPrintData,
+  Product,
+  useStore
+} from '../../store';
+
+type ServiceMode =
+  | '3d-model'
+  | 'image'
+  | 'idea';
 
 export function CustomService() {
   const navigate = useNavigate();
 
-  const submitQuote = useSubmitQuote();
+  const [searchParams] =
+    useSearchParams();
+
+  const submitQuote =
+    useSubmitQuote();
 
   const {
     user,
@@ -45,7 +69,45 @@ export function CustomService() {
     isLoading: profileLoading
   } = useUserProfile();
 
-  const [file, setFile] = useState<File | null>(null);
+  const addToCart = useStore(
+    (state) => state.addToCart
+  );
+
+  const products = useStore(
+    (state) => state.products
+  );
+
+  /* ---------------------------------------------------------------------- */
+  /* Product context                                                        */
+  /* ---------------------------------------------------------------------- */
+
+  const productId =
+    searchParams.get('productId');
+
+  const variantId =
+    searchParams.get('variantId');
+
+  const selectedProduct =
+    products.find(
+      (product) =>
+        product.id === productId
+    );
+
+  const selectedVariant =
+    selectedProduct?.variants?.find(
+      (variant) =>
+        variant.id === variantId
+    );
+
+  /* ---------------------------------------------------------------------- */
+  /* State                                                                  */
+  /* ---------------------------------------------------------------------- */
+
+  const [mode, setMode] =
+    useState<ServiceMode>('3d-model');
+
+  const [file, setFile] =
+    useState<File | null>(null);
 
   const [isCalculating, setIsCalculating] =
     useState(false);
@@ -56,14 +118,21 @@ export function CustomService() {
   const [isSuccess, setIsSuccess] =
     useState(false);
 
+  const [successMessage, setSuccessMessage] =
+    useState('');
+
   const [uploadProgress, setUploadProgress] =
     useState<number | null>(null);
 
   const [material, setMaterial] =
     useState<MaterialType>('PLA');
 
+  /*
+   * Store the selected colour as HEX.
+   * Example: #FFFFFF
+   */
   const [color, setColor] =
-    useState('White');
+    useState('#FFFFFF');
 
   const [infill, setInfill] =
     useState(20);
@@ -77,6 +146,18 @@ export function CustomService() {
   const [notes, setNotes] =
     useState('');
 
+  const [description, setDescription] =
+    useState('');
+
+  const [length, setLength] =
+    useState('');
+
+  const [width, setWidth] =
+    useState('');
+
+  const [height, setHeight] =
+    useState('');
+
   const [volume, setVolume] =
     useState<number | null>(null);
 
@@ -86,67 +167,64 @@ export function CustomService() {
   const [estimatedPrice, setEstimatedPrice] =
     useState<number | null>(null);
 
-  /*
-   * Material options
-   */
-  const MATERIAL_OPTIONS = Object.keys(
-    MATERIAL_CONFIG
-  ).map((mat) => ({
-    value: mat,
-    label: mat
-  }));
+  /* ---------------------------------------------------------------------- */
+  /* Material options                                                       */
+  /* ---------------------------------------------------------------------- */
 
-  /*
-   * Color options
-   */
-  const COLOR_OPTIONS = [
-    'White',
-    'Black',
-    'Grey',
-    'Red',
-    'Blue',
-    'Natural',
-    'Marble'
-  ].map((value) => ({
-    value,
-    label: value
-  }));
+  const materialOptions = useMemo(
+    () =>
+      Object.keys(
+        MATERIAL_CONFIG
+      ).map((mat) => ({
+        value: mat,
+        label: mat
+      })),
+    []
+  );
 
-  /*
-   * Layer height options
-   */
-  const LAYER_HEIGHT_OPTIONS = [
-    {
-      value: '0.12',
-      label: '0.12 mm (High Detail)'
-    },
-    {
-      value: '0.16',
-      label: '0.16 mm'
-    },
-    {
-      value: '0.2',
-      label: '0.20 mm (Standard)'
-    },
-    {
-      value: '0.28',
-      label: '0.28 mm (Draft)'
-    }
-  ];
+  const layerHeightOptions =
+    useMemo(
+      () => [
+        {
+          value: '0.12',
+          label: '0.12 mm — High Detail'
+        },
+        {
+          value: '0.16',
+          label: '0.16 mm'
+        },
+        {
+          value: '0.2',
+          label: '0.20 mm — Standard'
+        },
+        {
+          value: '0.28',
+          label: '0.28 mm — Draft'
+        }
+      ],
+      []
+    );
 
-  /*
-   * Calculate estimated price
-   */
+  /* ---------------------------------------------------------------------- */
+  /* Price calculation                                                      */
+  /* ---------------------------------------------------------------------- */
+
   const calculatePrice = (
     vol: number,
     mat: MaterialType,
     inf: number,
     qty: number
   ) => {
-    const config = MATERIAL_CONFIG[mat];
+    const config =
+      MATERIAL_CONFIG[mat];
+
+    if (!config) {
+      return;
+    }
 
     const infillFactor =
-      0.3 + (inf / 100) * 0.7;
+      0.3 +
+      (inf / 100) * 0.7;
 
     const weight =
       vol *
@@ -154,7 +232,9 @@ export function CustomService() {
       infillFactor;
 
     const price =
-      (weight * config.pricePerGram + BASE_FEE) *
+      (weight *
+        config.pricePerGram +
+        BASE_FEE) *
       qty;
 
     setEstimatedWeight(
@@ -166,12 +246,15 @@ export function CustomService() {
     );
   };
 
-  /*
-   * Recalculate price whenever
-   * relevant options change.
-   */
+  /* ---------------------------------------------------------------------- */
+  /* Recalculate price                                                      */
+  /* ---------------------------------------------------------------------- */
+
   useEffect(() => {
-    if (volume !== null) {
+    if (
+      mode === '3d-model' &&
+      volume !== null
+    ) {
       calculatePrice(
         volume,
         material,
@@ -180,48 +263,83 @@ export function CustomService() {
       );
     }
   }, [
+    mode,
+    volume,
     material,
     infill,
-    quantity,
-    volume
+    quantity
   ]);
 
-  /*
-   * Validate and process uploaded file.
-   */
+  /* ---------------------------------------------------------------------- */
+  /* Reset file state                                                       */
+  /* ---------------------------------------------------------------------- */
+
+  const resetFileState = () => {
+    setFile(null);
+    setVolume(null);
+    setEstimatedWeight(null);
+    setEstimatedPrice(null);
+    setUploadProgress(null);
+  };
+
+  /* ---------------------------------------------------------------------- */
+  /* Mode change                                                            */
+  /* ---------------------------------------------------------------------- */
+
+  const handleModeChange = (
+    newMode: ServiceMode
+  ) => {
+    setMode(newMode);
+    resetFileState();
+  };
+
+  /* ---------------------------------------------------------------------- */
+  /* File selection                                                         */
+  /* ---------------------------------------------------------------------- */
+
   const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const selectedFile =
       e.target.files?.[0];
 
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      return;
+    }
 
-    const validTypes = [
-      '.stl',
-      '.obj',
-      '.3mf'
-    ];
+    const is3DModel =
+      mode === '3d-model';
 
-    const isValid = validTypes.some(
-      (ext) =>
-        selectedFile.name
-          .toLowerCase()
-          .endsWith(ext)
-    );
+    const allowedExtensions =
+      is3DModel
+        ? ['.stl', '.obj', '.3mf']
+        : ['.jpg', '.jpeg', '.png', '.webp'];
+
+    const isValid =
+      allowedExtensions.some(
+        (extension) =>
+          selectedFile.name
+            .toLowerCase()
+            .endsWith(extension)
+      );
 
     if (!isValid) {
       alert(
-        'Please upload a valid 3D file (.stl, .obj, or .3mf)'
+        is3DModel
+          ? 'Please upload a valid 3D file: STL, OBJ or 3MF.'
+          : 'Please upload a valid image: JPG, PNG or WEBP.'
       );
 
       e.target.value = '';
       return;
     }
 
+    const maxSize =
+      100 * 1024 * 1024;
+
     if (
       selectedFile.size >
-      50 * 1024 * 1024
+      maxSize
     ) {
       alert(
         'File is too large. Maximum size is 50MB.'
@@ -232,6 +350,10 @@ export function CustomService() {
     }
 
     setFile(selectedFile);
+
+    if (!is3DModel) {
+      return;
+    }
 
     setIsCalculating(true);
 
@@ -245,15 +367,17 @@ export function CustomService() {
           .toLowerCase()
           .endsWith('.stl')
       ) {
-        const vol =
+        const calculatedVolume =
           await calculateSTLVolume(
             selectedFile
           );
 
-        setVolume(vol);
+        setVolume(
+          calculatedVolume
+        );
 
         calculatePrice(
-          vol,
+          calculatedVolume,
           material,
           infill,
           quantity
@@ -261,9 +385,10 @@ export function CustomService() {
       } else {
         /*
          * OBJ and 3MF are accepted for
-         * quote submission, but the
-         * current calculator only
-         * calculates STL volume.
+         * quote submission.
+         *
+         * Automatic calculation currently
+         * supports STL.
          */
         setVolume(null);
         setEstimatedWeight(null);
@@ -276,151 +401,59 @@ export function CustomService() {
       );
 
       alert(
-        'Could not calculate volume from this file. You can still submit the quote.'
+        'Could not calculate the model volume. You can still request a quote.'
       );
     } finally {
       setIsCalculating(false);
     }
   };
 
-  /*
-   * Submit quote.
-   */
-  const handleSubmit = async (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
-    e.preventDefault();
+  /* ---------------------------------------------------------------------- */
+  /* Authentication                                                         */
+  /* ---------------------------------------------------------------------- */
 
-    /*
-     * Extra safety check.
-     * Guests should never be able
-     * to submit a custom quote.
-     */
-    if (!user) {
-      navigate(
-        '/login?redirect=/custom-service'
-      );
-
-      return;
-    }
-
-    if (!file) {
-      alert(
-        'Please upload a 3D file first.'
-      );
-
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    const formData =
-      new FormData(
-        e.currentTarget
-      );
-
-    try {
-      /*
-       * 1. Upload 3D file
-       */
-      setUploadProgress(0);
-
-      const fileUrl =
-        await upload3DFile(
-          file,
-          user.uid,
-          (progress) =>
-            setUploadProgress(
-              progress
-            )
-        );
-
-      /*
-       * 2. Save quote
-       */
-      await submitQuote.mutateAsync({
-        customerName:
-          (formData.get(
-            'name'
-          ) as string) || '',
-
-        customerEmail:
-          (formData.get(
-            'email'
-          ) as string) || '',
-
-        customerPhone:
-          (formData.get(
-            'phone'
-          ) as string) || '',
-
-        fileName:
-          file.name,
-
-        fileUrl,
-
-        material,
-
-        color,
-
-        infill,
-
-        layerHeight,
-
-        quantity,
-
-        estimatedWeight:
-          estimatedWeight || 0,
-
-        estimatedPrice:
-          estimatedPrice || 0,
-
-        notes
-      });
-
-      setIsSuccess(true);
-    } catch (error) {
-      console.error(
-        'Failed to submit quote:',
-        error
-      );
-
-      alert(
-        'Failed to submit quote. Please try again.'
-      );
-    } finally {
-      setIsSubmitting(false);
-      setUploadProgress(null);
-    }
-  };
-
-  /*
-   * Authentication loading state
-   */
   if (authLoading) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-24 text-center">
+      <div className="
+        max-w-lg
+        mx-auto
+        px-4
+        py-24
+        text-center
+      ">
+        <Loader2 className="
+          w-8
+          h-8
+          animate-spin
+          text-brand-500
+          mx-auto
+        " />
 
-        <Loader2
-          className="w-8 h-8 animate-spin text-brand-500 mx-auto"
-        />
-
-        <p className="text-sm text-charcoal-light mt-4">
+        <p className="
+          text-sm
+          text-charcoal-light
+          mt-4
+        ">
           Checking your account...
         </p>
-
       </div>
     );
   }
 
-  /*
-   * Login required.
-   */
   if (!user) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-24">
-
-        <Card className="p-8 text-center border-none shadow-sm">
+      <div className="
+        max-w-lg
+        mx-auto
+        px-4
+        py-24
+      ">
+        <Card className="
+          p-8
+          text-center
+          border-none
+          shadow-sm
+        ">
 
           <div className="
             w-16
@@ -433,7 +466,11 @@ export function CustomService() {
             mx-auto
             mb-6
           ">
-            <Lock className="w-7 h-7 text-brand-500" />
+            <Lock className="
+              w-7
+              h-7
+              text-brand-500
+            " />
           </div>
 
           <h1 className="
@@ -452,18 +489,26 @@ export function CustomService() {
             leading-relaxed
             mb-7
           ">
-            Please login or create an account before
-            submitting a custom printing request.
-            This allows us to securely manage your
-            uploaded files and order details.
+            Please login or create an account
+            before submitting a custom
+            printing request.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="
+            flex
+            flex-col
+            sm:flex-row
+            gap-3
+            justify-center
+          ">
 
             <Button
               onClick={() =>
                 navigate(
-                  '/login?redirect=/custom-service'
+                  `/login?redirect=${encodeURIComponent(
+                    window.location.pathname +
+                    window.location.search
+                  )}`
                 )
               }
             >
@@ -482,38 +527,60 @@ export function CustomService() {
           </div>
 
         </Card>
-
       </div>
     );
   }
 
-  /*
-   * Profile loading.
-   */
+  /* ---------------------------------------------------------------------- */
+  /* Profile loading                                                        */
+  /* ---------------------------------------------------------------------- */
+
   if (profileLoading) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-24 text-center">
+      <div className="
+        max-w-lg
+        mx-auto
+        px-4
+        py-24
+        text-center
+      ">
+        <Loader2 className="
+          w-8
+          h-8
+          animate-spin
+          text-brand-500
+          mx-auto
+        " />
 
-        <Loader2
-          className="w-8 h-8 animate-spin text-brand-500 mx-auto"
-        />
-
-        <p className="text-sm text-charcoal-light mt-4">
+        <p className="
+          text-sm
+          text-charcoal-light
+          mt-4
+        ">
           Loading your information...
         </p>
-
       </div>
     );
   }
 
-  /*
-   * Successful quote submission.
-   */
+  /* ---------------------------------------------------------------------- */
+  /* Success screen                                                         */
+  /* ---------------------------------------------------------------------- */
+
   if (isSuccess) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-24">
-
-        <Card className="p-8 text-center border-none shadow-sm">
+      <div className="
+        max-w-lg
+        mx-auto
+        px-4
+        py-24
+      ">
+        <Card className="
+          p-8
+          text-center
+          border-none
+          shadow-sm
+        ">
 
           <div className="
             w-16
@@ -526,7 +593,11 @@ export function CustomService() {
             mx-auto
             mb-6
           ">
-            <CheckCircle className="w-8 h-8 text-green-600" />
+            <CheckCircle className="
+              w-8
+              h-8
+              text-green-600
+            " />
           </div>
 
           <h1 className="
@@ -536,7 +607,7 @@ export function CustomService() {
             text-charcoal
             mb-3
           ">
-            Quote Request Submitted
+            Request Submitted
           </h1>
 
           <p className="
@@ -545,24 +616,30 @@ export function CustomService() {
             leading-relaxed
             mb-8
           ">
-            Your 3D model has been received successfully.
-            Our team will review the file and contact you
-            with the final quote.
+            {successMessage}
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="
+            flex
+            flex-col
+            sm:flex-row
+            gap-3
+            justify-center
+          ">
 
             <Button
+              variant="outline"
               onClick={() => {
-                setFile(null);
-                setVolume(null);
-                setEstimatedWeight(null);
-                setEstimatedPrice(null);
+                resetFileState();
+                setDescription('');
+                setNotes('');
+                setLength('');
+                setWidth('');
+                setHeight('');
                 setIsSuccess(false);
               }}
-              variant="outline"
             >
-              Submit Another Model
+              Submit Another Request
             </Button>
 
             <Button
@@ -576,17 +653,326 @@ export function CustomService() {
           </div>
 
         </Card>
-
       </div>
     );
   }
 
-  /*
-   * Main Custom Printing page.
-   */
+  /* ---------------------------------------------------------------------- */
+  /* Customer information                                                  */
+  /* ---------------------------------------------------------------------- */
+
+  const customerName =
+    profile?.name ||
+    user.displayName ||
+    '';
+
+  const customerEmail =
+    profile?.email ||
+    user.email ||
+    '';
+
+  const customerPhone =
+    profile?.phone ||
+    '';
+
+  /* ---------------------------------------------------------------------- */
+  /* Upload helper                                                          */
+  /* ---------------------------------------------------------------------- */
+
+  const uploadRequestFile =
+    async () => {
+      if (!file) {
+        return undefined;
+      }
+
+      setUploadProgress(0);
+
+      const fileUrl =
+        await upload3DFile(
+          file,
+          user.uid,
+          (progress) =>
+            setUploadProgress(
+              progress
+            )
+        );
+
+      return fileUrl;
+    };
+
+  /* ---------------------------------------------------------------------- */
+  /* Submit quote                                                           */
+  /* ---------------------------------------------------------------------- */
+
+  const submitRequest = async () => {
+    if (!user) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      let fileUrl:
+        | string
+        | undefined;
+
+      if (file) {
+        fileUrl =
+          await uploadRequestFile();
+      }
+
+      const requestType =
+        mode as QuoteRequestType;
+
+      const dimensions = {
+        length: length
+          ? Number(length)
+          : undefined,
+
+        width: width
+          ? Number(width)
+          : undefined,
+
+        height: height
+          ? Number(height)
+          : undefined,
+
+        unit: 'mm' as const
+      };
+
+      await submitQuote.mutateAsync({
+        requestType,
+
+        customerName,
+        customerEmail,
+        customerPhone,
+
+        productId:
+          selectedProduct?.id,
+
+        productName:
+          selectedProduct?.name,
+
+        variantLabel:
+          selectedVariant?.label,
+
+        fileName:
+          file?.name,
+
+        fileUrl,
+
+        material,
+
+        color,
+
+        infill:
+          mode === '3d-model'
+            ? infill
+            : undefined,
+
+        layerHeight:
+          mode === '3d-model'
+            ? layerHeight
+            : undefined,
+
+        quantity,
+
+        volume:
+          mode === '3d-model'
+            ? volume ?? undefined
+            : undefined,
+
+        estimatedWeight:
+          mode === '3d-model'
+            ? estimatedWeight ??
+              undefined
+            : undefined,
+
+        estimatedPrice:
+          mode === '3d-model'
+            ? estimatedPrice ??
+              undefined
+            : undefined,
+
+        dimensions:
+          mode !== '3d-model'
+            ? dimensions
+            : undefined,
+
+        description:
+          description ||
+          undefined,
+
+        notes:
+          notes ||
+          undefined,
+
+        adminPrice:
+          undefined,
+
+        adminNotes:
+          undefined
+      });
+
+      setSuccessMessage(
+        mode === '3d-model'
+          ? 'Your 3D model and printing specifications have been submitted. The displayed amount is only an estimate; our team will review the model before confirming the final price.'
+          : 'Your request has been received. Our team will review your requirements and prepare a custom quotation.'
+      );
+
+      setIsSuccess(true);
+    } catch (error) {
+      console.error(
+        'Failed to submit custom request:',
+        error
+      );
+
+      alert(
+        'Failed to submit your request. Please try again.'
+      );
+    } finally {
+      setIsSubmitting(false);
+      setUploadProgress(null);
+    }
+  };
+
+  /* ---------------------------------------------------------------------- */
+  /* Add 3D model to cart                                                  */
+  /* ---------------------------------------------------------------------- */
+
+  const handleAddToCart = async () => {
+    if (!user) {
+      return;
+    }
+
+    if (!file) {
+      alert(
+        'Please upload a 3D model first.'
+      );
+
+      return;
+    }
+
+    if (
+      estimatedPrice === null
+    ) {
+      alert(
+        'An estimated price could not be calculated for this model. Please request a custom quote instead.'
+      );
+
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const fileUrl =
+        await uploadRequestFile();
+
+      const customPrint: CustomPrintData =
+        {
+          fileName: file.name,
+
+          fileUrl,
+
+          material,
+
+          color,
+
+          infill,
+
+          layerHeight,
+
+          volume:
+            volume ?? undefined,
+
+          estimatedWeight:
+            estimatedWeight ??
+            undefined,
+
+          customPrice:
+            estimatedPrice
+        };
+
+      const customProduct: Product =
+        {
+          id: `custom-print-${Date.now()}`,
+
+          name:
+            selectedProduct?.name ||
+            'Custom 3D Print',
+
+          description:
+            'Custom 3D printed item',
+
+          price:
+            estimatedPrice,
+
+          category:
+            'Custom Printing',
+
+          image:
+            selectedProduct?.image ||
+            '',
+
+          images:
+            selectedProduct?.images ||
+            [],
+
+          stock:
+            999,
+
+          material:
+            material,
+
+          isCustomizable:
+            true,
+
+          active:
+            true,
+
+          featured:
+            false,
+
+          hasVariants:
+            false,
+
+          variants:
+            []
+        };
+
+      addToCart(
+        customProduct,
+        quantity,
+        notes || undefined,
+        selectedVariant?.label,
+        selectedVariant?.id,
+        customPrint
+      );
+
+      navigate('/cart');
+    } catch (error) {
+      console.error(
+        'Failed to add custom print to cart:',
+        error
+      );
+
+      alert(
+        'Could not add the custom print to your cart. Please try again.'
+      );
+    } finally {
+      setIsSubmitting(false);
+      setUploadProgress(null);
+    }
+  };
+
+  /* ---------------------------------------------------------------------- */
+  /* Main UI                                                                */
+  /* ---------------------------------------------------------------------- */
+
   return (
     <div className="
-      max-w-5xl
+      max-w-6xl
       mx-auto
       px-4
       sm:px-6
@@ -595,47 +981,148 @@ export function CustomService() {
     ">
 
       {/* Header */}
-      <div className="text-center mb-12">
-
-        <div className="
-          inline-flex
-          items-center
-          gap-2
-          px-4
-          py-2
-          rounded-full
-          bg-brand-50
-          text-brand-600
-          text-xs
-          font-medium
-          mb-5
-        ">
-          <UserRound className="w-4 h-4" />
-          Logged in as {user.email}
-        </div>
+      <div className="
+        text-center
+        mb-10
+      ">
 
         <h1 className="
           text-4xl
+          md:text-5xl
           font-serif
           font-bold
           text-charcoal
           mb-4
         ">
-          Custom 3D Print Quote
+          Custom Printing
         </h1>
 
         <p className="
           text-charcoal-light
           max-w-2xl
           mx-auto
+          leading-relaxed
         ">
-          Upload your 3D model and get an instant
-          estimated price. Our team will review
-          and confirm the final quote.
+          Have a 3D model, a reference image,
+          or just an idea? We'll help turn it
+          into a physical product.
         </p>
 
       </div>
 
+      {/* Product context */}
+      {selectedProduct && (
+        <Card className="
+          mb-8
+          p-5
+          border-none
+          shadow-sm
+          bg-brand-50/60
+        ">
+
+          <p className="
+            text-xs
+            uppercase
+            tracking-wider
+            text-brand-600
+            font-medium
+            mb-1
+          ">
+            Customizing Product
+          </p>
+
+          <div className="
+            flex
+            flex-col
+            sm:flex-row
+            sm:items-center
+            sm:justify-between
+            gap-2
+          ">
+
+            <h2 className="
+              text-lg
+              font-serif
+              font-semibold
+              text-charcoal
+            ">
+              {selectedProduct.name}
+            </h2>
+
+            {selectedVariant && (
+              <span className="
+                text-sm
+                text-charcoal-light
+              ">
+                {selectedVariant.label}
+              </span>
+            )}
+
+          </div>
+
+        </Card>
+      )}
+
+      {/* Mode selector */}
+      <div className="
+        grid
+        grid-cols-1
+        md:grid-cols-3
+        gap-4
+        mb-8
+      ">
+
+        <ModeCard
+          active={
+            mode === '3d-model'
+          }
+          icon={
+            <Box className="w-6 h-6" />
+          }
+          title="I have a 3D model"
+          description="STL, OBJ or 3MF"
+          onClick={() =>
+            handleModeChange(
+              '3d-model'
+            )
+          }
+        />
+
+        <ModeCard
+          active={
+            mode === 'image'
+          }
+          icon={
+            <ImageIcon className="w-6 h-6" />
+          }
+          title="I have a reference"
+          description="Image or drawing"
+          onClick={() =>
+            handleModeChange(
+              'image'
+            )
+          }
+        />
+
+        <ModeCard
+          active={
+            mode === 'idea'
+          }
+          icon={
+            <Lightbulb className="w-6 h-6" />
+          }
+          title="I only have an idea"
+          description="We'll help you figure it out"
+          onClick={() =>
+            handleModeChange(
+              'idea'
+            )
+          }
+        />
+
+      </div>
+
+      {/* Main content */}
       <div className="
         grid
         grid-cols-1
@@ -644,41 +1131,90 @@ export function CustomService() {
       ">
 
         {/* Form */}
-        <div className="lg:col-span-3">
+        <div className="
+          lg:col-span-3
+        ">
 
           <Card className="
             p-6
+            sm:p-8
             border-none
             shadow-sm
           ">
 
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-6"
-            >
+            <div className="
+              mb-6
+            ">
+              <h2 className="
+                text-xl
+                font-serif
+                font-semibold
+                text-charcoal
+              ">
+                {mode === '3d-model'
+                  ? 'Upload Your 3D Model'
+                  : mode === 'image'
+                    ? 'Share Your Reference'
+                    : 'Tell Us About Your Idea'}
+              </h2>
 
-              {/* File Upload */}
-              <div>
+              <p className="
+                text-sm
+                text-charcoal-light
+                mt-1
+              ">
+                {mode === '3d-model'
+                  ? "We'll analyse the model and calculate an estimated printing cost."
+                  : mode === 'image'
+                    ? 'Upload a reference image and provide the dimensions and requirements.'
+                    : 'Describe what you want and our team will help turn the idea into a printable model.'}
+              </p>
+            </div>
 
-                <label className="
-                  block
-                  text-sm
-                  font-medium
-                  text-charcoal
-                  mb-2
-                ">
-                  Upload 3D File *
+            {/* File upload */}
+            {mode !== 'idea' && (
+              <div className="mb-6">
+
+                <label
+                  htmlFor="custom-file"
+                  className="
+                    block
+                    text-sm
+                    font-medium
+                    text-charcoal
+                    mb-2
+                  "
+                >
+                  {mode === '3d-model'
+                    ? '3D Model *'
+                    : 'Reference Image *'}
                 </label>
 
-                <div
+                <input
+                  id="custom-file"
+                  type="file"
+                  accept={
+                    mode === '3d-model'
+                      ? '.stl,.obj,.3mf'
+                      : '.jpg,.jpeg,.png,.webp'
+                  }
+                  onChange={
+                    handleFileChange
+                  }
+                  className="hidden"
+                />
+
+                <label
+                  htmlFor="custom-file"
                   className={`
+                    block
                     border-2
                     border-dashed
                     rounded-2xl
                     p-8
                     text-center
+                    cursor-pointer
                     transition-all
-                    duration-200
                     ${
                       file
                         ? 'border-brand-400 bg-brand-50'
@@ -687,220 +1223,228 @@ export function CustomService() {
                   `}
                 >
 
-                  <input
-                    type="file"
-                    id="file-upload"
-                    accept=".stl,.obj,.3mf"
-                    onChange={
-                      handleFileChange
-                    }
-                    className="hidden"
-                  />
+                  {file ? (
+                    <div className="
+                      flex
+                      flex-col
+                      items-center
+                    ">
 
-                  <label
-                    htmlFor="file-upload"
-                    className="cursor-pointer"
-                  >
-
-                    {file ? (
-                      <div className="
-                        flex
-                        flex-col
-                        items-center
-                      ">
-
+                      {mode ===
+                      '3d-model' ? (
                         <FileBox className="
                           w-10
                           h-10
                           text-brand-500
                           mb-3
                         " />
-
-                        <p className="
-                          font-medium
-                          text-charcoal
-                          break-all
-                        ">
-                          {file.name}
-                        </p>
-
-                        <p className="
-                          text-xs
-                          text-charcoal-lighter
-                          mt-1
-                        ">
-                          Click to change file
-                        </p>
-
-                      </div>
-                    ) : (
-                      <div className="
-                        flex
-                        flex-col
-                        items-center
-                      ">
-
-                        <Upload className="
+                      ) : (
+                        <ImageIcon className="
                           w-10
                           h-10
-                          text-charcoal-lighter
+                          text-brand-500
                           mb-3
                         " />
+                      )}
+
+                      <p className="
+                        font-medium
+                        text-charcoal
+                        break-all
+                      ">
+                        {file.name}
+                      </p>
+
+                      <p className="
+                        text-xs
+                        text-charcoal-lighter
+                        mt-1
+                      ">
+                        Click to replace
+                      </p>
+
+                    </div>
+                  ) : (
+                    <div className="
+                      flex
+                      flex-col
+                      items-center
+                    ">
+
+                      <Upload className="
+                        w-10
+                        h-10
+                        text-charcoal-lighter
+                        mb-3
+                      " />
+
+                      <p className="
+                        font-medium
+                        text-charcoal
+                      ">
+                        {mode ===
+                        '3d-model'
+                          ? 'Upload STL, OBJ or 3MF'
+                          : 'Upload JPG, PNG or WEBP'}
+                      </p>
+
+                      <p className="
+                        text-xs
+                        text-charcoal-lighter
+                        mt-1
+                      ">
+                        Maximum file size: 100MB
+                      </p>
+
+                    </div>
+                  )}
+
+                </label>
+
+              </div>
+            )}
+
+            {/* 3D specifications */}
+            {mode ===
+              '3d-model' && (
+              <div className="
+                space-y-5
+              ">
+
+                <div className="
+                  grid
+                  grid-cols-1
+                  sm:grid-cols-2
+                  gap-5
+                ">
+
+                  <Field
+                    label="Material"
+                    required
+                  >
+                    <Select
+                      value={material}
+                      onChange={(value) =>
+                        setMaterial(
+                          value as MaterialType
+                        )
+                      }
+                      options={
+                        materialOptions
+                      }
+                      className="w-full"
+                    />
+                  </Field>
+
+                  {/* ====================================================== */}
+                  {/* NATIVE COLOR PICKER                                   */}
+                  {/* ====================================================== */}
+
+                  <Field
+                    label="Color"
+                    required
+                  >
+                    <div className="
+                      flex
+                      items-center
+                      gap-4
+                      h-11
+                    ">
+
+                      <input
+                        type="color"
+                        value={color}
+                        onChange={(e) =>
+                          setColor(
+                            e.target.value
+                          )
+                        }
+                        className="
+                          w-12
+                          h-11
+                          rounded-lg
+                          border
+                          border-brand-200
+                          cursor-pointer
+                          bg-white
+                          p-1
+                        "
+                        aria-label="Choose print color"
+                      />
+
+                      <div className="
+                        min-w-0
+                      ">
 
                         <p className="
+                          text-sm
                           font-medium
                           text-charcoal
                         ">
-                          Click to upload STL, OBJ or 3MF
+                          {color.toUpperCase()}
                         </p>
 
                         <p className="
                           text-xs
                           text-charcoal-lighter
-                          mt-1
+                          truncate
                         ">
-                          Maximum file size 50MB
+                          Choose any preferred color
                         </p>
 
                       </div>
-                    )}
 
-                  </label>
+                    </div>
+                  </Field>
 
-                </div>
-
-              </div>
-
-              {/* Parameters */}
-              <div className="
-                grid
-                grid-cols-1
-                sm:grid-cols-2
-                gap-5
-              ">
-
-                {/* Material */}
-                <div>
-                  <label className="
-                    block
-                    text-sm
-                    font-medium
-                    text-charcoal
-                    mb-2
-                  ">
-                    Material
-                  </label>
-
-                  <Select
-                    value={material}
-                    onChange={(value) =>
-                      setMaterial(
-                        value as MaterialType
-                      )
-                    }
-                    className="w-full"
-                    options={
-                      MATERIAL_OPTIONS
-                    }
-                  />
-                </div>
-
-                {/* Color */}
-                <div>
-                  <label className="
-                    block
-                    text-sm
-                    font-medium
-                    text-charcoal
-                    mb-2
-                  ">
-                    Color
-                  </label>
-
-                  <Select
-                    value={color}
-                    onChange={setColor}
-                    className="w-full"
-                    options={
-                      COLOR_OPTIONS
-                    }
-                  />
-                </div>
-
-                {/* Infill */}
-                <div>
-
-                  <label className="
-                    block
-                    text-sm
-                    font-medium
-                    text-charcoal
-                    mb-2
-                  ">
-                    Infill Density: {infill}%
-                  </label>
-
-                  <input
-                    type="range"
-                    min="10"
-                    max="100"
-                    step="5"
-                    value={infill}
-                    onChange={(e) =>
-                      setInfill(
-                        Number(
-                          e.target.value
+                  <Field
+                    label={`Infill Density: ${infill}%`}
+                  >
+                    <input
+                      type="range"
+                      min="10"
+                      max="100"
+                      step="5"
+                      value={infill}
+                      onChange={(e) =>
+                        setInfill(
+                          Number(
+                            e.target.value
+                          )
                         )
-                      )
-                    }
-                    className="w-full accent-brand-500"
-                  />
+                      }
+                      className="
+                        w-full
+                        accent-brand-500
+                      "
+                    />
+                  </Field>
+
+                  <Field
+                    label="Layer Height"
+                  >
+                    <Select
+                      value={String(
+                        layerHeight
+                      )}
+                      onChange={(value) =>
+                        setLayerHeight(
+                          Number(value)
+                        )
+                      }
+                      options={
+                        layerHeightOptions
+                      }
+                      className="w-full"
+                    />
+                  </Field>
 
                 </div>
 
-                {/* Layer Height */}
-                <div>
-
-                  <label className="
-                    block
-                    text-sm
-                    font-medium
-                    text-charcoal
-                    mb-2
-                  ">
-                    Layer Height
-                  </label>
-
-                  <Select
-                    value={String(
-                      layerHeight
-                    )}
-                    onChange={(value) =>
-                      setLayerHeight(
-                        Number(value)
-                      )
-                    }
-                    className="w-full"
-                    options={
-                      LAYER_HEIGHT_OPTIONS
-                    }
-                  />
-
-                </div>
-
-                {/* Quantity */}
-                <div>
-
-                  <label className="
-                    block
-                    text-sm
-                    font-medium
-                    text-charcoal
-                    mb-2
-                  ">
-                    Quantity
-                  </label>
-
+                <Field
+                  label="Quantity"
+                  required
+                >
                   <Input
                     type="number"
                     min={1}
@@ -916,35 +1460,108 @@ export function CustomService() {
                       )
                     }
                   />
-
-                </div>
+                </Field>
 
               </div>
+            )}
 
-              {/* Customer Details */}
+            {/* Image / Idea */}
+            {mode !==
+              '3d-model' && (
               <div className="
-                border-t
-                border-brand-100
-                pt-6
                 space-y-5
               ">
 
+                <Textarea
+                  label={
+                    mode === 'image'
+                      ? 'What would you like us to make?'
+                      : 'Describe your idea'
+                  }
+                  value={
+                    description
+                  }
+                  onChange={(e) =>
+                    setDescription(
+                      e.target.value
+                    )
+                  }
+                  placeholder={
+                    mode === 'image'
+                      ? 'Example: I want this object recreated as a 10 cm desk model.'
+                      : 'Tell us what you want to create, how it should look, and how you plan to use it.'
+                  }
+                  className="
+                    min-h-[130px]
+                  "
+                  required
+                />
+
                 <div>
-                  <h3 className="
-                    font-serif
-                    font-semibold
+                  <p className="
+                    text-sm
+                    font-medium
                     text-charcoal
+                    mb-3
                   ">
-                    Your Details
-                  </h3>
+                    Approximate Dimensions
+                  </p>
+
+                  <div className="
+                    grid
+                    grid-cols-3
+                    gap-3
+                  ">
+
+                    <Input
+                      label="Length"
+                      type="number"
+                      min={0}
+                      placeholder="mm"
+                      value={length}
+                      onChange={(e) =>
+                        setLength(
+                          e.target.value
+                        )
+                      }
+                    />
+
+                    <Input
+                      label="Width"
+                      type="number"
+                      min={0}
+                      placeholder="mm"
+                      value={width}
+                      onChange={(e) =>
+                        setWidth(
+                          e.target.value
+                        )
+                      }
+                    />
+
+                    <Input
+                      label="Height"
+                      type="number"
+                      min={0}
+                      placeholder="mm"
+                      value={height}
+                      onChange={(e) =>
+                        setHeight(
+                          e.target.value
+                        )
+                      }
+                    />
+
+                  </div>
 
                   <p className="
                     text-xs
                     text-charcoal-lighter
-                    mt-1
+                    mt-2
                   ">
-                    Your saved account information has
-                    been filled automatically.
+                    Approximate dimensions are
+                    enough. Our team can confirm
+                    them during review.
                   </p>
                 </div>
 
@@ -955,308 +1572,776 @@ export function CustomService() {
                   gap-5
                 ">
 
-                  <Input
-                    name="name"
-                    label="Full Name"
-                    defaultValue={
-                      profile?.name ||
-                      user.displayName ||
-                      ''
-                    }
-                    required
-                  />
+                  <Field
+                    label="Material Preference"
+                  >
+                    <Select
+                      value={material}
+                      onChange={(value) =>
+                        setMaterial(
+                          value as MaterialType
+                        )
+                      }
+                      options={
+                        materialOptions
+                      }
+                      className="w-full"
+                    />
+                  </Field>
 
-                  <Input
-                    name="phone"
-                    label="Phone Number"
-                    type="tel"
-                    defaultValue={
-                      profile?.phone || ''
-                    }
-                    required
-                  />
+                  {/* Native color picker for
+                      image / idea mode */}
+                  <Field
+                    label="Preferred Color"
+                  >
+                    <div className="
+                      flex
+                      items-center
+                      gap-4
+                      h-11
+                    ">
+
+                      <input
+                        type="color"
+                        value={color}
+                        onChange={(e) =>
+                          setColor(
+                            e.target.value
+                          )
+                        }
+                        className="
+                          w-12
+                          h-11
+                          rounded-lg
+                          border
+                          border-brand-200
+                          cursor-pointer
+                          bg-white
+                          p-1
+                        "
+                        aria-label="Choose preferred color"
+                      />
+
+                      <div className="
+                        min-w-0
+                      ">
+
+                        <p className="
+                          text-sm
+                          font-medium
+                          text-charcoal
+                        ">
+                          {color.toUpperCase()}
+                        </p>
+
+                        <p className="
+                          text-xs
+                          text-charcoal-lighter
+                          truncate
+                        ">
+                          Choose any preferred color
+                        </p>
+
+                      </div>
+
+                    </div>
+                  </Field>
 
                 </div>
 
+                <Field
+                  label="Quantity"
+                >
+                  <Input
+                    type="number"
+                    min={1}
+                    value={quantity}
+                    onChange={(e) =>
+                      setQuantity(
+                        Math.max(
+                          1,
+                          Number(
+                            e.target.value
+                          ) || 1
+                        )
+                      )
+                    }
+                  />
+                </Field>
+
+              </div>
+            )}
+
+            {/* Customer details */}
+            <div className="
+              border-t
+              border-brand-100
+              mt-7
+              pt-7
+              space-y-5
+            ">
+
+              <div>
+                <h3 className="
+                  font-serif
+                  font-semibold
+                  text-lg
+                  text-charcoal
+                ">
+                  Your Details
+                </h3>
+
+                <p className="
+                  text-xs
+                  text-charcoal-lighter
+                  mt-1
+                ">
+                  Your account information has
+                  been filled automatically.
+                </p>
+              </div>
+
+              <div className="
+                grid
+                grid-cols-1
+                sm:grid-cols-2
+                gap-5
+              ">
+
                 <Input
-                  name="email"
-                  label="Email Address"
-                  type="email"
+                  name="name"
+                  label="Full Name"
                   defaultValue={
-                    profile?.email ||
-                    user.email ||
-                    ''
+                    customerName
                   }
                   required
                 />
 
-                <Textarea
-                  label="Address"
-                  name="address"
+                <Input
+                  name="phone"
+                  label="Phone Number"
+                  type="tel"
                   defaultValue={
-                    profile?.address
-                      ? [
-                          profile.address.line1,
-                          profile.address.line2,
-                          profile.address.city,
-                          profile.address.state,
-                          profile.address.pincode
-                        ]
-                          .filter(Boolean)
-                          .join(', ')
-                      : ''
+                    customerPhone
                   }
-                  placeholder="House no, Street, Area, City, Pincode"
                   required
-                />
-
-                <Textarea
-                  label="Additional Notes (optional)"
-                  value={notes}
-                  onChange={(e) =>
-                    setNotes(
-                      e.target.value
-                    )
-                  }
-                  placeholder="Any special requirements..."
                 />
 
               </div>
 
-              {/* Submit */}
+              <Input
+                name="email"
+                label="Email Address"
+                type="email"
+                defaultValue={
+                  customerEmail
+                }
+                required
+              />
+
+              <Textarea
+                label="Additional Notes"
+                value={notes}
+                onChange={(e) =>
+                  setNotes(
+                    e.target.value
+                  )
+                }
+                placeholder="Any special requirements, finishing instructions or other details..."
+              />
+
+            </div>
+
+            {/* Actions */}
+            <div className="
+              mt-7
+              flex
+              flex-col
+              sm:flex-row
+              gap-3
+            ">
+
+              {mode ===
+                '3d-model' && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={
+                    handleAddToCart
+                  }
+                  disabled={
+                    !file ||
+                    !estimatedPrice ||
+                    isCalculating ||
+                    isSubmitting
+                  }
+                >
+                  <ShoppingCart className="
+                    w-4
+                    h-4
+                    mr-2
+                  " />
+
+                  {isSubmitting
+                    ? uploadProgress !==
+                      null
+                      ? `Uploading ${uploadProgress}%`
+                      : 'Adding...'
+                    : 'Add to Cart'}
+                </Button>
+              )}
+
               <Button
-                type="submit"
-                size="lg"
-                className="w-full"
-                isLoading={isSubmitting}
+                type="button"
+                className="flex-1"
+                onClick={
+                  submitRequest
+                }
                 disabled={
-                  !file ||
-                  isCalculating
+                  isSubmitting ||
+                  isCalculating ||
+                  (mode !==
+                    'idea' &&
+                    !file)
                 }
               >
                 {isSubmitting
-                  ? uploadProgress !== null
-                    ? `Uploading... ${uploadProgress}%`
+                  ? uploadProgress !==
+                    null
+                    ? `Uploading ${uploadProgress}%`
                     : 'Submitting...'
-                  : 'Submit Quote Request'}
+                  : mode ===
+                      '3d-model'
+                    ? 'Request Custom Quote'
+                    : 'Request Quote'}
               </Button>
 
-            </form>
+            </div>
 
           </Card>
 
         </div>
 
-        {/* Price Estimate */}
-        <div className="lg:col-span-2">
+        {/* Estimate */}
+        <div className="
+          lg:col-span-2
+        ">
 
-          <Card className="
-            p-6
-            border-none
-            shadow-sm
-            sticky
-            top-28
-          ">
-
-            <div className="
-              flex
-              items-center
-              gap-2
-              mb-6
+          {mode ===
+          '3d-model' ? (
+            <Card className="
+              p-6
+              border-none
+              shadow-sm
+              sticky
+              top-28
             ">
-
-              <Calculator className="
-                w-5
-                h-5
-                text-brand-500
-              " />
-
-              <h2 className="
-                font-serif
-                font-semibold
-                text-lg
-                text-charcoal
-              ">
-                Price Estimate
-              </h2>
-
-            </div>
-
-            {isCalculating ? (
 
               <div className="
                 flex
-                flex-col
                 items-center
-                py-12
+                gap-2
+                mb-6
               ">
 
-                <Loader2 className="
-                  w-8
-                  h-8
-                  animate-spin
+                <Calculator className="
+                  w-5
+                  h-5
                   text-brand-500
-                  mb-4
                 " />
 
-                <p className="
-                  text-sm
-                  text-charcoal-light
+                <h2 className="
+                  font-serif
+                  font-semibold
+                  text-lg
+                  text-charcoal
                 ">
-                  Calculating volume...
-                </p>
+                  Price Estimate
+                </h2>
 
               </div>
 
-            ) : estimatedPrice !== null ? (
-
-              <div className="space-y-5">
-
+              {isCalculating ? (
                 <div className="
-                  bg-brand-50
-                  rounded-2xl
-                  p-5
-                  text-center
+                  flex
+                  flex-col
+                  items-center
+                  py-12
                 ">
+
+                  <Loader2 className="
+                    w-8
+                    h-8
+                    animate-spin
+                    text-brand-500
+                    mb-4
+                  " />
 
                   <p className="
                     text-sm
                     text-charcoal-light
-                    mb-1
                   ">
-                    Estimated Price
-                  </p>
-
-                  <p className="
-                    text-4xl
-                    font-bold
-                    text-brand-600
-                  ">
-                    ₹
-                    {estimatedPrice.toLocaleString(
-                      'en-IN'
-                    )}
-                  </p>
-
-                  <p className="
-                    text-xs
-                    text-charcoal-lighter
-                    mt-2
-                  ">
-                    Final price may vary slightly
-                    after review
+                    Analysing your model...
                   </p>
 
                 </div>
-
+              ) : estimatedPrice !==
+                null ? (
                 <div className="
-                  space-y-3
-                  text-sm
+                  space-y-5
                 ">
 
                   <div className="
-                    flex
-                    justify-between
+                    bg-brand-50
+                    rounded-2xl
+                    p-5
+                    text-center
                   ">
-                    <span className="text-charcoal-light">
-                      Material
-                    </span>
 
-                    <span className="
-                      text-charcoal
-                      font-medium
+                    <p className="
+                      text-sm
+                      text-charcoal-light
+                      mb-1
                     ">
-                      {material}
-                    </span>
+                        Estimated Printing Cost
+                      </p>
+
+                      <p className="
+                        text-4xl
+                        font-bold
+                        text-brand-600
+                      ">
+                        ₹
+                        {estimatedPrice.toLocaleString(
+                          'en-IN'
+                        )}
+                      </p>
+
+                    </div>
+
+                    <div className="
+                      space-y-3
+                      text-sm
+                    ">
+
+                      <EstimateRow
+                        label="Material"
+                        value={material}
+                      />
+
+                      <EstimateRow
+                        label="Color"
+                        value={color.toUpperCase()}
+                      />
+
+                      <EstimateRow
+                        label="Volume"
+                        value={
+                          volume !==
+                          null
+                            ? `${volume.toFixed(
+                                2
+                              )} cm³`
+                            : '—'
+                        }
+                      />
+
+                      <EstimateRow
+                        label="Estimated Weight"
+                        value={
+                          estimatedWeight !==
+                          null
+                            ? `${estimatedWeight} g`
+                            : '—'
+                        }
+                      />
+
+                      <EstimateRow
+                        label="Infill"
+                        value={`${infill}%`}
+                      />
+
+                      <EstimateRow
+                        label="Layer Height"
+                        value={`${layerHeight} mm`}
+                      />
+
+                      <EstimateRow
+                        label="Quantity"
+                        value={String(
+                          quantity
+                        )}
+                      />
+
+                    </div>
+
                   </div>
 
-                  <div className="
-                    flex
-                    justify-between
-                  ">
-                    <span className="text-charcoal-light">
-                      Estimated Weight
-                    </span>
+                    
+                ) : file &&
+  mode === '3d-model' &&
+  /\.(obj|3mf)$/i.test(file.name) ? (
+  <div className="
+    text-center
+    py-10
+  ">
+    <div className="
+      w-14
+      h-14
+      rounded-full
+      bg-brand-50
+      flex
+      items-center
+      justify-center
+      mx-auto
+      mb-5
+    ">
+      <FileBox className="
+        w-7
+        h-7
+        text-brand-500
+      " />
+    </div>
 
-                    <span className="
-                      text-charcoal
-                      font-medium
-                    ">
-                      {estimatedWeight} g
-                    </span>
-                  </div>
+    <h3 className="
+      font-serif
+      font-semibold
+      text-lg
+      text-charcoal
+      mb-3
+    ">
+      Manual Review Required
+    </h3>
 
-                  <div className="
-                    flex
-                    justify-between
-                  ">
-                    <span className="text-charcoal-light">
-                      Volume
-                    </span>
+    <p className="
+      text-sm
+      leading-relaxed
+      text-charcoal-light
+      max-w-sm
+      mx-auto
+    ">
+      Your {file.name.toLowerCase().endsWith('.3mf')
+        ? '3MF'
+        : 'OBJ'} file has been uploaded successfully.
+      Our team will review the model and prepare
+      your printing quotation.
+    </p>
 
-                    <span className="
-                      text-charcoal
-                      font-medium
-                    ">
-                      {volume?.toFixed(2)} cm³
-                    </span>
-                  </div>
+    <div className="
+      mt-6
+      rounded-xl
+      bg-brand-50
+      p-4
+      text-left
+    ">
+      <p className="
+        text-xs
+        font-medium
+        text-charcoal
+        mb-2
+      ">
+        What happens next?
+      </p>
 
-                  <div className="
-                    flex
-                    justify-between
-                  ">
-                    <span className="text-charcoal-light">
-                      Infill
-                    </span>
+      <ul className="
+        text-xs
+        text-charcoal-light
+        space-y-1
+      ">
+        <li>• We inspect the uploaded model</li>
+        <li>• We determine material and print requirements</li>
+        <li>• Our team provides the final quotation</li>
+      </ul>
+    </div>
+  </div>
+) : (
+  <div className="
+    text-center
+    py-12
+    text-charcoal-light
+  ">
+    <FileBox className="
+      w-10
+      h-10
+      mx-auto
+      mb-4
+      text-charcoal-lighter
+    " />
 
-                    <span className="
-                      text-charcoal
-                      font-medium
-                    ">
-                      {infill}%
-                    </span>
-                  </div>
+    <p className="
+      text-sm
+      leading-relaxed
+    ">
+      Upload an STL file to
+      calculate an estimated
+      printing price.
+    </p>
 
-                  <div className="
-                    flex
-                    justify-between
-                  ">
-                    <span className="text-charcoal-light">
-                      Quantity
-                    </span>
+    <p className="
+      text-xs
+      text-charcoal-lighter
+      mt-2
+    ">
+      OBJ and 3MF files can still
+      be submitted for manual review.
+    </p>
+  </div>
+)}
 
-                    <span className="
-                      text-charcoal
-                      font-medium
-                    ">
-                      {quantity}
-                    </span>
-                  </div>
-
-                </div>
-
-              </div>
-
-            ) : (
+            </Card>
+          ) : (
+            <Card className="
+              p-6
+              border-none
+              shadow-sm
+              sticky
+              top-28
+            ">
 
               <div className="
-                text-center
-                py-12
-                text-charcoal-light
-                text-sm
+                w-12
+                h-12
+                rounded-full
+                bg-brand-50
+                flex
+                items-center
+                justify-center
+                text-brand-500
+                mb-5
               ">
-                Upload a 3D file to see the
-                estimated price
+                {mode ===
+                'image' ? (
+                  <ImageIcon className="w-6 h-6" />
+                ) : (
+                  <Lightbulb className="w-6 h-6" />
+                )}
               </div>
 
-            )}
+              <h2 className="
+                text-xl
+                font-serif
+                font-semibold
+                text-charcoal
+                mb-3
+              ">
+                {mode === 'image'
+                  ? 'Manual Quotation'
+                  : "Let's Build It Together"}
+              </h2>
 
-          </Card>
+              <p className="
+                text-sm
+                text-charcoal-light
+                leading-relaxed
+              ">
+                {mode === 'image'
+                  ? 'An image does not contain enough information to reliably calculate 3D printing cost. Our team will review your reference, dimensions and requirements before preparing a quote.'
+                  : 'Tell us what you have in mind. Our team can help with the 3D modelling, material selection and printing requirements.'}
+              </p>
+
+              <div className="
+                mt-6
+                space-y-3
+                text-sm
+              ">
+
+                <EstimateRow
+                  label="Material"
+                  value={material}
+                />
+
+                <EstimateRow
+                  label="Color"
+                  value={color.toUpperCase()}
+                />
+
+                <EstimateRow
+                  label="Quantity"
+                  value={String(
+                    quantity
+                  )}
+                />
+
+              </div>
+
+              <div className="
+                mt-6
+                bg-surface
+                rounded-xl
+                p-4
+              ">
+
+                <p className="
+                  text-xs
+                  text-charcoal-lighter
+                  leading-relaxed
+                ">
+                  Price will be confirmed by
+                  our team after reviewing the
+                  request.
+                </p>
+
+              </div>
+
+            </Card>
+          )}
 
         </div>
 
       </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Helper components                                                         */
+/* -------------------------------------------------------------------------- */
+
+function ModeCard({
+  active,
+  icon,
+  title,
+  description,
+  onClick
+}: {
+  active: boolean;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`
+        text-left
+        rounded-2xl
+        border
+        p-5
+        transition-all
+        duration-200
+        ${
+          active
+            ? 'border-brand-400 bg-brand-50 shadow-sm'
+            : 'border-brand-100 bg-white hover:border-brand-300 hover:bg-brand-50/40'
+        }
+      `}
+    >
+
+      <div className="
+        flex
+        items-center
+        gap-3
+      ">
+
+        <div className={`
+          w-11
+          h-11
+          rounded-full
+          flex
+          items-center
+          justify-center
+          ${
+            active
+              ? 'bg-brand-500 text-white'
+              : 'bg-brand-50 text-brand-500'
+          }
+        `}>
+          {icon}
+        </div>
+
+        <div>
+
+          <p className="
+            font-medium
+            text-charcoal
+          ">
+            {title}
+          </p>
+
+          <p className="
+            text-xs
+            text-charcoal-lighter
+            mt-0.5
+          ">
+            {description}
+          </p>
+
+        </div>
+
+      </div>
+
+    </button>
+  );
+}
+
+function Field({
+  label,
+  required,
+  children
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+
+      <label className="
+        block
+        text-sm
+        font-medium
+        text-charcoal
+        mb-2
+      ">
+        {label}
+
+        {required && (
+          <span className="
+            text-red-500
+            ml-1
+          ">
+            *
+          </span>
+        )}
+      </label>
+
+      {children}
+
+    </div>
+  );
+}
+
+function EstimateRow({
+  label,
+  value
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="
+      flex
+      justify-between
+      gap-4
+    ">
+
+      <span className="
+        text-charcoal-light
+      ">
+        {label}
+      </span>
+
+      <span className="
+        text-charcoal
+        font-medium
+        text-right
+      ">
+        {value}
+      </span>
+
     </div>
   );
 }

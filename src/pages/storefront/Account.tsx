@@ -10,31 +10,28 @@ import {
   XCircle
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { useMyQuotes, useUpdateQuote } from '../../hooks/useQuotes';
+import { useMyQuotes, useRespondToQuote } from '../../hooks/useQuotes';
 import { useMyOrders } from '../../hooks/useOrders';
 import { Card, Button } from '../../components/ui';
 
 export function Account() {
   const { user, logout, loading: authLoading } = useAuth();
-  const { data: myQuotes = [], isLoading: quotesLoading } = useMyQuotes();
-  const { data: myOrders = [], isLoading: ordersLoading } = useMyOrders();
-  const updateQuote = useUpdateQuote();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<'quotes' | 'orders'>('quotes');
+  const [activeTab, setActiveTab] =
+    useState<'quotes' | 'orders'>('quotes');
+
+  const { data: myQuotes = [], isLoading: quotesLoading } =
+    useMyQuotes();
+
+  const { data: myOrders = [], isLoading: ordersLoading } =
+    useMyOrders(activeTab === 'orders');
+
+  const updateQuote = useRespondToQuote();
 
   const handleLogout = async () => {
     await logout();
     navigate('/');
-  };
-
-  const handleAcceptQuote = async (quoteId: string) => {
-    try {
-      await updateQuote.mutateAsync({ id: quoteId, status: 'Accepted' });
-    } catch (error) {
-      console.error(error);
-      alert('Failed to accept quote');
-    }
   };
 
   const handleRejectQuote = async (quoteId: string) => {
@@ -47,7 +44,21 @@ export function Account() {
     }
   };
 
-  if (authLoading || quotesLoading || ordersLoading) {
+  const handleAcceptQuote = async (quoteId: string) => {
+    if (!confirm('Are you sure you want to accept this quote?')) return;
+    try {
+      await updateQuote.mutateAsync({ id: quoteId, status: 'Accepted' });
+    } catch (error) {
+      console.error(error);
+      alert('Failed to accept quote');
+    }
+  };
+
+ if (
+  authLoading ||
+  quotesLoading ||
+  (activeTab === 'orders' && ordersLoading)
+) {
     return (
       <div className="flex items-center justify-center py-32">
         <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
@@ -84,9 +95,9 @@ export function Account() {
           </div>
           <div>
             <h1 className="text-2xl font-serif font-bold text-charcoal">
-              {user.displayName || 'My Account'}
+              {user?.displayName || 'My Account'}
             </h1>
-            <p className="text-charcoal-light text-sm">{user.email}</p>
+            <p className="text-charcoal-light text-sm">{user?.email}</p>
           </div>
         </div>
         <Button variant="outline" onClick={handleLogout}>
@@ -154,11 +165,13 @@ export function Account() {
                     </p>
                     <p className="text-xs text-charcoal-lighter mt-1">
                       Submitted on{' '}
-                      {new Date(quote.date).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric'
-                      })}
+                      {quote.date
+                        ? new Date(quote.date).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })
+                        : 'Date unavailable'}
                     </p>
                   </div>
 
@@ -167,7 +180,7 @@ export function Account() {
                       Your Estimate
                     </p>
                     <p className="text-lg font-semibold text-charcoal">
-                      ₹{quote.estimatedPrice.toLocaleString('en-IN')}
+                    ₹{(quote.estimatedPrice ?? 0).toLocaleString('en-IN')}
                     </p>
 
                     {quote.adminPrice && (

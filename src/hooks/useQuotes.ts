@@ -23,6 +23,30 @@ import { deleteUploadedFile } from '../utils/uploadFile';
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
 /* -------------------------------------------------------------------------- */
+function removeUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item) => item !== undefined)
+      .map((item) => removeUndefined(item)) as T;
+  }
+
+  if (
+    value !== null &&
+    typeof value === 'object'
+  ) {
+    const cleaned: Record<string, unknown> = {};
+
+    for (const [key, val] of Object.entries(value)) {
+      if (val !== undefined) {
+        cleaned[key] = removeUndefined(val);
+      }
+    }
+
+    return cleaned as T;
+  }
+
+  return value;
+}
 
 export type QuoteStatus =
   | 'Pending'
@@ -136,37 +160,37 @@ export function useQuotes() {
 export function useMyQuotes() {
   const { user } = useAuth();
 
-  return useQuery({
-    queryKey: ['my-quotes', user?.uid],
+return useQuery({
+  queryKey: ['my-quotes', user?.uid],
 
-    queryFn: async (): Promise<Quote[]> => {
-      if (!user) {
-        return [];
-      }
+  queryFn: async () => {
+    if (!user) return [];
 
-      const quotesQuery = query(
-        collection(db, 'quotes'),
-        where(
-          'customerId',
-          '==',
-          user.uid
-        ),
-        orderBy('date', 'desc')
-      );
+    const q = query(
+      collection(db, 'quotes'),
+      where('customerId', '==', user.uid)
+    );
 
-      const snapshot =
-        await getDocs(quotesQuery);
+    const snapshot = await getDocs(q);
 
-      return snapshot.docs.map(
-        (quoteDoc) => ({
-          id: quoteDoc.id,
-          ...quoteDoc.data()
-        })
-      ) as Quote[];
-    },
+    const quotes = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Quote[];
 
-    enabled: !!user
-  });
+    return quotes.sort(
+      (a, b) =>
+        new Date(b.date).getTime() -
+        new Date(a.date).getTime()
+    );
+  },
+
+  enabled: !!user,
+
+  staleTime: 5 * 60 * 1000,
+  refetchOnWindowFocus: false,
+  refetchOnMount: false,
+});
 }
 
 /* -------------------------------------------------------------------------- */
@@ -194,28 +218,28 @@ export function useSubmitQuote() {
       }
 
       const newQuote: Omit<
-        Quote,
-        'id'
-      > = {
-        ...quoteData,
+  Quote,
+  'id'
+> = {
+  ...quoteData,
 
-        customerId: user.uid,
+  customerId: user.uid,
 
-        date: new Date().toISOString(),
+  date: new Date().toISOString(),
 
-        status: 'Pending'
-      };
+  status: 'Pending'
+};
 
-      const quoteRef =
-        await addDoc(
-          collection(db, 'quotes'),
-          newQuote
-        );
+const cleanedQuote =
+  removeUndefined(newQuote);
 
-      return {
-        id: quoteRef.id,
-        ...newQuote
-      };
+const quoteRef =
+  await addDoc(
+    collection(db, 'quotes'),
+    cleanedQuote
+  );
+
+      return quoteRef;
     },
 
     onSuccess: () => {
@@ -233,10 +257,16 @@ export function useSubmitQuote() {
 /* -------------------------------------------------------------------------- */
 /* Update quote - Admin                                                       */
 /* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/* Customer: Accept / Reject quote                                            */
+/* -------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------- */
+/* Update quote - Admin                                                       */
+/* -------------------------------------------------------------------------- */
 
 export function useUpdateQuote() {
-  const queryClient =
-    useQueryClient();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
