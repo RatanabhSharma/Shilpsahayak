@@ -77,7 +77,7 @@ export function Customers() {
                   <td
                   colSpan={5}
                   className="px-6 py-12 text-center text-charcoal-light">
-                  
+
                     No customers found.
                   </td>
                 </tr>
