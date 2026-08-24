@@ -374,7 +374,7 @@ export function Home() {
                 <span className="h-px w-10 bg-[#b4491e]" />
 
                 <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#d9784b]">
-                  Made in India
+                  Make in India
                 </span>
               </div>
 

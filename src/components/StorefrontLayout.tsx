@@ -660,7 +660,7 @@ export function StorefrontLayout() {
             </p>
 
             <div className="flex items-center gap-5 font-mono text-[9px] uppercase tracking-[0.08em] text-[#f7f4ee]/35">
-              <span>Made in India</span>
+              <span>Make in India</span>
 
               <span
                 className="h-1 w-1 rounded-full bg-[#b4491e]"
