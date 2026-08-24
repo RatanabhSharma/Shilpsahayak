@@ -1,15 +1,19 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  ArrowRight,
   ArrowLeft,
-  Star,
-  ShieldCheck,
-  Truck,
+  ArrowRight,
+  Check,
+  ChevronRight,
+  Loader2,
   PenTool,
-  Loader2
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Truck,
 } from 'lucide-react';
+
 import { useProducts } from '../../hooks/useProducts';
 import { Button, Card } from '../../components/ui';
 
@@ -17,453 +21,813 @@ export function Home() {
   const { data: products = [], isLoading } = useProducts();
 
   const activeProducts = useMemo(
-    () => products.filter((p) => p.active !== false),
+    () =>
+      products.filter(
+        (product) => product.active !== false
+      ),
     [products]
   );
 
   const featuredProducts = useMemo(
-    () => activeProducts.filter((p) => p.featured).slice(0, 4),
+    () =>
+      activeProducts
+        .filter((product) => product.featured)
+        .slice(0, 4),
     [activeProducts]
   );
 
-  // Categories are derived live from real products - never hardcoded.
-  // Each category tile shows a real photo from a real product in that category,
-  // so updating the Shop automatically updates the Home page too.
   const categories = useMemo(() => {
-    const map = new Map<string, string>();
+    const categoryMap = new Map<string, string>();
+
     for (const product of activeProducts) {
-      if (product.category && !map.has(product.category)) {
-        map.set(product.category, product.image);
+      if (
+        product.category &&
+        !categoryMap.has(product.category)
+      ) {
+        categoryMap.set(
+          product.category,
+          product.image
+        );
       }
     }
-    return Array.from(map.entries()).map(([name, image]) => ({ name, image }));
+
+    return Array.from(categoryMap.entries()).map(
+      ([name, image]) => ({
+        name,
+        image,
+      })
+    );
   }, [activeProducts]);
 
+  const selectedProducts = useMemo(
+    () => activeProducts.slice(0, 4),
+    [activeProducts]
+  );
+
   const [slideIndex, setSlideIndex] = useState(0);
+
   const slideCount = featuredProducts.length;
 
   useEffect(() => {
-    if (slideCount === 0) return;
-    const timer = setInterval(() => {
-      setSlideIndex((i) => (i + 1) % slideCount);
+    if (slideCount <= 1) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setSlideIndex(
+        (currentIndex) =>
+          (currentIndex + 1) % slideCount
+      );
     }, 5000);
-    return () => clearInterval(timer);
+
+    return () => {
+      window.clearInterval(timer);
+    };
   }, [slideCount]);
 
   useEffect(() => {
-    if (slideIndex >= slideCount) setSlideIndex(0);
+    if (
+      slideCount === 0 ||
+      slideIndex >= slideCount
+    ) {
+      setSlideIndex(0);
+    }
   }, [slideCount, slideIndex]);
 
-  const goToSlide = (i: number) => setSlideIndex(i);
-  const nextSlide = () => setSlideIndex((i) => (i + 1) % slideCount);
-  const prevSlide = () => setSlideIndex((i) => (i - 1 + slideCount) % slideCount);
+  const currentSlide =
+    featuredProducts[slideIndex];
 
-  const currentSlide = featuredProducts[slideIndex];
+  const nextSlide = () => {
+    if (slideCount <= 1) {
+      return;
+    }
+
+    setSlideIndex(
+      (currentIndex) =>
+        (currentIndex + 1) % slideCount
+    );
+  };
+
+  const previousSlide = () => {
+    if (slideCount <= 1) {
+      return;
+    }
+
+    setSlideIndex(
+      (currentIndex) =>
+        (currentIndex - 1 + slideCount) %
+        slideCount
+    );
+  };
+
+  const goToSlide = (index: number) => {
+    setSlideIndex(index);
+  };
 
   return (
-    <div className="flex flex-col">
-      {/* Hero Section */}
-     {/* Hero Section */}
-<section className="relative overflow-hidden bg-surface-dark min-h-[680px] flex items-center">
+    <div className="bg-[#f7f4ee] text-[#171512]">
 
-  {/* Background Pattern */}
-  <div
-    className="absolute inset-0 pointer-events-none opacity-[0.08]"
-    style={{
-      backgroundImage:
-        'radial-gradient(#c98a1e 1px, transparent 1px)',
-      backgroundSize: '28px 28px'
-    }}
-  />
+      {/* =====================================================
+          HERO
+      ====================================================== */}
+      <section className="relative overflow-hidden border-b border-[#ded8ce] bg-[#171512] text-[#f7f4ee]">
 
-  {/* Decorative Glow */}
-  <div className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full bg-brand-500/10 blur-3xl pointer-events-none" />
-  <div className="absolute -bottom-40 -left-40 w-[400px] h-[400px] rounded-full bg-brand-500/5 blur-3xl pointer-events-none" />
+        {/* Background grid */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.07]"
+          aria-hidden="true"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.7) 1px, transparent 1px)',
+            backgroundSize: '48px 48px',
+          }}
+        />
 
-  <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 relative z-10 py-16 lg:py-20">
+        {/* Decorative elements */}
+        <div
+          className="pointer-events-none absolute -right-40 -top-40 h-[520px] w-[520px] rounded-full border border-[#f7f4ee]/10"
+          aria-hidden="true"
+        />
 
-    {slideCount > 0 && currentSlide ? (
+        <div
+          className="pointer-events-none absolute -bottom-48 -left-40 h-[480px] w-[480px] rounded-full border border-[#b4491e]/20"
+          aria-hidden="true"
+        />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-12 lg:gap-16 items-center">
+        <div className="relative mx-auto max-w-[1440px] px-5 py-16 sm:px-8 lg:px-10 lg:py-24">
 
-        {/* =========================
-            LEFT — PRODUCT CONTENT
-        ========================== */}
-        <AnimatePresence mode="wait">
+          {slideCount > 0 && currentSlide ? (
+            <div className="grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
 
-          <motion.div
-            key={currentSlide.id}
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 30 }}
-            transition={{
-              duration: 0.45,
-              ease: 'easeOut'
-            }}
-            className="order-2 lg:order-1"
-          >
-
-            {/* Category */}
-            <div className="flex items-center gap-3 mb-6">
-
-              <span className="inline-flex items-center rounded-full bg-brand-500/10 border border-brand-500/20 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-600">
-                Featured
-              </span>
-
-              <span className="h-px w-8 bg-brand-300" />
-
-              <span className="text-xs uppercase tracking-[0.16em] text-charcoal-lighter">
-                {currentSlide.category}
-              </span>
-
-            </div>
-
-            {/* Product Name */}
-            <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl font-bold text-charcoal leading-[0.95] tracking-tight mb-6 max-w-xl">
-              {currentSlide.name}
-            </h1>
-
-            {/* Description */}
-            <p className="text-base sm:text-lg text-charcoal-light leading-relaxed max-w-lg mb-8">
-              {currentSlide.description ||
-                'Studio-crafted precision 3D printing, made to order.'}
-            </p>
-
-            {/* Price */}
-            <div className="mb-9">
-
-              <p className="text-xs uppercase tracking-[0.18em] text-charcoal-lighter mb-2">
-                Starting from
-              </p>
-
-              <span className="font-serif text-3xl sm:text-4xl font-semibold text-brand-600">
-                ₹{currentSlide.price.toLocaleString('en-IN')}
-              </span>
-
-            </div>
-
-            {/* Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3">
-
-              <Link
-                to={`/product/${currentSlide.id}`}
-                className="w-full sm:w-auto"
-              >
-                <Button
-                  size="lg"
-                  className="w-full sm:w-auto px-8 group"
-                >
-                  Shop This Piece
-                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
-
-              <Link
-                to="/catalog"
-                className="w-full sm:w-auto"
-              >
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="w-full sm:w-auto px-8 bg-white/60 backdrop-blur-sm"
-                >
-                  Explore Catalog
-                </Button>
-              </Link>
-
-            </div>
-
-            {/* Slide Counter */}
-            {slideCount > 1 && (
-              <div className="flex items-center gap-4 mt-10">
-
-                <span className="text-xs font-medium text-charcoal-light">
-                  {String(slideIndex + 1).padStart(2, '0')}
-                </span>
-
-                <div className="w-20 h-px bg-charcoal/15 relative overflow-hidden">
-                  <motion.div
-                    key={currentSlide.id}
-                    initial={{ width: 0 }}
-                    animate={{ width: '100%' }}
-                    transition={{
-                      duration: 5,
-                      ease: 'linear'
-                    }}
-                    className="absolute inset-y-0 left-0 bg-brand-500"
-                  />
-                </div>
-
-                <span className="text-xs text-charcoal-lighter">
-                  {String(slideCount).padStart(2, '0')}
-                </span>
-
-              </div>
-            )}
-
-          </motion.div>
-
-        </AnimatePresence>
-
-
-        {/* =========================
-            RIGHT — PRODUCT IMAGE
-        ========================== */}
-        <div className="relative order-1 lg:order-2">
-
-          {/* Decorative Frame */}
-          <div className="absolute -inset-3 rounded-[2rem] border border-brand-200/50 pointer-events-none" />
-
-          <div className="relative">
-
-            {/* Image */}
-            <div className="relative aspect-[4/3] sm:aspect-[16/11] lg:aspect-[4/3] rounded-[1.75rem] overflow-hidden bg-white shadow-2xl">
-
+              {/* Hero content */}
               <AnimatePresence mode="wait">
-
-                <motion.img
+                <motion.div
                   key={currentSlide.id}
-                  src={currentSlide.image}
-                  alt={currentSlide.name}
                   initial={{
                     opacity: 0,
-                    scale: 1.08
+                    x: -24,
                   }}
                   animate={{
                     opacity: 1,
-                    scale: 1
+                    x: 0,
                   }}
                   exit={{
                     opacity: 0,
-                    scale: 0.98
+                    x: 24,
                   }}
                   transition={{
-                    duration: 0.55,
-                    ease: 'easeOut'
+                    duration: 0.4,
                   }}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
+                  className="order-2 lg:order-1"
+                >
+                  <div className="mb-7 flex items-center gap-3">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#d9784b]">
+                      Featured piece
+                    </span>
 
+                    <span
+                      className="h-px w-10 bg-[#b4491e]"
+                      aria-hidden="true"
+                    />
+
+                    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#f7f4ee]/45">
+                      {currentSlide.category}
+                    </span>
+                  </div>
+
+                  <h1 className="max-w-2xl font-serif text-5xl font-semibold leading-[0.96] tracking-[-0.045em] sm:text-6xl lg:text-7xl">
+                    {currentSlide.name}
+                  </h1>
+
+                  <p className="mt-7 max-w-xl text-base leading-7 text-[#f7f4ee]/60 sm:text-lg">
+                    {currentSlide.description ||
+                      'Studio-crafted precision 3D printing, made to order.'}
+                  </p>
+
+                  <div className="mt-8 flex items-end gap-4">
+                    <div>
+                      <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#f7f4ee]/35">
+                        Starting from
+                      </p>
+
+                      <p className="mt-1 font-serif text-3xl font-semibold text-[#d9784b]">
+                        ₹
+                        {currentSlide.price.toLocaleString(
+                          'en-IN'
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                    <Link
+                      to={`/product/${currentSlide.id}`}
+                    >
+                      <Button
+                        size="lg"
+                        className="group w-full bg-[#b4491e] px-7 hover:bg-[#963c18] sm:w-auto"
+                      >
+                        View this piece
+                        <ArrowRight
+                          className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"
+                          aria-hidden="true"
+                        />
+                      </Button>
+                    </Link>
+
+                    <Link to="/catalog">
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="w-full border-[#f7f4ee]/25 bg-transparent px-7 text-[#f7f4ee] hover:bg-[#f7f4ee] hover:text-[#171512] sm:w-auto"
+                      >
+                        Browse collection
+                      </Button>
+                    </Link>
+                  </div>
+
+                  {/* Carousel controls */}
+                  {slideCount > 1 && (
+                    <div className="mt-10 flex items-center gap-5">
+                      <button
+                        type="button"
+                        onClick={previousSlide}
+                        aria-label="Previous featured product"
+                        className="flex h-9 w-9 items-center justify-center border border-[#f7f4ee]/20 text-[#f7f4ee]/60 transition-colors hover:border-[#f7f4ee]/60 hover:text-[#f7f4ee]"
+                      >
+                        <ArrowLeft
+                          className="h-4 w-4"
+                          aria-hidden="true"
+                        />
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        {featuredProducts.map(
+                          (product, index) => (
+                            <button
+                              key={product.id}
+                              type="button"
+                              onClick={() =>
+                                goToSlide(index)
+                              }
+                              aria-label={`Show featured product ${index + 1}`}
+                              className={`h-1 transition-all duration-300 ${
+                                index === slideIndex
+                                  ? 'w-10 bg-[#d9784b]'
+                                  : 'w-4 bg-[#f7f4ee]/20 hover:bg-[#f7f4ee]/40'
+                              }`}
+                            />
+                          )
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={nextSlide}
+                        aria-label="Next featured product"
+                        className="flex h-9 w-9 items-center justify-center border border-[#f7f4ee]/20 text-[#f7f4ee]/60 transition-colors hover:border-[#f7f4ee]/60 hover:text-[#f7f4ee]"
+                      >
+                        <ArrowRight
+                          className="h-4 w-4"
+                          aria-hidden="true"
+                        />
+                      </button>
+                    </div>
+                  )}
+                </motion.div>
               </AnimatePresence>
 
-              {/* Image Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
+              {/* Hero image */}
+              <div className="order-1 lg:order-2">
+                <div className="relative">
 
-              {/* Price Badge */}
-              <motion.div
-                key={`price-${currentSlide.id}`}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25 }}
-                className="absolute bottom-5 left-5 bg-white/95 backdrop-blur-md rounded-xl px-4 py-3 shadow-lg"
-              >
+                  <div
+                    className="absolute -inset-3 border border-[#f7f4ee]/10"
+                    aria-hidden="true"
+                  />
 
-                <p className="text-[10px] uppercase tracking-[0.15em] text-charcoal-lighter">
-                  From
-                </p>
+                  <div className="relative overflow-hidden bg-[#24211d]">
+                    <AnimatePresence mode="wait">
+                      <motion.img
+                        key={currentSlide.id}
+                        src={currentSlide.image}
+                        alt={currentSlide.name}
+                        initial={{
+                          opacity: 0,
+                          scale: 1.04,
+                        }}
+                        animate={{
+                          opacity: 1,
+                          scale: 1,
+                        }}
+                        exit={{
+                          opacity: 0,
+                          scale: 0.99,
+                        }}
+                        transition={{
+                          duration: 0.5,
+                        }}
+                        className="aspect-[4/3] w-full object-cover"
+                      />
+                    </AnimatePresence>
 
-                <p className="font-serif text-lg font-semibold text-brand-600">
-                  ₹{currentSlide.price.toLocaleString('en-IN')}
-                </p>
+                    <div
+                      className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"
+                      aria-hidden="true"
+                    />
 
-              </motion.div>
+                    <div className="absolute bottom-5 left-5 border border-white/20 bg-[#171512]/85 px-4 py-3 backdrop-blur-md">
+                      <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-white/45">
+                        From
+                      </p>
 
+                      <p className="mt-1 font-serif text-xl text-[#f7f4ee]">
+                        ₹
+                        {currentSlide.price.toLocaleString(
+                          'en-IN'
+                        )}
+                      </p>
+                    </div>
+
+                    {currentSlide.isCustomizable && (
+                      <div className="absolute right-5 top-5 flex items-center gap-2 border border-white/20 bg-[#171512]/85 px-3 py-2 backdrop-blur-md">
+                        <Sparkles
+                          className="h-3.5 w-3.5 text-[#d9784b]"
+                          aria-hidden="true"
+                        />
+
+                        <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-white/80">
+                          Personalise
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
+          ) : (
+            /* =================================================
+               FALLBACK HERO
+            ================================================== */
+            <div className="max-w-3xl">
+              <div className="mb-7 flex items-center gap-3">
+                <span className="h-px w-10 bg-[#b4491e]" />
 
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#d9784b]">
+                  Made in India
+                </span>
+              </div>
 
-            {/* Previous */}
-            {slideCount > 1 && (
-              <button
-                type="button"
-                onClick={prevSlide}
-                aria-label="Previous featured product"
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm shadow-lg flex items-center justify-center text-charcoal hover:bg-brand-500 hover:text-white transition-all duration-200"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-            )}
+              <h1 className="font-serif text-6xl font-semibold leading-[0.95] tracking-[-0.05em] sm:text-7xl lg:text-8xl">
+                Objects
+                <br />
+                <span className="text-[#d9784b]">
+                  worth keeping.
+                </span>
+              </h1>
 
-            {/* Next */}
-            {slideCount > 1 && (
-              <button
-                type="button"
-                onClick={nextSlide}
-                aria-label="Next featured product"
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm shadow-lg flex items-center justify-center text-charcoal hover:bg-brand-500 hover:text-white transition-all duration-200"
-              >
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            )}
+              <p className="mt-8 max-w-2xl text-lg leading-8 text-[#f7f4ee]/55 sm:text-xl">
+                Studio-crafted precision 3D printing.
+                From personalized pieces to functional
+                objects, we turn ideas into things worth
+                keeping.
+              </p>
 
-          </div>
+              <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+                <Link to="/catalog">
+                  <Button
+                    size="lg"
+                    className="w-full bg-[#b4491e] px-8 hover:bg-[#963c18] sm:w-auto"
+                  >
+                    Explore collection
+                    <ArrowRight
+                      className="ml-2 h-4 w-4"
+                      aria-hidden="true"
+                    />
+                  </Button>
+                </Link>
 
-
-          {/* Slide Indicators */}
-          {slideCount > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-6">
-
-              {featuredProducts.map((product, index) => (
-                <button
-                  key={product.id}
-                  type="button"
-                  onClick={() => goToSlide(index)}
-                  aria-label={`Go to featured product ${index + 1}`}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    index === slideIndex
-                      ? 'w-10 bg-brand-500'
-                      : 'w-2 bg-charcoal/20 hover:bg-charcoal/40'
-                  }`}
-                />
-              ))}
-
+                <Link to="/custom-service">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full border-[#f7f4ee]/25 bg-transparent px-8 text-[#f7f4ee] hover:bg-[#f7f4ee] hover:text-[#171512] sm:w-auto"
+                  >
+                    Start a custom print
+                  </Button>
+                </Link>
+              </div>
             </div>
           )}
-
         </div>
+      </section>
 
-      </div>
+      {/* =====================================================
+          TRUST STRIP
+      ====================================================== */}
+      <section className="border-b border-[#ded8ce] bg-[#f7f4ee]">
+        <div className="mx-auto grid max-w-[1440px] grid-cols-2 divide-x divide-[#ded8ce] md:grid-cols-4">
+          {[
+            {
+              icon: PenTool,
+              title: 'Studio Crafted',
+              description: 'Attention to every detail',
+            },
+            {
+              icon: ShieldCheck,
+              title: 'Quality Assured',
+              description: 'Checked before dispatch',
+            },
+            {
+              icon: Star,
+              title: 'Premium PLA',
+              description: 'Reliable, durable materials',
+            },
+            {
+              icon: Truck,
+              title: 'Pan-India',
+              description: 'Safe delivery across India',
+            },
+          ].map((item) => {
+            const Icon = item.icon;
 
-    ) : (
+            return (
+              <div
+                key={item.title}
+                className="flex items-center gap-3 px-5 py-6 sm:px-8 lg:px-10"
+              >
+                <Icon
+                  className="h-5 w-5 shrink-0 text-[#b4491e]"
+                  aria-hidden="true"
+                />
 
-      /* =========================
-         FALLBACK HERO
-      ========================== */
-      <div className="max-w-3xl">
+                <div>
+                  <p className="font-serif text-sm font-semibold">
+                    {item.title}
+                  </p>
 
-        <div className="inline-flex items-center gap-3 mb-6">
-
-          <span className="h-px w-8 bg-brand-500" />
-
-          <span className="text-xs uppercase tracking-[0.2em] font-semibold text-brand-600">
-            Made in India
-          </span>
-
+                  <p className="mt-0.5 text-[11px] text-[#7d756c]">
+                    {item.description}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </div>
+      </section>
 
-        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-serif font-bold text-charcoal leading-[0.95] mb-7">
-          Memories,
-          <br />
-          <span className="text-brand-500 italic">
-            Illuminated.
-          </span>
-        </h1>
+      {/* =====================================================
+          FEATURED PRODUCTS
+      ====================================================== */}
+      <section
+        className="border-b border-[#ded8ce] py-16 lg:py-24"
+        aria-labelledby="featured-products-heading"
+      >
+        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
 
-        <p className="text-lg sm:text-xl text-charcoal-light mb-10 max-w-2xl leading-relaxed">
-          Studio-crafted precision 3D printing.
-          From personalized lithophane lamps to
-          bespoke decor, we turn your ideas into
-          physical objects worth keeping.
-        </p>
+          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#b4491e]">
+                From the shelf
+              </p>
 
-        <div className="flex flex-col sm:flex-row gap-3">
+              <h2
+                id="featured-products-heading"
+                className="mt-3 font-serif text-4xl font-semibold tracking-[-0.035em] sm:text-5xl"
+              >
+                Pieces we keep stocked.
+              </h2>
 
-          <Link to="/catalog">
-            <Button
-              size="lg"
-              className="w-full sm:w-auto px-8"
+              <p className="mt-4 max-w-xl text-sm leading-6 text-[#746c63]">
+                Designed, printed and packed with care.
+                Explore pieces currently available from
+                the Shilp Sahayak collection.
+              </p>
+            </div>
+
+            <Link
+              to="/catalog"
+              className="inline-flex shrink-0 items-center gap-2 self-start border-b border-[#171512] pb-1 text-sm font-medium transition-colors hover:border-[#b4491e] hover:text-[#b4491e] sm:self-auto"
             >
-              Explore Catalog
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </Link>
+              View collection
+              <ArrowRight
+                className="h-3.5 w-3.5"
+                aria-hidden="true"
+              />
+            </Link>
+          </div>
 
-          <Link to="/custom-service">
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full sm:w-auto px-8 bg-white/50 backdrop-blur-sm"
-            >
-              Request Custom Piece
-            </Button>
-          </Link>
+          {isLoading ? (
+            <div className="flex justify-center py-20">
+              <Loader2
+                className="h-7 w-7 animate-spin text-[#b4491e]"
+                aria-label="Loading products"
+              />
+            </div>
+          ) : featuredProducts.length === 0 ? (
+            <div className="mt-10 border border-dashed border-[#d5cec3] py-16 text-center">
+              <p className="text-sm text-[#746c63]">
+                No featured products yet.
+              </p>
 
+              <p className="mt-2 text-xs text-[#968d83]">
+                Mark products as Featured in Admin to
+                display them here.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-10 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+
+              {/* Large featured piece */}
+              {featuredProducts[0] && (
+                <Link
+                  to={`/product/${featuredProducts[0].id}`}
+                  className="group"
+                >
+                  <div className="relative overflow-hidden bg-[#e9e3d9]">
+                    <img
+                      src={featuredProducts[0].image}
+                      alt={featuredProducts[0].name}
+                      className="aspect-[4/3] w-full object-cover transition-transform duration-700 group-hover:scale-[1.025]"
+                    />
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+
+                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white sm:p-8">
+                      <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-white/55">
+                        Featured
+                      </p>
+
+                      <h3 className="mt-2 font-serif text-2xl font-semibold sm:text-3xl">
+                        {featuredProducts[0].name}
+                      </h3>
+
+                      <div className="mt-3 flex items-center justify-between">
+                        <span className="font-serif text-lg">
+                          ₹
+                          {featuredProducts[0].price.toLocaleString(
+                            'en-IN'
+                          )}
+                        </span>
+
+                        <span className="flex items-center gap-2 text-sm">
+                          View piece
+                          <ArrowRight
+                            className="h-4 w-4 transition-transform group-hover:translate-x-1"
+                            aria-hidden="true"
+                          />
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              )}
+
+              {/* Supporting pieces */}
+              <div className="grid grid-cols-2 gap-5">
+                {featuredProducts
+                  .slice(1, 3)
+                  .map((product) => (
+                    <Link
+                      key={product.id}
+                      to={`/product/${product.id}`}
+                      className="group"
+                    >
+                      <Card className="h-full overflow-hidden rounded-none border-[#ded8ce] bg-white shadow-none">
+                        <div className="overflow-hidden bg-[#e9e3d9]">
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="aspect-square w-full object-cover transition-transform duration-700 group-hover:scale-[1.035]"
+                          />
+                        </div>
+
+                        <div className="p-4 sm:p-5">
+                          <p className="font-mono text-[9px] uppercase tracking-[0.13em] text-[#958c81]">
+                            {product.category}
+                          </p>
+
+                          <h3 className="mt-2 line-clamp-2 font-serif text-lg font-semibold">
+                            {product.name}
+                          </h3>
+
+                          <p className="mt-3 text-sm font-medium text-[#b4491e]">
+                            ₹
+                            {product.price.toLocaleString(
+                              'en-IN'
+                            )}
+                          </p>
+                        </div>
+                      </Card>
+                    </Link>
+                  ))}
+              </div>
+            </div>
+          )}
         </div>
+      </section>
 
-      </div>
+      {/* =====================================================
+          PROCESS
+      ====================================================== */}
+      <section className="bg-[#171512] py-16 text-[#f7f4ee] lg:py-20">
+        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
 
-    )}
+          <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#d9784b]">
+                How it works
+              </p>
 
-  </div>
-</section>
-      {/* Trust Badges */}
-      <section className="border-y border-brand-200 bg-white py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              <h2 className="mt-3 max-w-xl font-serif text-4xl font-semibold leading-tight tracking-[-0.035em] sm:text-5xl">
+                From digital model
+                <br />
+                to physical object.
+              </h2>
+            </div>
+
+            <p className="max-w-xl text-sm leading-7 text-[#f7f4ee]/50">
+              Every piece moves through a controlled
+              workflow designed around precision, material
+              quality and careful finishing.
+            </p>
+          </div>
+
+          <div className="mt-12 grid border-y border-[#f7f4ee]/10 md:grid-cols-3">
             {[
               {
-                icon: PenTool,
-                title: 'Studio-Crafted',
-                desc: 'Artisan attention to detail'
+                number: '01',
+                title: 'Choose',
+                text: 'Pick a design from the collection or start with your own idea.',
               },
               {
-                icon: ShieldCheck,
-                title: 'Premium PLA',
-                desc: 'Eco-friendly & durable'
+                number: '02',
+                title: 'Print',
+                text: 'Your piece is produced using calibrated 3D printing equipment.',
               },
               {
-                icon: Star,
-                title: 'Quality Assured',
-                desc: 'Rigorous print checks'
+                number: '03',
+                title: 'Deliver',
+                text: 'We inspect, pack and ship the finished object safely.',
               },
-              {
-                icon: Truck,
-                title: 'Pan-India Shipping',
-                desc: 'Safe & secure delivery'
-              }
-            ].map((badge, i) => (
-              <div key={i} className="flex flex-col items-center text-center">
-                <div className="w-12 h-12 rounded-full bg-brand-50 flex items-center justify-center text-brand-500 mb-4">
-                  <badge.icon className="w-6 h-6" />
-                </div>
-                <h3 className="font-serif font-semibold text-charcoal mb-1">
-                  {badge.title}
+            ].map((step, index) => (
+              <div
+                key={step.number}
+                className={`py-8 md:px-8 ${
+                  index !== 0
+                    ? 'border-t border-[#f7f4ee]/10 md:border-l md:border-t-0'
+                    : ''
+                }`}
+              >
+                <span className="font-mono text-[10px] text-[#d9784b]">
+                  {step.number}
+                </span>
+
+                <h3 className="mt-5 font-serif text-2xl font-semibold">
+                  {step.title}
                 </h3>
-                <p className="text-xs text-charcoal-lighter">{badge.desc}</p>
+
+                <p className="mt-3 max-w-sm text-sm leading-6 text-[#f7f4ee]/45">
+                  {step.text}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Categories - derived live from real products, always in sync with the Shop */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-charcoal mb-4">
-              Shop by category
-            </h2>
-            <p className="text-charcoal-light">
-              Explore our collection of studio-crafted items
-            </p>
+      {/* =====================================================
+          MATERIALS
+      ====================================================== */}
+      <section className="border-b border-[#ded8ce] py-16 lg:py-20">
+        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
+
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#b4491e]">
+                Material matters
+              </p>
+
+              <h2 className="mt-3 max-w-xl font-serif text-4xl font-semibold tracking-[-0.035em] sm:text-5xl">
+                Built around reliable materials.
+              </h2>
+
+              <p className="mt-5 max-w-xl text-sm leading-7 text-[#746c63]">
+                We focus on practical materials and
+                controlled printing parameters so the
+                finished object looks good and holds up to
+                everyday use.
+              </p>
+            </div>
+
+            <div className="grid gap-px border border-[#ded8ce] bg-[#ded8ce] sm:grid-cols-2">
+              {[
+                'Consistent print quality',
+                'Reliable layer adhesion',
+                'Clean surface finish',
+                'Practical material selection',
+              ].map((item) => (
+                <div
+                  key={item}
+                  className="flex items-center gap-3 bg-[#f7f4ee] p-5"
+                >
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center bg-[#171512] text-[#d9784b]">
+                    <Check
+                      className="h-3.5 w-3.5"
+                      aria-hidden="true"
+                    />
+                  </span>
+
+                  <span className="text-sm font-medium">
+                    {item}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =====================================================
+          CATEGORIES
+      ====================================================== */}
+      <section
+        className="py-16 lg:py-20"
+        aria-labelledby="categories-heading"
+      >
+        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
+
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#b4491e]">
+                Explore
+              </p>
+
+              <h2
+                id="categories-heading"
+                className="mt-3 font-serif text-4xl font-semibold tracking-[-0.035em] sm:text-5xl"
+              >
+                Shop by category.
+              </h2>
+            </div>
+
+            <Link
+              to="/catalog"
+              className="inline-flex items-center gap-2 text-sm font-medium text-[#746c63] hover:text-[#b4491e]"
+            >
+              Browse everything
+              <ChevronRight
+                className="h-4 w-4"
+                aria-hidden="true"
+              />
+            </Link>
           </div>
 
           {isLoading ? (
             <div className="flex justify-center py-16">
-              <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
+              <Loader2
+                className="h-7 w-7 animate-spin text-[#b4491e]"
+                aria-label="Loading categories"
+              />
             </div>
           ) : categories.length === 0 ? (
-            <div className="text-center py-16 text-charcoal-light">
-              No products yet. Add products in Admin to see categories here.
+            <div className="py-16 text-center text-sm text-[#746c63]">
+              No categories available yet.
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {categories.map((cat) => (
+            <div className="mt-9 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {categories.map((category) => (
                 <Link
-                  key={cat.name}
-                  to={`/catalog?category=${encodeURIComponent(cat.name)}`}
-                  className="group block"
+                  key={category.name}
+                  to={`/catalog?category=${encodeURIComponent(
+                    category.name
+                  )}`}
+                  className="group"
                 >
-                  <div className="relative rounded-2xl overflow-hidden aspect-[4/5] mb-4 bg-surface-dark">
-                    <div className="absolute inset-0 bg-charcoal/20 group-hover:bg-transparent transition-colors duration-300 z-10" />
+                  <div className="relative overflow-hidden bg-[#ded8ce]">
                     <img
-                      src={cat.image}
-                      alt={cat.name}
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                      src={category.image}
+                      alt={category.name}
+                      className="aspect-[4/5] w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
                     />
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-transparent" />
+
+                    <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5">
+                      <p className="font-serif text-lg font-semibold text-white sm:text-xl">
+                        {category.name}
+                      </p>
+
+                      <span className="mt-1 inline-flex items-center gap-1 text-xs text-white/60 transition-colors group-hover:text-white">
+                        Explore
+                        <ArrowRight
+                          className="h-3 w-3 transition-transform group-hover:translate-x-1"
+                          aria-hidden="true"
+                        />
+                      </span>
+                    </div>
                   </div>
-                  <h3 className="font-serif font-medium text-lg text-charcoal text-center group-hover:text-brand-500 transition-colors">
-                    {cat.name}
-                  </h3>
                 </Link>
               ))}
             </div>
@@ -471,66 +835,168 @@ export function Home() {
         </div>
       </section>
 
-      {/* Featured Products */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-end mb-12">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-charcoal mb-4">
-                Studio Favorites
-              </h2>
-              <p className="text-charcoal-light">
-                Our most loved crafted pieces
-              </p>
+      {/* =====================================================
+          CUSTOM PRINT CTA
+      ====================================================== */}
+      <section className="border-y border-[#ded8ce] bg-[#ebe5db]">
+        <div className="mx-auto grid max-w-[1440px] lg:grid-cols-2">
+
+          <div className="px-5 py-16 sm:px-8 lg:px-10 lg:py-24">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#b4491e]">
+              Have something else in mind?
+            </p>
+
+            <h2 className="mt-4 max-w-xl font-serif text-4xl font-semibold leading-tight tracking-[-0.04em] sm:text-5xl">
+              Bring your own model to life.
+            </h2>
+
+            <p className="mt-5 max-w-xl text-sm leading-7 text-[#746c63]">
+              Upload your 3D model and tell us what you
+              need. We'll review the requirements and
+              prepare a quote for your custom print.
+            </p>
+
+            <Link
+              to="/custom-service"
+              className="mt-8 inline-flex"
+            >
+              <Button
+                size="lg"
+                className="group bg-[#171512] px-7 hover:bg-[#2b2824]"
+              >
+                Start a custom print
+                <ArrowRight
+                  className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"
+                  aria-hidden="true"
+                />
+              </Button>
+            </Link>
+          </div>
+
+          <div className="relative min-h-[320px] overflow-hidden bg-[#171512]">
+            <div
+              className="absolute inset-0 opacity-[0.08]"
+              aria-hidden="true"
+              style={{
+                backgroundImage:
+                  'linear-gradient(90deg, #f7f4ee 1px, transparent 1px), linear-gradient(#f7f4ee 1px, transparent 1px)',
+                backgroundSize: '36px 36px',
+              }}
+            />
+
+            <div className="relative flex h-full items-center justify-center p-10">
+              <div className="max-w-sm border border-[#f7f4ee]/15 p-7">
+                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#d9784b]">
+                  Custom service
+                </p>
+
+                <p className="mt-4 font-serif text-2xl font-semibold text-[#f7f4ee]">
+                  Your file.
+                  <br />
+                  Our printer.
+                  <br />
+                  One finished piece.
+                </p>
+              </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =====================================================
+          SELECTED PRODUCTS
+      ====================================================== */}
+      <section
+        className="border-b border-[#ded8ce] py-16 lg:py-20"
+        aria-labelledby="selected-products-heading"
+      >
+        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
+
+          <div className="flex items-end justify-between gap-5">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#b4491e]">
+                Also worth a look
+              </p>
+
+              <h2
+                id="selected-products-heading"
+                className="mt-3 font-serif text-4xl font-semibold tracking-[-0.035em] sm:text-5xl"
+              >
+                More from the workshop.
+              </h2>
+            </div>
+
             <Link
               to="/catalog"
-              className="hidden sm:flex items-center text-brand-600 hover:text-brand-700 font-medium"
+              className="hidden items-center gap-2 text-sm font-medium hover:text-[#b4491e] sm:inline-flex"
             >
-              View All <ArrowRight className="w-4 h-4 ml-2" />
+              All products
+              <ArrowRight
+                className="h-3.5 w-3.5"
+                aria-hidden="true"
+              />
             </Link>
           </div>
 
           {isLoading ? (
             <div className="flex justify-center py-16">
-              <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
+              <Loader2
+                className="h-7 w-7 animate-spin text-[#b4491e]"
+                aria-label="Loading products"
+              />
             </div>
-          ) : featuredProducts.length === 0 ? (
-            <div className="text-center py-16 text-charcoal-light">
-              No featured products yet. Mark some products as "Featured" in Admin.
+          ) : selectedProducts.length === 0 ? (
+            <div className="py-16 text-center text-sm text-[#746c63]">
+              No products available yet.
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {featuredProducts.map((product) => (
+            <div className="mt-9 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {selectedProducts.map((product) => (
                 <Link
                   key={product.id}
                   to={`/product/${product.id}`}
-                  className="group block"
+                  className="group"
                 >
-                  <Card className="h-full border-transparent hover:border-brand-200 transition-all duration-300 hover:shadow-xl">
-                    <div className="relative aspect-square overflow-hidden bg-surface-dark">
+                  <Card className="h-full overflow-hidden rounded-none border-[#ded8ce] bg-white shadow-none transition-shadow duration-300 hover:shadow-[0_12px_35px_rgba(23,21,18,0.08)]">
+                    <div className="relative overflow-hidden bg-[#e9e3d9]">
                       <img
                         src={product.image}
                         alt={product.name}
-                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                        className="aspect-square w-full object-cover transition-transform duration-700 group-hover:scale-[1.035]"
                       />
+
                       {product.isCustomizable && (
-                        <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-[10px] font-bold text-brand-600 uppercase tracking-wider">
+                        <span className="absolute left-3 top-3 flex items-center gap-1.5 border border-white/20 bg-[#171512]/85 px-2.5 py-1.5 font-mono text-[8px] uppercase tracking-[0.12em] text-white backdrop-blur-sm">
+                          <Sparkles
+                            className="h-3 w-3 text-[#d9784b]"
+                            aria-hidden="true"
+                          />
                           Personalise
-                        </div>
+                        </span>
                       )}
                     </div>
-                    <div className="p-5 flex flex-col flex-grow">
-                      <p className="text-xs text-charcoal-lighter mb-2 uppercase tracking-wider">
+
+                    <div className="p-5">
+                      <p className="font-mono text-[9px] uppercase tracking-[0.13em] text-[#958c81]">
                         {product.category}
                       </p>
-                      <h3 className="font-serif font-semibold text-charcoal text-lg mb-2 line-clamp-1 group-hover:text-brand-500 transition-colors">
+
+                      <h3 className="mt-2 line-clamp-2 font-serif text-lg font-semibold leading-snug">
                         {product.name}
                       </h3>
-                      <div className="flex items-center justify-between mt-auto pt-2">
-                        <p className="text-brand-600 font-medium">
-                          ₹{product.price.toLocaleString('en-IN')}
-                        </p>
+
+                      <div className="mt-4 flex items-center justify-between">
+                        <span className="font-medium text-[#b4491e]">
+                          ₹
+                          {product.price.toLocaleString(
+                            'en-IN'
+                          )}
+                        </span>
+
+                        <ArrowRight
+                          className="h-4 w-4 text-[#958c81] transition-all group-hover:translate-x-1 group-hover:text-[#b4491e]"
+                          aria-hidden="true"
+                        />
                       </div>
                     </div>
                   </Card>
@@ -539,16 +1005,63 @@ export function Home() {
             </div>
           )}
 
-          <div className="mt-8 text-center sm:hidden">
+          <div className="mt-8 sm:hidden">
             <Link to="/catalog">
-              <Button variant="outline" className="w-full">
-                View All Products
+              <Button
+                variant="outline"
+                className="w-full border-[#cfc7bb]"
+              >
+                View all products
+                <ArrowRight
+                  className="ml-2 h-4 w-4"
+                  aria-hidden="true"
+                />
               </Button>
             </Link>
           </div>
         </div>
       </section>
 
+      {/* =====================================================
+          FINAL CTA
+      ====================================================== */}
+      <section className="bg-[#171512] px-5 py-16 text-center text-[#f7f4ee] sm:px-8 lg:py-24">
+        <div className="mx-auto max-w-3xl">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#d9784b]">
+            Start creating
+          </p>
+
+          <h2 className="mt-4 font-serif text-4xl font-semibold tracking-[-0.04em] sm:text-5xl lg:text-6xl">
+            Made for your idea.
+          </h2>
+
+          <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-[#f7f4ee]/50">
+            Browse the collection or send us your model
+            for a custom print.
+          </p>
+
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link to="/catalog">
+              <Button
+                size="lg"
+                className="w-full bg-[#b4491e] px-8 hover:bg-[#963c18] sm:w-auto"
+              >
+                Shop the collection
+              </Button>
+            </Link>
+
+            <Link to="/custom-service">
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full border-[#f7f4ee]/25 bg-transparent px-8 text-[#f7f4ee] hover:bg-[#f7f4ee] hover:text-[#171512] sm:w-auto"
+              >
+                Request a custom print
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

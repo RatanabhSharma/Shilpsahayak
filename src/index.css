@@ -1,43 +1,357 @@
-/* Font imports must stay at the very top */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+/* =========================================================
+   SHILP SAHAYAK — GLOBAL DESIGN SYSTEM
+   UI migration foundation
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   Fonts
+   --------------------------------------------------------- */
+
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Noto+Serif+Devanagari:wght@400;500&display=swap');
+
+/* ---------------------------------------------------------
+   Tailwind
+   --------------------------------------------------------- */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Custom styles below */
+/* =========================================================
+   Base
+   ========================================================= */
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
 
 body {
-  background-color: #faf6ee;
-  color: #2b2724;
-  font-family: 'Inter', sans-serif;
-  -webkit-font-smoothing: antialiased;
+  margin: 0;
+  min-width: 320px;
+  background-color: #f7f4ee;
+  color: #14120f;
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
 }
 
-h1, h2, h3, h4, h5, h6, .font-serif {
-  font-family: 'Playfair Display', serif;
+button,
+input,
+textarea,
+select {
+  font: inherit;
 }
 
-/* Custom Scrollbar */
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+img {
+  height: auto;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* =========================================================
+   Typography
+   ========================================================= */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+p {
+  margin: 0;
+}
+
+.font-serif {
+  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+}
+
+.font-mono {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, 'Liberation Mono', monospace;
+}
+
+.deva {
+  font-family: 'Noto Serif Devanagari', serif;
+}
+
+/* Technical eyebrow / metadata label */
+
+.label-tech {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, 'Liberation Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  color: #6b6156;
+}
+
+/* =========================================================
+   Selection & focus
+   ========================================================= */
+
+::selection {
+  background-color: #f4dccf;
+  color: #7b2f11;
+}
+
+:focus-visible {
+  outline: 2px solid #b4491e;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* =========================================================
+   Scrollbar
+   ========================================================= */
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #faf6ee;
-}
-::-webkit-scrollbar-thumb {
-  background: #e5c796;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #dbab65;
+  background: #ebe6dc;
 }
 
+::-webkit-scrollbar-thumb {
+  background: #b8aea0;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8e8275;
+}
+
+/* Firefox */
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #b8aea0 #ebe6dc;
+}
+
+/* =========================================================
+   Hide scrollbar utility
+   ========================================================= */
+
+.no-scrollbar::-webkit-scrollbar,
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+.no-scrollbar,
 .hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* =========================================================
+   Engineering grid textures
+   ========================================================= */
+
+/*
+ * Dark engineering grid.
+ * Use sparingly on dark sections.
+ */
+
+.grid-plate {
+  background-image:
+    linear-gradient(
+      rgba(255, 255, 255, 0.045) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.045) 1px,
+      transparent 1px
+    );
+  background-size: 34px 34px;
+}
+
+/*
+ * Light engineering grid.
+ * Useful for sections, product areas and backgrounds.
+ */
+
+.grid-plate-light {
+  background-image:
+    linear-gradient(
+      rgba(20, 18, 15, 0.045) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(20, 18, 15, 0.045) 1px,
+      transparent 1px
+    );
+  background-size: 28px 28px;
+}
+
+/*
+ * FDM layer-line texture.
+ * Use as a subtle background detail rather than a dominant effect.
+ */
+
+.layerlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(20, 18, 15, 0.055) 0px,
+    rgba(20, 18, 15, 0.055) 1px,
+    transparent 1px,
+    transparent 5px
+  );
+}
+
+/* =========================================================
+   Surface utilities
+   ========================================================= */
+
+.surface-paper {
+  background-color: #f7f4ee;
+}
+
+.surface-white {
+  background-color: #ffffff;
+}
+
+.surface-dark {
+  background-color: #14120f;
+  color: #f7f4ee;
+}
+
+.surface-muted {
+  background-color: #ebe6dc;
+}
+
+/* =========================================================
+   Brand utilities
+   ========================================================= */
+
+.text-brand {
+  color: #b4491e;
+}
+
+.text-brand-dark {
+  color: #7b2f11;
+}
+
+.text-ink {
+  color: #14120f;
+}
+
+.text-muted {
+  color: #6b6156;
+}
+
+.border-brand {
+  border-color: #b4491e;
+}
+
+.border-subtle {
+  border-color: #d9d2c7;
+}
+
+/* =========================================================
+   Technical divider
+   ========================================================= */
+
+.technical-divider {
+  width: 100%;
+  height: 1px;
+  background-color: #d9d2c7;
+}
+
+/* =========================================================
+   Form base
+   ========================================================= */
+
+input,
+textarea,
+select {
+  color: #14120f;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #8e8275;
+  opacity: 1;
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
+/* Remove browser number controls */
+
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* =========================================================
+   Motion
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =========================================================
+   Responsive typography
+   ========================================================= */
+
+@media (max-width: 640px) {
+  body {
+    font-size: 14px;
+  }
 }

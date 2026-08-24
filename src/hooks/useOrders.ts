@@ -15,6 +15,7 @@ import {
   orderBy,
   where,
 } from 'firebase/firestore';
+import { useStore, Product } from '../store';
 
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
@@ -546,5 +547,149 @@ export function useOrder(
     refetchOnWindowFocus: false,
 
     retry: 1,
+  });
+}/* -------------------------------------------------------------------------- */
+/* Re-order                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export function useReorderOrder() {
+  const addToCart = useStore(
+    (state) => state.addToCart
+  );
+
+  return useMutation({
+    mutationFn: async (
+      order: Order
+    ) => {
+      if (!order.items?.length) {
+        throw new Error(
+          'This order has no items to reorder.'
+        );
+      }
+
+      /*
+       * Resolve every product before adding anything
+       * to the cart. This prevents a partially restored
+       * order if one product is unavailable.
+       */
+
+      const resolvedItems = await Promise.all(
+        order.items.map(
+          async (item) => {
+            const productRef = doc(
+              db,
+              'products',
+              item.productId
+            );
+
+            const snapshot =
+              await getDoc(productRef);
+
+            if (!snapshot.exists()) {
+              throw new Error(
+                `${item.productName} is no longer available.`
+              );
+            }
+
+            const product = {
+              id: snapshot.id,
+              ...snapshot.data()
+            } as Product;
+
+            /*
+             * Product may have been disabled
+             * since the original order.
+             */
+
+            if (
+              product.active === false
+            ) {
+              throw new Error(
+                `${item.productName} is currently unavailable.`
+              );
+            }
+
+            /*
+             * Restore the original variant.
+             */
+
+            let variant =
+              undefined;
+
+            if (item.variantId) {
+              variant =
+                product.variants?.find(
+                  (currentVariant) =>
+                    currentVariant.id ===
+                    item.variantId
+                );
+
+              if (!variant) {
+                throw new Error(
+                  `${item.productName} — ${item.variantLabel || 'selected variant'} is no longer available.`
+                );
+              }
+
+              /*
+               * Check variant stock.
+               */
+
+              if (
+                variant.stock <
+                item.quantity
+              ) {
+                throw new Error(
+                  `${item.productName} — ${variant.label} does not have enough stock.`
+                );
+              }
+            } else {
+              /*
+               * Check normal product stock.
+               */
+
+              if (
+                product.stock <
+                item.quantity
+              ) {
+                throw new Error(
+                  `${item.productName} does not have enough stock.`
+                );
+              }
+            }
+
+            return {
+              product,
+              quantity:
+                item.quantity,
+              customNotes:
+                item.customNotes,
+              variantId:
+                item.variantId,
+              variantLabel:
+                item.variantLabel
+            };
+          }
+        )
+      );
+
+      /*
+       * Only add items after every item has
+       * successfully passed validation.
+       */
+
+      resolvedItems.forEach(
+        (item) => {
+          addToCart(
+            item.product,
+            item.quantity,
+            item.customNotes,
+            item.variantLabel,
+            item.variantId
+          );
+        }
+      );
+
+      return resolvedItems;
+    }
   });
 }

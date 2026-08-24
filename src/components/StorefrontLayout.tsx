@@ -1,409 +1,679 @@
-import React, { useEffect, useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import React, {
+  useEffect,
+  useState
+} from 'react';
 import {
-  User,
-  ShoppingBag,
+  Link,
+  NavLink,
+  Outlet,
+  useLocation
+} from 'react-router-dom';
+import {
+  ArrowRight,
   Menu,
-  X,
-  Instagram,
-  Facebook,
-  Twitter,
+  Phone,
+  ShieldCheck,
+  ShoppingBag,
+  User,
+  X
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
+import {
+  AnimatePresence,
+  motion
+} from 'framer-motion';
 
 import { useStore } from '../store';
 import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
+import { useUserRole } from '../hooks/useUserRole';
 
-type NavLink = {
+type NavItem = {
   name: string;
   path: string;
+  end?: boolean;
 };
 
-export function StorefrontLayout() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+const NAV_ITEMS: NavItem[] = [
+  {
+    name: 'Home',
+    path: '/',
+    end: true
+  },
+  {
+    name: 'Shop',
+    path: '/catalog'
+  },
+  {
+    name: 'Custom 3D Printing',
+    path: '/custom-service'
+  },
+  {
+    name: 'About',
+    path: '/about'
+  },
+  {
+    name: 'Contact',
+    path: '/contact'
+  }
+];
 
-  const cart = useStore((state) => state.cart);
+export function StorefrontLayout() {
+  const [
+    isMobileMenuOpen,
+    setIsMobileMenuOpen
+  ] = useState(false);
+
+  const location = useLocation();
+
+  const cart = useStore(
+    (state) => state.cart
+  );
 
   const cartItemCount = cart.reduce(
-    (acc, item) => acc + item.quantity,
+    (total, item) =>
+      total + item.quantity,
     0
   );
 
-  const location = useLocation();
-  const { isLoggedIn } = useAuth();
-  const { data: settings } = useSettings();
+  const {
+    user,
+    loading: authLoading
+  } = useAuth();
 
-  // Close mobile menu when route changes
+  const {
+    isAdmin,
+    loading: roleLoading
+  } = useUserRole();
+
+  const {
+    data: settings
+  } = useSettings();
+
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
-  const navLinks: NavLink[] = [
-    {
-      name: 'Home',
-      path: '/',
-    },
-    {
-      name: 'Shop',
-      path: '/catalog',
-    },
-    {
-      name: 'Services',
-      path: '/custom-service',
-    },
-    {
-      name: 'About',
-      path: '/about',
-    },
-    {
-      name: 'Contact',
-      path: '/contact',
-    },
-  ];
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow =
+        'hidden';
+    } else {
+      document.body.style.overflow =
+        '';
+    }
+
+    return () => {
+      document.body.style.overflow =
+        '';
+    };
+  }, [isMobileMenuOpen]);
 
   const businessName =
-    settings?.businessName || 'Shilp Sahayak';
+    settings?.businessName ||
+    'Shilp Sahayak';
 
   const businessEmail =
-    settings?.email || 'hello@shilpsahayak.com';
+    settings?.email ||
+    'hello@shilpsahayak.com';
 
   const whatsappNumber =
     settings?.whatsappNumber || '';
 
   const businessAddress =
-    settings?.address || 'Patiala, Punjab 147001';
+    settings?.address ||
+    'Patiala, Punjab 147001';
 
-  const whatsappLink = whatsappNumber
-    ? `https://wa.me/${whatsappNumber.replace(/\D/g, '')}`
-    : '#';
+  const whatsappLink =
+    whatsappNumber
+      ? `https://wa.me/${whatsappNumber.replace(
+          /\D/g,
+          ''
+        )}`
+      : '';
+
+  const currentYear =
+    new Date().getFullYear();
+
+  const isAuthenticated =
+    !authLoading && !!user;
+
+  const showAdmin =
+    !authLoading &&
+    !roleLoading &&
+    isAuthenticated &&
+    isAdmin;
 
   return (
-    <div className="min-h-screen flex flex-col bg-surface">
+    <div className="min-h-screen bg-[#f7f4ee] text-[#14120f]">
+      {/* Accessibility */}
+      <a
+        href="#main-content"
+        className="fixed left-4 top-4 z-[100] -translate-y-20 bg-[#14120f] px-4 py-2 text-sm font-medium text-[#f7f4ee] shadow-lg transition-transform focus:translate-y-0"
+      >
+        Skip to content
+      </a>
 
-      {/* Announcement Bar */}
-      <div className="bg-brand-500 text-white text-xs font-medium py-2 text-center px-4">
-        Free Pan-India shipping on orders over ₹499. Crafted with precision.
+      {/* Utility bar */}
+      <div className="hidden bg-[#14120f] text-[#f7f4ee]/70 lg:block">
+        <div className="mx-auto flex h-8 max-w-[1440px] items-center justify-between px-8 xl:px-10">
+          <p className="font-mono text-[10px] uppercase tracking-[0.12em]">
+            Pan-India shipping · Made with precision
+          </p>
+
+          <div className="flex items-center gap-6">
+            <span className="font-mono text-[10px] uppercase tracking-[0.12em]">
+              Custom 3D printing available
+            </span>
+
+            {whatsappNumber && (
+              <a
+                href={whatsappLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors hover:text-[#f7f4ee]"
+              >
+                <Phone
+                  className="h-3 w-3"
+                  aria-hidden="true"
+                />
+                WhatsApp
+              </a>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-md border-b border-brand-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
+      <header className="sticky top-0 z-50 border-b border-[#d9d2c7] bg-[#f7f4ee]/95 backdrop-blur-sm">
+        <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-5 px-5 sm:px-8 lg:h-[72px] lg:px-10">
+          {/* Logo */}
+          <Link
+            to="/"
+            className="group flex min-w-0 shrink-0 items-center gap-2.5"
+            aria-label={`${businessName} home`}
+          >
+            <div
+              className="relative flex h-9 w-9 shrink-0 items-center justify-center border border-[#14120f] bg-[#14120f] text-[#f7f4ee]"
+              aria-hidden="true"
+            >
+              <span className="font-display text-sm font-bold tracking-[-0.08em]">
+                SS
+              </span>
 
-            {/* Logo */}
-            <Link to="/" className="flex flex-col">
-              <span className="font-serif text-2xl font-bold text-charcoal leading-none">
+              <span className="absolute -bottom-px -right-px h-2 w-2 bg-[#b4491e]" />
+            </div>
+
+            <div className="min-w-0">
+              <span className="block truncate font-display text-[16px] font-semibold leading-none tracking-[-0.02em] text-[#14120f] transition-colors group-hover:text-[#b4491e] sm:text-[17px]">
                 {businessName}
               </span>
 
-              <span className="text-[10px] text-charcoal-lighter uppercase tracking-widest mt-1">
-                Crafted with Precision
+              <span className="mt-1 block font-mono text-[8px] uppercase tracking-[0.16em] text-[#8e8275]">
+                Crafted with precision
               </span>
+            </div>
+          </Link>
+
+          {/* Desktop navigation */}
+          <nav
+            aria-label="Primary navigation"
+            className="ml-auto hidden items-center gap-6 lg:flex"
+          >
+            {NAV_ITEMS.slice(1).map(
+              (item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({
+                    isActive
+                  }) =>
+                    [
+                      'relative py-1 text-[13px] transition-colors',
+                      isActive
+                        ? 'font-medium text-[#14120f]'
+                        : 'text-[#6b6156] hover:text-[#14120f]'
+                    ].join(' ')
+                  }
+                >
+                  {({
+                    isActive
+                  }) => (
+                    <>
+                      {item.name}
+
+                      {isActive && (
+                        <span className="absolute -bottom-1 left-0 h-px w-full bg-[#b4491e]" />
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              )
+            )}
+
+            {showAdmin && (
+              <NavLink
+                to="/admin"
+                className={({
+                  isActive
+                }) =>
+                  [
+                    'inline-flex items-center gap-1.5 border px-2.5 py-1.5',
+                    'font-mono text-[9px] uppercase tracking-[0.12em]',
+                    'transition-all duration-150',
+                    isActive
+                      ? 'border-[#14120f] bg-[#14120f] text-[#f7f4ee]'
+                      : 'border-[#cfc7bb] text-[#514a42] hover:border-[#14120f] hover:bg-[#14120f] hover:text-[#f7f4ee]'
+                  ].join(' ')
+                }
+              >
+                <ShieldCheck
+                  className="h-3 w-3"
+                  aria-hidden="true"
+                />
+                Admin Panel
+              </NavLink>
+            )}
+          </nav>
+
+          {/* Actions */}
+          <div className="ml-auto flex items-center gap-1 lg:ml-5">
+            {authLoading ? (
+              <div
+                className="h-10 w-16 animate-pulse"
+                aria-hidden="true"
+              />
+            ) : isAuthenticated ? (
+              <Link
+                to="/account"
+                className="group inline-flex h-10 items-center gap-2 px-2.5 text-[#514a42] transition-colors hover:text-[#14120f]"
+                aria-label="Open my account"
+              >
+                <User
+                  className="h-[18px] w-[18px]"
+                  aria-hidden="true"
+                />
+
+                <span className="hidden text-[13px] font-medium sm:inline">
+                  Account
+                </span>
+              </Link>
+            ) : (
+              <Link
+                to="/login"
+                className="group inline-flex h-10 items-center gap-2 px-2.5 text-[#514a42] transition-colors hover:text-[#14120f]"
+                aria-label="Login to your account"
+              >
+                <User
+                  className="h-[18px] w-[18px]"
+                  aria-hidden="true"
+                />
+
+                <span className="hidden text-[13px] font-medium sm:inline">
+                  Login
+                </span>
+              </Link>
+            )}
+
+            <Link
+              to="/cart"
+              className="relative inline-flex h-10 w-10 items-center justify-center text-[#514a42] transition-colors hover:text-[#14120f]"
+              aria-label={`Shopping cart with ${cartItemCount} ${
+                cartItemCount === 1
+                  ? 'item'
+                  : 'items'
+              }`}
+            >
+              <ShoppingBag
+                className="h-[19px] w-[19px]"
+                aria-hidden="true"
+              />
+
+              {cartItemCount > 0 && (
+                <span className="absolute right-0.5 top-0.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-[#b4491e] px-1 font-mono text-[9px] font-semibold leading-none text-white">
+                  {cartItemCount > 99
+                    ? '99+'
+                    : cartItemCount}
+                </span>
+              )}
             </Link>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-6 lg:space-x-8">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.name}
-                  to={link.path}
-                  className={`text-sm font-medium transition-colors hover:text-brand-500 ${
-                    location.pathname === link.path
-                      ? 'text-brand-500'
-                      : 'text-charcoal-light'
-                  }`}
-                >
-                  {link.name}
-                </Link>
-              ))}
-            </nav>
-
-            {/* Actions */}
-            <div className="flex items-center space-x-4">
-
-              {/* Account / Login */}
-              {isLoggedIn ? (
-                <Link
-                  to="/account"
-                  className="flex items-center gap-2 text-sm font-medium text-charcoal hover:text-brand-600 transition-colors"
-                >
-                  <User className="w-5 h-5" />
-
-                  <span className="hidden sm:inline">
-                    My Account
-                  </span>
-                </Link>
+            <button
+              type="button"
+              onClick={() =>
+                setIsMobileMenuOpen(
+                  (previous) =>
+                    !previous
+                )
+              }
+              className="inline-flex h-10 w-10 items-center justify-center text-[#514a42] transition-colors hover:text-[#14120f] lg:hidden"
+              aria-label={
+                isMobileMenuOpen
+                  ? 'Close navigation menu'
+                  : 'Open navigation menu'
+              }
+              aria-expanded={
+                isMobileMenuOpen
+              }
+              aria-controls="mobile-navigation"
+            >
+              {isMobileMenuOpen ? (
+                <X
+                  className="h-5 w-5"
+                  aria-hidden="true"
+                />
               ) : (
-                <Link
-                  to="/login"
-                  className="flex items-center gap-2 text-sm font-medium text-charcoal hover:text-brand-600 transition-colors"
-                >
-                  <User className="w-5 h-5" />
-
-                  <span className="hidden sm:inline">
-                    Login
-                  </span>
-                </Link>
+                <Menu
+                  className="h-5 w-5"
+                  aria-hidden="true"
+                />
               )}
-
-              {/* Cart */}
-              <Link
-                to="/cart"
-                className="relative p-2 text-charcoal hover:text-brand-500 transition-colors"
-                aria-label={`Shopping cart with ${cartItemCount} items`}
-              >
-                <ShoppingBag className="w-6 h-6" />
-
-                {cartItemCount > 0 && (
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-brand-500 rounded-full">
-                    {cartItemCount}
-                  </span>
-                )}
-              </Link>
-
-              {/* Mobile Menu Button */}
-              <button
-                type="button"
-                className="md:hidden p-2 text-charcoal"
-                onClick={() =>
-                  setIsMobileMenuOpen(!isMobileMenuOpen)
-                }
-                aria-label={
-                  isMobileMenuOpen
-                    ? 'Close navigation menu'
-                    : 'Open navigation menu'
-                }
-                aria-expanded={isMobileMenuOpen}
-              >
-                {isMobileMenuOpen ? (
-                  <X className="w-6 h-6" />
-                ) : (
-                  <Menu className="w-6 h-6" />
-                )}
-              </button>
-            </div>
+            </button>
           </div>
         </div>
 
-        {/* Mobile Navigation */}
-        <AnimatePresence>
+        {/* Mobile navigation */}
+        <AnimatePresence initial={false}>
           {isMobileMenuOpen && (
             <motion.div
+              id="mobile-navigation"
               initial={{
                 opacity: 0,
-                height: 0,
+                height: 0
               }}
               animate={{
                 opacity: 1,
-                height: 'auto',
+                height: 'auto'
               }}
               exit={{
                 opacity: 0,
-                height: 0,
+                height: 0
               }}
-              className="md:hidden border-t border-brand-100 bg-surface overflow-hidden"
+              transition={{
+                duration: 0.2,
+                ease: 'easeOut'
+              }}
+              className="overflow-hidden border-t border-[#d9d2c7] bg-[#f7f4ee] lg:hidden"
             >
-              <div className="px-4 pt-2 pb-6 space-y-1">
-                {navLinks.map((link) => (
+              <nav
+                aria-label="Mobile navigation"
+                className="mx-auto max-w-[1440px] px-5 py-4 sm:px-8"
+              >
+                <div className="space-y-0.5">
+                  {NAV_ITEMS.map(
+                    (item) => (
+                      <NavLink
+                        key={item.path}
+                        to={item.path}
+                        end={item.end}
+                        className={({
+                          isActive
+                        }) =>
+                          [
+                            'flex items-center justify-between border-b border-[#ebe6dc] px-1 py-3.5 text-[15px] transition-colors',
+                            isActive
+                              ? 'font-medium text-[#b4491e]'
+                              : 'text-[#514a42] hover:text-[#14120f]'
+                          ].join(' ')
+                        }
+                      >
+                        {({
+                          isActive
+                        }) => (
+                          <>
+                            <span>
+                              {item.name}
+                            </span>
+
+                            {isActive && (
+                              <span className="h-1.5 w-1.5 rounded-full bg-[#b4491e]" />
+                            )}
+                          </>
+                        )}
+                      </NavLink>
+                    )
+                  )}
+
+                  {showAdmin && (
+                    <NavLink
+                      to="/admin"
+                      className={({
+                        isActive
+                      }) =>
+                        [
+                          'mt-3 flex items-center justify-between border px-3 py-3',
+                          'font-mono text-[10px] uppercase tracking-[0.12em]',
+                          isActive
+                            ? 'border-[#14120f] bg-[#14120f] text-[#f7f4ee]'
+                            : 'border-[#cfc7bb] text-[#514a42] hover:border-[#14120f] hover:text-[#14120f]'
+                        ].join(' ')
+                      }
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <ShieldCheck
+                          className="h-3.5 w-3.5"
+                          aria-hidden="true"
+                        />
+                        Admin Panel
+                      </span>
+
+                      <ArrowRight
+                        className="h-3.5 w-3.5"
+                        aria-hidden="true"
+                      />
+                    </NavLink>
+                  )}
+                </div>
+
+                <div className="mt-5 border-t border-[#d9d2c7] pt-5">
                   <Link
-                    key={link.name}
-                    to={link.path}
-                    className={`block px-3 py-3 text-base font-medium rounded-lg transition-colors ${
-                      location.pathname === link.path
-                        ? 'bg-brand-50 text-brand-500'
-                        : 'text-charcoal hover:bg-brand-50 hover:text-brand-500'
-                    }`}
+                    to="/custom-service"
+                    className="flex items-center justify-between bg-[#14120f] px-4 py-3.5 text-[#f7f4ee] transition-colors hover:bg-[#2b2724]"
                   >
-                    {link.name}
+                    <span className="text-sm font-medium">
+                      Start a custom print
+                    </span>
+
+                    <ArrowRight
+                      className="h-4 w-4"
+                      aria-hidden="true"
+                    />
                   </Link>
-                ))}
-              </div>
+                </div>
+              </nav>
             </motion.div>
           )}
         </AnimatePresence>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-grow">
+      <main
+        id="main-content"
+        className="min-h-0 flex-1"
+      >
         <Outlet />
       </main>
 
       {/* Footer */}
-      <footer className="bg-surface-dark border-t border-brand-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-          {/* Main Footer */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-16 py-14">
-
-            {/* Brand */}
-            <div className="lg:col-span-2">
+      <footer className="mt-20 border-t border-[#d9d2c7] bg-[#14120f] text-[#f7f4ee]/75">
+        <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10">
+          <div className="grid gap-12 lg:grid-cols-[1.5fr_repeat(2,1fr)_1.1fr]">
+            <div className="max-w-sm">
               <Link
                 to="/"
-                className="inline-flex flex-col group"
+                className="group inline-flex items-center gap-2.5"
               >
-                <span className="font-serif text-3xl font-bold text-charcoal leading-none group-hover:text-brand-500 transition-colors">
-                  {businessName}
-                </span>
+                <div
+                  className="relative flex h-9 w-9 items-center justify-center border border-[#f7f4ee]/30 bg-[#f7f4ee] text-[#14120f]"
+                  aria-hidden="true"
+                >
+                  <span className="font-display text-sm font-bold tracking-[-0.08em]">
+                    SS
+                  </span>
 
-                <span className="text-[11px] text-charcoal-lighter uppercase tracking-[0.25em] mt-2">
-                  Crafted with Precision
+                  <span className="absolute -bottom-px -right-px h-2 w-2 bg-[#b4491e]" />
+                </div>
+
+                <span className="font-display text-[18px] font-semibold tracking-[-0.02em] text-[#f7f4ee] transition-colors group-hover:text-[#d9784b]">
+                  {businessName}
                 </span>
               </Link>
 
-              <div className="mt-7">
-                <p className="text-xs uppercase tracking-[0.2em] text-charcoal-lighter mb-4">
-                  Follow our work
-                </p>
+              <p className="deva mt-4 text-[15px] text-[#f7f4ee]/40">
+                शिल्प सहायक
+              </p>
 
-                <div className="flex items-center gap-3">
+              <p className="mt-3 max-w-sm text-[13.5px] leading-relaxed text-[#f7f4ee]/55">
+                3D printing, custom manufacturing and physical prototyping — turning digital designs into useful physical objects.
+              </p>
 
-                  <a
-                    href="#"
-                    aria-label="Instagram"
-                    className="w-10 h-10 rounded-full border border-brand-200 flex items-center justify-center text-charcoal-light hover:bg-brand-500 hover:text-white hover:border-brand-500 transition-all duration-200"
-                  >
-                    <Instagram className="w-4 h-4" />
-                  </a>
-
-                  <a
-                    href="#"
-                    aria-label="Facebook"
-                    className="w-10 h-10 rounded-full border border-brand-200 flex items-center justify-center text-charcoal-light hover:bg-brand-500 hover:text-white hover:border-brand-500 transition-all duration-200"
-                  >
-                    <Facebook className="w-4 h-4" />
-                  </a>
-
-                  <a
-                    href="#"
-                    aria-label="Twitter"
-                    className="w-10 h-10 rounded-full border border-brand-200 flex items-center justify-center text-charcoal-light hover:bg-brand-500 hover:text-white hover:border-brand-500 transition-all duration-200"
-                  >
-                    <Twitter className="w-4 h-4" />
-                  </a>
-
-                </div>
-              </div>
+              <address className="mt-6 not-italic font-mono text-[9px] uppercase leading-relaxed tracking-[0.1em] text-[#f7f4ee]/35">
+                {businessAddress}
+              </address>
             </div>
 
-            {/* Explore */}
             <div>
-              <h3 className="font-serif text-base font-semibold text-charcoal mb-5">
+              <h3 className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#f7f4ee]/35">
                 Explore
               </h3>
 
-              <ul className="space-y-3">
-
+              <ul className="mt-4 space-y-2.5">
                 <li>
                   <Link
                     to="/catalog"
-                    className="text-sm text-charcoal-light hover:text-brand-500 transition-colors"
+                    className="text-[13.5px] text-[#f7f4ee]/65 transition-colors hover:text-[#f7f4ee]"
                   >
-                    Shop All
+                    Shop all
                   </Link>
                 </li>
 
                 <li>
                   <Link
                     to="/custom-service"
-                    className="text-sm text-charcoal-light hover:text-brand-500 transition-colors"
+                    className="text-[13.5px] text-[#f7f4ee]/65 transition-colors hover:text-[#f7f4ee]"
                   >
-                    Custom Printing
+                    Custom 3D printing
                   </Link>
                 </li>
 
                 <li>
                   <Link
                     to="/about"
-                    className="text-sm text-charcoal-light hover:text-brand-500 transition-colors"
+                    className="text-[13.5px] text-[#f7f4ee]/65 transition-colors hover:text-[#f7f4ee]"
                   >
-                    Our Story
+                    About us
                   </Link>
                 </li>
 
                 <li>
                   <Link
                     to="/contact"
-                    className="text-sm text-charcoal-light hover:text-brand-500 transition-colors"
+                    className="text-[13.5px] text-[#f7f4ee]/65 transition-colors hover:text-[#f7f4ee]"
                   >
-                    Contact Us
+                    Contact
                   </Link>
                 </li>
-
               </ul>
             </div>
 
-            {/* Contact */}
             <div>
-              <h3 className="font-serif text-base font-semibold text-charcoal mb-5">
-                Get in Touch
+              <h3 className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#f7f4ee]/35">
+                Services
               </h3>
 
-              <ul className="space-y-4 text-sm text-charcoal-light">
+              <ul className="mt-4 space-y-2.5">
+                <li>
+                  <Link
+                    to="/custom-service"
+                    className="text-[13.5px] text-[#f7f4ee]/65 transition-colors hover:text-[#f7f4ee]"
+                  >
+                    Custom prints
+                  </Link>
+                </li>
 
                 <li>
-                  <a
-                    href={whatsappLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-brand-500 transition-colors"
+                  <Link
+                    to="/custom-service"
+                    className="text-[13.5px] text-[#f7f4ee]/65 transition-colors hover:text-[#f7f4ee]"
                   >
-                    WhatsApp
-                  </a>
+                    Prototyping
+                  </Link>
                 </li>
+
+                <li>
+                  <Link
+                    to="/account"
+                    className="text-[13.5px] text-[#f7f4ee]/65 transition-colors hover:text-[#f7f4ee]"
+                  >
+                    Track an order
+                  </Link>
+                </li>
+
+                <li>
+                  <Link
+                    to="/account"
+                    className="text-[13.5px] text-[#f7f4ee]/65 transition-colors hover:text-[#f7f4ee]"
+                  >
+                    My account
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#f7f4ee]/35">
+                Get in touch
+              </h3>
+
+              <ul className="mt-4 space-y-3.5 text-[13.5px] text-[#f7f4ee]/65">
+                {whatsappNumber && (
+                  <li>
+                    <a
+                      href={whatsappLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="transition-colors hover:text-[#f7f4ee]"
+                    >
+                      WhatsApp
+                    </a>
+                  </li>
+                )}
 
                 <li>
                   <a
                     href={`mailto:${businessEmail}`}
-                    className="hover:text-brand-500 transition-colors"
+                    className="break-all transition-colors hover:text-[#f7f4ee]"
                   >
                     {businessEmail}
                   </a>
                 </li>
 
-                <li className="leading-relaxed">
+                <li className="leading-relaxed text-[#f7f4ee]/45">
                   {businessAddress}
                 </li>
-
               </ul>
             </div>
-
           </div>
 
-          {/* Bottom Bar */}
-          <div className="border-t border-brand-200 py-6">
+          <div className="mt-14 flex flex-col gap-4 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <p className="font-mono text-[9px] uppercase tracking-[0.08em] text-[#f7f4ee]/35">
+              © {currentYear}{' '}
+              {businessName}. All rights reserved.
+            </p>
 
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-5 font-mono text-[9px] uppercase tracking-[0.08em] text-[#f7f4ee]/35">
+              <span>Made in India</span>
 
-              <p className="text-xs text-charcoal-lighter">
-                © {new Date().getFullYear()} {businessName}. All rights reserved.
-              </p>
+              <span
+                className="h-1 w-1 rounded-full bg-[#b4491e]"
+                aria-hidden="true"
+              />
 
-              <div className="flex items-center gap-6 text-xs text-charcoal-lighter">
-
-                <a
-                  href="#"
-                  className="hover:text-brand-500 transition-colors"
-                >
-                  Privacy Policy
-                </a>
-
-                <a
-                  href="#"
-                  className="hover:text-brand-500 transition-colors"
-                >
-                  Terms of Service
-                </a>
-
-              </div>
-
+              <span>
+                3D printing & fabrication
+              </span>
             </div>
-
           </div>
-
         </div>
       </footer>
-
     </div>
   );
 }

@@ -4,13 +4,13 @@ import React, {
   useRef,
   useState
 } from 'react';
-
 import { Check, ChevronDown } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-
-
+/* =========================================================
+   Shared className utility
+   ========================================================= */
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -18,7 +18,7 @@ export function cn(...inputs: ClassValue[]) {
 
 /* =========================================================
    Button
-========================================================= */
+   ========================================================= */
 
 interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -33,59 +33,77 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       className,
       variant = 'primary',
       size = 'md',
-      isLoading,
+      isLoading = false,
       children,
+      disabled,
+      type = 'button',
       ...props
     },
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center rounded-full font-medium ' +
-      'transition-all duration-200 ease-out ' +
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ' +
-      'disabled:pointer-events-none disabled:opacity-50';
+      'inline-flex items-center justify-center gap-2 ' +
+      'font-medium tracking-[-0.01em] ' +
+      'border transition-all duration-200 ease-out ' +
+      'focus-visible:outline-none focus-visible:ring-2 ' +
+      'focus-visible:ring-[#b4491e]/30 focus-visible:ring-offset-2 ' +
+      'disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50';
 
     const variants = {
       primary:
-        'bg-brand-500 text-white hover:bg-brand-600 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm',
+        'border-[#14120f] bg-[#14120f] text-[#f7f4ee] ' +
+        'hover:-translate-y-0.5 hover:bg-[#2b2724] hover:shadow-md ' +
+        'active:translate-y-0 active:shadow-sm',
 
       secondary:
-        'bg-charcoal text-white hover:bg-charcoal-light hover:-translate-y-0.5 hover:shadow-md active:translate-y-0',
+        'border-[#b4491e] bg-[#b4491e] text-white ' +
+        'hover:-translate-y-0.5 hover:bg-[#963d18] hover:shadow-md ' +
+        'active:translate-y-0 active:shadow-sm',
 
       outline:
-        'border border-brand-500 text-brand-600 hover:bg-brand-50 hover:-translate-y-0.5 hover:shadow-sm active:translate-y-0',
+        'border-[#b8aea0] bg-transparent text-[#14120f] ' +
+        'hover:-translate-y-0.5 hover:border-[#b4491e] ' +
+        'hover:bg-[#f4dccf]/40 hover:text-[#7b2f11] ' +
+        'active:translate-y-0',
 
       ghost:
-        'text-charcoal hover:bg-brand-50 hover:text-brand-600 active:bg-brand-100',
+        'border-transparent bg-transparent text-[#6b6156] ' +
+        'hover:bg-[#ebe6dc] hover:text-[#14120f] ' +
+        'active:bg-[#d9d2c7]',
 
       whatsapp:
-        'bg-[#25D366] text-white hover:bg-[#128C7E] hover:-translate-y-0.5 hover:shadow-md active:translate-y-0'
+        'border-[#25d366] bg-[#25d366] text-white ' +
+        'hover:-translate-y-0.5 hover:bg-[#128c7e] hover:shadow-md ' +
+        'active:translate-y-0'
     };
 
     const sizes = {
-      sm: 'h-9 px-4 text-sm',
-      md: 'h-11 px-6 text-base',
-      lg: 'h-14 px-8 text-lg'
+      sm: 'min-h-9 px-3.5 text-xs rounded-sm',
+      md: 'min-h-11 px-5 text-sm rounded-sm',
+      lg: 'min-h-13 px-7 text-base rounded-sm'
     };
 
     return (
       <button
         ref={ref}
+        type={type}
         className={cn(
           baseStyles,
           variants[variant],
           sizes[size],
           className
         )}
-        disabled={isLoading || props.disabled}
+        disabled={isLoading || disabled}
+        aria-busy={isLoading || undefined}
         {...props}
       >
         {isLoading && (
           <svg
-            className="animate-spin -ml-1 mr-2 h-4 w-4 text-current"
+            className="h-4 w-4 animate-spin shrink-0"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             <circle
               className="opacity-25"
@@ -95,7 +113,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
               stroke="currentColor"
               strokeWidth="4"
             />
-
             <path
               className="opacity-75"
               fill="currentColor"
@@ -114,7 +131,7 @@ Button.displayName = 'Button';
 
 /* =========================================================
    Input
-========================================================= */
+   ========================================================= */
 
 interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -123,36 +140,50 @@ interface InputProps
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, ...props }, ref) => {
+  ({ className, label, error, id, ...props }, ref) => {
+    const generatedId = React.useId();
+    const inputId = id || generatedId;
+    const errorId = `${inputId}-error`;
+
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-charcoal mb-1.5">
+          <label
+            htmlFor={inputId}
+            className="mb-2 block text-xs font-medium uppercase tracking-[0.08em] text-[#6b6156]"
+          >
             {label}
           </label>
         )}
 
         <input
           ref={ref}
+          id={inputId}
+          aria-invalid={!!error}
+          aria-describedby={error ? errorId : undefined}
           className={cn(
-            'flex h-11 w-full rounded-xl border border-brand-200 bg-white px-3 py-2 text-sm',
-            'ring-offset-white',
-            'file:border-0 file:bg-transparent file:text-sm file:font-medium',
-            'placeholder:text-charcoal-lighter',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
-            'focus-visible:border-brand-400',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-            'transition-all duration-200 ease-out',
-            'hover:border-brand-300',
+            'flex h-11 w-full rounded-sm border bg-white px-3.5 py-2.5',
+            'text-sm text-[#14120f] shadow-none',
+            'placeholder:text-[#8e8275]',
+            'transition-all duration-150 ease-out',
+            'border-[#cfc7bb]',
+            'hover:border-[#8e8275]',
+            'focus:border-[#b4491e] focus:outline-none',
+            'focus:ring-2 focus:ring-[#b4491e]/15',
+            'disabled:cursor-not-allowed disabled:bg-[#ebe6dc] disabled:opacity-60',
+            'file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium',
             error &&
-              'border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500',
+              'border-red-500 focus:border-red-500 focus:ring-red-500/15',
             className
           )}
           {...props}
         />
 
         {error && (
-          <p className="mt-1.5 text-sm text-red-500">
+          <p
+            id={errorId}
+            className="mt-1.5 text-xs leading-relaxed text-red-600"
+          >
             {error}
           </p>
         )}
@@ -165,7 +196,7 @@ Input.displayName = 'Input';
 
 /* =========================================================
    Textarea
-========================================================= */
+   ========================================================= */
 
 interface TextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -176,35 +207,49 @@ interface TextareaProps
 export const Textarea = forwardRef<
   HTMLTextAreaElement,
   TextareaProps
->(({ className, label, error, ...props }, ref) => {
+>(({ className, label, error, id, ...props }, ref) => {
+  const generatedId = React.useId();
+  const textareaId = id || generatedId;
+  const errorId = `${textareaId}-error`;
+
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-charcoal mb-1.5">
+        <label
+          htmlFor={textareaId}
+          className="mb-2 block text-xs font-medium uppercase tracking-[0.08em] text-[#6b6156]"
+        >
           {label}
         </label>
       )}
 
       <textarea
         ref={ref}
+        id={textareaId}
+        aria-invalid={!!error}
+        aria-describedby={error ? errorId : undefined}
         className={cn(
-          'flex min-h-[80px] w-full rounded-xl border border-brand-200 bg-white px-3 py-2 text-sm',
-          'ring-offset-white',
-          'placeholder:text-charcoal-lighter',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
-          'focus-visible:border-brand-400',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          'transition-all duration-200 ease-out',
-          'hover:border-brand-300',
+          'flex min-h-[100px] w-full resize-y rounded-sm border bg-white px-3.5 py-2.5',
+          'text-sm leading-relaxed text-[#14120f]',
+          'placeholder:text-[#8e8275]',
+          'transition-all duration-150 ease-out',
+          'border-[#cfc7bb]',
+          'hover:border-[#8e8275]',
+          'focus:border-[#b4491e] focus:outline-none',
+          'focus:ring-2 focus:ring-[#b4491e]/15',
+          'disabled:cursor-not-allowed disabled:bg-[#ebe6dc] disabled:opacity-60',
           error &&
-            'border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500',
+            'border-red-500 focus:border-red-500 focus:ring-red-500/15',
           className
         )}
         {...props}
       />
 
       {error && (
-        <p className="mt-1.5 text-sm text-red-500">
+        <p
+          id={errorId}
+          className="mt-1.5 text-xs leading-relaxed text-red-600"
+        >
           {error}
         </p>
       )}
@@ -216,7 +261,7 @@ Textarea.displayName = 'Textarea';
 
 /* =========================================================
    Card
-========================================================= */
+   ========================================================= */
 
 export function Card({
   className,
@@ -226,9 +271,9 @@ export function Card({
   return (
     <div
       className={cn(
-        'rounded-2xl border border-brand-100 bg-white shadow-soft overflow-hidden',
-        'transition-all duration-300 ease-out',
-        'hover:shadow-lg',
+        'overflow-hidden border border-[#d9d2c7] bg-white',
+        'shadow-[0_1px_2px_rgba(20,18,15,0.04)]',
+        'transition-shadow duration-200',
         className
       )}
       {...props}
@@ -240,7 +285,7 @@ export function Card({
 
 /* =========================================================
    Badge
-========================================================= */
+   ========================================================= */
 
 export function Badge({
   className,
@@ -252,16 +297,21 @@ export function Badge({
   children: React.ReactNode;
 }) {
   const variants = {
-    default: 'bg-brand-100 text-brand-800',
-    success: 'bg-green-100 text-green-800',
-    warning: 'bg-yellow-100 text-yellow-800',
-    danger: 'bg-red-100 text-red-800'
+    default:
+      'border-[#d9d2c7] bg-[#ebe6dc] text-[#514a42]',
+    success:
+      'border-emerald-200 bg-emerald-50 text-emerald-700',
+    warning:
+      'border-amber-200 bg-amber-50 text-amber-700',
+    danger:
+      'border-red-200 bg-red-50 text-red-700'
   };
 
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+        'inline-flex items-center rounded-sm border px-2.5 py-1',
+        'text-[11px] font-medium uppercase tracking-[0.06em]',
         variants[variant],
         className
       )}
@@ -270,9 +320,10 @@ export function Badge({
     </span>
   );
 }
+
 /* =========================================================
    Select
-========================================================= */
+   ========================================================= */
 
 export interface SelectOption {
   value: string;
@@ -319,10 +370,12 @@ export function Select({
       selectRef.current.getBoundingClientRect();
 
     const viewportPadding = 12;
-    const gap = 8;
+    const gap = 6;
     const maxMenuHeight = 360;
 
-    const spaceAbove = rect.top - viewportPadding;
+    const spaceAbove =
+      rect.top - viewportPadding;
+
     const spaceBelow =
       window.innerHeight -
       rect.bottom -
@@ -337,7 +390,7 @@ export function Select({
       : spaceBelow - gap;
 
     const maxHeight = Math.max(
-      180,
+      160,
       Math.min(maxMenuHeight, availableSpace)
     );
 
@@ -411,17 +464,20 @@ export function Select({
   }, [isOpen, options.length]);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (
+      event: MouseEvent
+    ) => {
+      const target = event.target as Node;
+
       if (
         selectRef.current &&
-        !selectRef.current.contains(
-          event.target as Node
-        )
+        !selectRef.current.contains(target)
       ) {
-        const target = event.target as HTMLElement;
+        const element =
+          event.target as HTMLElement;
 
         if (
-          !target.closest(
+          !element.closest(
             '[data-select-dropdown="true"]'
           )
         ) {
@@ -472,59 +528,59 @@ export function Select({
     <div
       ref={selectRef}
       className={cn(
-        'relative',
+        'relative w-full',
         className
       )}
     >
-      {/* Trigger */}
       <button
         type="button"
         disabled={disabled}
         onClick={() => {
-          setIsOpen((prev) => !prev);
+          if (disabled) return;
+
+          setIsOpen((previous) => !previous);
         }}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         className={cn(
           'group flex h-11 w-full items-center justify-between',
-          'rounded-2xl border border-brand-200 bg-white',
-          'px-4 text-sm font-medium text-charcoal',
-          'shadow-sm',
-          'transition-all duration-200 ease-out',
-          'hover:border-brand-400 hover:shadow-md',
-          'focus:outline-none focus:ring-2 focus:ring-brand-500/20',
-          'disabled:cursor-not-allowed disabled:opacity-50',
+          'rounded-sm border border-[#cfc7bb] bg-white',
+          'px-3.5 text-left text-sm font-medium text-[#14120f]',
+          'transition-all duration-150 ease-out',
+          'hover:border-[#8e8275]',
+          'focus:outline-none focus:ring-2 focus:ring-[#b4491e]/15',
+          'disabled:cursor-not-allowed disabled:bg-[#ebe6dc] disabled:opacity-60',
           isOpen &&
-            'border-brand-500 shadow-md ring-2 ring-brand-500/15'
+            'border-[#b4491e] ring-2 ring-[#b4491e]/15'
         )}
       >
         <span
           className={cn(
-            'truncate leading-none',
+            'truncate leading-5',
             !selectedOption &&
-              'text-charcoal-lighter'
+              'text-[#8e8275]'
           )}
         >
           {selectedOption?.label || placeholder}
         </span>
 
         <ChevronDown
+          aria-hidden="true"
           className={cn(
-            'ml-3 h-4 w-4 flex-shrink-0',
-            'text-charcoal-light',
-            'transition-all duration-200 ease-out',
-            'group-hover:text-brand-500',
+            'ml-3 h-4 w-4 shrink-0 text-[#6b6156]',
+            'transition-transform duration-150',
+            'group-hover:text-[#b4491e]',
             isOpen &&
-              'rotate-180 text-brand-500'
+              'rotate-180 text-[#b4491e]'
           )}
         />
       </button>
 
-      {/* Dropdown */}
       {isOpen && dropdownPosition && (
         <div
           data-select-dropdown="true"
           role="listbox"
+          aria-label="Select an option"
           style={{
             position: 'fixed',
             top: dropdownPosition.top,
@@ -534,23 +590,15 @@ export function Select({
               dropdownPosition.maxHeight
           }}
           className={cn(
-            'z-[9999]',
-            'rounded-2xl',
-            'border border-brand-100',
-            'bg-white',
-            'p-2',
-            'shadow-xl',
-            'overflow-y-auto',
-            'origin-top',
-            'animate-in',
-            'fade-in',
-            'zoom-in-95',
-            'duration-150',
-            dropdownPosition.openUpward &&
-              'origin-bottom'
+            'z-[9999] overflow-y-auto',
+            'border border-[#d9d2c7] bg-white',
+            'p-1.5 shadow-[0_12px_32px_rgba(20,18,15,0.14)]',
+            dropdownPosition.openUpward
+              ? 'origin-bottom'
+              : 'origin-top'
           )}
         >
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {options.map((option) => {
               const isSelected =
                 option.value === value;
@@ -562,20 +610,19 @@ export function Select({
                   role="option"
                   aria-selected={isSelected}
                   onClick={() =>
-                    handleSelect(option.value)
+                    handleSelect(
+                      option.value
+                    )
                   }
                   className={cn(
                     'flex w-full items-center justify-between',
-                    'rounded-xl px-3.5 py-2.5',
+                    'rounded-sm px-3 py-2.5',
                     'text-left text-sm',
-                    'font-medium tracking-[0.01em]',
-                    'transition-all duration-150 ease-out',
-                    'text-charcoal-light',
-                    'hover:bg-brand-50',
-                    'hover:text-brand-700',
-                    'hover:translate-x-0.5',
+                    'transition-colors duration-100',
+                    'text-[#514a42]',
+                    'hover:bg-[#f7f4ee] hover:text-[#14120f]',
                     isSelected &&
-                      'bg-brand-50 text-brand-700'
+                      'bg-[#f4dccf] text-[#7b2f11]'
                   )}
                 >
                   <span className="leading-5">
@@ -584,19 +631,16 @@ export function Select({
 
                   {isSelected && (
                     <span
-                      className="
-                        ml-3
-                        flex
-                        h-5
-                        w-5
-                        flex-shrink-0
-                        items-center
-                        justify-center
-                        rounded-full
-                        bg-brand-500
-                      "
+                      className={cn(
+                        'ml-3 flex h-5 w-5 shrink-0',
+                        'items-center justify-center',
+                        'rounded-full bg-[#b4491e]'
+                      )}
                     >
-                      <Check className="h-3 w-3 text-white" />
+                      <Check
+                        aria-hidden="true"
+                        className="h-3 w-3 text-white"
+                      />
                     </span>
                   )}
                 </button>

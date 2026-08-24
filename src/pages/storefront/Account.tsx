@@ -1,21 +1,16 @@
-import React, {
-  useState,
-} from 'react';
-
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-  Link,
-  useNavigate,
-} from 'react-router-dom';
-
-import {
-  User,
-  Package,
-  FileBox,
+  FileText,
   LogOut,
-  Loader2,
+  Package,
+  MapPin,
+  User,
+  RefreshCw,
+  ShoppingCart,
   CheckCircle,
   XCircle,
-  RefreshCw,
+  X,
 } from 'lucide-react';
 
 import { useAuth } from '../../hooks/useAuth';
@@ -27,54 +22,73 @@ import {
 
 import {
   useMyOrders,
+  useReorderOrder,
 } from '../../hooks/useOrders';
 
 import {
   Card,
   Button,
+  Input,
 } from '../../components/ui';
 
+
 /* -------------------------------------------------------------------------- */
-/* Status Colors                                                              */
+/* Status styling                                                             */
 /* -------------------------------------------------------------------------- */
 
-const STATUS_COLORS: Record<
-  string,
-  string
-> = {
+const STATUS_STYLES: Record<string, string> = {
   Pending:
-    'bg-amber-50 text-amber-700',
+    'border-amber-200 bg-amber-50 text-amber-700',
 
   Quoted:
-    'bg-blue-50 text-blue-700',
+    'border-blue-200 bg-blue-50 text-blue-700',
 
   Accepted:
-    'bg-green-50 text-green-700',
+    'border-green-200 bg-green-50 text-green-700',
 
   Rejected:
-    'bg-red-50 text-red-700',
+    'border-red-200 bg-red-50 text-red-700',
 
   Completed:
-    'bg-purple-50 text-purple-700',
+    'border-purple-200 bg-purple-50 text-purple-700',
 
   Confirmed:
-    'bg-blue-50 text-blue-700',
+    'border-blue-200 bg-blue-50 text-blue-700',
 
   Printing:
-    'bg-purple-50 text-purple-700',
+    'border-purple-200 bg-purple-50 text-purple-700',
 
   'Quality Check':
-    'bg-indigo-50 text-indigo-700',
+    'border-indigo-200 bg-indigo-50 text-indigo-700',
 
   Shipped:
-    'bg-cyan-50 text-cyan-700',
+    'border-cyan-200 bg-cyan-50 text-cyan-700',
 
   Delivered:
-    'bg-green-50 text-green-700',
+    'border-green-200 bg-green-50 text-green-700',
 
   Cancelled:
-    'bg-red-50 text-red-700',
+    'border-red-200 bg-red-50 text-red-700',
 };
+
+
+/* -------------------------------------------------------------------------- */
+/* Helpers                                                                    */
+/* -------------------------------------------------------------------------- */
+
+function getInitials(name?: string | null) {
+  if (!name) {
+    return 'SS';
+  }
+
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('');
+}
+
 
 /* -------------------------------------------------------------------------- */
 /* Account                                                                    */
@@ -92,589 +106,1356 @@ export function Account() {
     isLoading: quotesLoading,
   } = useMyQuotes();
 
-  const [
-    activeTab,
-    setActiveTab,
-  ] = useState<
-    'quotes' | 'orders'
-  >('quotes');
+  const {
+    data: myOrders = [],
+    isLoading: ordersLoading,
+    refetch: refetchOrders,
+  } = useMyOrders();
 
-  /*
-   * Orders are fetched only when the
-   * Orders tab is active.
-   *
-   * This prevents the Account page from
-   * waiting for the orders query during
-   * the initial Quotes page load.
-   */
-const {
-  data: myOrders = [],
-  isLoading: ordersLoading,
-  refetch: refetchOrders,
-} = useMyOrders(activeTab === 'orders');
+  const updateQuote = useUpdateQuote();
+  const reorderOrder = useReorderOrder();
 
-  const updateQuote =
-    useUpdateQuote();
+  const navigate = useNavigate();
 
-  const navigate =
-    useNavigate();
+  const [activeTab, setActiveTab] =
+    useState<'orders' | 'quotes' | 'addresses' | 'profile'>(
+      'orders'
+    );
+
+  const [selectedOrder, setSelectedOrder] =
+    useState<
+      typeof myOrders[number] | null
+    >(null);
+
+  const [profileMessage, setProfileMessage] =
+    useState('');
+
+  const [isLoggingOut, setIsLoggingOut] =
+    useState(false);
+
 
   /* ------------------------------------------------------------------------ */
   /* Logout                                                                   */
   /* ------------------------------------------------------------------------ */
 
-  const handleLogout =
-    async () => {
-      try {
-        await logout();
-        navigate('/');
-      } catch (error) {
-        console.error(
-          'Logout failed:',
-          error
-        );
-      }
-    };
+  const handleLogout = async () => {
+    if (isLoggingOut) {
+      return;
+    }
+
+    setIsLoggingOut(true);
+
+    try {
+      await logout();
+
+      navigate('/', {
+        replace: true,
+      });
+    } catch (error) {
+      console.error(
+        'Logout failed:',
+        error
+      );
+
+      setIsLoggingOut(false);
+    }
+  };
+
 
   /* ------------------------------------------------------------------------ */
-  /* Accept Quote                                                             */
+  /* Quote actions                                                            */
   /* ------------------------------------------------------------------------ */
 
-  const handleAcceptQuote =
-    async (
-      quoteId: string
-    ) => {
-      try {
-        await updateQuote.mutateAsync({
-          id: quoteId,
-          status: 'Accepted',
-        });
-      } catch (error) {
-        console.error(
-          'Failed to accept quote:',
-          error
-        );
+  const handleAcceptQuote = async (
+    quoteId: string
+  ) => {
+    try {
+      await updateQuote.mutateAsync({
+        id: quoteId,
+        status: 'Accepted',
+      });
+    } catch (error) {
+      console.error(
+        'Failed to accept quote:',
+        error
+      );
 
-        alert(
-          'Failed to accept quote'
-        );
-      }
-    };
+      alert(
+        'Failed to accept quote. Please try again.'
+      );
+    }
+  };
 
-  /* ------------------------------------------------------------------------ */
-  /* Reject Quote                                                             */
-  /* ------------------------------------------------------------------------ */
 
-  const handleRejectQuote =
-    async (
-      quoteId: string
-    ) => {
-      const confirmed =
-        window.confirm(
-          'Are you sure you want to decline this quote?'
-        );
+  const handleRejectQuote = async (
+    quoteId: string
+  ) => {
+    const confirmed =
+      window.confirm(
+        'Are you sure you want to decline this quote?'
+      );
 
-      if (!confirmed) {
-        return;
-      }
+    if (!confirmed) {
+      return;
+    }
 
-      try {
-        await updateQuote.mutateAsync({
-          id: quoteId,
-          status: 'Rejected',
-        });
-      } catch (error) {
-        console.error(
-          'Failed to decline quote:',
-          error
-        );
+    try {
+      await updateQuote.mutateAsync({
+        id: quoteId,
+        status: 'Rejected',
+      });
+    } catch (error) {
+      console.error(
+        'Failed to decline quote:',
+        error
+      );
 
-        alert(
-          'Failed to decline quote'
-        );
-      }
-    };
+      alert(
+        'Failed to decline quote. Please try again.'
+      );
+    }
+  };
+
 
   /* ------------------------------------------------------------------------ */
-  /* Refresh Orders                                                           */
+  /* Refresh orders                                                           */
   /* ------------------------------------------------------------------------ */
 
-  const handleRefreshOrders =
-    async () => {
-      try {
-        await refetchOrders();
-      } catch (error) {
-        console.error(
-          'Failed to refresh orders:',
-          error
-        );
-      }
-    };
+  const handleRefreshOrders = async () => {
+    try {
+      await refetchOrders();
+    } catch (error) {
+      console.error(
+        'Failed to refresh orders:',
+        error
+      );
+    }
+  };
+
 
   /* ------------------------------------------------------------------------ */
-  /* Authentication Loading                                                   */
+  /* Reorder                                                                  */
+  /* ------------------------------------------------------------------------ */
+
+  const handleOrderAgain = async (
+    order: typeof myOrders[number]
+  ) => {
+    try {
+      await reorderOrder.mutateAsync(order);
+
+      navigate('/cart');
+    } catch (error) {
+      console.error(
+        'Failed to reorder:',
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Unable to reorder this order. Please try again.'
+      );
+    }
+  };
+
+
+  /* ------------------------------------------------------------------------ */
+  /* Loading                                                                  */
   /* ------------------------------------------------------------------------ */
 
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center py-32">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
+      <div className="min-h-[70vh] bg-[#f7f4ee] flex items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[#d9d2c7] border-t-[#b4491e]" />
+
+          <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[#8e8275]">
+            Checking account
+          </p>
+        </div>
       </div>
     );
   }
 
+
   /* ------------------------------------------------------------------------ */
-  /* Authentication Check                                                     */
+  /* Not logged in                                                            */
   /* ------------------------------------------------------------------------ */
 
   if (!user) {
-    navigate('/login');
-    return null;
-  }
-
-  /* ------------------------------------------------------------------------ */
-  /* Quotes Loading                                                           */
-  /* ------------------------------------------------------------------------ */
-
-  if (
-    activeTab === 'quotes' &&
-    quotesLoading
-  ) {
     return (
-      <div className="flex items-center justify-center py-32">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
+      <div className="min-h-[70vh] bg-[#f7f4ee] flex items-center justify-center px-5">
+        <div className="max-w-md text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center border border-[#d9d2c7] bg-white text-[#b4491e]">
+            <User className="h-6 w-6" />
+          </div>
+
+          <h1 className="mt-6 font-display text-[28px] font-semibold tracking-[-0.025em] text-[#14120f]">
+            You are signed out
+          </h1>
+
+          <p className="mt-3 text-[14px] leading-6 text-[#6b6156]">
+            Sign in to see your orders, quotes,
+            saved information and account details.
+          </p>
+
+          <div className="mt-7 flex justify-center gap-3">
+            <Link to="/login">
+              <Button>
+                Sign in
+              </Button>
+            </Link>
+
+            <Link to="/catalog">
+              <Button variant="outline">
+                Keep browsing
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
 
+
   /* ------------------------------------------------------------------------ */
-  /* Orders Loading                                                           */
+  /* Active order                                                             */
   /* ------------------------------------------------------------------------ */
 
-  if (
-    activeTab === 'orders' &&
-    ordersLoading
-  ) {
-    return (
-      <div className="flex flex-col items-center justify-center py-32">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
-
-        <p className="mt-4 text-sm text-charcoal-light">
-          Loading your orders...
-        </p>
-      </div>
+  const activeOrder =
+    myOrders.find(
+      (order) =>
+        order.status !== 'Delivered' &&
+        order.status !== 'Cancelled'
     );
-  }
+
 
   /* ------------------------------------------------------------------------ */
   /* Page                                                                     */
   /* ------------------------------------------------------------------------ */
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-
+    <>
       {/* ================================================================== */}
-      {/* Header                                                             */}
-      {/* ================================================================== */}
-
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
-
-        <div className="flex items-center gap-4">
-
-          <div className="w-14 h-14 rounded-full bg-brand-100 flex items-center justify-center">
-            <User className="w-7 h-7 text-brand-600" />
-          </div>
-
-          <div>
-            <h1 className="text-2xl font-serif font-bold text-charcoal">
-              {user.displayName ||
-                'My Account'}
-            </h1>
-
-            <p className="text-charcoal-light text-sm">
-              {user.email}
-            </p>
-          </div>
-
-        </div>
-
-        <Button
-          variant="outline"
-          onClick={handleLogout}
-        >
-          <LogOut className="w-4 h-4 mr-2" />
-          Logout
-        </Button>
-
-      </div>
-
-      {/* ================================================================== */}
-      {/* Tabs                                                               */}
+      {/* ACCOUNT HEADER                                                     */}
       {/* ================================================================== */}
 
-      <div className="flex gap-2 mb-8 border-b border-brand-100">
+      <section className="border-b border-[#d9d2c7] bg-white">
+        <div className="mx-auto max-w-[1200px] px-5 py-9 sm:px-8 lg:px-10">
 
-        {/* -------------------------------------------------------------- */}
-        {/* Quotes Tab                                                     */}
-        {/* -------------------------------------------------------------- */}
+          <div className="flex flex-wrap items-start justify-between gap-6">
 
-        <button
-         onClick={async () => {
-  setActiveTab('orders');
-  await refetchOrders();
-}}
-          className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'quotes'
-              ? 'border-brand-500 text-brand-600'
-              : 'border-transparent text-charcoal-light hover:text-charcoal'
-          }`}
-        >
-          <FileBox className="w-4 h-4 inline mr-2" />
+            <div className="flex items-center gap-4">
 
-          My Quotes (
-          {myQuotes.length}
-          )
-        </button>
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center border border-[#d9d2c7] bg-[#f7f4ee] font-display text-[19px] font-semibold text-[#14120f]">
+                {getInitials(
+                  user.displayName
+                )}
+              </div>
 
-        {/* -------------------------------------------------------------- */}
-        {/* Orders Tab                                                     */}
-        {/* -------------------------------------------------------------- */}
+              <div>
 
-        <button
-          type="button"
-          onClick={() =>
-            setActiveTab(
-              'orders'
-            )
-          }
-          className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'orders'
-              ? 'border-brand-500 text-brand-600'
-              : 'border-transparent text-charcoal-light hover:text-charcoal'
-          }`}
-        >
-          <Package className="w-4 h-4 inline mr-2" />
+                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8e8275]">
+                  Customer account
+                </p>
 
-          My Orders (
-          {myOrders.length}
-          )
-        </button>
+                <h1 className="mt-1 font-display text-[26px] font-semibold leading-tight tracking-[-0.025em] text-[#14120f]">
+                  {user.displayName ||
+                    'My Account'}
+                </h1>
 
-      </div>
+                <p className="text-[13.5px] text-[#6b6156]">
+                  {user.email}
+                </p>
 
-      {/* ================================================================== */}
-      {/* Quotes Tab                                                         */}
-      {/* ================================================================== */}
+              </div>
 
-      {activeTab === 'quotes' && (
-        <div className="space-y-4">
+            </div>
 
-          {myQuotes.length === 0 ? (
 
-            <Card className="p-12 text-center border-none shadow-sm">
-
-              <FileBox className="w-12 h-12 text-charcoal-lighter mx-auto mb-4" />
-
-              <p className="text-charcoal-light mb-4">
-                No quote requests yet.
-              </p>
+            <div className="flex flex-wrap items-center gap-2">
 
               <Link to="/custom-service">
-                <Button>
-                  Request a Custom Quote
+                <Button size="sm">
+                  Start a custom print
                 </Button>
               </Link>
 
-            </Card>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+              >
+                <LogOut className="h-3.5 w-3.5 mr-1.5" />
 
-          ) : (
+                {isLoggingOut
+                  ? 'Signing out...'
+                  : 'Sign out'}
+              </Button>
 
-            myQuotes.map(
-              (quote) => (
+            </div>
 
-                <Card
-                  key={quote.id}
-                  className="p-6 border-none shadow-sm"
+          </div>
+
+
+          {/* -------------------------------------------------------------- */}
+          {/* Active order                                                   */}
+          {/* -------------------------------------------------------------- */}
+
+          {activeOrder && (
+            <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-2 border-l-2 border-[#b4491e] bg-[#f7f4ee] px-4 py-3">
+
+              <p className="text-[13.5px] text-[#14120f]">
+
+                <span className="font-medium">
+                  Order #{activeOrder.id.slice(0, 8)}
+                </span>
+
+                {' is currently '}
+
+                <span className="font-medium text-[#b4491e]">
+                  {activeOrder.status.toLowerCase()}
+                </span>
+
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setSelectedOrder(
+                    activeOrder
+                  )
+                }
+                className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#b4491e] underline underline-offset-4 hover:text-[#14120f]"
+              >
+                See details
+              </button>
+
+            </div>
+          )}
+
+        </div>
+      </section>
+
+
+      {/* ================================================================== */}
+      {/* MAIN ACCOUNT AREA                                                  */}
+      {/* ================================================================== */}
+
+      <main className="min-h-[60vh] bg-[#f7f4ee]">
+
+        <div className="mx-auto max-w-[1200px] px-5 py-8 sm:px-8 lg:px-10">
+
+
+          {/* ---------------------------------------------------------------- */}
+          {/* Tabs                                                             */}
+          {/* ---------------------------------------------------------------- */}
+
+          <div className="overflow-x-auto border-b border-[#d9d2c7]">
+
+            <div className="flex min-w-max">
+
+              {[
+                {
+                  id: 'orders',
+                  label: 'Orders',
+                  count: myOrders.length,
+                  icon: Package,
+                },
+                {
+                  id: 'quotes',
+                  label: 'Quotes',
+                  count: myQuotes.length,
+                  icon: FileText,
+                },
+                {
+                  id: 'addresses',
+                  label: 'Saved address',
+                  icon: MapPin,
+                },
+                {
+                  id: 'profile',
+                  label: 'Profile',
+                  icon: User,
+                },
+              ].map((tab) => {
+                const Icon = tab.icon;
+
+                const active =
+                  activeTab === tab.id;
+
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() =>
+                      setActiveTab(
+                        tab.id as typeof activeTab
+                      )
+                    }
+                    className={`flex items-center gap-2 border-b-2 px-5 py-3 font-mono text-[9px] uppercase tracking-[0.1em] transition-colors ${
+                      active
+                        ? 'border-[#b4491e] text-[#b4491e]'
+                        : 'border-transparent text-[#8e8275] hover:text-[#14120f]'
+                    }`}
+                  >
+
+                    <Icon className="h-3.5 w-3.5" />
+
+                    {tab.label}
+
+                    {tab.count !== undefined && (
+                      <span className="text-[8px] opacity-70">
+                        ({tab.count})
+                      </span>
+                    )}
+
+                  </button>
+                );
+              })}
+
+            </div>
+
+          </div>
+
+
+          {/* ================================================================= */}
+          {/* ORDERS                                                           */}
+          {/* ================================================================= */}
+
+          {activeTab === 'orders' && (
+            <div className="mt-8">
+
+              <div className="mb-6 flex items-center justify-between gap-4">
+
+                <div>
+
+                  <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8e8275]">
+                    Purchase history
+                  </p>
+
+                  <h2 className="mt-1 font-display text-[21px] font-semibold tracking-[-0.015em] text-[#14120f]">
+                    Your orders
+                  </h2>
+
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleRefreshOrders}
+                  disabled={ordersLoading}
+                  className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.1em] text-[#b4491e] disabled:opacity-50"
                 >
 
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <RefreshCw
+                    className={`h-3.5 w-3.5 ${
+                      ordersLoading
+                        ? 'animate-spin'
+                        : ''
+                    }`}
+                  />
 
-                    <div className="flex-1">
+                  Refresh
 
-                      <div className="flex items-center gap-3 mb-2">
+                </button>
 
-                        <h3 className="font-medium text-charcoal">
-                          {quote.fileName}
-                        </h3>
+              </div>
 
-                        <span
-                          className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                            STATUS_COLORS[
-                              quote.status
-                            ] ||
-                            'bg-gray-50 text-gray-700'
-                          }`}
-                        >
-                          {quote.status}
-                        </span>
 
-                      </div>
+              {ordersLoading ? (
+                <div className="py-20 text-center">
 
-                      <p className="text-sm text-charcoal-light">
-                        {quote.material}
-                        {' • '}
-                        {quote.color}
-                        {' • '}
-                        Infill{' '}
-                        {quote.infill}%
-                      </p>
+                  <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-[#d9d2c7] border-t-[#b4491e]" />
 
-                      <p className="text-xs text-charcoal-lighter mt-1">
-                        Submitted on{' '}
+                  <p className="mt-4 text-sm text-[#6b6156]">
+                    Loading your orders...
+                  </p>
 
-                        {new Date(
-                          quote.date
-                        ).toLocaleDateString(
-                          'en-IN',
-                          {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          }
-                        )}
-                      </p>
+                </div>
+              ) : myOrders.length === 0 ? (
+                <Card className="border-[#d9d2c7] bg-white p-12 text-center shadow-none">
 
-                    </div>
+                  <Package className="mx-auto h-10 w-10 text-[#b8aea0]" />
 
-                    <div className="text-right">
+                  <h3 className="mt-4 font-display text-[19px] font-semibold text-[#14120f]">
+                    No orders yet
+                  </h3>
 
-                      <p className="text-xs text-charcoal-lighter mb-1">
-                        Your Estimate
-                      </p>
+                  <p className="mt-2 text-[14px] text-[#6b6156]">
+                    Your completed and active orders
+                    will appear here.
+                  </p>
 
-                      <p className="text-lg font-semibold text-charcoal">
-                        ₹
-                        {(
-                          quote.estimatedPrice ??
-                          0
-                        ).toLocaleString(
-                          'en-IN'
-                        )}
-                      </p>
+                  <div className="mt-6">
+                    <Link to="/catalog">
+                      <Button>
+                        Browse catalogue
+                      </Button>
+                    </Link>
+                  </div>
 
-                      {quote.adminPrice && (
-                        <div className="mt-3 bg-green-50 rounded-lg px-4 py-2">
+                </Card>
+              ) : (
+                <div className="space-y-4">
 
-                          <p className="text-xs text-green-700 mb-0.5">
-                            Final Quote
-                          </p>
+                  {myOrders.map((order) => (
 
-                          <p className="text-xl font-bold text-green-700">
-                            ₹
-                            {quote.adminPrice.toLocaleString(
-                              'en-IN'
+                    <Card
+                      key={order.id}
+                      className="border-[#d9d2c7] bg-white p-5 shadow-none sm:p-6"
+                    >
+
+                      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+
+                        <div className="min-w-0">
+
+                          <div className="flex flex-wrap items-center gap-3">
+
+                            <h3 className="font-mono text-[13px] font-medium text-[#14120f]">
+                              #{order.id.slice(0, 8)}
+                            </h3>
+
+                            <span
+                              className={`border px-2.5 py-1 font-mono text-[8px] uppercase tracking-[0.08em] ${
+                                STATUS_STYLES[
+                                  order.status
+                                ] ||
+                                'border-gray-200 bg-gray-50 text-gray-700'
+                              }`}
+                            >
+                              {order.status}
+                            </span>
+
+                          </div>
+
+                          <p className="mt-2 text-[13.5px] text-[#6b6156]">
+
+                            {order.items.length}
+                            {' '}
+                            item
+                            {order.items.length !== 1
+                              ? 's'
+                              : ''}
+
+                            {' · '}
+
+                            {new Date(
+                              order.date
+                            ).toLocaleDateString(
+                              'en-IN',
+                              {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              }
                             )}
+
                           </p>
 
                         </div>
-                      )}
+
+
+                        <div className="flex flex-wrap items-center gap-3">
+
+                          <div className="text-left sm:text-right">
+
+                            <p className="font-mono text-[8px] uppercase tracking-[0.1em] text-[#8e8275]">
+                              Total
+                            </p>
+
+                            <p className="mt-1 font-display text-[20px] font-semibold text-[#14120f]">
+                              ₹
+                              {order.total.toLocaleString(
+                                'en-IN'
+                              )}
+                            </p>
+
+                          </div>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              setSelectedOrder(
+                                order
+                              )
+                            }
+                          >
+                            View details
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              handleOrderAgain(
+                                order
+                              )
+                            }
+                            disabled={
+                              reorderOrder.isPending
+                            }
+                          >
+                            <ShoppingCart className="h-3.5 w-3.5 mr-1.5" />
+
+                            {reorderOrder.isPending
+                              ? 'Adding...'
+                              : 'Order again'}
+                          </Button>
+
+                        </div>
+
+                      </div>
+
+                    </Card>
+
+                  ))}
+
+                </div>
+              )}
+
+            </div>
+          )}
+
+
+          {/* ================================================================= */}
+          {/* QUOTES                                                           */}
+          {/* ================================================================= */}
+
+          {activeTab === 'quotes' && (
+            <div className="mt-8">
+
+              <div className="mb-6">
+
+                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8e8275]">
+                  Custom printing
+                </p>
+
+                <h2 className="mt-1 font-display text-[21px] font-semibold tracking-[-0.015em] text-[#14120f]">
+                  Your quotes
+                </h2>
+
+              </div>
+
+
+              {quotesLoading ? (
+                <div className="py-20 text-center">
+
+                  <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-[#d9d2c7] border-t-[#b4491e]" />
+
+                  <p className="mt-4 text-sm text-[#6b6156]">
+                    Loading your quotes...
+                  </p>
+
+                </div>
+              ) : myQuotes.length === 0 ? (
+                <Card className="border-[#d9d2c7] bg-white p-12 text-center shadow-none">
+
+                  <FileText className="mx-auto h-10 w-10 text-[#b8aea0]" />
+
+                  <h3 className="mt-4 font-display text-[19px] font-semibold text-[#14120f]">
+                    No quotes yet
+                  </h3>
+
+                  <p className="mx-auto mt-2 max-w-md text-[14px] leading-6 text-[#6b6156]">
+                    Upload your model and request a
+                    custom print quote. Your requests
+                    will appear here.
+                  </p>
+
+                  <div className="mt-6">
+                    <Link to="/custom-service">
+                      <Button>
+                        Upload a model
+                      </Button>
+                    </Link>
+                  </div>
+
+                </Card>
+              ) : (
+                <div className="overflow-x-auto border border-[#d9d2c7] bg-white">
+
+                  <table className="w-full min-w-[760px] border-collapse text-left">
+
+                    <thead>
+                      <tr className="border-b border-[#14120f]">
+
+                        {[
+                          'Quote',
+                          'File',
+                          'Settings',
+                          'Status',
+                          'Amount',
+                          '',
+                        ].map((heading) => (
+
+                          <th
+                            key={heading}
+                            className="px-4 py-3 font-mono text-[8px] uppercase tracking-[0.12em] text-[#8e8275]"
+                          >
+                            {heading}
+                          </th>
+
+                        ))}
+
+                      </tr>
+                    </thead>
+
+
+                    <tbody>
+
+                      {myQuotes.map((quote) => (
+
+                        <tr
+                          key={quote.id}
+                          className="border-b border-[#ebe6dc] align-top last:border-b-0"
+                        >
+
+                          <td className="px-4 py-4 font-mono text-[12px] text-[#14120f]">
+                            #{quote.id.slice(0, 8)}
+                          </td>
+
+
+                          <td className="px-4 py-4">
+
+                            <p className="max-w-[220px] truncate font-mono text-[12px] text-[#14120f]">
+                              {quote.fileName}
+                            </p>
+
+                            <p className="mt-1 text-[11px] text-[#8e8275]">
+                              Submitted{' '}
+                              {new Date(
+                                quote.date
+                              ).toLocaleDateString(
+                                'en-IN',
+                                {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                }
+                              )}
+                            </p>
+
+                          </td>
+
+
+                          <td className="px-4 py-4 text-[12px] text-[#6b6156]">
+
+                            <p>
+                              {quote.material}
+                              {' · '}
+                              {quote.color}
+                            </p>
+
+                            <p className="mt-1 font-mono text-[9px] text-[#8e8275]">
+                              {quote.infill}% infill
+                            </p>
+
+                          </td>
+
+
+                          <td className="px-4 py-4">
+
+                            <span
+                              className={`inline-flex border px-2.5 py-1 font-mono text-[8px] uppercase tracking-[0.08em] ${
+                                STATUS_STYLES[
+                                  quote.status
+                                ] ||
+                                'border-gray-200 bg-gray-50 text-gray-700'
+                              }`}
+                            >
+                              {quote.status}
+                            </span>
+
+                          </td>
+
+
+                          <td className="px-4 py-4 font-mono text-[12px] text-[#14120f]">
+
+                            {quote.adminPrice ? (
+                              <>
+                                ₹
+                                {quote.adminPrice.toLocaleString(
+                                  'en-IN'
+                                )}
+
+                                <span className="mt-1 block text-[8px] uppercase tracking-[0.08em] text-green-600">
+                                  Final quote
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                ₹
+                                {(
+                                  quote.estimatedPrice ??
+                                  0
+                                ).toLocaleString(
+                                  'en-IN'
+                                )}
+
+                                <span className="mt-1 block text-[8px] uppercase tracking-[0.08em] text-[#8e8275]">
+                                  Estimate
+                                </span>
+                              </>
+                            )}
+
+                          </td>
+
+
+                          <td className="px-4 py-4 text-right">
+
+                            {quote.status === 'Quoted' &&
+                            quote.adminPrice ? (
+                              <div className="flex justify-end gap-2">
+
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    handleAcceptQuote(
+                                      quote.id
+                                    )
+                                  }
+                                  disabled={
+                                    updateQuote.isPending
+                                  }
+                                >
+                                  <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+                                  Accept
+                                </Button>
+
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    handleRejectQuote(
+                                      quote.id
+                                    )
+                                  }
+                                  disabled={
+                                    updateQuote.isPending
+                                  }
+                                >
+                                  <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                                  Decline
+                                </Button>
+
+                              </div>
+                            ) : (
+                              <Link to="/custom-service">
+
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                >
+                                  New quote
+                                </Button>
+
+                              </Link>
+                            )}
+
+                          </td>
+
+                        </tr>
+
+                      ))}
+
+                    </tbody>
+
+                  </table>
+
+                </div>
+              )}
+
+            </div>
+          )}
+
+
+          {/* ================================================================= */}
+          {/* SAVED ADDRESS                                                   */}
+          {/* ================================================================= */}
+
+          {activeTab === 'addresses' && (
+            <div className="mt-8">
+
+              <div className="mb-6">
+
+                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8e8275]">
+                  Delivery details
+                </p>
+
+                <h2 className="mt-1 font-display text-[21px] font-semibold tracking-[-0.015em] text-[#14120f]">
+                  Saved address
+                </h2>
+
+              </div>
+
+
+              <Card className="max-w-xl border-[#d9d2c7] bg-white p-6 shadow-none">
+
+                <div className="flex items-start justify-between gap-4">
+
+                  <div className="flex items-start gap-3">
+
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#f7f4ee] text-[#b4491e]">
+
+                      <MapPin className="h-4 w-4" />
+
+                    </div>
+
+                    <div>
+
+                      <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#8e8275]">
+                        Primary delivery address
+                      </p>
+
+                      <h3 className="mt-1 text-[15px] font-medium text-[#14120f]">
+                        {user.displayName ||
+                          'Customer'}
+                      </h3>
 
                     </div>
 
                   </div>
 
-                  {/* Quote Actions */}
+                  <span className="border border-green-200 bg-green-50 px-2.5 py-1 font-mono text-[8px] uppercase tracking-[0.08em] text-green-700">
+                    Account address
+                  </span>
 
-                  {quote.status ===
-                    'Quoted' &&
-                    quote.adminPrice && (
+                </div>
 
-                      <div className="mt-5 pt-5 border-t border-brand-100 flex gap-3">
 
-                        <Button
-                          size="sm"
-                          className="flex-1"
-                          onClick={() =>
-                            handleAcceptQuote(
-                              quote.id
-                            )
-                          }
-                        >
-                          <CheckCircle className="w-4 h-4 mr-2" />
+                <div className="mt-5 border-t border-[#ebe6dc] pt-5">
 
-                          Accept Quote
-                        </Button>
+                  <p className="text-[13.5px] leading-6 text-[#6b6156]">
+                    Your saved delivery address is
+                    managed from your checkout
+                    information.
+                  </p>
 
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() =>
-                            handleRejectQuote(
-                              quote.id
-                            )
-                          }
-                        >
-                          <XCircle className="w-4 h-4 mr-2" />
+                  <div className="mt-4">
 
-                          Decline
-                        </Button>
+                    <Link to="/checkout">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                      >
+                        Manage at checkout
+                      </Button>
+                    </Link>
 
-                      </div>
-                    )}
+                  </div>
 
-                </Card>
+                </div>
 
-              )
-            )
+              </Card>
 
+            </div>
           )}
 
-        </div>
-      )}
 
-      {/* ================================================================== */}
-      {/* Orders Tab                                                         */}
-      {/* ================================================================== */}
+          {/* ================================================================= */}
+          {/* PROFILE                                                          */}
+          {/* ================================================================= */}
 
-      {activeTab === 'orders' && (
-        <div className="space-y-4">
+          {activeTab === 'profile' && (
+            <div className="mt-8 grid gap-10 lg:grid-cols-12">
 
-          {/* ------------------------------------------------------------ */}
-          {/* Orders Header                                                */}
-          {/* ------------------------------------------------------------ */}
+              <div className="lg:col-span-7">
 
-          <div className="flex items-center justify-between">
+                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8e8275]">
+                  Account details
+                </p>
 
-            <div>
-              <h2 className="font-serif text-xl font-semibold text-charcoal">
-                My Orders
-              </h2>
+                <h2 className="mt-1 font-display text-[21px] font-semibold tracking-[-0.015em] text-[#14120f]">
+                  Profile
+                </h2>
 
-              <p className="text-sm text-charcoal-light mt-1">
-                View your recent orders and their status.
-              </p>
-            </div>
+                <p className="mt-2 text-[13.5px] leading-6 text-[#6b6156]">
+                  Your Firebase account information
+                  is used for orders and customer
+                  communication.
+                </p>
 
-            <button
-              type="button"
-              onClick={handleRefreshOrders}
-              disabled={ordersLoading}
-              className="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-700 disabled:opacity-50 transition-colors"
-            >
-              <RefreshCw
-                className={`w-4 h-4 ${
-                  ordersLoading
-                    ? 'animate-spin'
-                    : ''
-                }`}
-              />
 
-              Refresh
-            </button>
+                <form
+                  className="mt-6 space-y-5"
+                  onSubmit={(event) => {
+                    event.preventDefault();
 
-          </div>
-
-          {/* ------------------------------------------------------------ */}
-          {/* Orders List                                                   */}
-          {/* ------------------------------------------------------------ */}
-
-          {myOrders.length === 0 ? (
-
-            <Card className="p-12 text-center border-none shadow-sm">
-
-              <Package className="w-12 h-12 text-charcoal-lighter mx-auto mb-4" />
-
-              <p className="text-charcoal-light mb-4">
-                No orders yet.
-              </p>
-
-              <Link to="/catalog">
-                <Button>
-                  Browse Catalog
-                </Button>
-              </Link>
-
-            </Card>
-
-          ) : (
-
-            myOrders.map(
-              (order) => (
-
-                <Card
-                  key={order.id}
-                  className="p-6 border-none shadow-sm"
+                    setProfileMessage(
+                      'Profile information is currently managed through your account registration details.'
+                    );
+                  }}
                 >
 
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <Input
+                    name="profileName"
+                    label="Full Name"
+                    defaultValue={
+                      user.displayName || ''
+                    }
+                    disabled
+                  />
 
-                    <div>
+                  <Input
+                    name="profileEmail"
+                    label="Email Address"
+                    type="email"
+                    defaultValue={
+                      user.email || ''
+                    }
+                    disabled
+                  />
 
-                      <div className="flex items-center gap-3 mb-1">
+                  <div className="rounded-none border border-[#d9d2c7] bg-white p-4">
 
-                        <h3 className="font-medium text-charcoal">
-                          Order #
-                          {order.id.slice(
-                            0,
-                            8
-                          )}
-                        </h3>
+                    <p className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#8e8275]">
+                      Authentication
+                    </p>
 
-                        <span
-                          className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                            STATUS_COLORS[
-                              order.status
-                            ] ||
-                            'bg-gray-50 text-gray-700'
-                          }`}
-                        >
-                          {order.status}
-                        </span>
-
-                      </div>
-
-                      <p className="text-sm text-charcoal-light">
-
-                        {order.items.length}{' '}
-                        item(s)
-
-                        {' • '}
-
-                        {new Date(
-                          order.date
-                        ).toLocaleDateString(
-                          'en-IN',
-                          {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          }
-                        )}
-
-                      </p>
-
-                    </div>
-
-                    <p className="text-lg font-semibold text-brand-600">
-                      ₹
-                      {order.total.toLocaleString(
-                        'en-IN'
-                      )}
+                    <p className="mt-2 text-[13px] leading-5 text-[#6b6156]">
+                      Your password and
+                      authentication credentials are
+                      securely handled by Firebase.
                     </p>
 
                   </div>
 
+
+                  {profileMessage && (
+                    <p className="border border-[#d9d2c7] bg-white px-4 py-3 text-[13px] text-[#6b6156]">
+                      {profileMessage}
+                    </p>
+                  )}
+
+                </form>
+
+              </div>
+
+
+              <aside className="lg:col-span-5">
+
+                <Card className="border-[#d9d2c7] bg-white p-5 shadow-none">
+
+                  <p className="font-mono text-[8px] uppercase tracking-[0.14em] text-[#8e8275]">
+                    Account summary
+                  </p>
+
+
+                  <dl className="mt-4 divide-y divide-[#ebe6dc] border-y border-[#ebe6dc]">
+
+                    <div className="flex justify-between py-3">
+
+                      <dt className="text-[13px] text-[#6b6156]">
+                        Orders placed
+                      </dt>
+
+                      <dd className="font-mono text-[13px] text-[#14120f]">
+                        {myOrders.length}
+                      </dd>
+
+                    </div>
+
+
+                    <div className="flex justify-between py-3">
+
+                      <dt className="text-[13px] text-[#6b6156]">
+                        Quotes raised
+                      </dt>
+
+                      <dd className="font-mono text-[13px] text-[#14120f]">
+                        {myQuotes.length}
+                      </dd>
+
+                    </div>
+
+
+                    <div className="flex justify-between py-3">
+
+                      <dt className="text-[13px] text-[#6b6156]">
+                        Account email
+                      </dt>
+
+                      <dd className="max-w-[180px] truncate font-mono text-[12px] text-[#14120f]">
+                        {user.email}
+                      </dd>
+
+                    </div>
+
+                  </dl>
+
+
+                  <p className="mt-5 text-[13px] leading-6 text-[#6b6156]">
+                    Need a new custom part or a
+                    repeat print?
+                  </p>
+
+                  <div className="mt-4">
+
+                    <Link to="/custom-service">
+                      <Button size="sm">
+                        Start a custom print
+                      </Button>
+                    </Link>
+
+                  </div>
+
                 </Card>
 
-              )
-            )
+              </aside>
 
+            </div>
           )}
 
         </div>
-      )}
 
-    </div>
+      </main>
+
+
+      {/* ================================================================== */}
+      {/* ORDER DETAILS MODAL                                                */}
+      {/* ================================================================== */}
+
+      {selectedOrder && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#14120f]/60 px-4 py-8"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Order details"
+          onClick={() =>
+            setSelectedOrder(null)
+          }
+        >
+
+          <div
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto border border-[#d9d2c7] bg-white shadow-2xl"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+
+            {/* ------------------------------------------------------------ */}
+            {/* Modal header                                                  */}
+            {/* ------------------------------------------------------------ */}
+
+            <div className="flex items-start justify-between gap-5 border-b border-[#d9d2c7] p-5 sm:p-6">
+
+              <div>
+
+                <p className="font-mono text-[8px] uppercase tracking-[0.14em] text-[#8e8275]">
+                  Order details
+                </p>
+
+                <h2 className="mt-1 font-display text-[21px] font-semibold text-[#14120f]">
+                  #{selectedOrder.id.slice(0, 8)}
+                </h2>
+
+                <p className="mt-1 text-[12.5px] text-[#6b6156]">
+                  {new Date(
+                    selectedOrder.date
+                  ).toLocaleDateString(
+                    'en-IN',
+                    {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    }
+                  )}
+                </p>
+
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setSelectedOrder(null)
+                }
+                className="flex h-8 w-8 items-center justify-center border border-[#d9d2c7] text-[#6b6156] hover:bg-[#f7f4ee] hover:text-[#14120f]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+            </div>
+
+
+            {/* ------------------------------------------------------------ */}
+            {/* Modal body                                                    */}
+            {/* ------------------------------------------------------------ */}
+
+            <div className="p-5 sm:p-6">
+
+              <div className="mb-5 flex items-center justify-between">
+
+                <span className="font-mono text-[8px] uppercase tracking-[0.1em] text-[#8e8275]">
+                  Current status
+                </span>
+
+                <span
+                  className={`border px-2.5 py-1 font-mono text-[8px] uppercase tracking-[0.08em] ${
+                    STATUS_STYLES[
+                      selectedOrder.status
+                    ] ||
+                    'border-gray-200 bg-gray-50 text-gray-700'
+                  }`}
+                >
+                  {selectedOrder.status}
+                </span>
+
+              </div>
+
+
+              {/* Items */}
+
+              <div className="border-y border-[#ebe6dc]">
+
+                {selectedOrder.items.map(
+                  (item, index) => (
+                    <div
+                      key={`${item.productId}-${index}`}
+                      className="flex items-center gap-4 border-b border-[#ebe6dc] py-4 last:border-b-0"
+                    >
+
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center bg-[#f7f4ee]">
+
+                        <Package className="h-5 w-5 text-[#8e8275]" />
+
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+
+                        <p className="text-[13.5px] font-medium text-[#14120f]">
+                          {item.productName}
+                        </p>
+
+                        <p className="mt-1 font-mono text-[8px] uppercase tracking-[0.08em] text-[#8e8275]">
+
+                          Qty {item.quantity}
+
+                          {item.variantLabel &&
+                            ` · ${item.variantLabel}`}
+
+                        </p>
+
+                      </div>
+
+                      <p className="font-mono text-[12.5px] text-[#14120f]">
+
+                        ₹
+                        {(
+                          item.price *
+                          item.quantity
+                        ).toLocaleString(
+                          'en-IN'
+                        )}
+
+                      </p>
+
+                    </div>
+                  )
+                )}
+
+              </div>
+
+
+              {/* Totals */}
+
+              <div className="mt-5 space-y-3">
+
+                <div className="flex justify-between text-[13px]">
+
+                  <span className="text-[#6b6156]">
+                    Items
+                  </span>
+
+                  <span className="font-mono text-[#14120f]">
+                    ₹
+                    {selectedOrder.items
+                      .reduce(
+                        (sum, item) =>
+                          sum +
+                          item.price *
+                            item.quantity,
+                        0
+                      )
+                      .toLocaleString(
+                        'en-IN'
+                      )}
+                  </span>
+
+                </div>
+
+
+                <div className="flex justify-between text-[13px]">
+
+                  <span className="text-[#6b6156]">
+                    Shipping
+                  </span>
+
+                  <span className="font-mono text-[#14120f]">
+                    Included
+                  </span>
+
+                </div>
+
+
+                <div className="flex justify-between border-t border-[#d9d2c7] pt-4">
+
+                  <span className="font-medium text-[#14120f]">
+                    Total paid
+                  </span>
+
+                  <span className="font-display text-[21px] font-semibold text-[#14120f]">
+                    ₹
+                    {selectedOrder.total.toLocaleString(
+                      'en-IN'
+                    )}
+                  </span>
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            {/* ------------------------------------------------------------ */}
+            {/* Modal footer                                                  */}
+            {/* ------------------------------------------------------------ */}
+
+            <div className="flex flex-wrap justify-end gap-2 border-t border-[#d9d2c7] bg-[#f7f4ee] p-4">
+
+              <Button
+                variant="ghost"
+                onClick={() =>
+                  setSelectedOrder(null)
+                }
+              >
+                Close
+              </Button>
+
+              <Button
+                onClick={() =>
+                  handleOrderAgain(
+                    selectedOrder
+                  )
+                }
+                disabled={
+                  reorderOrder.isPending
+                }
+              >
+                <ShoppingCart className="h-3.5 w-3.5 mr-1.5" />
+
+                {reorderOrder.isPending
+                  ? 'Adding...'
+                  : 'Order again'}
+              </Button>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
+    </>
   );
 }
