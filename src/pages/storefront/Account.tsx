@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '../../hooks/useAuth';
+import { usePincodeLookup } from '../../hooks/usePincodeLookup';
 import {
   emptyAddress,
   useSaveUserProfile,
@@ -117,6 +118,15 @@ export function Account() {
   const saveUserProfile = useSaveUserProfile();
 
   const {
+    location: pincodeLocation,
+    isLookingUp: isPincodeLookingUp,
+    error: pincodeLookupError,
+  } = usePincodeLookup(
+    profileAddress.pincode,
+    isProfileEditing
+  );
+
+  const {
     data: myQuotes = [],
     isLoading: quotesLoading,
   } = useMyQuotes();
@@ -205,6 +215,19 @@ export function Account() {
         profile.address?.pincode || '',
     });
   }, [profile, user.displayName, user.email]);
+
+  useEffect(() => {
+    if (!pincodeLocation) {
+      return;
+    }
+
+    setProfileAddress((current) => ({
+      ...current,
+      city: pincodeLocation.city,
+      state: pincodeLocation.state,
+      pincode: pincodeLocation.pincode,
+    }));
+  }, [pincodeLocation]);
 
   const startProfileEditing = () => {
     setProfileError('');
@@ -1416,6 +1439,32 @@ export function Account() {
                             placeholder="6-digit PIN code"
                             required
                           />
+
+                          {profileAddress.pincode.length === 6 && (
+                            <div
+                              className="min-h-5 text-[11px] leading-5 text-[#6b6156]"
+                              aria-live="polite"
+                            >
+                              {isPincodeLookingUp ? (
+                                <span className="inline-flex items-center gap-2">
+                                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-[#d9d2c7] border-t-[#b4491e]" />
+                                  Detecting city and state...
+                                </span>
+                              ) : pincodeLookupError ? (
+                                <span className="text-[#9b3d2c]">
+                                  {pincodeLookupError}
+                                </span>
+                              ) : pincodeLocation ? (
+                                <span className="text-green-700">
+                                  ✓ {pincodeLocation.city}, {pincodeLocation.state}
+                                </span>
+                              ) : null}
+                            </div>
+                          )}
+
+                          <p className="text-[11px] leading-5 text-[#8e8275]">
+                            Enter your 6-digit PIN and we’ll automatically fill the city and state.
+                          </p>
 
                           <div className="flex flex-wrap gap-2 pt-2">
                             <Button

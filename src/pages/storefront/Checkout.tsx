@@ -15,6 +15,7 @@ import {
 import { useStore } from '../../store';
 import { useAuth } from '../../hooks/useAuth';
 import { useUserProfile } from '../../hooks/useUserProfile';
+import { usePincodeLookup } from '../../hooks/usePincodeLookup';
 import { useCreateOrder } from '../../hooks/useOrders';
 import { useSettings } from '../../hooks/useSettings';
 
@@ -131,9 +132,24 @@ export function Checkout() {
   const [phone, setPhone] =
     useState('');
 
+  const [cityValue, setCityValue] =
+    useState('');
+
+  const [pincodeValue, setPincodeValue] =
+    useState('');
+
   const [errors, setErrors] = useState<
     Record<string, string>
   >({});
+
+  const {
+    location: pincodeLocation,
+    isLookingUp: isPincodeLookingUp,
+    error: pincodeLookupError,
+  } = usePincodeLookup(
+    pincodeValue,
+    true
+  );
 
   /*
    * Populate saved profile information.
@@ -148,7 +164,25 @@ export function Checkout() {
     setPhone(
       normalizePhone(profile.phone || '')
     );
+
+    setCityValue(
+      profile.address?.city || ''
+    );
+
+    setPincodeValue(
+      profile.address?.pincode || ''
+    );
   }, [profile]);
+
+  useEffect(() => {
+    if (!pincodeLocation) {
+      return;
+    }
+
+    setCityValue(pincodeLocation.city);
+    setStateValue(pincodeLocation.state);
+    setPincodeValue(pincodeLocation.pincode);
+  }, [pincodeLocation]);
 
   /*
    * Same pricing logic as Cart.
@@ -874,9 +908,9 @@ export function Checkout() {
                       <Input
                         name="city"
                         label="City"
-                        defaultValue={
-                          profile?.address?.city ||
-                          ''
+                        value={cityValue}
+                        onChange={(event) =>
+                          setCityValue(event.target.value)
                         }
                         placeholder="e.g. Patiala"
                         autoComplete="address-level2"
@@ -923,9 +957,13 @@ export function Checkout() {
                       <Input
                         name="pincode"
                         label="PIN Code"
-                        defaultValue={
-                          profile?.address?.pincode ||
-                          ''
+                        value={pincodeValue}
+                        onChange={(event) =>
+                          setPincodeValue(
+                            event.target.value
+                              .replace(/\D/g, '')
+                              .slice(0, 6)
+                          )
                         }
                         placeholder="6-digit PIN code"
                         maxLength={6}
@@ -934,6 +972,28 @@ export function Checkout() {
                         autoComplete="postal-code"
                         required
                       />
+
+                      {pincodeValue.length === 6 && (
+                        <p
+                          className="mt-1.5 min-h-5 text-[11px] leading-5 text-[#6b6156]"
+                          aria-live="polite"
+                        >
+                          {isPincodeLookingUp ? (
+                            <span className="inline-flex items-center gap-2">
+                              <span className="h-3 w-3 animate-spin rounded-full border-2 border-[#d9d2c7] border-t-[#b4491e]" />
+                              Detecting city and state...
+                            </span>
+                          ) : pincodeLookupError ? (
+                            <span className="text-[#9b3d2c]">
+                              {pincodeLookupError}
+                            </span>
+                          ) : pincodeLocation ? (
+                            <span className="text-green-700">
+                              ✓ {pincodeLocation.city}, {pincodeLocation.state}
+                            </span>
+                          ) : null}
+                        </p>
+                      )}
 
                       {errors.pincode && (
                         <p className="mt-1.5 text-xs text-red-600">
