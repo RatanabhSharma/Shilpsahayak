@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  ArrowLeft,
   ArrowRight,
   Check,
   ChevronRight,
@@ -14,6 +13,7 @@ import {
 } from 'lucide-react';
 
 import { useProducts } from '../../hooks/useProducts';
+import { useHomepage } from '../../hooks/useHomepage';
 import { Button, Card } from '../../components/ui';
 import {
   CategoryGridSkeleton,
@@ -23,120 +23,149 @@ import {
 
 export function Home() {
   const { data: products = [], isLoading } = useProducts();
+  const { data: homepageSettings } = useHomepage();
 
   const activeProducts = useMemo(
-    () =>
-      products.filter(
-        (product) => product.active !== false
-      ),
+    () => products.filter((product) => product.active !== false),
     [products]
   );
 
-  const featuredProducts = useMemo(
-    () =>
-      activeProducts
-        .filter((product) => product.featured)
-        .slice(0, 4),
-    [activeProducts]
-  );
+  const featuredProducts = useMemo(() => {
+    const configuredIds = homepageSettings?.featuredProductIds ?? [];
+
+    if (configuredIds.length === 0) {
+      return activeProducts.filter((product) => product.featured).slice(0, 4);
+    }
+
+    return configuredIds
+      .map((id) => activeProducts.find((product) => product.id === id))
+      .filter(Boolean) as typeof activeProducts;
+  }, [activeProducts, homepageSettings?.featuredProductIds]);
+
+  const selectedProducts = useMemo(() => {
+    const configuredIds = homepageSettings?.selectedProductIds ?? [];
+
+    if (configuredIds.length === 0) {
+      return activeProducts.slice(0, 4);
+    }
+
+    return configuredIds
+      .map((id) => activeProducts.find((product) => product.id === id))
+      .filter(Boolean) as typeof activeProducts;
+  }, [activeProducts, homepageSettings?.selectedProductIds]);
 
   const categories = useMemo(() => {
     const categoryMap = new Map<string, string>();
 
     for (const product of activeProducts) {
-      if (
-        product.category &&
-        !categoryMap.has(product.category)
-      ) {
-        categoryMap.set(
-          product.category,
-          product.image
-        );
+      if (product.category && !categoryMap.has(product.category)) {
+        categoryMap.set(product.category, product.image);
       }
     }
 
-    return Array.from(categoryMap.entries()).map(
-      ([name, image]) => ({
+    const configuredNames = homepageSettings?.categoryNames ?? [];
+
+    if (configuredNames.length === 0) {
+      return Array.from(categoryMap.entries()).map(([name, image]) => ({
         name,
         image,
-      })
-    );
-  }, [activeProducts]);
+      }));
+    }
 
-  const selectedProducts = useMemo(
-    () => activeProducts.slice(0, 4),
-    [activeProducts]
+    return configuredNames
+      .map((name) => {
+        const image = categoryMap.get(name);
+        return image ? { name, image } : null;
+      })
+      .filter(Boolean) as { name: string; image: string }[];
+  }, [activeProducts, homepageSettings?.categoryNames]);
+
+  const heroSlides = useMemo(
+    () => (homepageSettings?.heroSlides ?? []).filter((slide) => slide.enabled),
+    [homepageSettings?.heroSlides]
   );
 
   const [slideIndex, setSlideIndex] = useState(0);
-
-  const slideCount = featuredProducts.length;
-
-  useEffect(() => {
-    if (slideCount <= 1) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setSlideIndex(
-        (currentIndex) =>
-          (currentIndex + 1) % slideCount
-      );
-    }, 5000);
-
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [slideCount]);
+  const slideCount = heroSlides.length;
 
   useEffect(() => {
-    if (
-      slideCount === 0 ||
-      slideIndex >= slideCount
-    ) {
+    if (slideCount === 0 || slideIndex >= slideCount) {
       setSlideIndex(0);
     }
   }, [slideCount, slideIndex]);
 
-  const currentSlide =
-    featuredProducts[slideIndex];
+  useEffect(() => {
+    if (!homepageSettings?.heroAutoplay || slideCount <= 1) return;
+
+    const timer = window.setInterval(() => {
+      setSlideIndex((currentIndex) => (currentIndex + 1) % slideCount);
+    }, homepageSettings.heroInterval);
+
+    return () => window.clearInterval(timer);
+  }, [homepageSettings?.heroAutoplay, homepageSettings?.heroInterval, slideCount]);
+
+  const currentSlide = heroSlides[slideIndex];
 
   const nextSlide = () => {
-    if (slideCount <= 1) {
-      return;
-    }
-
-    setSlideIndex(
-      (currentIndex) =>
-        (currentIndex + 1) % slideCount
-    );
+    if (slideCount <= 1) return;
+    setSlideIndex((currentIndex) => (currentIndex + 1) % slideCount);
   };
 
   const previousSlide = () => {
-    if (slideCount <= 1) {
-      return;
-    }
-
-    setSlideIndex(
-      (currentIndex) =>
-        (currentIndex - 1 + slideCount) %
-        slideCount
-    );
+    if (slideCount <= 1) return;
+    setSlideIndex((currentIndex) => (currentIndex - 1 + slideCount) % slideCount);
   };
 
-  const goToSlide = (index: number) => {
-    setSlideIndex(index);
+  const goToSlide = (index: number) => setSlideIndex(index);
+
+  const renderHeroButton = (slide: NonNullable<typeof currentSlide>) => {
+    if (!slide.buttonText || !slide.buttonLink) return null;
+
+    if (/^https?:\/\//i.test(slide.buttonLink)) {
+      return (
+        <a
+          href={slide.buttonLink}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex"
+        >
+          <Button
+            size="lg"
+            className="group w-full bg-[#b4491e] px-7 hover:bg-[#963c18] sm:w-auto"
+          >
+            {slide.buttonText}
+            <ArrowRight
+              className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"
+              aria-hidden="true"
+            />
+          </Button>
+        </a>
+      );
+    }
+
+    return (
+      <Link to={slide.buttonLink} className="inline-flex">
+        <Button
+          size="lg"
+          className="group w-full bg-[#b4491e] px-7 hover:bg-[#963c18] sm:w-auto"
+        >
+          {slide.buttonText}
+          <ArrowRight
+            className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"
+            aria-hidden="true"
+          />
+        </Button>
+      </Link>
+    );
   };
 
   return (
     <div className="bg-[#f7f4ee] text-[#171512]">
 
       {/* =====================================================
-          HERO
+          HERO PROMOTIONS
       ====================================================== */}
       <section className="relative overflow-hidden border-b border-[#ded8ce] bg-[#171512] text-[#f7f4ee]">
-
-        {/* Background grid */}
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.07]"
           aria-hidden="true"
@@ -147,7 +176,6 @@ export function Home() {
           }}
         />
 
-        {/* Decorative elements */}
         <div
           className="pointer-events-none absolute -right-40 -top-40 h-[520px] w-[520px] rounded-full border border-[#f7f4ee]/10"
           aria-hidden="true"
@@ -159,87 +187,37 @@ export function Home() {
         />
 
         <div className="relative mx-auto max-w-[1440px] px-5 py-16 sm:px-8 lg:px-10 lg:py-24">
-
-          {slideCount > 0 && currentSlide ? (
+          {currentSlide ? (
             <div className="grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
-
-              {/* Hero content */}
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentSlide.id}
-                  initial={{
-                    opacity: 0,
-                    x: -24,
-                  }}
-                  animate={{
-                    opacity: 1,
-                    x: 0,
-                  }}
-                  exit={{
-                    opacity: 0,
-                    x: 24,
-                  }}
-                  transition={{
-                    duration: 0.4,
-                  }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.4, ease: 'easeOut' }}
                   className="order-2 lg:order-1"
                 >
                   <div className="mb-7 flex items-center gap-3">
                     <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#d9784b]">
-                      Featured piece
+                      {currentSlide.eyebrow || 'Shilp Sahayak'}
                     </span>
-
-                    <span
-                      className="h-px w-10 bg-[#b4491e]"
-                      aria-hidden="true"
-                    />
-
-                    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#f7f4ee]/45">
-                      {currentSlide.category}
-                    </span>
+                    <span className="h-px w-10 bg-[#b4491e]" aria-hidden="true" />
                   </div>
 
                   <h1 className="max-w-2xl font-serif text-5xl font-semibold leading-[0.96] tracking-[-0.045em] sm:text-6xl lg:text-7xl">
-                    {currentSlide.name}
+                    {currentSlide.title}
                   </h1>
 
-                  <p className="mt-7 max-w-xl text-base leading-7 text-[#f7f4ee]/60 sm:text-lg">
-                    {currentSlide.description ||
-                      'Studio-crafted precision 3D printing, made to order.'}
-                  </p>
-
-                  <div className="mt-8 flex items-end gap-4">
-                    <div>
-                      <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#f7f4ee]/35">
-                        Starting from
-                      </p>
-
-                      <p className="mt-1 font-serif text-3xl font-semibold text-[#d9784b]">
-                        ₹
-                        {currentSlide.price.toLocaleString(
-                          'en-IN'
-                        )}
-                      </p>
-                    </div>
-                  </div>
+                  {currentSlide.description && (
+                    <p className="mt-7 max-w-xl text-base leading-7 text-[#f7f4ee]/60 sm:text-lg">
+                      {currentSlide.description}
+                    </p>
+                  )}
 
                   <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                    <Link
-                      to={`/product/${currentSlide.id}`}
-                    >
-                      <Button
-                        size="lg"
-                        className="group w-full bg-[#b4491e] px-7 hover:bg-[#963c18] sm:w-auto"
-                      >
-                        View this piece
-                        <ArrowRight
-                          className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"
-                          aria-hidden="true"
-                        />
-                      </Button>
-                    </Link>
-
-                    <Link to="/catalog">
+                    {renderHeroButton(currentSlide)}
+                    <Link to="/catalog" className="inline-flex">
                       <Button
                         variant="outline"
                         size="lg"
@@ -250,61 +228,49 @@ export function Home() {
                     </Link>
                   </div>
 
-                  {/* Carousel controls */}
                   {slideCount > 1 && (
                     <div className="mt-10 flex items-center gap-5">
                       <button
                         type="button"
                         onClick={previousSlide}
-                        aria-label="Previous featured product"
+                        aria-label="Previous promotion"
                         className="flex h-9 w-9 items-center justify-center border border-[#f7f4ee]/20 text-[#f7f4ee]/60 transition-colors hover:border-[#f7f4ee]/60 hover:text-[#f7f4ee]"
                       >
-                        <ArrowLeft
-                          className="h-4 w-4"
-                          aria-hidden="true"
-                        />
+                        <span aria-hidden="true">←</span>
                       </button>
 
                       <div className="flex items-center gap-2">
-                        {featuredProducts.map(
-                          (product, index) => (
-                            <button
-                              key={product.id}
-                              type="button"
-                              onClick={() =>
-                                goToSlide(index)
-                              }
-                              aria-label={`Show featured product ${index + 1}`}
-                              className={`h-1 transition-all duration-300 ${
-                                index === slideIndex
-                                  ? 'w-10 bg-[#d9784b]'
-                                  : 'w-4 bg-[#f7f4ee]/20 hover:bg-[#f7f4ee]/40'
-                              }`}
-                            />
-                          )
-                        )}
+                        {heroSlides.map((slide, index) => (
+                          <button
+                            key={slide.id}
+                            type="button"
+                            onClick={() => goToSlide(index)}
+                            aria-label={`Show promotion ${index + 1}`}
+                            aria-current={index === slideIndex ? 'true' : undefined}
+                            className={`h-1 transition-all duration-300 ${
+                              index === slideIndex
+                                ? 'w-10 bg-[#d9784b]'
+                                : 'w-4 bg-[#f7f4ee]/20 hover:bg-[#f7f4ee]/40'
+                            }`}
+                          />
+                        ))}
                       </div>
 
                       <button
                         type="button"
                         onClick={nextSlide}
-                        aria-label="Next featured product"
+                        aria-label="Next promotion"
                         className="flex h-9 w-9 items-center justify-center border border-[#f7f4ee]/20 text-[#f7f4ee]/60 transition-colors hover:border-[#f7f4ee]/60 hover:text-[#f7f4ee]"
                       >
-                        <ArrowRight
-                          className="h-4 w-4"
-                          aria-hidden="true"
-                        />
+                        <span aria-hidden="true">→</span>
                       </button>
                     </div>
                   )}
                 </motion.div>
               </AnimatePresence>
 
-              {/* Hero image */}
               <div className="order-1 lg:order-2">
                 <div className="relative">
-
                   <div
                     className="absolute -inset-3 border border-[#f7f4ee]/10"
                     aria-hidden="true"
@@ -312,71 +278,44 @@ export function Home() {
 
                   <div className="relative overflow-hidden bg-[#24211d]">
                     <AnimatePresence mode="wait">
-                      <motion.img
-                        key={currentSlide.id}
-                        src={currentSlide.image}
-                        alt={currentSlide.name}
-                        initial={{
-                          opacity: 0,
-                          scale: 1.04,
-                        }}
-                        animate={{
-                          opacity: 1,
-                          scale: 1,
-                        }}
-                        exit={{
-                          opacity: 0,
-                          scale: 0.99,
-                        }}
-                        transition={{
-                          duration: 0.5,
-                        }}
-                        className="aspect-[4/3] w-full object-cover"
-                      />
+                      {currentSlide.image ? (
+                        <motion.img
+                          key={currentSlide.id}
+                          src={currentSlide.image}
+                          alt={currentSlide.title}
+                          initial={{ opacity: 0, scale: 1.03 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.99 }}
+                          transition={{ duration: 0.5, ease: 'easeOut' }}
+                          className="aspect-[4/3] w-full object-cover"
+                        />
+                      ) : (
+                        <motion.div
+                          key={`${currentSlide.id}-placeholder`}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="flex aspect-[4/3] w-full items-center justify-center bg-[#24211d] p-8 text-center"
+                        >
+                          <span className="max-w-md font-serif text-3xl font-semibold text-[#f7f4ee]/80 sm:text-4xl">
+                            {currentSlide.title}
+                          </span>
+                        </motion.div>
+                      )}
                     </AnimatePresence>
 
                     <div
-                      className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"
+                      className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent"
                       aria-hidden="true"
                     />
-
-                    <div className="absolute bottom-5 left-5 border border-white/20 bg-[#171512]/85 px-4 py-3 backdrop-blur-md">
-                      <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-white/45">
-                        From
-                      </p>
-
-                      <p className="mt-1 font-serif text-xl text-[#f7f4ee]">
-                        ₹
-                        {currentSlide.price.toLocaleString(
-                          'en-IN'
-                        )}
-                      </p>
-                    </div>
-
-                    {currentSlide.isCustomizable && (
-                      <div className="absolute right-5 top-5 flex items-center gap-2 border border-white/20 bg-[#171512]/85 px-3 py-2 backdrop-blur-md">
-                        <Sparkles
-                          className="h-3.5 w-3.5 text-[#d9784b]"
-                          aria-hidden="true"
-                        />
-
-                        <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-white/80">
-                          Personalise
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
             </div>
           ) : (
-            /* =================================================
-               FALLBACK HERO
-            ================================================== */
             <div className="max-w-3xl">
               <div className="mb-7 flex items-center gap-3">
                 <span className="h-px w-10 bg-[#b4491e]" />
-
                 <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#d9784b]">
                   Make in India
                 </span>
@@ -385,33 +324,25 @@ export function Home() {
               <h1 className="font-serif text-6xl font-semibold leading-[0.95] tracking-[-0.05em] sm:text-7xl lg:text-8xl">
                 Objects
                 <br />
-                <span className="text-[#d9784b]">
-                  worth keeping.
-                </span>
+                <span className="text-[#d9784b]">worth keeping.</span>
               </h1>
 
               <p className="mt-8 max-w-2xl text-lg leading-8 text-[#f7f4ee]/55 sm:text-xl">
-                Studio-crafted precision 3D printing.
-                From personalized pieces to functional
-                objects, we turn ideas into things worth
-                keeping.
+                Studio-crafted precision 3D printing. From personalized pieces to functional objects, we turn ideas into things worth keeping.
               </p>
 
               <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-                <Link to="/catalog">
+                <Link to="/catalog" className="inline-flex">
                   <Button
                     size="lg"
                     className="w-full bg-[#b4491e] px-8 hover:bg-[#963c18] sm:w-auto"
                   >
                     Explore collection
-                    <ArrowRight
-                      className="ml-2 h-4 w-4"
-                      aria-hidden="true"
-                    />
+                    <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                   </Button>
                 </Link>
 
-                <Link to="/custom-service">
+                <Link to="/custom-service" className="inline-flex">
                   <Button
                     variant="outline"
                     size="lg"

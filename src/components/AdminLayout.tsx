@@ -1,268 +1,163 @@
 import React, { useState } from 'react';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Link,
-  Outlet,
-  useLocation,
-  useNavigate,
-} from 'react-router-dom';
-import {
-  ArrowLeft,
   LayoutDashboard,
   ShoppingBag,
   FileText,
   Package,
   Users,
   Settings,
+  Home,
   LogOut,
   Menu,
-  X,
-} from 'lucide-react';
-import { signOut } from 'firebase/auth';
-
-import { auth } from '../lib/firebase';
-
-type AdminNavItem = {
-  name: string;
-  path: string;
-  icon: React.ComponentType<{
-    className?: string;
-  }>;
-};
-
-const adminNavItems: AdminNavItem[] = [
+  X } from
+'lucide-react';
+export function AdminLayout() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const navItems = [
   {
     name: 'Dashboard',
     path: '/admin/dashboard',
-    icon: LayoutDashboard,
+    icon: LayoutDashboard
+  },
+  {
+    name: 'Home Page',
+    path: '/admin/home',
+    icon: Home
   },
   {
     name: 'Orders',
     path: '/admin/orders',
-    icon: ShoppingBag,
+    icon: ShoppingBag
   },
   {
     name: 'Custom Quotes',
     path: '/admin/quotes',
-    icon: FileText,
+    icon: FileText
   },
   {
     name: 'Catalog',
     path: '/admin/catalog',
-    icon: Package,
+    icon: Package
   },
   {
     name: 'Inventory',
     path: '/admin/inventory',
-    icon: Package,
+    icon: Package
   },
   {
     name: 'Customers',
     path: '/admin/customers',
-    icon: Users,
+    icon: Users
   },
   {
     name: 'Settings',
     path: '/admin/settings',
-    icon: Settings,
-  },
-];
+    icon: Settings
+  }];
 
-export function AdminLayout() {
-  const [isSidebarOpen, setIsSidebarOpen] =
-    useState(false);
-
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-
-      navigate('/admin/login', {
-        replace: true,
-      });
-    } catch (error) {
-      console.error(
-        'Failed to sign out admin:',
-        error
-      );
-    }
+  const handleLogout = () => {
+    navigate('/admin/login');
   };
-
-  const handleNavigation = () => {
-    setIsSidebarOpen(false);
-  };
-
-  const handleStorefrontNavigation = () => {
-    setIsSidebarOpen(false);
-    navigate('/');
-  };
-
   return (
     <div className="min-h-screen bg-brand-50 flex">
-      {/* Mobile overlay */}
-      {isSidebarOpen && (
-        <button
-          type="button"
-          aria-label="Close admin navigation"
-          className="fixed inset-0 z-40 bg-charcoal/50 lg:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+      {/* Mobile sidebar overlay */}
+      {!isSidebarOpen &&
+      <div
+        className="fixed inset-0 bg-charcoal/50 z-40 lg:hidden"
+        onClick={() => setIsSidebarOpen(true)} />
+
+      }
 
       {/* Sidebar */}
       <aside
-        className={`
-          fixed inset-y-0 left-0 z-50
-          flex w-64 flex-col
-          border-r border-brand-100
-          bg-white
-          transition-transform duration-200 ease-in-out
-          lg:static lg:translate-x-0
-          ${
-            isSidebarOpen
-              ? 'translate-x-0'
-              : '-translate-x-full'
-          }
-        `}
-      >
-        {/* Sidebar header */}
-        <div className="flex h-20 items-center justify-between border-b border-brand-100 px-6">
-          <Link
-            to="/admin/dashboard"
-            className="flex flex-col"
-            onClick={handleNavigation}
-          >
-            <span className="font-serif text-xl font-bold leading-none text-charcoal">
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-brand-100 transform transition-transform duration-200 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col`}>
+        
+        <div className="h-20 flex items-center justify-between px-6 border-b border-brand-100">
+          <Link to="/admin" className="flex flex-col">
+            <span className="font-serif text-xl font-bold text-charcoal leading-none">
               Shilp Sahayak
             </span>
-
-            <span className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-brand-500">
+            <span className="text-[10px] text-brand-500 uppercase tracking-widest mt-1 font-semibold">
               Admin Portal
             </span>
           </Link>
-
           <button
-            type="button"
-            aria-label="Close admin navigation"
-            className="text-charcoal-light transition-colors hover:text-charcoal lg:hidden"
-            onClick={() => setIsSidebarOpen(false)}
-          >
-            <X className="h-5 w-5" />
+            className="lg:hidden text-charcoal-light"
+            onClick={() => setIsSidebarOpen(false)}>
+            
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-6">
-          {adminNavItems.map((item) => {
+        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+          {navItems.map((item) => {
             const Icon = item.icon;
-
-            const isActive =
-              location.pathname === item.path ||
-              location.pathname.startsWith(
-                `${item.path}/`
-              );
-
+            const isActive = location.pathname.startsWith(item.path);
             return (
               <Link
-                key={item.path}
+                key={item.name}
                 to={item.path}
-                onClick={handleNavigation}
-                className={`
-                  flex items-center rounded-xl
-                  px-3 py-2.5
-                  text-sm font-medium
-                  transition-colors
-                  ${
-                    isActive
-                      ? 'bg-brand-50 text-brand-600'
-                      : 'text-charcoal-light hover:bg-surface hover:text-charcoal'
-                  }
-                `}
-              >
+                className={`flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${isActive ? 'bg-brand-50 text-brand-600' : 'text-charcoal-light hover:bg-surface hover:text-charcoal'}`}>
+                
                 <Icon
-                  className={`
-                    mr-3 h-5 w-5
-                    ${
-                      isActive
-                        ? 'text-brand-500'
-                        : 'text-charcoal-lighter'
-                    }
-                  `}
-                />
-
+                  className={`w-5 h-5 mr-3 ${isActive ? 'text-brand-500' : 'text-charcoal-lighter'}`} />
+                
                 {item.name}
-              </Link>
-            );
+              </Link>);
+
           })}
         </nav>
 
-        {/* Sidebar footer */}
-        <div className="border-t border-brand-100 p-4">
-          {/* Main Site button */}
-          <button
-            type="button"
-            onClick={handleStorefrontNavigation}
-            className="mb-2 flex w-full items-center rounded-xl px-3 py-2.5 text-sm font-medium text-charcoal-light transition-colors hover:bg-brand-50 hover:text-charcoal"
+        <div className="p-4 border-t border-brand-100 space-y-2">
+          <Link
+            to="/"
+            className="flex items-center w-full px-3 py-2.5 rounded-xl text-sm font-medium text-charcoal-light hover:bg-brand-50 hover:text-charcoal transition-colors"
           >
-            <ArrowLeft className="mr-3 h-5 w-5 text-brand-500" />
+            <Home className="w-5 h-5 mr-3 text-charcoal-lighter" />
+            View Storefront
+          </Link>
 
-            Main Site
-          </button>
-
-          {/* Sign out */}
           <button
-            type="button"
             onClick={handleLogout}
-            className="flex w-full items-center rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
-          >
-            <LogOut className="mr-3 h-5 w-5 text-red-500" />
-
+            className="flex items-center w-full px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
+            <LogOut className="w-5 h-5 mr-3 text-red-500" />
             Sign Out
           </button>
         </div>
       </aside>
 
-      {/* Main content */}
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Topbar */}
-        <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-brand-100 bg-white px-4 sm:px-6 lg:px-8">
-          {/* Mobile menu button */}
+        <header className="h-20 bg-white border-b border-brand-100 flex items-center justify-between px-4 sm:px-6 lg:px-8 sticky top-0 z-30">
           <button
-            type="button"
-            aria-label="Open admin navigation"
-            className="rounded-lg p-2 text-charcoal-light transition-colors hover:bg-brand-50 hover:text-charcoal lg:hidden"
-            onClick={() => setIsSidebarOpen(true)}
-          >
-            <Menu className="h-5 w-5" />
+            className="lg:hidden p-2 text-charcoal-light hover:bg-brand-50 rounded-lg"
+            onClick={() => setIsSidebarOpen(true)}>
+            
+            <Menu className="w-5 h-5" />
           </button>
-
-          {/* Spacer */}
-          <div className="flex-1" />
-
-          {/* Admin identity */}
+          <div className="flex-1" /> {/* Spacer */}
           <div className="flex items-center space-x-4">
-            <div className="hidden text-right sm:block">
-              <p className="font-medium text-charcoal">
-                Admin User
-              </p>
-
+            <div className="text-sm text-right hidden sm:block">
+              <p className="font-medium text-charcoal">Admin User</p>
               <p className="text-xs text-charcoal-lighter">
-                Owner
+                Onwer
               </p>
             </div>
-
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 font-serif font-bold text-brand-700">
+            <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-serif font-bold">
               A
             </div>
           </div>
         </header>
 
-        {/* Page content */}
+        {/* Page Content */}
         <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
           <Outlet />
         </div>
       </main>
-    </div>
-  );
+    </div>);
+
 }

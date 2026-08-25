@@ -28,6 +28,7 @@ import { Catalog as AdminCatalog } from './pages/admin/Catalog';
 import { Inventory } from './pages/admin/Inventory';
 import { Customers } from './pages/admin/Customers';
 import { Settings } from './pages/admin/Settings';
+import { AdminHome } from './pages/admin/AdminHome';
 
 export function App() {
   return (
@@ -75,6 +76,7 @@ export function App() {
           }
         >
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="home" element={<AdminHome />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="orders" element={<Orders />} />
           <Route path="orders/:id" element={<OrderDetail />} />

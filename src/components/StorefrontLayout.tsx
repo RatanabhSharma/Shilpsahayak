@@ -25,6 +25,7 @@ import {
 import { useStore } from '../store';
 import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
+import { useHomepage } from '../hooks/useHomepage';
 import { useUserRole } from '../hooks/useUserRole';
 
 type NavItem = {
@@ -89,17 +90,13 @@ export function StorefrontLayout() {
     data: settings
   } = useSettings();
 
+  const {
+    data: homepageSettings
+  } = useHomepage();
+
   useEffect(() => {
     setIsMobileMenuOpen(false);
-
-    if (!location.hash) {
-      window.scrollTo({
-        top: 0,
-        left: 0,
-        behavior: 'auto',
-      });
-    }
-  }, [location.pathname, location.hash]);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -191,6 +188,13 @@ export function StorefrontLayout() {
         </div>
       </div>
 
+      {/* Admin-controlled announcement bar */}
+      {homepageSettings?.announcementEnabled && homepageSettings.announcementText && (
+        <div className="bg-[#b4491e] px-4 py-2 text-center text-[10px] font-medium uppercase tracking-[0.1em] text-white">
+          {homepageSettings.announcementText}
+        </div>
+      )}
+
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-[#d9d2c7] bg-[#f7f4ee]/95 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-5 px-5 sm:px-8 lg:h-[72px] lg:px-10">
@@ -236,7 +240,7 @@ export function StorefrontLayout() {
                     isActive
                   }) =>
                     [
-                      'group relative py-1 text-[13px] transition-colors',
+                      'relative py-1 text-[13px] transition-colors',
                       isActive
                         ? 'font-medium text-[#14120f]'
                         : 'text-[#6b6156] hover:text-[#14120f]'
@@ -249,14 +253,9 @@ export function StorefrontLayout() {
                     <>
                       {item.name}
 
-                      <span
-                        className={[
-                          'absolute -bottom-1 left-0 h-px bg-[#b4491e]',
-                          'transition-all duration-200 ease-out',
-                          isActive ? 'w-full' : 'w-0 group-hover:w-full',
-                        ].join(' ')}
-                        aria-hidden="true"
-                      />
+                      {isActive && (
+                        <span className="absolute -bottom-1 left-0 h-px w-full bg-[#b4491e]" />
+                      )}
                     </>
                   )}
                 </NavLink>
@@ -329,7 +328,7 @@ export function StorefrontLayout() {
 
             <Link
               to="/cart"
-              className="relative inline-flex h-10 w-10 items-center justify-center text-[#514a42] transition-all duration-150 hover:-translate-y-0.5 hover:text-[#14120f] active:translate-y-0"
+              className="relative inline-flex h-10 w-10 items-center justify-center text-[#514a42] transition-colors hover:text-[#14120f]"
               aria-label={`Shopping cart with ${cartItemCount} ${
                 cartItemCount === 1
                   ? 'item'
@@ -502,21 +501,7 @@ export function StorefrontLayout() {
         id="main-content"
         className="min-h-0 flex-1"
       >
-        <AnimatePresence mode="sync" initial={false}>
-          <motion.div
-            key={`${location.pathname}${location.search}`}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{
-              duration: 0.18,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-            className="min-h-0"
-          >
-            <Outlet />
-          </motion.div>
-        </AnimatePresence>
+        <Outlet />
       </main>
 
       {/* Footer */}
