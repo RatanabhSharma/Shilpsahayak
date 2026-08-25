@@ -1,13 +1,13 @@
 import React, {
   useEffect,
   useMemo,
-  useState
+  useState,
 } from 'react';
 import {
   Link,
   NavLink,
   Outlet,
-  useLocation
+  useLocation,
 } from 'react-router-dom';
 import {
   ArrowRight,
@@ -15,11 +15,11 @@ import {
   ShieldCheck,
   ShoppingBag,
   User,
-  X
+  X,
 } from 'lucide-react';
 import {
   AnimatePresence,
-  motion
+  motion,
 } from 'framer-motion';
 
 import { useStore } from '../store';
@@ -38,25 +38,29 @@ const NAV_ITEMS: NavItem[] = [
   {
     name: 'Home',
     path: '/',
-    end: true
+    end: true,
   },
   {
     name: 'Shop',
-    path: '/catalog'
+    path: '/catalog',
   },
   {
     name: 'Custom 3D Printing',
-    path: '/custom-service'
+    path: '/custom-service',
   },
   {
     name: 'About',
-    path: '/about'
+    path: '/about',
   },
   {
     name: 'Contact',
-    path: '/contact'
-  }
+    path: '/contact',
+  },
 ];
+
+/* ============================================================
+   ANNOUNCEMENT BAR
+   ============================================================ */
 
 function AnnouncementBar({
   messages,
@@ -66,7 +70,10 @@ function AnnouncementBar({
   duration: number;
 }) {
   const cleanMessages = useMemo(
-    () => messages.map((message) => message.trim()).filter(Boolean),
+    () =>
+      messages
+        .map((message) => message.trim())
+        .filter(Boolean),
     [messages]
   );
 
@@ -78,13 +85,32 @@ function AnnouncementBar({
       return;
     }
 
-    setActiveIndex((current) => current % cleanMessages.length);
+    setActiveIndex(
+      (currentIndex) =>
+        currentIndex % cleanMessages.length
+    );
   }, [cleanMessages.length]);
 
-  if (cleanMessages.length === 0) return null;
+  if (cleanMessages.length === 0) {
+    return null;
+  }
 
-  const safeDuration = Math.min(Math.max(Number(duration) || 24, 12), 40);
-  const message = cleanMessages[activeIndex];
+  const message =
+    cleanMessages[activeIndex] || '';
+
+  /*
+   * Admin-controlled duration.
+   *
+   * 12 = slower minimum
+   * 40 = slower maximum
+   *
+   * This controls how long the message takes
+   * to travel across the announcement bar.
+   */
+  const safeDuration = Math.min(
+    Math.max(Number(duration) || 24, 12),
+    40
+  );
 
   return (
     <div
@@ -92,36 +118,61 @@ function AnnouncementBar({
       role="region"
       aria-label="Store announcement"
     >
-      <p className="sr-only">{message}</p>
-      <div className="flex h-7 items-center overflow-hidden whitespace-nowrap sm:h-8">
+      {/* Accessibility */}
+      <p className="sr-only">
+        {message}
+      </p>
+
+      {/* Moving ticker */}
+      <div className="relative flex h-7 items-center overflow-hidden whitespace-nowrap sm:h-8">
+
         <motion.div
           key={`${activeIndex}-${message}`}
-          className="w-max px-6 font-mono text-[9px] font-medium uppercase tracking-[0.16em] sm:text-[10px]"
-          initial={{ x: '100vw' }}
-          animate={{ x: '-100%' }}
+          className="absolute left-0 flex w-max items-center"
+          initial={{
+            x: '100vw',
+          }}
+          animate={{
+            x: '-100%',
+          }}
           transition={{
             duration: safeDuration,
             ease: 'linear',
           }}
-          onAnimationComplete={() =>
-            setActiveIndex((current) => (current + 1) % cleanMessages.length)
-          }
+          onAnimationComplete={() => {
+            setActiveIndex(
+              (currentIndex) =>
+                (currentIndex + 1) %
+                cleanMessages.length
+            );
+          }}
           aria-hidden="true"
         >
-          <span>{message}</span>
+          <span className="px-6 font-mono text-[9px] font-medium uppercase tracking-[0.16em] sm:text-[10px]">
+            {message}
+          </span>
         </motion.div>
+
       </div>
     </div>
   );
 }
 
+/* ============================================================
+   STOREFRONT LAYOUT
+   ============================================================ */
+
 export function StorefrontLayout() {
   const [
     isMobileMenuOpen,
-    setIsMobileMenuOpen
+    setIsMobileMenuOpen,
   ] = useState(false);
 
   const location = useLocation();
+
+  /* ----------------------------------------------------------
+     Store / Cart
+     ---------------------------------------------------------- */
 
   const cart = useStore(
     (state) => state.cart
@@ -133,42 +184,67 @@ export function StorefrontLayout() {
     0
   );
 
+  /* ----------------------------------------------------------
+     Authentication
+     ---------------------------------------------------------- */
+
   const {
     user,
-    loading: authLoading
+    loading: authLoading,
   } = useAuth();
+
+  /* ----------------------------------------------------------
+     User role
+     ---------------------------------------------------------- */
 
   const {
     isAdmin,
-    loading: roleLoading
+    loading: roleLoading,
   } = useUserRole();
 
-  const {
-    data: settings
-  } = useSettings();
+  /* ----------------------------------------------------------
+     Business settings
+     ---------------------------------------------------------- */
 
   const {
-    data: homepageSettings
+    data: settings,
+  } = useSettings();
+
+  /* ----------------------------------------------------------
+     Homepage settings
+     ---------------------------------------------------------- */
+
+  const {
+    data: homepageSettings,
   } = useHomepage();
+
+  /* ----------------------------------------------------------
+     Close mobile menu when route changes
+     ---------------------------------------------------------- */
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
+  /* ----------------------------------------------------------
+     Prevent page scrolling when mobile menu is open
+     ---------------------------------------------------------- */
+
   useEffect(() => {
     if (isMobileMenuOpen) {
-      document.body.style.overflow =
-        'hidden';
+      document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow =
-        '';
+      document.body.style.overflow = '';
     }
 
     return () => {
-      document.body.style.overflow =
-        '';
+      document.body.style.overflow = '';
     };
   }, [isMobileMenuOpen]);
+
+  /* ----------------------------------------------------------
+     Business information
+     ---------------------------------------------------------- */
 
   const businessName =
     settings?.businessName ||
@@ -185,16 +261,19 @@ export function StorefrontLayout() {
     settings?.address ||
     'Patiala, Punjab 147001';
 
-  const whatsappLink =
-    whatsappNumber
-      ? `https://wa.me/${whatsappNumber.replace(
-          /\D/g,
-          ''
-        )}`
-      : '';
+  const whatsappLink = whatsappNumber
+    ? `https://wa.me/${whatsappNumber.replace(
+        /\D/g,
+        ''
+      )}`
+    : '';
 
   const currentYear =
     new Date().getFullYear();
+
+  /* ----------------------------------------------------------
+     Authentication state
+     ---------------------------------------------------------- */
 
   const isAuthenticated =
     !authLoading && !!user;
@@ -207,7 +286,11 @@ export function StorefrontLayout() {
 
   return (
     <div className="min-h-screen bg-[#f7f4ee] text-[#14120f]">
-      {/* Accessibility */}
+
+      {/* ======================================================
+          ACCESSIBILITY
+          ====================================================== */}
+
       <a
         href="#main-content"
         className="fixed left-4 top-4 z-[100] -translate-y-20 bg-[#14120f] px-4 py-2 text-sm font-medium text-[#f7f4ee] shadow-lg transition-transform focus:translate-y-0"
@@ -215,18 +298,37 @@ export function StorefrontLayout() {
         Skip to content
       </a>
 
-      {/* Announcement bar */}
-      {homepageSettings?.announcementEnabled && (
-        <AnnouncementBar
-          messages={homepageSettings.announcementMessages}
-          duration={homepageSettings.announcementDuration}
-        />
-      )}
+      {/* ======================================================
+          ANNOUNCEMENT BAR
 
-      {/* Header */}
+          Completely controlled by Firestore / Admin.
+          No hardcoded announcement text here.
+          ====================================================== */}
+
+      {homepageSettings?.announcementEnabled &&
+        homepageSettings.announcementMessages.length > 0 && (
+          <AnnouncementBar
+            messages={
+              homepageSettings.announcementMessages
+            }
+            duration={
+              homepageSettings.announcementDuration
+            }
+          />
+        )}
+
+      {/* ======================================================
+          HEADER
+          ====================================================== */}
+
       <header className="sticky top-0 z-50 border-b border-[#d9d2c7] bg-[#f7f4ee]/95 backdrop-blur-sm">
+
         <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-5 px-5 sm:px-8 lg:h-[72px] lg:px-10">
-          {/* Logo */}
+
+          {/* ------------------------------------------------
+              LOGO
+              ------------------------------------------------ */}
+
           <Link
             to="/"
             className="group flex min-w-0 shrink-0 items-center gap-2.5"
@@ -254,7 +356,10 @@ export function StorefrontLayout() {
             </div>
           </Link>
 
-          {/* Desktop navigation */}
+          {/* ==================================================
+              DESKTOP NAVIGATION
+              ================================================== */}
+
           <nav
             aria-label="Primary navigation"
             className="ml-auto hidden items-center gap-6 lg:flex"
@@ -264,20 +369,16 @@ export function StorefrontLayout() {
                 <NavLink
                   key={item.path}
                   to={item.path}
-                  className={({
-                    isActive
-                  }) =>
+                  className={({ isActive }) =>
                     [
                       'relative py-1 text-[13px] transition-colors',
                       isActive
                         ? 'font-medium text-[#14120f]'
-                        : 'text-[#6b6156] hover:text-[#14120f]'
+                        : 'text-[#6b6156] hover:text-[#14120f]',
                     ].join(' ')
                   }
                 >
-                  {({
-                    isActive
-                  }) => (
+                  {({ isActive }) => (
                     <>
                       {item.name}
 
@@ -290,19 +391,18 @@ export function StorefrontLayout() {
               )
             )}
 
+            {/* Admin Panel */}
             {showAdmin && (
               <NavLink
                 to="/admin"
-                className={({
-                  isActive
-                }) =>
+                className={({ isActive }) =>
                   [
                     'inline-flex items-center gap-1.5 border px-2.5 py-1.5',
                     'font-mono text-[9px] uppercase tracking-[0.12em]',
                     'transition-all duration-150',
                     isActive
                       ? 'border-[#14120f] bg-[#14120f] text-[#f7f4ee]'
-                      : 'border-[#cfc7bb] text-[#514a42] hover:border-[#14120f] hover:bg-[#14120f] hover:text-[#f7f4ee]'
+                      : 'border-[#cfc7bb] text-[#514a42] hover:border-[#14120f] hover:bg-[#14120f] hover:text-[#f7f4ee]',
                   ].join(' ')
                 }
               >
@@ -310,13 +410,19 @@ export function StorefrontLayout() {
                   className="h-3 w-3"
                   aria-hidden="true"
                 />
+
                 Admin Panel
               </NavLink>
             )}
           </nav>
 
-          {/* Actions */}
+          {/* ==================================================
+              HEADER ACTIONS
+              ================================================== */}
+
           <div className="ml-auto flex items-center gap-1 lg:ml-5">
+
+            {/* Authentication */}
             {authLoading ? (
               <div
                 className="h-10 w-16 animate-pulse"
@@ -354,6 +460,7 @@ export function StorefrontLayout() {
               </Link>
             )}
 
+            {/* Cart */}
             <Link
               to="/cart"
               className="relative inline-flex h-10 w-10 items-center justify-center text-[#514a42] transition-colors hover:text-[#14120f]"
@@ -377,6 +484,7 @@ export function StorefrontLayout() {
               )}
             </Link>
 
+            {/* Mobile menu button */}
             <button
               type="button"
               onClick={() =>
@@ -411,26 +519,29 @@ export function StorefrontLayout() {
           </div>
         </div>
 
-        {/* Mobile navigation */}
+        {/* ==================================================
+            MOBILE NAVIGATION
+            ================================================== */}
+
         <AnimatePresence initial={false}>
           {isMobileMenuOpen && (
             <motion.div
               id="mobile-navigation"
               initial={{
                 opacity: 0,
-                height: 0
+                height: 0,
               }}
               animate={{
                 opacity: 1,
-                height: 'auto'
+                height: 'auto',
               }}
               exit={{
                 opacity: 0,
-                height: 0
+                height: 0,
               }}
               transition={{
                 duration: 0.2,
-                ease: 'easeOut'
+                ease: 'easeOut',
               }}
               className="overflow-hidden border-t border-[#d9d2c7] bg-[#f7f4ee] lg:hidden"
             >
@@ -439,26 +550,23 @@ export function StorefrontLayout() {
                 className="mx-auto max-w-[1440px] px-5 py-4 sm:px-8"
               >
                 <div className="space-y-0.5">
+
                   {NAV_ITEMS.map(
                     (item) => (
                       <NavLink
                         key={item.path}
                         to={item.path}
                         end={item.end}
-                        className={({
-                          isActive
-                        }) =>
+                        className={({ isActive }) =>
                           [
                             'flex items-center justify-between border-b border-[#ebe6dc] px-1 py-3.5 text-[15px] transition-colors',
                             isActive
                               ? 'font-medium text-[#b4491e]'
-                              : 'text-[#514a42] hover:text-[#14120f]'
+                              : 'text-[#514a42] hover:text-[#14120f]',
                           ].join(' ')
                         }
                       >
-                        {({
-                          isActive
-                        }) => (
+                        {({ isActive }) => (
                           <>
                             <span>
                               {item.name}
@@ -473,18 +581,17 @@ export function StorefrontLayout() {
                     )
                   )}
 
+                  {/* Mobile Admin */}
                   {showAdmin && (
                     <NavLink
                       to="/admin"
-                      className={({
-                        isActive
-                      }) =>
+                      className={({ isActive }) =>
                         [
                           'mt-3 flex items-center justify-between border px-3 py-3',
                           'font-mono text-[10px] uppercase tracking-[0.12em]',
                           isActive
                             ? 'border-[#14120f] bg-[#14120f] text-[#f7f4ee]'
-                            : 'border-[#cfc7bb] text-[#514a42] hover:border-[#14120f] hover:text-[#14120f]'
+                            : 'border-[#cfc7bb] text-[#514a42] hover:border-[#14120f] hover:text-[#14120f]',
                         ].join(' ')
                       }
                     >
@@ -493,6 +600,7 @@ export function StorefrontLayout() {
                           className="h-3.5 w-3.5"
                           aria-hidden="true"
                         />
+
                         Admin Panel
                       </span>
 
@@ -504,6 +612,7 @@ export function StorefrontLayout() {
                   )}
                 </div>
 
+                {/* Custom print CTA */}
                 <div className="mt-5 border-t border-[#d9d2c7] pt-5">
                   <Link
                     to="/custom-service"
@@ -525,6 +634,10 @@ export function StorefrontLayout() {
         </AnimatePresence>
       </header>
 
+      {/* ======================================================
+          MAIN CONTENT
+          ====================================================== */}
+
       <main
         id="main-content"
         className="min-h-0 flex-1"
@@ -532,10 +645,19 @@ export function StorefrontLayout() {
         <Outlet />
       </main>
 
-      {/* Footer */}
+      {/* ======================================================
+          FOOTER
+          ====================================================== */}
+
       <footer className="mt-20 border-t border-[#d9d2c7] bg-[#14120f] text-[#f7f4ee]/75">
         <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10">
+
           <div className="grid gap-12 lg:grid-cols-[1.5fr_repeat(2,1fr)_1.1fr]">
+
+            {/* ------------------------------------------------
+                Footer brand
+                ------------------------------------------------ */}
+
             <div className="max-w-sm">
               <Link
                 to="/"
@@ -557,12 +679,14 @@ export function StorefrontLayout() {
                 </span>
               </Link>
 
-              <p className="deva mt-4 text-[15px] text-[#f7f4ee]/40">
+              <p className="mt-4 text-[15px] text-[#f7f4ee]/40">
                 शिल्प सहायक
               </p>
 
               <p className="mt-3 max-w-sm text-[13.5px] leading-relaxed text-[#f7f4ee]/55">
-                3D printing, custom manufacturing and physical prototyping — turning digital designs into useful physical objects.
+                3D printing, custom manufacturing and
+                physical prototyping — turning digital
+                designs into useful physical objects.
               </p>
 
               <address className="mt-6 not-italic font-mono text-[9px] uppercase leading-relaxed tracking-[0.1em] text-[#f7f4ee]/35">
@@ -570,12 +694,17 @@ export function StorefrontLayout() {
               </address>
             </div>
 
+            {/* ------------------------------------------------
+                Explore
+                ------------------------------------------------ */}
+
             <div>
               <h3 className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#f7f4ee]/35">
                 Explore
               </h3>
 
               <ul className="mt-4 space-y-2.5">
+
                 <li>
                   <Link
                     to="/catalog"
@@ -611,8 +740,13 @@ export function StorefrontLayout() {
                     Contact
                   </Link>
                 </li>
+
               </ul>
             </div>
+
+            {/* ------------------------------------------------
+                Services
+                ------------------------------------------------ */}
 
             <div>
               <h3 className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#f7f4ee]/35">
@@ -620,6 +754,7 @@ export function StorefrontLayout() {
               </h3>
 
               <ul className="mt-4 space-y-2.5">
+
                 <li>
                   <Link
                     to="/custom-service"
@@ -655,8 +790,13 @@ export function StorefrontLayout() {
                     My account
                   </Link>
                 </li>
+
               </ul>
             </div>
+
+            {/* ------------------------------------------------
+                Contact
+                ------------------------------------------------ */}
 
             <div>
               <h3 className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#f7f4ee]/35">
@@ -664,6 +804,7 @@ export function StorefrontLayout() {
               </h3>
 
               <ul className="mt-4 space-y-3.5 text-[13.5px] text-[#f7f4ee]/65">
+
                 {whatsappNumber && (
                   <li>
                     <a
@@ -689,18 +830,27 @@ export function StorefrontLayout() {
                 <li className="leading-relaxed text-[#f7f4ee]/45">
                   {businessAddress}
                 </li>
+
               </ul>
             </div>
           </div>
 
+          {/* ------------------------------------------------
+              Footer bottom
+              ------------------------------------------------ */}
+
           <div className="mt-14 flex flex-col gap-4 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+
             <p className="font-mono text-[9px] uppercase tracking-[0.08em] text-[#f7f4ee]/35">
               © {currentYear}{' '}
               {businessName}. All rights reserved.
             </p>
 
             <div className="flex items-center gap-5 font-mono text-[9px] uppercase tracking-[0.08em] text-[#f7f4ee]/35">
-              <span>Make in India</span>
+
+              <span>
+                Make in India
+              </span>
 
               <span
                 className="h-1 w-1 rounded-full bg-[#b4491e]"
@@ -710,6 +860,7 @@ export function StorefrontLayout() {
               <span>
                 3D printing & fabrication
               </span>
+
             </div>
           </div>
         </div>

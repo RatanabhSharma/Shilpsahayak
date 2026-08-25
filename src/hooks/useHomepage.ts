@@ -48,79 +48,190 @@ function normaliseHeroSlides(value: unknown): HomepageHeroSlide[] {
   if (!Array.isArray(value)) return [];
 
   return value
-    .filter((slide): slide is Record<string, unknown> => !!slide && typeof slide === 'object')
+    .filter(
+      (slide): slide is Record<string, unknown> =>
+        !!slide && typeof slide === 'object'
+    )
     .map((slide, index) => ({
-      id: typeof slide.id === 'string' && slide.id ? slide.id : `hero-${index + 1}`,
+      id:
+        typeof slide.id === 'string' && slide.id
+          ? slide.id
+          : `hero-${index + 1}`,
+
       enabled: slide.enabled !== false,
-      eyebrow: typeof slide.eyebrow === 'string' ? slide.eyebrow : '',
-      title: typeof slide.title === 'string' ? slide.title : '',
-      description: typeof slide.description === 'string' ? slide.description : '',
-      image: typeof slide.image === 'string' ? slide.image : '',
-      buttonText: typeof slide.buttonText === 'string' ? slide.buttonText : '',
-      buttonLink: typeof slide.buttonLink === 'string' ? slide.buttonLink : '',
+
+      eyebrow:
+        typeof slide.eyebrow === 'string'
+          ? slide.eyebrow
+          : '',
+
+      title:
+        typeof slide.title === 'string'
+          ? slide.title
+          : '',
+
+      description:
+        typeof slide.description === 'string'
+          ? slide.description
+          : '',
+
+      image:
+        typeof slide.image === 'string'
+          ? slide.image
+          : '',
+
+      buttonText:
+        typeof slide.buttonText === 'string'
+          ? slide.buttonText
+          : '',
+
+      buttonLink:
+        typeof slide.buttonLink === 'string'
+          ? slide.buttonLink
+          : '',
     }));
 }
 
 function normaliseStringArray(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === 'string')
-    : [];
+  if (!Array.isArray(value)) return [];
+
+  return value.filter(
+    (item): item is string =>
+      typeof item === 'string'
+  );
+}
+
+function normaliseAnnouncementMessages(
+  value: unknown,
+  legacyText: string
+): string[] {
+  if (Array.isArray(value)) {
+    const messages = value
+      .filter(
+        (message): message is string =>
+          typeof message === 'string'
+      )
+      .map((message) => message.trim())
+      .filter(Boolean);
+
+    /*
+     * If announcementMessages exists but is empty,
+     * fall back to the older announcementText field.
+     */
+    if (messages.length > 0) {
+      return messages;
+    }
+  }
+
+  if (legacyText) {
+    return [legacyText];
+  }
+
+  return [];
 }
 
 export function useHomepage() {
   return useQuery({
     queryKey: homepageKey,
+
     queryFn: async (): Promise<HomepageSettings> => {
-      const ref = doc(db, 'settings', HOMEPAGE_DOCUMENT_ID);
+      const ref = doc(
+        db,
+        'settings',
+        HOMEPAGE_DOCUMENT_ID
+      );
+
       const snapshot = await getDoc(ref);
 
       if (!snapshot.exists()) {
         return DEFAULT_HOMEPAGE_SETTINGS;
       }
 
-      const data = snapshot.data() as Record<string, unknown>;
-      const legacyText = typeof data.announcementText === 'string'
-        ? data.announcementText.trim()
-        : '';
+      const data =
+        snapshot.data() as Record<string, unknown>;
 
-      const announcementMessages = Array.isArray(data.announcementMessages)
-        ? data.announcementMessages
-            .filter((message): message is string => typeof message === 'string')
-            .map((message) => message.trim())
-            .filter(Boolean)
-        : legacyText
-          ? [legacyText]
-          : DEFAULT_HOMEPAGE_SETTINGS.announcementMessages;
+      const legacyText =
+        typeof data.announcementText === 'string'
+          ? data.announcementText.trim()
+          : '';
 
-      const rawAnnouncementDuration = Number(data.announcementDuration);
-      const announcementDuration = Number.isFinite(rawAnnouncementDuration)
-        ? Math.min(Math.max(Math.round(rawAnnouncementDuration), 12), 40)
-        : DEFAULT_HOMEPAGE_SETTINGS.announcementDuration;
+      const announcementMessages =
+        normaliseAnnouncementMessages(
+          data.announcementMessages,
+          legacyText
+        );
 
-      const rawHeroInterval = Number(data.heroInterval);
-      const heroInterval = Number.isFinite(rawHeroInterval)
-        ? Math.min(Math.max(Math.round(rawHeroInterval), 2500), 15000)
-        : DEFAULT_HOMEPAGE_SETTINGS.heroInterval;
+      const rawAnnouncementDuration =
+        Number(data.announcementDuration);
+
+      const announcementDuration =
+        Number.isFinite(rawAnnouncementDuration)
+          ? Math.min(
+              Math.max(
+                Math.round(rawAnnouncementDuration),
+                12
+              ),
+              40
+            )
+          : DEFAULT_HOMEPAGE_SETTINGS.announcementDuration;
+
+      const rawHeroInterval =
+        Number(data.heroInterval);
+
+      const heroInterval =
+        Number.isFinite(rawHeroInterval)
+          ? Math.min(
+              Math.max(
+                Math.round(rawHeroInterval),
+                2500
+              ),
+              15000
+            )
+          : DEFAULT_HOMEPAGE_SETTINGS.heroInterval;
 
       return {
         ...DEFAULT_HOMEPAGE_SETTINGS,
-        ...data,
-        heroSlides: normaliseHeroSlides(data.heroSlides),
-        heroAutoplay: typeof data.heroAutoplay === 'boolean'
-          ? data.heroAutoplay
-          : DEFAULT_HOMEPAGE_SETTINGS.heroAutoplay,
+
+        heroSlides: normaliseHeroSlides(
+          data.heroSlides
+        ),
+
+        heroAutoplay:
+          typeof data.heroAutoplay === 'boolean'
+            ? data.heroAutoplay
+            : DEFAULT_HOMEPAGE_SETTINGS.heroAutoplay,
+
         heroInterval,
-        featuredProductIds: normaliseStringArray(data.featuredProductIds),
-        selectedProductIds: normaliseStringArray(data.selectedProductIds),
-        categoryNames: normaliseStringArray(data.categoryNames),
-        announcementEnabled: typeof data.announcementEnabled === 'boolean'
-          ? data.announcementEnabled
-          : DEFAULT_HOMEPAGE_SETTINGS.announcementEnabled,
+
+        featuredProductIds:
+          normaliseStringArray(
+            data.featuredProductIds
+          ),
+
+        selectedProductIds:
+          normaliseStringArray(
+            data.selectedProductIds
+          ),
+
+        categoryNames:
+          normaliseStringArray(
+            data.categoryNames
+          ),
+
+        announcementEnabled:
+          typeof data.announcementEnabled === 'boolean'
+            ? data.announcementEnabled
+            : DEFAULT_HOMEPAGE_SETTINGS.announcementEnabled,
+
+        announcementText:
+          announcementMessages[0] || '',
+
         announcementMessages,
+
         announcementDuration,
-        announcementText: announcementMessages[0] || DEFAULT_HOMEPAGE_SETTINGS.announcementText,
-      } as HomepageSettings;
+      };
     },
+
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -129,13 +240,39 @@ export function useUpdateHomepage() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (settings: HomepageSettings) => {
-      const ref = doc(db, 'settings', HOMEPAGE_DOCUMENT_ID);
-      await setDoc(ref, settings, { merge: true });
+    mutationFn: async (
+      settings: HomepageSettings
+    ) => {
+      const ref = doc(
+        db,
+        'settings',
+        HOMEPAGE_DOCUMENT_ID
+      );
+
+      await setDoc(
+        ref,
+        {
+          ...settings,
+
+          /*
+           * Keep announcementText synchronized with
+           * the first active message for backwards
+           * compatibility.
+           */
+          announcementText:
+            settings.announcementMessages[0] || '',
+        },
+        { merge: true }
+      );
+
       return settings;
     },
+
     onSuccess: (settings) => {
-      queryClient.setQueryData(homepageKey, settings);
+      queryClient.setQueryData(
+        homepageKey,
+        settings
+      );
     },
   });
 }
