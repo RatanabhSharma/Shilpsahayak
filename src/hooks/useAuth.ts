@@ -10,22 +10,29 @@ import {
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
   type User,
 } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
 
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<Awaited<ReturnType<typeof signInWithEmailAndPassword>>>;
+  login: (
+    email: string,
+    password: string
+  ) => Promise<Awaited<ReturnType<typeof signInWithEmailAndPassword>>>;
   register: (
     email: string,
     password: string,
-    name: string
+    name: string,
+    phone: string
   ) => Promise<Awaited<ReturnType<typeof createUserWithEmailAndPassword>>>;
+  resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   isLoggedIn: boolean;
 }
@@ -59,26 +66,58 @@ export function AuthProvider({ children }: AuthProviderProps) {
     () => ({
       user,
       loading,
+
       login: (email, password) =>
-        signInWithEmailAndPassword(auth, email, password),
-      register: async (email, password, name) => {
+        signInWithEmailAndPassword(auth, email.trim(), password),
+
+      register: async (email, password, name, phone) => {
         const result = await createUserWithEmailAndPassword(
           auth,
-          email,
+          email.trim(),
           password
         );
 
+        const cleanName = name.trim();
+        const cleanPhone = phone.trim();
+
         await updateProfile(result.user, {
-          displayName: name.trim(),
+          displayName: cleanName,
         });
+
+        await setDoc(
+          doc(db, 'users', result.user.uid),
+          {
+            uid: result.user.uid,
+            name: cleanName,
+            email: result.user.email || email.trim(),
+            phone: cleanPhone,
+            address: {
+              line1: '',
+              line2: '',
+              city: '',
+              state: '',
+              pincode: '',
+            },
+            role: 'customer',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
 
         setUser(auth.currentUser);
         return result;
       },
+
+      resetPassword: async (email) => {
+        await sendPasswordResetEmail(auth, email.trim());
+      },
+
       logout: async () => {
         await signOut(auth);
         setUser(null);
       },
+
       isLoggedIn: !!user,
     }),
     [loading, user]

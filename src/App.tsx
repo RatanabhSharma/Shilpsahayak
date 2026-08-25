@@ -4,6 +4,7 @@ import { StorefrontLayout } from './components/StorefrontLayout';
 import { AdminLayout } from './components/AdminLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { CustomerRoute } from './components/CustomerRoute';
+import { GlobalLoadingBar } from './components/loading/GlobalLoadingBar';
 
 // Storefront
 import { Home } from './pages/storefront/Home';
@@ -31,6 +32,7 @@ import { Settings } from './pages/admin/Settings';
 export function App() {
   return (
     <BrowserRouter>
+      <GlobalLoadingBar />
       <Routes>
         <Route path="/" element={<StorefrontLayout />}>
           <Route index element={<Home />} />

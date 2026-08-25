@@ -1,4 +1,4 @@
-import React, {
+import {
   useEffect,
   useMemo,
   useState,
@@ -6,7 +6,6 @@ import React, {
 import {
   ArrowLeft,
   ChevronRight,
-  Loader2,
   Minus,
   Plus,
   ShieldCheck,
@@ -27,6 +26,7 @@ import {
   Button,
   Card,
 } from '../../components/ui';
+import { ProductDetailSkeleton } from '../../components/loading/ProductSkeleton';
 
 export function ProductDetail() {
   const { id } = useParams<{
@@ -295,18 +295,13 @@ export function ProductDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-[60vh] bg-[#f7f4ee]">
-        <div className="flex min-h-[60vh] items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2
-              className="h-7 w-7 animate-spin text-[#b4491e]"
-              aria-hidden="true"
-            />
-
-            <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8d847a]">
-              Loading product
-            </p>
-          </div>
+      <div className="min-h-[70vh] bg-[#f7f4ee]">
+        <div
+          className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10 lg:py-20"
+          role="status"
+          aria-label="Loading product"
+        >
+          <ProductDetailSkeleton />
         </div>
       </div>
     );

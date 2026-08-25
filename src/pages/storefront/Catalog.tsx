@@ -1,11 +1,10 @@
-import React, {
+import {
   useEffect,
   useMemo,
   useState,
 } from 'react';
 import {
   Filter,
-  Loader2,
   PackageSearch,
   Search,
   X,
@@ -22,6 +21,7 @@ import {
   Input,
   Select,
 } from '../../components/ui';
+import { ProductGridSkeleton } from '../../components/loading/ProductSkeleton';
 
 type SortOption =
   | 'featured'
@@ -168,17 +168,6 @@ export function Catalog() {
     [activeProducts]
   );
 
-  const occasions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          activeProducts
-            .map((product) => product.occasion)
-            .filter(Boolean)
-        )
-      ) as string[],
-    [activeProducts]
-  );
 
   /*
    * =========================================================
@@ -538,17 +527,21 @@ export function Catalog() {
 
   if (isLoading) {
     return (
-      <div className="min-h-[60vh] bg-[#f7f4ee]">
-        <div className="flex min-h-[60vh] items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2
-              className="h-7 w-7 animate-spin text-[#b4491e]"
-              aria-hidden="true"
-            />
+      <div className="min-h-screen bg-[#f7f4ee]">
+        <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10 lg:py-20">
+          <div className="max-w-2xl">
+            <div className="ss-skeleton h-2.5 w-20 bg-[#ded8ce]" aria-hidden="true" />
+            <div className="ss-skeleton mt-4 h-11 w-64 bg-[#ded8ce]" aria-hidden="true" />
+            <div className="ss-skeleton mt-4 h-4 w-full max-w-xl bg-[#ded8ce]" aria-hidden="true" />
+            <div className="ss-skeleton mt-2 h-4 w-4/5 max-w-lg bg-[#ded8ce]" aria-hidden="true" />
+          </div>
 
-            <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8d847a]">
-              Loading collection
-            </p>
+          <div
+            className="mt-12"
+            role="status"
+            aria-label="Loading collection"
+          >
+            <ProductGridSkeleton count={8} />
           </div>
         </div>
       </div>

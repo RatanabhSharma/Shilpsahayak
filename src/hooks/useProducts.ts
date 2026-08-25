@@ -5,9 +5,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
-  doc,
-  query,
-  orderBy
+  doc
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -54,7 +52,10 @@ export function useProducts() {
       return products.sort((a, b) =>
         (a.name || '').localeCompare(b.name || '')
       );
-    }
+    },
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 

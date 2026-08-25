@@ -6,7 +6,6 @@ import {
   ArrowRight,
   Check,
   ChevronRight,
-  Loader2,
   PenTool,
   ShieldCheck,
   Sparkles,
@@ -16,6 +15,11 @@ import {
 
 import { useProducts } from '../../hooks/useProducts';
 import { Button, Card } from '../../components/ui';
+import {
+  CategoryGridSkeleton,
+  FeaturedProductSkeleton,
+  WorkshopProductSkeleton,
+} from '../../components/loading/ProductSkeleton';
 
 export function Home() {
   const { data: products = [], isLoading } = useProducts();
@@ -518,11 +522,8 @@ export function Home() {
           </div>
 
           {isLoading ? (
-            <div className="flex justify-center py-20">
-              <Loader2
-                className="h-7 w-7 animate-spin text-[#b4491e]"
-                aria-label="Loading products"
-              />
+            <div className="mt-10" role="status" aria-label="Loading featured products">
+              <FeaturedProductSkeleton />
             </div>
           ) : featuredProducts.length === 0 ? (
             <div className="mt-10 border border-dashed border-[#d5cec3] py-16 text-center">
@@ -785,11 +786,8 @@ export function Home() {
           </div>
 
           {isLoading ? (
-            <div className="flex justify-center py-16">
-              <Loader2
-                className="h-7 w-7 animate-spin text-[#b4491e]"
-                aria-label="Loading categories"
-              />
+            <div className="mt-9" role="status" aria-label="Loading categories">
+              <CategoryGridSkeleton />
             </div>
           ) : categories.length === 0 ? (
             <div className="py-16 text-center text-sm text-[#746c63]">
@@ -939,11 +937,8 @@ export function Home() {
           </div>
 
           {isLoading ? (
-            <div className="flex justify-center py-16">
-              <Loader2
-                className="h-7 w-7 animate-spin text-[#b4491e]"
-                aria-label="Loading products"
-              />
+            <div className="mt-9" role="status" aria-label="Loading workshop products">
+              <WorkshopProductSkeleton />
             </div>
           ) : selectedProducts.length === 0 ? (
             <div className="py-16 text-center text-sm text-[#746c63]">
