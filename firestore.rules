@@ -1,0 +1,198 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================
+    // AUTHENTICATION HELPERS
+    // =========================================================
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ) &&
+        get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data.role == 'admin';
+    }
+
+
+    // =========================================================
+    // USERS
+    // =========================================================
+
+    match /users/{userId} {
+
+      // Customers can read their own profile.
+      // Admins can read all customer profiles.
+      allow read: if isAdmin() ||
+        (
+          isSignedIn() &&
+          request.auth.uid == userId
+        );
+
+      // Customers can create only their own profile.
+      // Customers cannot create themselves as admin.
+      // Admins can create user profiles.
+      allow create: if
+        isAdmin()
+        ||
+        (
+          isSignedIn() &&
+          request.auth.uid == userId &&
+          request.resource.data.get('role', 'customer') == 'customer'
+        );
+
+      // Customers can update their own profile,
+      // but cannot change their role.
+      //
+      // Admins can update user profiles.
+      allow update: if
+        isAdmin()
+        ||
+        (
+          isSignedIn() &&
+          request.auth.uid == userId &&
+          request.resource.data.get('role', 'customer') ==
+            resource.data.get('role', 'customer')
+        );
+
+      // Only admins can delete users.
+      allow delete: if isAdmin();
+    }
+
+
+    // =========================================================
+    // PRODUCTS
+    // =========================================================
+
+    match /products/{productId} {
+
+      // Products are publicly readable.
+      allow read: if true;
+
+      // Only admins can modify products.
+      allow create, update, delete: if isAdmin();
+    }
+
+
+    // =========================================================
+    // CATEGORIES
+    // =========================================================
+
+    match /categories/{categoryId} {
+
+      // Categories are publicly readable.
+      allow read: if true;
+
+      // Only admins can modify categories.
+      allow create, update, delete: if isAdmin();
+    }
+
+
+    // =========================================================
+    // ORDERS
+    // =========================================================
+
+    match /orders/{orderId} {
+
+      // Admins can read all orders.
+      // Customers can read only their own orders.
+      allow read: if
+        isAdmin()
+        ||
+        (
+          isSignedIn() &&
+          resource.data.customerId == request.auth.uid
+        );
+
+      // Customers can create only their own orders.
+      allow create: if
+        isSignedIn() &&
+        request.resource.data.customerId == request.auth.uid;
+
+      // Only admins can modify or delete orders.
+      allow update, delete: if isAdmin();
+    }
+
+
+    // =========================================================
+    // QUOTES
+    // =========================================================
+
+    match /quotes/{quoteId} {
+
+      // Admins can read all quotes.
+      // Customers can read only their own quotes.
+      allow read: if
+        isAdmin()
+        ||
+        (
+          isSignedIn() &&
+          resource.data.customerId == request.auth.uid
+        );
+
+      // Customers can create only their own quotes.
+      allow create: if
+        isSignedIn() &&
+        request.resource.data.customerId == request.auth.uid;
+
+      // Admins can update anything.
+      //
+      // Customers can only change:
+      // Quoted -> Accepted
+      // Quoted -> Rejected
+      allow update: if
+        isAdmin()
+        ||
+        (
+          isSignedIn() &&
+          resource.data.customerId == request.auth.uid &&
+          resource.data.status == 'Quoted' &&
+          request.resource.data.status in [
+            'Accepted',
+            'Rejected'
+          ] &&
+          request.resource.data
+            .diff(resource.data)
+            .affectedKeys()
+            .hasOnly([
+              'status'
+            ])
+        );
+
+      // Only admins can delete quotes.
+      allow delete: if isAdmin();
+    }
+
+
+    // =========================================================
+    // FILAMENTS
+    // =========================================================
+
+    match /filaments/{filamentId} {
+
+      // Only admins can read/write filament data.
+      allow read, write: if isAdmin();
+    }
+
+
+    // =========================================================
+    // SETTINGS
+    // =========================================================
+
+    match /settings/{settingId} {
+
+      // Settings are publicly readable.
+      allow read: if true;
+
+      // Only admins can modify settings.
+      allow write: if isAdmin();
+    }
+  }
+}
