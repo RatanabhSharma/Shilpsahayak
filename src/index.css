@@ -355,3 +355,38 @@ input[type='number'] {
     font-size: 14px;
   }
 }
+
+/* =========================================================
+   Global interaction motion
+   ========================================================= */
+
+@keyframes ss-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+.motion-safe-hover {
+  transition:
+    transform 160ms ease,
+    opacity 160ms ease,
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .motion-safe-hover:hover {
+    transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-safe-hover {
+    transition: none;
+  }
+}

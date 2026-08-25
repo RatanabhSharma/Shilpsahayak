@@ -91,7 +91,15 @@ export function StorefrontLayout() {
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
-  }, [location.pathname]);
+
+    if (!location.hash) {
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'auto',
+      });
+    }
+  }, [location.pathname, location.hash]);
 
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -228,7 +236,7 @@ export function StorefrontLayout() {
                     isActive
                   }) =>
                     [
-                      'relative py-1 text-[13px] transition-colors',
+                      'group relative py-1 text-[13px] transition-colors',
                       isActive
                         ? 'font-medium text-[#14120f]'
                         : 'text-[#6b6156] hover:text-[#14120f]'
@@ -241,9 +249,14 @@ export function StorefrontLayout() {
                     <>
                       {item.name}
 
-                      {isActive && (
-                        <span className="absolute -bottom-1 left-0 h-px w-full bg-[#b4491e]" />
-                      )}
+                      <span
+                        className={[
+                          'absolute -bottom-1 left-0 h-px bg-[#b4491e]',
+                          'transition-all duration-200 ease-out',
+                          isActive ? 'w-full' : 'w-0 group-hover:w-full',
+                        ].join(' ')}
+                        aria-hidden="true"
+                      />
                     </>
                   )}
                 </NavLink>
@@ -316,7 +329,7 @@ export function StorefrontLayout() {
 
             <Link
               to="/cart"
-              className="relative inline-flex h-10 w-10 items-center justify-center text-[#514a42] transition-colors hover:text-[#14120f]"
+              className="relative inline-flex h-10 w-10 items-center justify-center text-[#514a42] transition-all duration-150 hover:-translate-y-0.5 hover:text-[#14120f] active:translate-y-0"
               aria-label={`Shopping cart with ${cartItemCount} ${
                 cartItemCount === 1
                   ? 'item'
@@ -489,7 +502,21 @@ export function StorefrontLayout() {
         id="main-content"
         className="min-h-0 flex-1"
       >
-        <Outlet />
+        <AnimatePresence mode="sync" initial={false}>
+          <motion.div
+            key={`${location.pathname}${location.search}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{
+              duration: 0.18,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            className="min-h-0"
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* Footer */}
