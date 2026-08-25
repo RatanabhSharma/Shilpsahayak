@@ -10,30 +10,29 @@ import {
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
-  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
+  updateEmail,
   updateProfile,
+  sendEmailVerification,
   type User,
 } from 'firebase/auth';
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+import { auth } from '../lib/firebase';
 
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  login: (
-    email: string,
-    password: string
-  ) => Promise<Awaited<ReturnType<typeof signInWithEmailAndPassword>>>;
+  login: (email: string, password: string) => Promise<Awaited<ReturnType<typeof signInWithEmailAndPassword>>>;
   register: (
     email: string,
     password: string,
-    name: string,
-    phone: string
+    name: string
   ) => Promise<Awaited<ReturnType<typeof createUserWithEmailAndPassword>>>;
-  resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateAccount: (data: {
+    name: string;
+    email: string;
+  }) => Promise<void>;
   isLoggedIn: boolean;
 }
 
@@ -66,56 +65,55 @@ export function AuthProvider({ children }: AuthProviderProps) {
     () => ({
       user,
       loading,
-
       login: (email, password) =>
-        signInWithEmailAndPassword(auth, email.trim(), password),
-
-      register: async (email, password, name, phone) => {
+        signInWithEmailAndPassword(auth, email, password),
+      register: async (email, password, name) => {
         const result = await createUserWithEmailAndPassword(
           auth,
-          email.trim(),
+          email,
           password
         );
 
-        const cleanName = name.trim();
-        const cleanPhone = phone.trim();
-
         await updateProfile(result.user, {
-          displayName: cleanName,
+          displayName: name.trim(),
         });
-
-        await setDoc(
-          doc(db, 'users', result.user.uid),
-          {
-            uid: result.user.uid,
-            name: cleanName,
-            email: result.user.email || email.trim(),
-            phone: cleanPhone,
-            address: {
-              line1: '',
-              line2: '',
-              city: '',
-              state: '',
-              pincode: '',
-            },
-            role: 'customer',
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
 
         setUser(auth.currentUser);
         return result;
       },
-
-      resetPassword: async (email) => {
-        await sendPasswordResetEmail(auth, email.trim());
-      },
-
       logout: async () => {
         await signOut(auth);
         setUser(null);
+      },
+
+      updateAccount: async ({ name, email }) => {
+        const currentUser = auth.currentUser;
+
+        if (!currentUser) {
+          throw new Error('You must be logged in.');
+        }
+
+        const cleanName = name.trim();
+        const cleanEmail = email.trim().toLowerCase();
+
+        if (cleanName.length < 2) {
+          throw new Error('Please enter your full name.');
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+          throw new Error('Please enter a valid email address.');
+        }
+
+        if (currentUser.email !== cleanEmail) {
+          await updateEmail(currentUser, cleanEmail);
+          await sendEmailVerification(currentUser);
+        }
+
+        await updateProfile(currentUser, {
+          displayName: cleanName,
+        });
+
+        setUser(auth.currentUser);
       },
 
       isLoggedIn: !!user,

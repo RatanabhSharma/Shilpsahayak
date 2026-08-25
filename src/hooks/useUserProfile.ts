@@ -59,13 +59,20 @@ export function useUserProfile() {
   });
 }
 
+export type EditableCustomerProfile = {
+  name: string;
+  email: string;
+  phone: string;
+  address: UserAddress;
+};
+
 export function useSaveUserProfile() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (
-      profile: Omit<UserProfile, 'uid' | 'createdAt' | 'updatedAt'>
+      profile: EditableCustomerProfile
     ) => {
       if (!user) {
         throw new Error('You must be logged in.');

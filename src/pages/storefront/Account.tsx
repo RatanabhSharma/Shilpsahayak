@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   FileText,
@@ -14,6 +14,12 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '../../hooks/useAuth';
+import {
+  emptyAddress,
+  useSaveUserProfile,
+  useUserProfile,
+  type UserAddress,
+} from '../../hooks/useUserProfile';
 
 import {
   useMyQuotes,
@@ -99,7 +105,16 @@ export function Account() {
     user,
     logout,
     loading: authLoading,
+    updateAccount,
   } = useAuth();
+
+  const {
+    data: profile,
+    isLoading: profileLoading,
+    isError: profileLoadError,
+  } = useUserProfile();
+
+  const saveUserProfile = useSaveUserProfile();
 
   const {
     data: myQuotes = [],
@@ -130,8 +145,251 @@ export function Account() {
   const [profileMessage, setProfileMessage] =
     useState('');
 
+  const [profileError, setProfileError] =
+    useState('');
+
+  const [isProfileEditing, setIsProfileEditing] =
+    useState(false);
+
+  const [profileName, setProfileName] =
+    useState('');
+
+  const [profileEmail, setProfileEmail] =
+    useState('');
+
+  const [profilePhone, setProfilePhone] =
+    useState('');
+
+  const [profileAddress, setProfileAddress] =
+    useState<UserAddress>(emptyAddress);
+
   const [isLoggingOut, setIsLoggingOut] =
     useState(false);
+
+
+  /* ------------------------------------------------------------------------ */
+  /* Editable customer profile                                                */
+  /* ------------------------------------------------------------------------ */
+
+  useEffect(() => {
+    if (!profile) {
+      return;
+    }
+
+    setProfileName(
+      profile.name ||
+        user.displayName ||
+        ''
+    );
+
+    setProfileEmail(
+      profile.email ||
+        user.email ||
+        ''
+    );
+
+    setProfilePhone(
+      profile.phone || ''
+    );
+
+    setProfileAddress({
+      line1:
+        profile.address?.line1 || '',
+      line2:
+        profile.address?.line2 || '',
+      city:
+        profile.address?.city || '',
+      state:
+        profile.address?.state || '',
+      pincode:
+        profile.address?.pincode || '',
+    });
+  }, [profile, user.displayName, user.email]);
+
+  const startProfileEditing = () => {
+    setProfileError('');
+    setProfileMessage('');
+
+    setProfileName(
+      profile?.name ||
+        user.displayName ||
+        ''
+    );
+
+    setProfileEmail(
+      profile?.email ||
+        user.email ||
+        ''
+    );
+
+    setProfilePhone(
+      profile?.phone || ''
+    );
+
+    setProfileAddress({
+      line1:
+        profile?.address?.line1 || '',
+      line2:
+        profile?.address?.line2 || '',
+      city:
+        profile?.address?.city || '',
+      state:
+        profile?.address?.state || '',
+      pincode:
+        profile?.address?.pincode || '',
+    });
+
+    setIsProfileEditing(true);
+  };
+
+  const cancelProfileEditing = () => {
+    setProfileError('');
+    setProfileMessage('');
+    setIsProfileEditing(false);
+  };
+
+  const updateAddressField = (
+    field: keyof UserAddress,
+    value: string
+  ) => {
+    setProfileAddress((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const handleSaveProfile = async (
+    event: React.FormEvent<HTMLFormElement>
+  ) => {
+    event.preventDefault();
+
+    if (!user || saveUserProfile.isPending) {
+      return;
+    }
+
+    setProfileError('');
+    setProfileMessage('');
+
+    const name = profileName.trim();
+    const email = profileEmail.trim().toLowerCase();
+    const phone = profilePhone
+      .replace(/\D/g, '')
+      .slice(0, 10);
+
+    const address: UserAddress = {
+      line1: profileAddress.line1.trim(),
+      line2: profileAddress.line2.trim(),
+      city: profileAddress.city.trim(),
+      state: profileAddress.state.trim(),
+      pincode: profileAddress.pincode
+        .replace(/\D/g, '')
+        .slice(0, 6),
+    };
+
+    if (name.length < 2) {
+      setProfileError(
+        'Please enter your full name.'
+      );
+      return;
+    }
+
+    if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ) {
+      setProfileError(
+        'Please enter a valid email address.'
+      );
+      return;
+    }
+
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      setProfileError(
+        'Please enter a valid 10-digit Indian mobile number.'
+      );
+      return;
+    }
+
+    if (!address.line1) {
+      setProfileError(
+        'Please enter your house, flat, or building details.'
+      );
+      return;
+    }
+
+    if (!address.city) {
+      setProfileError(
+        'Please enter your city.'
+      );
+      return;
+    }
+
+    if (!address.state) {
+      setProfileError(
+        'Please select your state.'
+      );
+      return;
+    }
+
+    if (!/^\d{6}$/.test(address.pincode)) {
+      setProfileError(
+        'Please enter a valid 6-digit PIN code.'
+      );
+      return;
+    }
+
+    try {
+      /*
+       * Firebase Auth is the source of truth for name/email.
+       * Firestore stores the same values for website reuse.
+       */
+      await updateAccount({
+        name,
+        email,
+      });
+
+      await saveUserProfile.mutateAsync({
+        name,
+        email,
+        phone,
+        address,
+      });
+
+      setProfileMessage(
+        email !== user.email
+          ? 'Profile updated. A verification email has been sent to your new email address.'
+          : 'Profile updated successfully.'
+      );
+
+      setIsProfileEditing(false);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Unable to update your profile. Please try again.';
+
+      if (
+        message.includes('auth/requires-recent-login')
+      ) {
+        setProfileError(
+          'For security, Firebase requires you to sign in again before changing your email. Please sign out and sign in again, then retry.'
+        );
+      } else if (
+        message.includes('auth/email-already-in-use')
+      ) {
+        setProfileError(
+          'That email address is already in use by another account.'
+        );
+      } else if (
+        message.includes('auth/invalid-email')
+      ) {
+        setProfileError(
+          'Please enter a valid email address.'
+        );
+      } else {
+        setProfileError(message);
+      }
+    }
+  };
 
 
   /* ------------------------------------------------------------------------ */
@@ -976,82 +1234,236 @@ export function Account() {
 
           {activeTab === 'addresses' && (
             <div className="mt-8">
-
               <div className="mb-6">
-
                 <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8e8275]">
                   Delivery details
                 </p>
-
                 <h2 className="mt-1 font-display text-[21px] font-semibold tracking-[-0.015em] text-[#14120f]">
                   Saved address
                 </h2>
-
+                <p className="mt-2 max-w-xl text-[13.5px] leading-6 text-[#6b6156]">
+                  Manage the address used for future orders and custom print requests.
+                </p>
               </div>
 
-
-              <Card className="max-w-xl border-[#d9d2c7] bg-white p-6 shadow-none">
-
-                <div className="flex items-start justify-between gap-4">
-
-                  <div className="flex items-start gap-3">
-
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#f7f4ee] text-[#b4491e]">
-
-                      <MapPin className="h-4 w-4" />
-
-                    </div>
-
-                    <div>
-
-                      <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#8e8275]">
-                        Primary delivery address
-                      </p>
-
-                      <h3 className="mt-1 text-[15px] font-medium text-[#14120f]">
-                        {user.displayName ||
-                          'Customer'}
-                      </h3>
-
-                    </div>
-
+              <Card className="max-w-2xl border-[#d9d2c7] bg-white p-6 shadow-none">
+                {profileLoading ? (
+                  <div className="flex items-center gap-3 py-6">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#d9d2c7] border-t-[#b4491e]" />
+                    <p className="text-[13px] text-[#6b6156]">
+                      Loading saved address...
+                    </p>
                   </div>
+                ) : (
+                  <>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#f7f4ee] text-[#b4491e]">
+                          <MapPin className="h-4 w-4" />
+                        </div>
 
-                  <span className="border border-green-200 bg-green-50 px-2.5 py-1 font-mono text-[8px] uppercase tracking-[0.08em] text-green-700">
-                    Account address
-                  </span>
+                        <div>
+                          <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#8e8275]">
+                            Primary address
+                          </p>
+                          <h3 className="mt-1 text-[15px] font-medium text-[#14120f]">
+                            {profile?.name ||
+                              user.displayName ||
+                              'Customer'}
+                          </h3>
+                        </div>
+                      </div>
 
-                </div>
+                      <span className="border border-green-200 bg-green-50 px-2.5 py-1 font-mono text-[8px] uppercase tracking-[0.08em] text-green-700">
+                        Saved
+                      </span>
+                    </div>
 
+                    {profile?.address &&
+                    Object.values(profile.address).some(Boolean) ? (
+                      <div className="mt-5 border-t border-[#ebe6dc] pt-5">
+                        <p className="text-[13.5px] leading-6 text-[#6b6156]">
+                          {profile.address.line1}
+                          {profile.address.line2
+                            ? `, ${profile.address.line2}`
+                            : ''}
+                          {profile.address.city
+                            ? `, ${profile.address.city}`
+                            : ''}
+                          {profile.address.state
+                            ? `, ${profile.address.state}`
+                            : ''}
+                          {profile.address.pincode
+                            ? ` - ${profile.address.pincode}`
+                            : ''}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="mt-5 border-t border-[#ebe6dc] pt-5">
+                        <p className="text-[13.5px] leading-6 text-[#6b6156]">
+                          No saved address yet. Add one to speed up checkout.
+                        </p>
+                      </div>
+                    )}
 
-                <div className="mt-5 border-t border-[#ebe6dc] pt-5">
-
-                  <p className="text-[13.5px] leading-6 text-[#6b6156]">
-                    Your saved delivery address is
-                    managed from your checkout
-                    information.
-                  </p>
-
-                  <div className="mt-4">
-
-                    <Link to="/checkout">
+                    <div className="mt-5 flex flex-wrap gap-2">
                       <Button
                         size="sm"
-                        variant="outline"
+                        onClick={startProfileEditing}
                       >
-                        Manage at checkout
+                        {profile?.address &&
+                        Object.values(profile.address).some(Boolean)
+                          ? 'Edit address'
+                          : 'Add address'}
                       </Button>
-                    </Link>
 
-                  </div>
+                      <Link to="/checkout">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                        >
+                          Continue to checkout
+                        </Button>
+                      </Link>
+                    </div>
 
-                </div>
+                    {isProfileEditing && (
+                      <form
+                        onSubmit={handleSaveProfile}
+                        className="mt-6 border-t border-[#d9d2c7] pt-6"
+                      >
+                        <p className="font-mono text-[8px] uppercase tracking-[0.14em] text-[#8e8275]">
+                          Edit profile & address
+                        </p>
 
+                        <div className="mt-4 space-y-4">
+                          <Input
+                            name="addressLine1"
+                            label="House / Flat / Building"
+                            value={profileAddress.line1}
+                            onChange={(event) =>
+                              updateAddressField(
+                                'line1',
+                                event.target.value
+                              )
+                            }
+                            autoComplete="address-line1"
+                            placeholder="House no., flat, building"
+                            required
+                          />
+
+                          <Input
+                            name="addressLine2"
+                            label="Street / Locality"
+                            value={profileAddress.line2}
+                            onChange={(event) =>
+                              updateAddressField(
+                                'line2',
+                                event.target.value
+                              )
+                            }
+                            autoComplete="address-line2"
+                            placeholder="Street, locality, area"
+                          />
+
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <Input
+                              name="addressCity"
+                              label="City"
+                              value={profileAddress.city}
+                              onChange={(event) =>
+                                updateAddressField(
+                                  'city',
+                                  event.target.value
+                                )
+                              }
+                              autoComplete="address-level2"
+                              placeholder="City"
+                              required
+                            />
+
+                            <Input
+                              name="addressState"
+                              label="State"
+                              value={profileAddress.state}
+                              onChange={(event) =>
+                                updateAddressField(
+                                  'state',
+                                  event.target.value
+                                )
+                              }
+                              autoComplete="address-level1"
+                              placeholder="State"
+                              required
+                            />
+                          </div>
+
+                          <Input
+                            name="addressPincode"
+                            label="PIN Code"
+                            value={profileAddress.pincode}
+                            onChange={(event) =>
+                              updateAddressField(
+                                'pincode',
+                                event.target.value
+                                  .replace(/\D/g, '')
+                                  .slice(0, 6)
+                              )
+                            }
+                            autoComplete="postal-code"
+                            inputMode="numeric"
+                            maxLength={6}
+                            placeholder="6-digit PIN code"
+                            required
+                          />
+
+                          <div className="flex flex-wrap gap-2 pt-2">
+                            <Button
+                              type="submit"
+                              isLoading={
+                                saveUserProfile.isPending
+                              }
+                            >
+                              Save changes
+                            </Button>
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={cancelProfileEditing}
+                              disabled={
+                                saveUserProfile.isPending
+                              }
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+
+                          {profileError && (
+                            <div
+                              role="alert"
+                              className="border border-red-200 bg-red-50 px-4 py-3 text-[13px] leading-5 text-red-700"
+                            >
+                              {profileError}
+                            </div>
+                          )}
+
+                          {profileMessage && (
+                            <div
+                              role="status"
+                              className="border border-green-200 bg-green-50 px-4 py-3 text-[13px] leading-5 text-green-700"
+                            >
+                              {profileMessage}
+                            </div>
+                          )}
+                        </div>
+                      </form>
+                    )}
+                  </>
+                )}
               </Card>
-
             </div>
           )}
-
 
           {/* ================================================================= */}
           {/* PROFILE                                                          */}
@@ -1059,9 +1471,7 @@ export function Account() {
 
           {activeTab === 'profile' && (
             <div className="mt-8 grid gap-10 lg:grid-cols-12">
-
               <div className="lg:col-span-7">
-
                 <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8e8275]">
                   Account details
                 </p>
@@ -1071,139 +1481,208 @@ export function Account() {
                 </h2>
 
                 <p className="mt-2 text-[13.5px] leading-6 text-[#6b6156]">
-                  Your Firebase account information
-                  is used for orders and customer
-                  communication.
+                  Update your personal information here. Orders and quotes remain view-only.
                 </p>
 
-
-                <form
-                  className="mt-6 space-y-5"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-
-                    setProfileMessage(
-                      'Profile information is currently managed through your account registration details.'
-                    );
-                  }}
-                >
-
-                  <Input
-                    name="profileName"
-                    label="Full Name"
-                    defaultValue={
-                      user.displayName || ''
-                    }
-                    disabled
-                  />
-
-                  <Input
-                    name="profileEmail"
-                    label="Email Address"
-                    type="email"
-                    defaultValue={
-                      user.email || ''
-                    }
-                    disabled
-                  />
-
-                  <div className="rounded-none border border-[#d9d2c7] bg-white p-4">
-
-                    <p className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#8e8275]">
-                      Authentication
+                {profileLoading ? (
+                  <div className="mt-6 flex items-center gap-3 py-8">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#d9d2c7] border-t-[#b4491e]" />
+                    <p className="text-[13px] text-[#6b6156]">
+                      Loading your profile...
                     </p>
-
-                    <p className="mt-2 text-[13px] leading-5 text-[#6b6156]">
-                      Your password and
-                      authentication credentials are
-                      securely handled by Firebase.
-                    </p>
-
                   </div>
+                ) : (
+                  <form
+                    className="mt-6 space-y-5"
+                    onSubmit={handleSaveProfile}
+                  >
+                    <Input
+                      name="profileName"
+                      label="Full Name"
+                      value={profileName}
+                      onChange={(event) =>
+                        setProfileName(event.target.value)
+                      }
+                      placeholder="Your full name"
+                      autoComplete="name"
+                      disabled={!isProfileEditing}
+                      required
+                    />
 
+                    <Input
+                      name="profileEmail"
+                      label="Email Address"
+                      type="email"
+                      value={profileEmail}
+                      onChange={(event) =>
+                        setProfileEmail(event.target.value)
+                      }
+                      placeholder="you@example.com"
+                      autoComplete="email"
+                      disabled={!isProfileEditing}
+                      required
+                    />
 
-                  {profileMessage && (
-                    <p className="border border-[#d9d2c7] bg-white px-4 py-3 text-[13px] text-[#6b6156]">
-                      {profileMessage}
-                    </p>
-                  )}
+                    <Input
+                      name="profilePhone"
+                      label="Mobile Number"
+                      type="tel"
+                      value={profilePhone}
+                      onChange={(event) =>
+                        setProfilePhone(
+                          event.target.value
+                            .replace(/\D/g, '')
+                            .slice(0, 10)
+                        )
+                      }
+                      placeholder="10-digit mobile number"
+                      autoComplete="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      disabled={!isProfileEditing}
+                      required
+                    />
 
-                </form>
+                    <div className="rounded-none border border-[#d9d2c7] bg-white p-4">
+                      <p className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#8e8275]">
+                        Account security
+                      </p>
 
+                      <p className="mt-2 text-[13px] leading-5 text-[#6b6156]">
+                        Email changes are updated through Firebase Authentication and require email verification. If Firebase requires a recent login, sign in again before changing your email.
+                      </p>
+                    </div>
+
+                    {profileLoadError && (
+                      <div
+                        role="alert"
+                        className="border border-red-200 bg-red-50 px-4 py-3 text-[13px] leading-5 text-red-700"
+                      >
+                        Unable to load your saved profile. Please refresh and try again.
+                      </div>
+                    )}
+
+                    {profileError && (
+                      <div
+                        role="alert"
+                        className="border border-red-200 bg-red-50 px-4 py-3 text-[13px] leading-5 text-red-700"
+                      >
+                        {profileError}
+                      </div>
+                    )}
+
+                    {profileMessage && (
+                      <div
+                        role="status"
+                        className="border border-green-200 bg-green-50 px-4 py-3 text-[13px] leading-5 text-green-700"
+                      >
+                        {profileMessage}
+                      </div>
+                    )}
+
+                    {!isProfileEditing ? (
+                      <Button
+                        type="button"
+                        onClick={startProfileEditing}
+                      >
+                        Edit profile
+                      </Button>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="submit"
+                          isLoading={
+                            saveUserProfile.isPending
+                          }
+                        >
+                          Save profile
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={cancelProfileEditing}
+                          disabled={
+                            saveUserProfile.isPending
+                          }
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    )}
+                  </form>
+                )}
               </div>
 
-
               <aside className="lg:col-span-5">
-
                 <Card className="border-[#d9d2c7] bg-white p-5 shadow-none">
-
                   <p className="font-mono text-[8px] uppercase tracking-[0.14em] text-[#8e8275]">
                     Account summary
                   </p>
 
-
                   <dl className="mt-4 divide-y divide-[#ebe6dc] border-y border-[#ebe6dc]">
-
-                    <div className="flex justify-between py-3">
-
+                    <div className="flex justify-between gap-5 py-3">
                       <dt className="text-[13px] text-[#6b6156]">
                         Orders placed
                       </dt>
-
                       <dd className="font-mono text-[13px] text-[#14120f]">
                         {myOrders.length}
                       </dd>
-
                     </div>
 
-
-                    <div className="flex justify-between py-3">
-
+                    <div className="flex justify-between gap-5 py-3">
                       <dt className="text-[13px] text-[#6b6156]">
                         Quotes raised
                       </dt>
-
                       <dd className="font-mono text-[13px] text-[#14120f]">
                         {myQuotes.length}
                       </dd>
-
                     </div>
 
-
-                    <div className="flex justify-between py-3">
-
+                    <div className="flex justify-between gap-5 py-3">
                       <dt className="text-[13px] text-[#6b6156]">
-                        Account email
+                        Email
                       </dt>
-
                       <dd className="max-w-[180px] truncate font-mono text-[12px] text-[#14120f]">
-                        {user.email}
+                        {profile?.email ||
+                          user.email ||
+                          'Not available'}
                       </dd>
-
                     </div>
 
+                    <div className="flex justify-between gap-5 py-3">
+                      <dt className="text-[13px] text-[#6b6156]">
+                        Mobile
+                      </dt>
+                      <dd className="max-w-[180px] truncate font-mono text-[12px] text-[#14120f]">
+                        {profile?.phone || 'Not saved'}
+                      </dd>
+                    </div>
                   </dl>
 
-
                   <p className="mt-5 text-[13px] leading-6 text-[#6b6156]">
-                    Need a new custom part or a
-                    repeat print?
+                    Personal information is editable. Orders and quotes are protected transaction records and cannot be edited from the customer account.
                   </p>
 
-                  <div className="mt-4">
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        setActiveTab('addresses')
+                      }
+                    >
+                      Manage address
+                    </Button>
 
                     <Link to="/custom-service">
                       <Button size="sm">
                         Start a custom print
                       </Button>
                     </Link>
-
                   </div>
-
                 </Card>
-
               </aside>
-
             </div>
           )}
 
