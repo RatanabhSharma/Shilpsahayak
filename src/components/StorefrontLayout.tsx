@@ -1,6 +1,7 @@
 import React, {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -70,65 +71,14 @@ function AnnouncementBar({
   duration: number;
 }) {
   const cleanMessages = useMemo(
-    () =>
-      messages
-        .map((message) => message.trim())
-        .filter(Boolean),
+    () => messages.map((message) => message.trim()).filter(Boolean),
     [messages]
   );
 
-  const [activeIndex, setActiveIndex] = useState(0);
+  if (cleanMessages.length === 0) return null;
 
-  const message = cleanMessages[activeIndex] ?? '';
-
-  /*
-   * Keep the active index valid when:
-   * - Admin removes a message
-   * - Admin reorders messages
-   * - Firestore data changes
-   */
-  useEffect(() => {
-    if (cleanMessages.length === 0) {
-      setActiveIndex(0);
-      return;
-    }
-
-    setActiveIndex((currentIndex) =>
-      Math.min(currentIndex, cleanMessages.length - 1)
-    );
-  }, [cleanMessages.length]);
-
-  /*
-   * Nothing to display.
-   */
-  if (!message) {
-    return null;
-  }
-
-  /*
-   * Admin-controlled animation duration.
-   *
-   * 12 seconds = fastest allowed
-   * 40 seconds = slowest allowed
-   *
-   * Keeping this range prevents accidental extreme values
-   * from making the ticker unusable.
-   */
-  const safeDuration = Math.min(
-    Math.max(Number(duration) || 24, 12),
-    40
-  );
-
-  /*
-   * Move to the next message only after the current
-   * animation has completely finished.
-   */
-  const handleAnimationComplete = () => {
-    setActiveIndex(
-      (currentIndex) =>
-        (currentIndex + 1) % cleanMessages.length
-    );
-  };
+  const tickerText = cleanMessages.join('   •   ');
+  const safeDuration = Math.min(Math.max(Number(duration) || 24, 12), 40);
 
   return (
     <div
@@ -136,71 +86,21 @@ function AnnouncementBar({
       role="region"
       aria-label="Store announcements"
     >
-      {/* =====================================================
-          ACCESSIBILITY
-          ================================================== */}
-      <div className="sr-only" aria-live="polite">
-        {message}
-      </div>
+      <p className="sr-only">{cleanMessages.join('. ')}</p>
 
-      {/* =====================================================
-          TICKER VIEWPORT
-          ================================================== */}
-      <div
-        className="
-          relative
-          flex
-          h-7
-          w-full
-          items-center
-          overflow-hidden
-          sm:h-8
-        "
-      >
-        <AnimatePresence
-          initial={false}
-          mode="wait"
+      <div className="flex h-7 w-full items-center overflow-hidden sm:h-8">
+        <div
+          className="announcement-track flex w-max items-center whitespace-nowrap"
+          style={{ animationDuration: `${safeDuration}s` }}
+          aria-hidden="true"
         >
-          <motion.div
-            key={`${activeIndex}-${message}`}
-            className="
-              absolute
-              left-0
-              flex
-              w-max
-              items-center
-              whitespace-nowrap
-              will-change-transform
-            "
-            initial={{
-              x: '100%',
-            }}
-            animate={{
-              x: '-100%',
-            }}
-            transition={{
-              duration: safeDuration,
-              ease: 'linear',
-            }}
-            onAnimationComplete={handleAnimationComplete}
-            aria-hidden="true"
-          >
-            <span
-              className="
-                px-6
-                font-mono
-                text-[9px]
-                font-medium
-                uppercase
-                tracking-[0.16em]
-                sm:px-8
-                sm:text-[10px]
-              "
-            >
-              {message}
-            </span>
-          </motion.div>
-        </AnimatePresence>
+          <span className="px-6 font-mono text-[9px] font-medium uppercase tracking-[0.16em] sm:px-8 sm:text-[10px]">
+            {tickerText}
+          </span>
+          <span className="px-6 font-mono text-[9px] font-medium uppercase tracking-[0.16em] sm:px-8 sm:text-[10px]">
+            {tickerText}
+          </span>
+        </div>
       </div>
     </div>
   );
