@@ -243,7 +243,7 @@ export function Login() {
 
     try {
       if (mode === 'signup') {
-        await register(email, password, name);
+        await register(email, password, name, phone);
       } else {
         await login(email, password);
       }
