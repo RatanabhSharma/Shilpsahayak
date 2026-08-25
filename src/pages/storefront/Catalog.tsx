@@ -847,7 +847,7 @@ export function Catalog() {
 
       <main className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
 
-        <div className="grid gap-10 lg:grid-cols-[240px_1fr]">
+        <div className="grid gap-10 lg:grid-cols-[240px_minmax(0,1fr)]">
 
           {/* =================================================
               DESKTOP SIDEBAR
@@ -1100,15 +1100,15 @@ export function Catalog() {
                 </div>
               </div>
             ) : (
-              <div className="mt-7 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-7 grid w-full gap-5 sm:grid-cols-2 xl:grid-cols-3">
 
                 {filteredProducts.map(
                   (product) => (
                     <Link
-                      key={product.id}
-                      to={`/product/${product.id}`}
-                      className="group"
-                    >
+  key={product.id}
+  to={`/product/${product.id}`}
+  className="group min-w-0 w-full"
+>
                       <Card className="h-full overflow-hidden rounded-none border-[#ded8ce] bg-white shadow-none transition-shadow duration-300 hover:shadow-[0_12px_35px_rgba(23,21,18,0.08)]">
 
                         <div className="relative overflow-hidden bg-[#e8e2d8]">
