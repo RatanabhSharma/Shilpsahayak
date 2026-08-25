@@ -79,80 +79,128 @@ function AnnouncementBar({
 
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const message = cleanMessages[activeIndex] ?? '';
+
+  /*
+   * Keep the active index valid when:
+   * - Admin removes a message
+   * - Admin reorders messages
+   * - Firestore data changes
+   */
   useEffect(() => {
     if (cleanMessages.length === 0) {
       setActiveIndex(0);
       return;
     }
 
-    setActiveIndex(
-      (currentIndex) =>
-        currentIndex % cleanMessages.length
+    setActiveIndex((currentIndex) =>
+      Math.min(currentIndex, cleanMessages.length - 1)
     );
   }, [cleanMessages.length]);
 
-  if (cleanMessages.length === 0) {
+  /*
+   * Nothing to display.
+   */
+  if (!message) {
     return null;
   }
 
-  const message =
-    cleanMessages[activeIndex] || '';
-
   /*
-   * Admin-controlled duration.
+   * Admin-controlled animation duration.
    *
-   * 12 = slower minimum
-   * 40 = slower maximum
+   * 12 seconds = fastest allowed
+   * 40 seconds = slowest allowed
    *
-   * This controls how long the message takes
-   * to travel across the announcement bar.
+   * Keeping this range prevents accidental extreme values
+   * from making the ticker unusable.
    */
   const safeDuration = Math.min(
     Math.max(Number(duration) || 24, 12),
     40
   );
 
+  /*
+   * Move to the next message only after the current
+   * animation has completely finished.
+   */
+  const handleAnimationComplete = () => {
+    setActiveIndex(
+      (currentIndex) =>
+        (currentIndex + 1) % cleanMessages.length
+    );
+  };
+
   return (
     <div
       className="relative z-40 overflow-hidden bg-[#b4491e] text-white"
       role="region"
-      aria-label="Store announcement"
+      aria-label="Store announcements"
     >
-      {/* Accessibility */}
-      <p className="sr-only">
+      {/* =====================================================
+          ACCESSIBILITY
+          ================================================== */}
+      <div className="sr-only" aria-live="polite">
         {message}
-      </p>
+      </div>
 
-      {/* Moving ticker */}
-      <div className="relative flex h-7 items-center overflow-hidden whitespace-nowrap sm:h-8">
-
-        <motion.div
-          key={`${activeIndex}-${message}`}
-          className="absolute left-0 flex w-max items-center"
-          initial={{
-            x: '100vw',
-          }}
-          animate={{
-            x: '-100%',
-          }}
-          transition={{
-            duration: safeDuration,
-            ease: 'linear',
-          }}
-          onAnimationComplete={() => {
-            setActiveIndex(
-              (currentIndex) =>
-                (currentIndex + 1) %
-                cleanMessages.length
-            );
-          }}
-          aria-hidden="true"
+      {/* =====================================================
+          TICKER VIEWPORT
+          ================================================== */}
+      <div
+        className="
+          relative
+          flex
+          h-7
+          w-full
+          items-center
+          overflow-hidden
+          sm:h-8
+        "
+      >
+        <AnimatePresence
+          initial={false}
+          mode="wait"
         >
-          <span className="px-6 font-mono text-[9px] font-medium uppercase tracking-[0.16em] sm:text-[10px]">
-            {message}
-          </span>
-        </motion.div>
-
+          <motion.div
+            key={`${activeIndex}-${message}`}
+            className="
+              absolute
+              left-0
+              flex
+              w-max
+              items-center
+              whitespace-nowrap
+              will-change-transform
+            "
+            initial={{
+              x: '100%',
+            }}
+            animate={{
+              x: '-100%',
+            }}
+            transition={{
+              duration: safeDuration,
+              ease: 'linear',
+            }}
+            onAnimationComplete={handleAnimationComplete}
+            aria-hidden="true"
+          >
+            <span
+              className="
+                px-6
+                font-mono
+                text-[9px]
+                font-medium
+                uppercase
+                tracking-[0.16em]
+                sm:px-8
+                sm:text-[10px]
+              "
+            >
+              {message}
+            </span>
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
