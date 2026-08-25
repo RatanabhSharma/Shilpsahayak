@@ -88,18 +88,22 @@ function AnnouncementBar({
     >
       <p className="sr-only">{cleanMessages.join('. ')}</p>
 
-      <div className="flex h-7 w-full items-center overflow-hidden sm:h-8">
+      <div className="announcement-viewport h-7 w-full overflow-hidden sm:h-8">
         <div
-          className="announcement-track flex w-max items-center whitespace-nowrap"
+          className="announcement-track"
           style={{ animationDuration: `${safeDuration}s` }}
           aria-hidden="true"
         >
-          <span className="px-6 font-mono text-[9px] font-medium uppercase tracking-[0.16em] sm:px-8 sm:text-[10px]">
-            {tickerText}
-          </span>
-          <span className="px-6 font-mono text-[9px] font-medium uppercase tracking-[0.16em] sm:px-8 sm:text-[10px]">
-            {tickerText}
-          </span>
+          <div className="announcement-copy">
+            <span className="px-6 font-mono text-[9px] font-medium uppercase tracking-[0.16em] sm:px-8 sm:text-[10px]">
+              {tickerText}
+            </span>
+          </div>
+          <div className="announcement-copy">
+            <span className="px-6 font-mono text-[9px] font-medium uppercase tracking-[0.16em] sm:px-8 sm:text-[10px]">
+              {tickerText}
+            </span>
+          </div>
         </div>
       </div>
     </div>

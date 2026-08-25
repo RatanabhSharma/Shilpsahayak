@@ -428,10 +428,23 @@ input[type='number'] {
     animation: none;
   }
 }
+.announcement-viewport {
+  width: 100%;
+}
+
 .announcement-track {
+  display: flex;
+  width: max-content;
   animation-name: announcement-marquee;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
+}
+
+.announcement-copy {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  min-width: 100vw;
 }
 
 @keyframes announcement-marquee {
@@ -446,5 +459,9 @@ input[type='number'] {
 @media (prefers-reduced-motion: reduce) {
   .announcement-track {
     animation: none;
+  }
+
+  .announcement-copy:last-child {
+    display: none;
   }
 }
