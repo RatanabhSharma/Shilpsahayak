@@ -44,9 +44,6 @@ function createHeroSlide(): HomepageHeroSlide {
   };
 }
 
-function isExternalLink(link: string) {
-  return /^https?:\/\//i.test(link);
-}
 
 export function AdminHome() {
   const { data: products = [], isLoading: productsLoading } = useProducts();
@@ -81,6 +78,10 @@ export function AdminHome() {
       featuredProductIds: [...savedSettings.featuredProductIds],
       selectedProductIds: [...savedSettings.selectedProductIds],
       categoryNames: [...savedSettings.categoryNames],
+      announcementMessages: savedSettings.announcementMessages?.length
+        ? [...savedSettings.announcementMessages]
+        : [savedSettings.announcementText || DEFAULT_HOMEPAGE_SETTINGS.announcementText],
+      announcementDuration: savedSettings.announcementDuration ?? DEFAULT_HOMEPAGE_SETTINGS.announcementDuration,
     });
   }, [savedSettings]);
 
@@ -170,7 +171,9 @@ export function AdminHome() {
       categoryNames: form.categoryNames.filter((name) =>
         availableCategories.includes(name)
       ),
-      announcementText: form.announcementText.trim(),
+      announcementMessages: form.announcementMessages.map((message) => message.trim()).filter(Boolean),
+      announcementDuration: Math.min(Math.max(Math.round(form.announcementDuration), 12), 40),
+      announcementText: form.announcementMessages.map((message) => message.trim()).filter(Boolean)[0] || '',
     });
 
     setForm((current) => ({ ...current, heroSlides: cleanSlides }));
@@ -305,42 +308,90 @@ export function AdminHome() {
       </div>
 
       <Card className="border-none p-6 shadow-sm">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="font-serif text-lg font-semibold text-charcoal">Announcement Bar</h2>
-            <p className="mt-1 text-sm text-charcoal-light">
-              This message can be changed without editing the storefront code.
+            <p className="mt-1 max-w-2xl text-sm text-charcoal-light">
+              Add one or more messages. Each message travels from right to left on its own, then the next message starts.
             </p>
           </div>
           <button
             type="button"
-            onClick={() =>
-              setForm((current) => ({
-                ...current,
-                announcementEnabled: !current.announcementEnabled,
-              }))
-            }
+            onClick={() => setForm((current) => ({ ...current, announcementEnabled: !current.announcementEnabled }))}
             className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-              form.announcementEnabled
-                ? 'bg-green-50 text-green-700'
-                : 'bg-surface text-charcoal-light'
+              form.announcementEnabled ? 'bg-green-50 text-green-700' : 'bg-surface text-charcoal-light'
             }`}
           >
             {form.announcementEnabled ? 'Enabled' : 'Disabled'}
           </button>
         </div>
-        <div className="mt-5">
-          <Input
-            label="Announcement text"
-            value={form.announcementText}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                announcementText: event.target.value,
-              }))
-            }
-            placeholder="Free Pan-India shipping on orders over ₹499..."
-          />
+
+        <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_280px]">
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-charcoal">Messages</h3>
+                <p className="mt-0.5 text-xs text-charcoal-light">Add multiple messages only when you need a sequence.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setForm((current) => ({ ...current, announcementMessages: [...current.announcementMessages, ''] }))}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 px-3 py-2 text-xs font-semibold text-charcoal hover:bg-brand-50"
+              >
+                <Plus className="h-3.5 w-3.5" /> Add message
+              </button>
+            </div>
+
+            <div className="mt-3 space-y-2">
+              {form.announcementMessages.map((message, index) => (
+                <div key={`announcement-${index}`} className="flex items-start gap-2">
+                  <div className="flex h-10 w-8 shrink-0 items-center justify-center font-mono text-[10px] text-charcoal-lighter">
+                    {index + 1}
+                  </div>
+                  <Input
+                    label={index === 0 ? 'Announcement text' : undefined}
+                    value={message}
+                    onChange={(event) => setForm((current) => ({
+                      ...current,
+                      announcementMessages: current.announcementMessages.map((item, itemIndex) =>
+                        itemIndex === index ? event.target.value : item
+                      ),
+                    }))}
+                    placeholder="Free Pan-India shipping on orders over ₹499..."
+                    className="flex-1"
+                  />
+                  <div className="mt-1 flex shrink-0 items-center gap-1">
+                    <button type="button" disabled={index === 0}
+                      onClick={() => setForm((current) => ({ ...current, announcementMessages: moveItem(current.announcementMessages, index, -1) }))}
+                      className="flex h-9 w-9 items-center justify-center rounded-md border border-brand-100 text-charcoal-light disabled:opacity-30" aria-label="Move announcement up">
+                      <ArrowUp className="h-3.5 w-3.5" />
+                    </button>
+                    <button type="button" disabled={index === form.announcementMessages.length - 1}
+                      onClick={() => setForm((current) => ({ ...current, announcementMessages: moveItem(current.announcementMessages, index, 1) }))}
+                      className="flex h-9 w-9 items-center justify-center rounded-md border border-brand-100 text-charcoal-light disabled:opacity-30" aria-label="Move announcement down">
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    </button>
+                    <button type="button" disabled={form.announcementMessages.length === 1}
+                      onClick={() => setForm((current) => ({ ...current, announcementMessages: current.announcementMessages.filter((_, itemIndex) => itemIndex !== index) }))}
+                      className="flex h-9 w-9 items-center justify-center rounded-md border border-red-200 text-red-600 disabled:opacity-30" aria-label="Remove announcement">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-brand-100 bg-surface px-4 py-4">
+            <label className="block text-sm font-medium text-charcoal" htmlFor="announcement-duration">Scroll duration</label>
+            <p className="mt-1 text-xs leading-relaxed text-charcoal-light">Higher duration means slower movement. The next message starts only after the current one finishes.</p>
+            <div className="mt-4 flex items-center gap-3">
+              <input id="announcement-duration" type="range" min={12} max={40} step={1} value={form.announcementDuration}
+                onChange={(event) => setForm((current) => ({ ...current, announcementDuration: Number(event.target.value) }))}
+                className="w-full accent-[#b4491e]" />
+              <span className="w-16 text-right text-sm font-medium text-charcoal">{form.announcementDuration}s</span>
+            </div>
+          </div>
         </div>
       </Card>
 

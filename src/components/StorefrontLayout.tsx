@@ -1,5 +1,6 @@
 import React, {
   useEffect,
+  useMemo,
   useState
 } from 'react';
 import {
@@ -11,7 +12,6 @@ import {
 import {
   ArrowRight,
   Menu,
-  Phone,
   ShieldCheck,
   ShoppingBag,
   User,
@@ -57,6 +57,63 @@ const NAV_ITEMS: NavItem[] = [
     path: '/contact'
   }
 ];
+
+function AnnouncementBar({
+  messages,
+  duration,
+}: {
+  messages: string[];
+  duration: number;
+}) {
+  const cleanMessages = useMemo(
+    () => messages.map((message) => message.trim()).filter(Boolean),
+    [messages]
+  );
+
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    if (cleanMessages.length === 0) {
+      setActiveIndex(0);
+      return;
+    }
+
+    setActiveIndex((current) => current % cleanMessages.length);
+  }, [cleanMessages.length]);
+
+  if (cleanMessages.length === 0) return null;
+
+  const safeDuration = Math.min(Math.max(Number(duration) || 24, 12), 40);
+  const message = cleanMessages[activeIndex];
+
+  return (
+    <div
+      className="relative z-40 overflow-hidden bg-[#b4491e] text-white"
+      role="region"
+      aria-label="Store announcement"
+    >
+      <p className="sr-only">{message}</p>
+      <div className="flex h-7 items-center overflow-hidden whitespace-nowrap sm:h-8">
+        <motion.div
+          key={`${activeIndex}-${message}`}
+          className="w-max px-6 font-mono text-[9px] font-medium uppercase tracking-[0.16em] sm:text-[10px]"
+          initial={{ x: '100vw' }}
+          animate={{ x: '-100%' }}
+          transition={{
+            duration: safeDuration,
+            ease: 'linear',
+          }}
+          onAnimationComplete={() =>
+            setActiveIndex((current) => (current + 1) % cleanMessages.length)
+          }
+          aria-hidden="true"
+        >
+          <span>{message}</span>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
 
 export function StorefrontLayout() {
   const [
@@ -158,41 +215,12 @@ export function StorefrontLayout() {
         Skip to content
       </a>
 
-      {/* Utility bar */}
-      <div className="hidden bg-[#14120f] text-[#f7f4ee]/70 lg:block">
-        <div className="mx-auto flex h-8 max-w-[1440px] items-center justify-between px-8 xl:px-10">
-          <p className="font-mono text-[10px] uppercase tracking-[0.12em]">
-            Pan-India shipping · Made with precision
-          </p>
-
-          <div className="flex items-center gap-6">
-            <span className="font-mono text-[10px] uppercase tracking-[0.12em]">
-              Custom 3D printing available
-            </span>
-
-            {whatsappNumber && (
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors hover:text-[#f7f4ee]"
-              >
-                <Phone
-                  className="h-3 w-3"
-                  aria-hidden="true"
-                />
-                WhatsApp
-              </a>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Admin-controlled announcement bar */}
-      {homepageSettings?.announcementEnabled && homepageSettings.announcementText && (
-        <div className="bg-[#b4491e] px-4 py-2 text-center text-[10px] font-medium uppercase tracking-[0.1em] text-white">
-          {homepageSettings.announcementText}
-        </div>
+      {/* Announcement bar */}
+      {homepageSettings?.announcementEnabled && (
+        <AnnouncementBar
+          messages={homepageSettings.announcementMessages}
+          duration={homepageSettings.announcementDuration}
+        />
       )}
 
       {/* Header */}

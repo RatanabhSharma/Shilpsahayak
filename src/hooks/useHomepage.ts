@@ -22,18 +22,23 @@ export type HomepageSettings = {
   categoryNames: string[];
   announcementEnabled: boolean;
   announcementText: string;
+  announcementMessages: string[];
+  announcementDuration: number;
 };
 
 export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
   heroSlides: [],
   heroAutoplay: true,
-  heroInterval: 5000,
+  heroInterval: 6000,
+
   featuredProductIds: [],
   selectedProductIds: [],
   categoryNames: [],
-  announcementEnabled: true,
-  announcementText:
-    'Free Pan-India shipping on orders over ₹499. Crafted with precision.',
+
+  announcementEnabled: false,
+  announcementText: '',
+  announcementMessages: [],
+  announcementDuration: 24,
 };
 
 const HOMEPAGE_DOCUMENT_ID = 'homepage';
@@ -56,13 +61,7 @@ function normaliseHeroSlides(value: unknown): HomepageHeroSlide[] {
     }));
 }
 
-function normaliseProductIds(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === 'string')
-    : [];
-}
-
-function normaliseCategories(value: unknown): string[] {
+function normaliseStringArray(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === 'string')
     : [];
@@ -79,32 +78,48 @@ export function useHomepage() {
         return DEFAULT_HOMEPAGE_SETTINGS;
       }
 
-      const data = snapshot.data();
+      const data = snapshot.data() as Record<string, unknown>;
+      const legacyText = typeof data.announcementText === 'string'
+        ? data.announcementText.trim()
+        : '';
+
+      const announcementMessages = Array.isArray(data.announcementMessages)
+        ? data.announcementMessages
+            .filter((message): message is string => typeof message === 'string')
+            .map((message) => message.trim())
+            .filter(Boolean)
+        : legacyText
+          ? [legacyText]
+          : DEFAULT_HOMEPAGE_SETTINGS.announcementMessages;
+
+      const rawAnnouncementDuration = Number(data.announcementDuration);
+      const announcementDuration = Number.isFinite(rawAnnouncementDuration)
+        ? Math.min(Math.max(Math.round(rawAnnouncementDuration), 12), 40)
+        : DEFAULT_HOMEPAGE_SETTINGS.announcementDuration;
+
+      const rawHeroInterval = Number(data.heroInterval);
+      const heroInterval = Number.isFinite(rawHeroInterval)
+        ? Math.min(Math.max(Math.round(rawHeroInterval), 2500), 15000)
+        : DEFAULT_HOMEPAGE_SETTINGS.heroInterval;
 
       return {
         ...DEFAULT_HOMEPAGE_SETTINGS,
         ...data,
         heroSlides: normaliseHeroSlides(data.heroSlides),
-        heroAutoplay:
-          typeof data.heroAutoplay === 'boolean'
-            ? data.heroAutoplay
-            : DEFAULT_HOMEPAGE_SETTINGS.heroAutoplay,
-        heroInterval:
-          typeof data.heroInterval === 'number' && data.heroInterval >= 2500
-            ? Math.min(data.heroInterval, 15000)
-            : DEFAULT_HOMEPAGE_SETTINGS.heroInterval,
-        featuredProductIds: normaliseProductIds(data.featuredProductIds),
-        selectedProductIds: normaliseProductIds(data.selectedProductIds),
-        categoryNames: normaliseCategories(data.categoryNames),
-        announcementEnabled:
-          typeof data.announcementEnabled === 'boolean'
-            ? data.announcementEnabled
-            : DEFAULT_HOMEPAGE_SETTINGS.announcementEnabled,
-        announcementText:
-          typeof data.announcementText === 'string'
-            ? data.announcementText
-            : DEFAULT_HOMEPAGE_SETTINGS.announcementText,
-      };
+        heroAutoplay: typeof data.heroAutoplay === 'boolean'
+          ? data.heroAutoplay
+          : DEFAULT_HOMEPAGE_SETTINGS.heroAutoplay,
+        heroInterval,
+        featuredProductIds: normaliseStringArray(data.featuredProductIds),
+        selectedProductIds: normaliseStringArray(data.selectedProductIds),
+        categoryNames: normaliseStringArray(data.categoryNames),
+        announcementEnabled: typeof data.announcementEnabled === 'boolean'
+          ? data.announcementEnabled
+          : DEFAULT_HOMEPAGE_SETTINGS.announcementEnabled,
+        announcementMessages,
+        announcementDuration,
+        announcementText: announcementMessages[0] || DEFAULT_HOMEPAGE_SETTINGS.announcementText,
+      } as HomepageSettings;
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -116,7 +131,7 @@ export function useUpdateHomepage() {
   return useMutation({
     mutationFn: async (settings: HomepageSettings) => {
       const ref = doc(db, 'settings', HOMEPAGE_DOCUMENT_ID);
-      await setDoc(ref, settings);
+      await setDoc(ref, settings, { merge: true });
       return settings;
     },
     onSuccess: (settings) => {
