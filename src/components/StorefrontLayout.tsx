@@ -20,6 +20,7 @@ import {
   Phone,
   Mail,
   MapPin,
+  Search,
 } from 'lucide-react';
 import {
   AnimatePresence,
@@ -31,6 +32,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
 import { useHomepage } from '../hooks/useHomepage';
 import { useUserRole } from '../hooks/useUserRole';
+import { useProducts } from '../hooks/useProducts';
 import { BrandLogo } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -205,6 +207,44 @@ export function StorefrontLayout() {
     ? `https://wa.me/${whatsappNumber.replace(/\D/g, '')}`
     : 'https://wa.me/919876543210';
 
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const { data: allProducts = [] } = useProducts();
+
+  const filteredSearchResults = useMemo(() => {
+    if (!searchQuery.trim()) return allProducts.slice(0, 4);
+    const q = searchQuery.toLowerCase().trim();
+    return allProducts.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.category?.toLowerCase().includes(q) ||
+        p.material?.toLowerCase().includes(q) ||
+        p.description?.toLowerCase().includes(q)
+    );
+  }, [searchQuery, allProducts]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+      }
+      if (e.key === 'Escape' && isSearchOpen) {
+        setIsSearchOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSearchOpen]);
+
+  /* ----------------------------------------------------------
+     Close search on route change
+     ---------------------------------------------------------- */
+  useEffect(() => {
+    setIsSearchOpen(false);
+    setSearchQuery('');
+  }, [location.pathname]);
+
   const currentYear = new Date().getFullYear();
 
   const isAuthenticated = !authLoading && !!user;
@@ -293,7 +333,21 @@ export function StorefrontLayout() {
           </nav>
 
           {/* Header Action Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Quick Search Button */}
+            <button
+              type="button"
+              onClick={() => setIsSearchOpen(true)}
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-zinc-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 px-3 text-xs text-charcoal-light dark:text-slate-300 hover:border-brand-500/50 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-sm"
+              aria-label="Search products"
+            >
+              <Search className="h-4 w-4 text-charcoal-lighter dark:text-slate-400" />
+              <span className="hidden md:inline font-medium">Search pieces...</span>
+              <kbd className="hidden md:inline-flex rounded bg-zinc-100 dark:bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] text-charcoal-lighter dark:text-slate-400">
+                ⌘K
+              </kbd>
+            </button>
+
             {/* Custom Print Quick Action (Desktop) */}
             <Link
               to="/custom-service"
@@ -484,53 +538,74 @@ export function StorefrontLayout() {
               </div>
             </div>
 
-            {/* Column 2: Explore */}
+            {/* Column 2: Shop Collections */}
             <div className="space-y-4">
               <h3 className="font-mono text-xs font-bold uppercase tracking-[0.16em] text-brand-400">
-                Explore
+                Shop Collections
               </h3>
               <ul className="space-y-2.5 text-sm">
                 <li>
                   <Link to="/catalog" className="text-slate-400 hover:text-white transition-colors">
-                    Catalog & Products
+                    All 3D Products
                   </Link>
                 </li>
                 <li>
-                  <Link to="/custom-service" className="text-slate-400 hover:text-white transition-colors">
-                    Custom 3D Printing
+                  <Link to="/catalog?category=Lamps%20%26%20Lighting" className="text-slate-400 hover:text-white transition-colors">
+                    Lamps & Lithophanes
                   </Link>
                 </li>
                 <li>
-                  <Link to="/about" className="text-slate-400 hover:text-white transition-colors">
-                    About Our Workshop
+                  <Link to="/catalog?category=Desk%20Decor" className="text-slate-400 hover:text-white transition-colors">
+                    Desk & Workspace Decor
                   </Link>
                 </li>
                 <li>
-                  <Link to="/contact" className="text-slate-400 hover:text-white transition-colors">
-                    Contact & Studio
+                  <Link to="/catalog?category=Keychains" className="text-slate-400 hover:text-white transition-colors">
+                    Keychains & Collectibles
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/custom-service" className="text-brand-400 hover:text-brand-300 transition-colors font-medium flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Custom 3D Print Quote
                   </Link>
                 </li>
               </ul>
             </div>
 
-            {/* Column 3: Capabilities */}
+            {/* Column 3: Customer Care & Guarantee */}
             <div className="space-y-4">
               <h3 className="font-mono text-xs font-bold uppercase tracking-[0.16em] text-brand-400">
-                Capabilities
+                Customer Care
               </h3>
               <ul className="space-y-2.5 text-sm text-slate-400">
-                <li>FDM Printing (PLA / PETG / ABS)</li>
-                <li>High-Detail Resin SLA</li>
-                <li>Functional CAD Prototyping</li>
-                <li>Batch Enclosures & Mounts</li>
-                <li>Personalized Decor & Gifts</li>
+                <li>
+                  <Link to="/account" className="hover:text-white transition-colors">
+                    Track Your Orders
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/about" className="hover:text-white transition-colors">
+                    Our Quality Promise
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/contact" className="hover:text-white transition-colors">
+                    Shipping & Delivery Info
+                  </Link>
+                </li>
+                <li>
+                  <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors flex items-center gap-1.5">
+                    <span>Direct WhatsApp Help</span>
+                  </a>
+                </li>
               </ul>
             </div>
 
             {/* Column 4: Contact & Studio Info */}
             <div className="space-y-4">
               <h3 className="font-mono text-xs font-bold uppercase tracking-[0.16em] text-brand-400">
-                Studio Location
+                Workshop & Studio
               </h3>
               <ul className="space-y-3 text-sm text-slate-400">
                 <li className="flex items-start gap-2.5">
@@ -556,18 +631,150 @@ export function StorefrontLayout() {
           {/* Footer Bottom Bar */}
           <div className="mt-16 flex flex-col gap-4 border-t border-slate-800/80 pt-8 sm:flex-row sm:items-center sm:justify-between text-xs text-slate-500">
             <p className="font-mono">
-              © {currentYear} {businessName}. If you can imagine it, we can print it.
+              © {currentYear} {businessName}. Premium 3D Printed Goods & Bespoke Creations.
             </p>
 
-            <div className="flex items-center gap-4 font-mono text-[11px] uppercase tracking-wider">
+            <div className="flex flex-wrap items-center gap-4 font-mono text-[11px] uppercase tracking-wider">
               <span className="inline-flex items-center gap-1.5 text-slate-400">
                 <span className="h-2 w-2 rounded-full bg-brand-500" />
-                Proudly Made in India
+                Pan-India Delivery
               </span>
+              <span className="text-slate-600 hidden sm:inline">•</span>
+              <span className="text-slate-400">100% Quality Inspected</span>
+              <span className="text-slate-600 hidden sm:inline">•</span>
+              <span className="text-slate-400">Secure Payments</span>
             </div>
           </div>
         </div>
       </footer>
+
+      {/* Floating WhatsApp Support Button */}
+      <aside className="fixed bottom-5 right-5 z-40">
+        <a
+          href={whatsappLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center gap-2.5 rounded-full bg-[#25D366] py-2.5 pl-3 pr-4 text-white shadow-xl shadow-emerald-500/25 transition-all duration-300 hover:scale-105 hover:bg-[#1EBE5D]"
+          aria-label="Chat with 3D Printing Maker on WhatsApp"
+        >
+          <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-white/20">
+            <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-100"></span>
+            </span>
+            <Phone className="h-3.5 w-3.5 fill-white text-white" />
+          </div>
+          <div className="flex flex-col text-left">
+            <span className="text-xs font-bold leading-tight">Chat with Maker</span>
+            <span className="text-[10px] text-emerald-100 font-medium leading-none">Instant Help</span>
+          </div>
+        </a>
+      </aside>
+
+      {/* Quick Search Modal Dialog */}
+      <AnimatePresence>
+        {isSearchOpen && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 sm:pt-28 px-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSearchOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Dialog Box */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl z-10"
+            >
+              {/* Search Bar Input */}
+              <div className="flex items-center gap-3 border-b border-zinc-200 dark:border-slate-800 px-5 py-4">
+                <Search className="h-5 w-5 text-brand-500 shrink-0" />
+                <input
+                  type="text"
+                  autoFocus
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search lamps, lithophanes, desk decor, keychains..."
+                  className="w-full bg-transparent text-sm sm:text-base font-medium text-charcoal dark:text-slate-100 placeholder:text-zinc-400 dark:placeholder:text-slate-500 focus:outline-none"
+                />
+                {searchQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="text-zinc-400 hover:text-charcoal dark:hover:text-white"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <span className="rounded bg-zinc-100 dark:bg-slate-800 px-2 py-0.5 font-mono text-[10px] font-bold text-zinc-500">
+                    ESC
+                  </span>
+                )}
+              </div>
+
+              {/* Search Results Preview */}
+              <div className="max-h-96 overflow-y-auto p-4 space-y-2">
+                <div className="flex items-center justify-between px-2 py-1">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400">
+                    {searchQuery.trim() ? `Matching Pieces (${filteredSearchResults.length})` : 'Popular Studio Picks'}
+                  </span>
+                  <Link
+                    to="/catalog"
+                    onClick={() => setIsSearchOpen(false)}
+                    className="text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline"
+                  >
+                    View All in Catalog →
+                  </Link>
+                </div>
+
+                {filteredSearchResults.length === 0 ? (
+                  <div className="py-10 text-center text-xs text-charcoal-lighter dark:text-slate-400">
+                    No matching pieces found for &ldquo;{searchQuery}&rdquo;.
+                  </div>
+                ) : (
+                  filteredSearchResults.map((prod) => (
+                    <Link
+                      key={prod.id}
+                      to={`/product/${prod.id}`}
+                      onClick={() => setIsSearchOpen(false)}
+                      className="group flex items-center justify-between gap-4 rounded-2xl p-2.5 hover:bg-zinc-50 dark:hover:bg-slate-800/70 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img
+                          src={prod.image}
+                          alt={prod.name}
+                          className="h-12 w-12 rounded-xl object-cover border border-zinc-100 dark:border-slate-800 bg-zinc-100 dark:bg-slate-800 shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <p className="line-clamp-1 text-xs font-bold text-charcoal dark:text-slate-100 group-hover:text-brand-600 transition-colors">
+                            {prod.name}
+                          </p>
+                          <span className="font-mono text-[10px] text-charcoal-lighter dark:text-slate-400 uppercase">
+                            {prod.category || 'Workshop Item'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="font-serif text-sm font-bold text-charcoal dark:text-slate-100">
+                          ₹{Number(prod.price).toLocaleString('en-IN')}
+                        </span>
+                        <ArrowRight className="h-4 w-4 text-charcoal-lighter group-hover:translate-x-0.5 group-hover:text-brand-500 transition-all" />
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

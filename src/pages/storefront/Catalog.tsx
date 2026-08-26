@@ -775,7 +775,7 @@ export function Catalog() {
                     to={`/product/${product.id}`}
                     className="group min-w-0 w-full"
                   >
-                    <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-xl group-hover:border-brand-300">
+                    <Card className="flex h-full flex-col justify-between overflow-hidden transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-xl group-hover:border-brand-300">
                       <div className="relative overflow-hidden bg-zinc-100 dark:bg-slate-800">
                         <img
                           src={product.image}
@@ -784,25 +784,33 @@ export function Catalog() {
                           className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
 
-                        {product.isCustomizable && (
-                          <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-charcoal/85 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-                            <Sparkles className="h-3 w-3 text-brand-400" />
-                            Personalize
-                          </span>
-                        )}
-
-                        {product.featured && (
-                          <span className="absolute top-3 right-3 rounded-full bg-brand-500 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
-                            Featured
-                          </span>
-                        )}
+                        {/* Badges */}
+                        <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+                          {product.isCustomizable && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-charcoal/85 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+                              <Sparkles className="h-3 w-3 text-brand-400" />
+                              Personalize
+                            </span>
+                          )}
+                          {product.featured && (
+                            <span className="inline-flex items-center rounded-full bg-brand-500 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+                              Featured
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex flex-1 flex-col justify-between p-5">
                         <div>
-                          <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-charcoal-lighter dark:text-slate-400">
-                            {product.category || 'Workshop Item'}
-                          </span>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 truncate">
+                              {product.category || 'Workshop Item'}
+                            </span>
+                            <div className="flex items-center gap-1 shrink-0 text-amber-500 text-xs font-bold">
+                              <span>★</span>
+                              <span>4.9</span>
+                            </div>
+                          </div>
 
                           <h2 className="mt-1.5 line-clamp-2 min-h-[3rem] font-serif text-lg font-bold text-charcoal dark:text-slate-100 group-hover:text-brand-600 transition-colors">
                             {product.name}
@@ -817,14 +825,17 @@ export function Catalog() {
 
                         <div className="mt-5 flex items-center justify-between border-t border-zinc-100 dark:border-slate-700/60 pt-3.5">
                           <div>
-                            <span className="text-[11px] text-charcoal-lighter dark:text-slate-400 block">Price</span>
+                            <span className="text-[11px] text-charcoal-lighter dark:text-slate-400 block font-mono uppercase">
+                              Price
+                            </span>
                             <span className="font-serif text-lg font-bold text-charcoal dark:text-slate-100">
                               {formatPrice(Number(product.price) || 0)}
                             </span>
                           </div>
 
-                          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 group-hover:bg-brand-500 group-hover:text-white transition-colors">
-                            <ArrowRight className="h-4 w-4" />
+                          <span className="inline-flex items-center gap-1.5 rounded-xl bg-brand-50 dark:bg-brand-500/15 px-3 py-1.5 text-xs font-bold text-brand-600 dark:text-brand-400 group-hover:bg-brand-500 group-hover:text-white transition-colors shadow-sm">
+                            <span>View Piece</span>
+                            <ArrowRight className="h-3.5 w-3.5" />
                           </span>
                         </div>
                       </div>

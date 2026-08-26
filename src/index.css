@@ -194,6 +194,8 @@ p {
 .font-display {
   font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont,
     'Segoe UI', sans-serif;
+}
+
 .font-sans {
   font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont,
     'Segoe UI', sans-serif;
@@ -592,13 +594,32 @@ input[type='number'] {
   }
 }
 
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 24s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .announcement-track {
+  .announcement-track,
+  .animate-marquee {
     animation: none;
   }
 
   .announcement-copy:last-child {
     display: none;
   }
-}
 }

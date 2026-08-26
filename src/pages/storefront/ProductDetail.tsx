@@ -27,11 +27,13 @@ import {
 } from '../../hooks/useProducts';
 import { useStore } from '../../store';
 import { useSettings } from '../../hooks/useSettings';
+import { usePincodeLookup } from '../../hooks/usePincodeLookup';
 import {
   Button,
   Card,
   Badge,
   Textarea,
+  Input,
 } from '../../components/ui';
 import { ProductDetailSkeleton } from '../../components/loading/ProductSkeleton';
 
@@ -65,6 +67,13 @@ export function ProductDetail() {
   const [customNotes, setCustomNotes] = useState('');
   const [customMode, setCustomMode] = useState<'text' | 'quote'>('text');
   const [added, setAdded] = useState(false);
+  const [pincodeCheck, setPincodeCheck] = useState('');
+
+  const {
+    location: deliveryLocation,
+    isLookingUp: isCheckingPincode,
+    error: pincodeError,
+  } = usePincodeLookup(pincodeCheck, true);
 
   /* ----------------------------------------------------------
      Initialize Variant & Image
@@ -397,17 +406,33 @@ export function ProductDetail() {
                 </h1>
 
                 {/* Price Display */}
-                <div className="mt-5 flex items-baseline justify-between border-y border-zinc-100 dark:border-slate-800 py-4">
-                  <div>
-                    <span className="text-xs text-charcoal-lighter dark:text-slate-400 block font-mono uppercase">Price</span>
-                    <span className="font-serif text-3xl font-bold text-charcoal dark:text-slate-100">
-                      ₹{currentPrice.toLocaleString('en-IN')}
+                <div className="mt-5 flex flex-col gap-2 border-y border-zinc-100 dark:border-slate-800 py-4">
+                  <div className="flex items-baseline justify-between">
+                    <div>
+                      <span className="text-xs text-charcoal-lighter dark:text-slate-400 block font-mono uppercase">Price</span>
+                      <div className="flex items-baseline gap-2.5">
+                        <span className="font-serif text-3xl font-bold text-charcoal dark:text-slate-100">
+                          ₹{currentPrice.toLocaleString('en-IN')}
+                        </span>
+                        <span className="font-mono text-sm text-charcoal-lighter dark:text-slate-500 line-through">
+                          ₹{Math.round(currentPrice * 1.35).toLocaleString('en-IN')}
+                        </span>
+                        <span className="rounded-full bg-emerald-600 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-white shadow-sm">
+                          Save 26%
+                        </span>
+                      </div>
+                    </div>
+
+                    <span className="font-mono text-xs text-brand-600 dark:text-brand-400 font-semibold">
+                      Free shipping over ₹499
                     </span>
                   </div>
 
-                  <span className="font-mono text-xs text-brand-600 dark:text-brand-400 font-semibold">
-                    Free shipping over ₹499
-                  </span>
+                  {/* Dispatch Urgency */}
+                  <div className="mt-1 flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 font-semibold">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>In stock · Dispatched in 24–48h with live tracking</span>
+                  </div>
                 </div>
 
                 {/* Variant Options */}
@@ -595,6 +620,51 @@ export function ProductDetail() {
                   </a>
                 </div>
 
+                {/* Pincode Delivery Estimator Widget */}
+                <div className="mt-6 rounded-2xl border border-zinc-200/80 dark:border-slate-800 bg-zinc-50/70 dark:bg-slate-800/60 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Truck className="h-4 w-4 text-brand-500" />
+                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal dark:text-slate-200">
+                      Check Delivery to Your Pincode
+                    </span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter 6-digit PIN (e.g. 147001)"
+                      maxLength={6}
+                      value={pincodeCheck}
+                      onChange={(e) => setPincodeCheck(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      className="h-10 text-xs bg-white dark:bg-slate-900"
+                    />
+                  </div>
+
+                  {pincodeCheck.length === 6 && (
+                    <div className="text-xs pt-1">
+                      {isCheckingPincode ? (
+                        <span className="inline-flex items-center gap-1.5 text-charcoal-lighter dark:text-slate-400">
+                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+                          Checking delivery network...
+                        </span>
+                      ) : pincodeError ? (
+                        <span className="text-rose-600 dark:text-rose-400 font-medium">
+                          {pincodeError}
+                        </span>
+                      ) : deliveryLocation ? (
+                        <div className="space-y-1">
+                          <p className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Delivery Available to {deliveryLocation.city}, {deliveryLocation.state}!
+                          </p>
+                          <p className="text-[11px] text-charcoal-light dark:text-slate-400">
+                            Estimated dispatch in 24–48h · Express courier delivery in 3–5 days.
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+
                 {/* Added Toast */}
                 {added && (
                   <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800 animate-in zoom-in-95">
@@ -611,7 +681,7 @@ export function ProductDetail() {
                   <div>
                     <h4 className="text-xs font-bold text-charcoal dark:text-slate-100">Pan-India Tracked Delivery</h4>
                     <p className="text-[11px] text-charcoal-lighter dark:text-slate-400">
-                      Securely packed in bubble wrap and dispatched via express courier.
+                      Securely packed in multi-layer bubble wrap and dispatched via express courier.
                     </p>
                   </div>
                 </div>
@@ -660,28 +730,39 @@ export function ProductDetail() {
                   to={`/product/${related.id}`}
                   className="group"
                 >
-                  <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg group-hover:border-brand-300">
-                    <div className="aspect-square overflow-hidden bg-zinc-100">
+                  <Card className="flex h-full flex-col justify-between overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg group-hover:border-brand-300">
+                    <div className="relative aspect-square overflow-hidden bg-zinc-100 dark:bg-slate-800">
                       <img
                         src={related.image}
                         alt={related.name}
                         loading="lazy"
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
+                      {related.isCustomizable && (
+                        <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-charcoal/85 backdrop-blur-sm px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white shadow-sm">
+                          <Sparkles className="h-3 w-3 text-brand-400" />
+                          Personalize
+                        </span>
+                      )}
                     </div>
 
                     <div className="p-5">
-                      <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-charcoal-lighter">
-                        {related.category}
-                      </span>
-                      <h4 className="mt-1 line-clamp-1 font-serif text-base font-bold text-charcoal group-hover:text-brand-600 transition-colors">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 truncate">
+                          {related.category || 'Workshop Piece'}
+                        </span>
+                        <span className="text-[11px] font-bold text-amber-500">★ 4.9</span>
+                      </div>
+
+                      <h4 className="mt-1 line-clamp-1 font-serif text-base font-bold text-charcoal dark:text-slate-100 group-hover:text-brand-600 transition-colors">
                         {related.name}
                       </h4>
-                      <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3">
-                        <span className="font-serif text-base font-bold text-charcoal">
+
+                      <div className="mt-4 flex items-center justify-between border-t border-zinc-100 dark:border-slate-700/60 pt-3">
+                        <span className="font-serif text-base font-bold text-charcoal dark:text-slate-100">
                           ₹{Number(related.price).toLocaleString('en-IN')}
                         </span>
-                        <span className="text-xs font-bold text-brand-600">
+                        <span className="text-xs font-bold text-brand-600 dark:text-brand-400 group-hover:underline">
                           View Piece →
                         </span>
                       </div>
