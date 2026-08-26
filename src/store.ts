@@ -171,7 +171,7 @@ const INITIAL_SETTINGS: Settings = {
   email: '',
   phone: '',
   address:
-    '',
+    'Patiala, Punjab',
 
   shippingFlatRate: 150,
   freeShippingThreshold: 499,
@@ -662,6 +662,24 @@ export const useStore =
       {
         name:
           'shilp-sahayak-store',
+
+        /*
+         * Bumped from the implicit default (0) to 1.
+         *
+         * This clears out any cart AND settings data that was
+         * persisted to a browser's localStorage during earlier
+         * development/testing - including an old default studio
+         * address ("Mumbai, Maharashtra") that no longer applies.
+         * Without this, browsers that visited before this fix would
+         * keep showing that stale cached value forever, since persist
+         * rehydrates from localStorage and overrides the current
+         * source-code default. Runs once per browser; harmless after.
+         */
+        version: 1,
+        migrate: () => ({
+          cart: [],
+          settings: INITIAL_SETTINGS
+        }),
 
         /*
          * Only persist cart and settings.

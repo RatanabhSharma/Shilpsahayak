@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
   Check,
+  ChevronLeft,
   ChevronRight,
   PenTool,
   ShieldCheck,
@@ -117,6 +118,18 @@ export function Home() {
   };
 
   const goToSlide = (index: number) => setSlideIndex(index);
+
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollCategories = (direction: 'left' | 'right') => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    const amount = el.clientWidth * 0.8;
+    el.scrollBy({
+      left: direction === 'left' ? -amount : amount,
+      behavior: 'smooth',
+    });
+  };
 
   const renderHeroButton = (slide: NonNullable<typeof currentSlide>) => {
     if (!slide.buttonText || !slide.buttonLink) return null;
@@ -314,13 +327,6 @@ export function Home() {
             </div>
           ) : (
             <div className="max-w-3xl">
-              <div className="mb-7 flex items-center gap-3">
-                <span className="h-px w-10 bg-[#b4491e]" />
-                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#d9784b]">
-                  Make in India
-                </span>
-              </div>
-
               <h1 className="font-serif text-6xl font-semibold leading-[0.95] tracking-[-0.05em] sm:text-7xl lg:text-8xl">
                 Objects
                 <br />
@@ -335,7 +341,7 @@ export function Home() {
                 <Link to="/catalog" className="inline-flex">
                   <Button
                     size="lg"
-                    className="w-full bg-[#b4491e] px-8 hover:bg-[#963c18] sm:w-auto"
+                    className="w-full rounded-2xl bg-[#b4491e] px-10 py-4 text-sm hover:bg-[#963c18] sm:w-auto"
                   >
                     Explore collection
                     <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
@@ -346,7 +352,7 @@ export function Home() {
                   <Button
                     variant="outline"
                     size="lg"
-                    className="w-full border-[#f7f4ee]/25 bg-transparent px-8 text-[#f7f4ee] hover:bg-[#f7f4ee] hover:text-[#171512] sm:w-auto"
+                    className="w-full rounded-2xl border-[#f7f4ee]/25 bg-transparent px-10 py-4 text-sm text-[#f7f4ee] hover:bg-[#f7f4ee] hover:text-[#171512] sm:w-auto"
                   >
                     Start a custom print
                   </Button>
@@ -494,14 +500,7 @@ export function Home() {
                         {featuredProducts[0].name}
                       </h3>
 
-                      <div className="mt-3 flex items-center justify-between">
-                        <span className="font-serif text-lg">
-                          ₹
-                          {featuredProducts[0].price.toLocaleString(
-                            'en-IN'
-                          )}
-                        </span>
-
+                      <div className="mt-3 flex items-center justify-end">
                         <span className="flex items-center gap-2 text-sm">
                           View piece
                           <ArrowRight
@@ -704,16 +703,39 @@ export function Home() {
               </h2>
             </div>
 
-            <Link
-              to="/catalog"
-              className="inline-flex items-center gap-2 text-sm font-medium text-[#746c63] hover:text-[#b4491e]"
-            >
-              Browse everything
-              <ChevronRight
-                className="h-4 w-4"
-                aria-hidden="true"
-              />
-            </Link>
+            <div className="flex items-center gap-4">
+              {categories.length > 0 && (
+                <div className="hidden items-center gap-2 sm:flex">
+                  <button
+                    type="button"
+                    onClick={() => scrollCategories('left')}
+                    aria-label="Scroll categories left"
+                    className="flex h-9 w-9 items-center justify-center border border-[#ded8ce] text-[#746c63] transition-colors hover:border-[#b4491e] hover:text-[#b4491e]"
+                  >
+                    <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollCategories('right')}
+                    aria-label="Scroll categories right"
+                    className="flex h-9 w-9 items-center justify-center border border-[#ded8ce] text-[#746c63] transition-colors hover:border-[#b4491e] hover:text-[#b4491e]"
+                  >
+                    <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
+              )}
+
+              <Link
+                to="/catalog"
+                className="inline-flex items-center gap-2 text-sm font-medium text-[#746c63] hover:text-[#b4491e]"
+              >
+                Browse everything
+                <ChevronRight
+                  className="h-4 w-4"
+                  aria-hidden="true"
+                />
+              </Link>
+            </div>
           </div>
 
           {isLoading ? (
@@ -725,14 +747,17 @@ export function Home() {
               No categories available yet.
             </div>
           ) : (
-            <div className="mt-9 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <div
+              ref={categoryScrollRef}
+              className="mt-9 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
               {categories.map((category) => (
                 <Link
                   key={category.name}
                   to={`/catalog?category=${encodeURIComponent(
                     category.name
                   )}`}
-                  className="group"
+                  className="group w-[45%] shrink-0 snap-start sm:w-[31%] lg:w-[23%]"
                 >
                   <div className="relative overflow-hidden bg-[#ded8ce]">
                     <img

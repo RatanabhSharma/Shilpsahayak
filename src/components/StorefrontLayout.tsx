@@ -631,11 +631,7 @@ export function StorefrontLayout() {
                 </span>
               </Link>
 
-              <p className="mt-4 text-[15px] text-[#f7f4ee]/40">
-                शिल्प सहायक
-              </p>
-
-              <p className="mt-3 max-w-sm text-[13.5px] leading-relaxed text-[#f7f4ee]/55">
+              <p className="mt-4 max-w-sm text-[13.5px] leading-relaxed text-[#f7f4ee]/55">
                 3D printing, custom manufacturing and
                 physical prototyping — turning digital
                 designs into useful physical objects.
