@@ -29,11 +29,13 @@ export default {
           muted: '#94a3b8',
         },
         surface: {
-          DEFAULT: '#faf9f6', // Warm off-white background
+          DEFAULT: '#f4f2ef', // Soft whitish-grey primary background
           card: '#ffffff',
+          stone: '#ede9e3',
+          muted: '#eae6df',
+          border: '#e2ddd5',
           dark: '#0b0f17',
-          muted: '#f4efe6',
-          lavender: '#f8f7ff',
+          lavender: '#f6f4f2',
         },
         charcoal: {
           DEFAULT: '#18181b',

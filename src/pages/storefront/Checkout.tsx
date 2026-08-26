@@ -273,7 +273,7 @@ export function Checkout() {
      ------------------------------------------------------------ */
   if (isSuccess) {
     return (
-      <div className="min-h-[75vh] bg-[#faf9f6] flex items-center justify-center px-5 py-16">
+      <div className="min-h-[75vh] bg-[#f4f2ef] flex items-center justify-center px-5 py-16">
         <div className="mx-auto max-w-lg rounded-3xl border border-emerald-200 bg-white p-8 sm:p-10 text-center shadow-xl">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
             <CheckCircle2 className="h-10 w-10" />
@@ -331,7 +331,7 @@ export function Checkout() {
 
   if (authLoading || profileLoading) {
     return (
-      <div className="min-h-[60vh] bg-[#faf9f6] flex flex-col items-center justify-center py-24">
+      <div className="min-h-[60vh] bg-[#f4f2ef] flex flex-col items-center justify-center py-24">
         <Loader2 className="h-10 w-10 animate-spin text-brand-500" />
         <p className="mt-4 text-sm font-semibold text-charcoal">Loading checkout details...</p>
       </div>
@@ -340,7 +340,7 @@ export function Checkout() {
 
   if (!user) {
     return (
-      <div className="min-h-[70vh] bg-[#faf9f6] flex items-center justify-center px-5 py-20">
+      <div className="min-h-[70vh] bg-[#f4f2ef] flex items-center justify-center px-5 py-20">
         <div className="mx-auto max-w-md rounded-3xl border border-zinc-200 bg-white p-8 text-center shadow-lg">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
             <Lock className="h-7 w-7" />
@@ -367,7 +367,7 @@ export function Checkout() {
 
   if (cart.length === 0) {
     return (
-      <div className="min-h-[70vh] bg-[#faf9f6] flex items-center justify-center px-5 py-20">
+      <div className="min-h-[70vh] bg-[#f4f2ef] flex items-center justify-center px-5 py-20">
         <div className="mx-auto max-w-md text-center">
           <h1 className="font-serif text-3xl font-bold text-charcoal">
             Your cart is empty
@@ -384,7 +384,7 @@ export function Checkout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#faf9f6] text-charcoal">
+    <div className="min-h-screen bg-[#f4f2ef] text-charcoal">
       {/* Checkout Header */}
       <section className="border-b border-zinc-200/80 bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10">

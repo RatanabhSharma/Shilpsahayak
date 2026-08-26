@@ -51,7 +51,7 @@ export function Cart() {
 
   if (cart.length === 0) {
     return (
-      <div className="min-h-[75vh] bg-[#faf9f6] flex items-center justify-center px-5 py-16">
+      <div className="min-h-[75vh] bg-[#f4f2ef] flex items-center justify-center px-5 py-16">
         <div className="mx-auto max-w-lg rounded-3xl border border-zinc-200 bg-white p-8 sm:p-10 text-center shadow-lg">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
             <ShoppingBag className="h-8 w-8" />
@@ -88,7 +88,7 @@ export function Cart() {
   }
 
   return (
-    <div className="min-h-screen bg-[#faf9f6] text-charcoal">
+    <div className="min-h-screen bg-[#f4f2ef] text-charcoal">
       {/* Header */}
       <section className="border-b border-zinc-200/80 bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10">

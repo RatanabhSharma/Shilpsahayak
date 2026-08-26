@@ -384,7 +384,7 @@ export function CustomService() {
 
   if (authLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-28 bg-[#faf9f6]">
+      <div className="flex flex-col items-center justify-center py-28 bg-[#f4f2ef]">
         <Loader2 className="h-10 w-10 animate-spin text-brand-500" />
         <p className="mt-4 text-sm font-semibold text-charcoal">Checking your account...</p>
       </div>
@@ -393,7 +393,7 @@ export function CustomService() {
 
   if (!user) {
     return (
-      <div className="min-h-[70vh] bg-[#faf9f6] flex items-center justify-center px-5 py-20">
+      <div className="min-h-[70vh] bg-[#f4f2ef] flex items-center justify-center px-5 py-20">
         <div className="mx-auto max-w-md rounded-3xl border border-zinc-200 bg-white p-8 text-center shadow-lg">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
             <Lock className="h-7 w-7" />
@@ -431,7 +431,7 @@ export function CustomService() {
 
   if (profileLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-28 bg-[#faf9f6]">
+      <div className="flex flex-col items-center justify-center py-28 bg-[#f4f2ef]">
         <Loader2 className="h-10 w-10 animate-spin text-brand-500" />
         <p className="mt-4 text-sm font-semibold text-charcoal">Loading your profile...</p>
       </div>
@@ -440,7 +440,7 @@ export function CustomService() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-[70vh] bg-[#faf9f6] flex items-center justify-center px-5 py-20">
+      <div className="min-h-[70vh] bg-[#f4f2ef] flex items-center justify-center px-5 py-20">
         <div className="mx-auto max-w-lg rounded-3xl border border-emerald-200 bg-white p-8 text-center shadow-xl">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
             <CheckCircle2 className="h-9 w-9" />
@@ -483,7 +483,7 @@ export function CustomService() {
   }
 
   return (
-    <div className="min-h-screen bg-[#faf9f6] text-charcoal">
+    <div className="min-h-screen bg-[#f4f2ef] text-charcoal">
       {/* 1. Header Section */}
       <section className="border-b border-zinc-200/80 bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8 lg:px-10 lg:py-12">

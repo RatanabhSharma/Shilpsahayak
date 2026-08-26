@@ -360,7 +360,7 @@ export function Account() {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-[#faf9f6]">
+      <div className="flex min-h-[70vh] items-center justify-center bg-[#f4f2ef]">
         <div className="text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
           <p className="mt-4 font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter">
@@ -373,7 +373,7 @@ export function Account() {
 
   if (!user) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-[#faf9f6] px-5 py-20">
+      <div className="flex min-h-[70vh] items-center justify-center bg-[#f4f2ef] px-5 py-20">
         <div className="max-w-md rounded-3xl border border-zinc-200 bg-white p-8 text-center shadow-lg">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
             <User className="h-7 w-7" />
@@ -405,7 +405,7 @@ export function Account() {
   );
 
   return (
-    <div className="min-h-screen bg-[#faf9f6] text-charcoal">
+    <div className="min-h-screen bg-[#f4f2ef] text-charcoal">
       {/* Account Hero Header */}
       <section className="border-b border-zinc-200/80 bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10">

@@ -593,7 +593,7 @@ export function Dashboard() {
               </p>
             </div>
 
-            <div className="flex gap-4 sm:gap-6 bg-[#faf9f6] p-3 rounded-2xl border border-zinc-100">
+            <div className="flex gap-4 sm:gap-6 bg-[#f4f2ef] p-3 rounded-2xl border border-zinc-100">
               <div>
                 <p className="font-mono text-[9px] uppercase tracking-wider text-charcoal-lighter">
                   Orders
@@ -732,7 +732,7 @@ export function Dashboard() {
           <div className="pt-4 border-t border-zinc-100">
             <Link
               to="/admin/inventory"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-[#faf9f6] py-2.5 font-mono text-xs font-bold text-charcoal hover:bg-zinc-100 transition-colors"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-[#f4f2ef] py-2.5 font-mono text-xs font-bold text-charcoal hover:bg-zinc-100 transition-colors"
             >
               <span>Manage Filament Inventory</span>
               <ArrowUpRight className="h-3.5 w-3.5" />

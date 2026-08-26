@@ -210,7 +210,7 @@ export function StorefrontLayout() {
   const showAdmin = !authLoading && !roleLoading && isAuthenticated && isAdmin;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#faf9f6] text-charcoal">
+    <div className="min-h-screen flex flex-col bg-[#f4f2ef] text-charcoal">
       {/* Accessibility Skip Link */}
       <a
         href="#main-content"
@@ -229,7 +229,7 @@ export function StorefrontLayout() {
         )}
 
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-zinc-200/80 bg-[#faf9f6]/95 backdrop-blur-md transition-shadow">
+      <header className="sticky top-0 z-50 border-b border-zinc-200/80 bg-[#f4f2ef]/95 backdrop-blur-md transition-shadow">
         <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-4 sm:px-6 lg:h-20 lg:px-10">
           {/* Logo */}
           <Link
@@ -366,7 +366,7 @@ export function StorefrontLayout() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="overflow-hidden border-t border-zinc-200 bg-[#faf9f6] lg:hidden"
+              className="overflow-hidden border-t border-zinc-200 bg-[#f4f2ef] lg:hidden"
             >
               <nav
                 aria-label="Mobile navigation"

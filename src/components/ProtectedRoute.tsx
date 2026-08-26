@@ -15,14 +15,14 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   if (loading) {
     return (
       <div
-        className="flex min-h-screen items-center justify-center bg-[#f7f4ee]"
+        className="flex min-h-screen items-center justify-center bg-[#f4f2ef]"
         role="status"
         aria-live="polite"
         aria-label="Checking administrator access"
       >
-        <div className="flex items-center gap-3 text-[#b4491e]">
+        <div className="flex items-center gap-3 text-brand-500">
           <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
-          <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8e8275]">
+          <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-charcoal-lighter">
             Checking access
           </span>
         </div>

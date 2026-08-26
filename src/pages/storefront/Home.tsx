@@ -178,7 +178,7 @@ export function Home() {
   };
 
   return (
-    <div className="bg-[#faf9f6] text-charcoal">
+    <div className="bg-[#f4f2ef] text-charcoal">
       {/* =====================================================
           1. DARK HERO SECTION
       ====================================================== */}
@@ -459,7 +459,7 @@ export function Home() {
       {/* =====================================================
           3. ABOUT SHILP SAHAYAK (3 CORE PILLARS)
       ====================================================== */}
-      <section className="py-20 lg:py-24 bg-[#faf9f6]">
+      <section className="py-20 lg:py-24 bg-[#f4f2ef]">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
           <div className="mx-auto max-w-3xl text-center">
             <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
@@ -710,7 +710,7 @@ export function Home() {
       {/* =====================================================
           6. SHOP BY CATEGORY CAROUSEL
       ====================================================== */}
-      <section className="py-20 lg:py-24 bg-[#faf9f6]">
+      <section className="py-20 lg:py-24 bg-[#f4f2ef]">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>

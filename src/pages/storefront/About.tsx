@@ -45,7 +45,7 @@ const PRINCIPLES = [
 
 export function About() {
   return (
-    <div className="min-h-screen bg-[#faf9f6] text-charcoal">
+    <div className="min-h-screen bg-[#f4f2ef] text-charcoal">
       {/* Hero Header */}
       <section className="border-b border-zinc-200/80 bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10 lg:py-20">
@@ -159,7 +159,7 @@ export function About() {
               return (
                 <div
                   key={cap.title}
-                  className="rounded-3xl border border-zinc-200 bg-[#faf9f6] p-7 transition-all hover:border-brand-300 hover:shadow-md"
+                  className="rounded-3xl border border-zinc-200 bg-[#f4f2ef] p-7 transition-all hover:border-brand-300 hover:shadow-md"
                 >
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 mb-5">
                     <Icon className="h-6 w-6" />
@@ -215,7 +215,7 @@ export function About() {
       {/* Call to Action Banner */}
       <section className="bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10">
-          <div className="rounded-3xl border border-zinc-200 bg-[#faf9f6] p-8 sm:p-12 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+          <div className="rounded-3xl border border-zinc-200 bg-[#f4f2ef] p-8 sm:p-12 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
             <div className="max-w-2xl">
               <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
                 Ready to Fabricate?

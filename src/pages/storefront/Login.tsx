@@ -221,7 +221,7 @@ export function Login() {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-[#faf9f6]">
+      <div className="flex min-h-screen w-full items-center justify-center bg-[#f4f2ef]">
         <div className="text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
           <p className="mt-4 font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter">
@@ -238,7 +238,7 @@ export function Login() {
   const isForgot = mode === 'forgot';
 
   return (
-    <div className="grid min-h-screen w-full lg:grid-cols-12 bg-[#faf9f6]">
+    <div className="grid min-h-screen w-full lg:grid-cols-12 bg-[#f4f2ef]">
       {/* Left Dark Showcase Column */}
       <div className="relative hidden overflow-hidden bg-[#0b0f17] text-white lg:col-span-5 lg:flex lg:flex-col lg:justify-between p-12 xl:p-16 border-r border-zinc-800">
         <div className="absolute inset-0 opacity-20 pointer-events-none">

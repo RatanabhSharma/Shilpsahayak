@@ -114,7 +114,7 @@ html {
 body {
   margin: 0;
   min-width: 320px;
-  background-color: #faf9f6;
+  background-color: #f4f2ef;
   color: #18181b;
   font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont,
     'Segoe UI', sans-serif;
@@ -229,23 +229,23 @@ p {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f4efe6;
+  background: #ede9e3;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d4ccbe;
+  background: #d0c9bd;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a89f8f;
+  background: #b5ac9d;
 }
 
 /* Firefox */
 
 html {
   scrollbar-width: thin;
-  scrollbar-color: #d4ccbe #f4efe6;
+  scrollbar-color: #d0c9bd #ede9e3;
 }
 
 /* =========================================================
@@ -325,7 +325,11 @@ html {
    ========================================================= */
 
 .surface-paper {
-  background-color: #faf9f6;
+  background-color: #f4f2ef;
+}
+
+.surface-stone {
+  background-color: #ede9e3;
 }
 
 .surface-white {
@@ -338,7 +342,7 @@ html {
 }
 
 .surface-muted {
-  background-color: #f4efe6;
+  background-color: #eae6df;
 }
 
 /* =========================================================

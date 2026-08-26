@@ -364,7 +364,7 @@ export function Catalog() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#faf9f6]">
+      <div className="min-h-screen bg-[#f4f2ef]">
         <div className="mx-auto max-w-[1440px] px-5 py-12 sm:px-8 lg:px-10">
           <div className="max-w-2xl space-y-3">
             <div className="h-4 w-24 rounded-full bg-zinc-200 animate-pulse" />
@@ -382,7 +382,7 @@ export function Catalog() {
 
   if (isError) {
     return (
-      <div className="min-h-[60vh] bg-[#faf9f6] flex items-center justify-center px-5">
+      <div className="min-h-[60vh] bg-[#f4f2ef] flex items-center justify-center px-5">
         <div className="max-w-md text-center">
           <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
             Catalog Error
@@ -502,7 +502,7 @@ export function Catalog() {
   );
 
   return (
-    <div className="min-h-screen bg-[#faf9f6] text-charcoal">
+    <div className="min-h-screen bg-[#f4f2ef] text-charcoal">
       {/* Slider Styles */}
       <style>
         {`

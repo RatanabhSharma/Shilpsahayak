@@ -69,7 +69,7 @@ export function AdminLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-[#faf9f6] flex text-charcoal">
+    <div className="min-h-screen bg-[#f4f2ef] flex text-charcoal">
       {/* Mobile sidebar overlay */}
       {isSidebarOpen && (
         <div

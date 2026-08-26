@@ -186,7 +186,7 @@ export function ProductDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-[70vh] bg-[#faf9f6]">
+      <div className="min-h-[70vh] bg-[#f4f2ef]">
         <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10 lg:py-20">
           <ProductDetailSkeleton />
         </div>
@@ -196,7 +196,7 @@ export function ProductDetail() {
 
   if (isError || !product) {
     return (
-      <div className="min-h-[60vh] bg-[#faf9f6] flex items-center justify-center px-5 py-20">
+      <div className="min-h-[60vh] bg-[#f4f2ef] flex items-center justify-center px-5 py-20">
         <div className="max-w-md text-center">
           <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
             Product Not Found
@@ -219,7 +219,7 @@ export function ProductDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-[#faf9f6] text-charcoal">
+    <div className="min-h-screen bg-[#f4f2ef] text-charcoal">
       {/* Breadcrumbs */}
       <div className="border-b border-zinc-200/80 bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-3.5 sm:px-8 lg:px-10">
