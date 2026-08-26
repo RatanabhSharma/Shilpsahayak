@@ -16,12 +16,20 @@ export type UserAddress = {
   pincode: string;
 };
 
+export type AddressHistoryItem = {
+  id: string;
+  address: UserAddress;
+  updatedAt: string;
+  label?: string;
+};
+
 export type UserProfile = {
   uid: string;
   name: string;
   email: string;
   phone: string;
   address: UserAddress;
+  addressHistory?: AddressHistoryItem[];
   role: 'customer' | 'admin';
   createdAt?: unknown;
   updatedAt?: unknown;
@@ -32,7 +40,7 @@ const emptyAddress: UserAddress = {
   line2: '',
   city: '',
   state: '',
-  pincode: ''
+  pincode: '',
 };
 
 export function useUserProfile() {
@@ -53,9 +61,9 @@ export function useUserProfile() {
 
       return {
         uid: user.uid,
-        ...snapshot.data()
+        ...snapshot.data(),
       } as UserProfile;
-    }
+    },
   });
 }
 
@@ -64,6 +72,7 @@ export type EditableCustomerProfile = {
   email: string;
   phone: string;
   address: UserAddress;
+  addressHistory?: AddressHistoryItem[];
 };
 
 export function useSaveUserProfile() {
@@ -71,43 +80,67 @@ export function useSaveUserProfile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (
-      profile: EditableCustomerProfile
-    ) => {
+    mutationFn: async (profile: EditableCustomerProfile) => {
       if (!user) {
         throw new Error('You must be logged in.');
       }
 
       const ref = doc(db, 'users', user.uid);
       const existing = await getDoc(ref);
+      const existingData = existing.exists() ? existing.data() : null;
+
+      let history: AddressHistoryItem[] =
+        profile.addressHistory ||
+        (Array.isArray(existingData?.addressHistory)
+          ? (existingData?.addressHistory as AddressHistoryItem[])
+          : []);
+
+      if (existingData?.address?.line1 && existingData?.address?.city) {
+        const oldAddr = existingData.address as UserAddress;
+        const newAddr = profile.address;
+        const isDifferent =
+          oldAddr.line1 !== newAddr.line1 ||
+          oldAddr.line2 !== newAddr.line2 ||
+          oldAddr.city !== newAddr.city ||
+          oldAddr.state !== newAddr.state ||
+          oldAddr.pincode !== newAddr.pincode;
+
+        if (isDifferent && !profile.addressHistory) {
+          const newHistoryItem: AddressHistoryItem = {
+            id: `addr-${Date.now()}`,
+            address: { ...oldAddr },
+            updatedAt: new Date().toISOString(),
+            label: `${oldAddr.city}, ${oldAddr.state}`,
+          };
+          history = [newHistoryItem, ...history.slice(0, 9)];
+        }
+      }
 
       await setDoc(
         ref,
         {
           ...profile,
+          addressHistory: history,
           uid: user.uid,
-          role: existing.exists()
-            ? existing.data().role || 'customer'
-            : 'customer',
+          role: existingData?.role || 'customer',
           updatedAt: serverTimestamp(),
-          ...(existing.exists()
-            ? {}
-            : { createdAt: serverTimestamp() })
+          ...(existing.exists() ? {} : { createdAt: serverTimestamp() }),
         },
         { merge: true }
       );
 
       return {
         uid: user.uid,
-        ...profile
+        ...profile,
+        addressHistory: history,
       };
     },
 
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['userProfile', user?.uid]
+        queryKey: ['userProfile', user?.uid],
       });
-    }
+    },
   });
 }
 

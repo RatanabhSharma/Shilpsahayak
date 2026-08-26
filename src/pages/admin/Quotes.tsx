@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, Loader2, FileBox, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
+import { Search, Loader2, FileBox } from 'lucide-react';
 import { Card, Input, Button, Select } from '../../components/ui';
 import {
   useQuotes,

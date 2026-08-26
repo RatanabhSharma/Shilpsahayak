@@ -1,7 +1,6 @@
-import React, {
+import {
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import {
@@ -71,41 +70,44 @@ function AnnouncementBar({
   duration: number;
 }) {
   const cleanMessages = useMemo(
-    () => messages.map((message) => message.trim()).filter(Boolean),
+    () =>
+      messages
+        .map((message) => message.trim())
+        .filter((msg) => msg && !msg.toLowerCase().includes('whatsapp')),
     [messages]
   );
 
-  if (cleanMessages.length === 0) return null;
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  const tickerText = cleanMessages.join('   •   ');
-  const safeDuration = Math.min(Math.max(Number(duration) || 24, 12), 40);
+  useEffect(() => {
+    if (cleanMessages.length <= 1) return;
+    const intervalMs = Math.max(Math.min((duration || 5) * 1000, 12000), 3000);
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % cleanMessages.length);
+    }, intervalMs);
+    return () => clearInterval(timer);
+  }, [cleanMessages.length, duration]);
+
+  if (cleanMessages.length === 0) return null;
 
   return (
     <div
-      className="relative z-40 overflow-hidden bg-[#b4491e] text-white"
+      className="relative z-40 h-8 overflow-hidden bg-[#b4491e] text-white flex items-center justify-center px-4"
       role="region"
       aria-label="Store announcements"
     >
-      <p className="sr-only">{cleanMessages.join('. ')}</p>
-
-      <div className="announcement-viewport h-7 w-full overflow-hidden sm:h-8">
-        <div
-          className="announcement-track"
-          style={{ animationDuration: `${safeDuration}s` }}
-          aria-hidden="true"
+      <AnimatePresence mode="wait">
+        <motion.p
+          key={currentIndex}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="text-center font-mono text-[9px] font-medium uppercase tracking-[0.16em] sm:text-[10px] text-white/95 truncate"
         >
-          <div className="announcement-copy">
-            <span className="px-6 font-mono text-[9px] font-medium uppercase tracking-[0.16em] sm:px-8 sm:text-[10px]">
-              {tickerText}
-            </span>
-          </div>
-          <div className="announcement-copy">
-            <span className="px-6 font-mono text-[9px] font-medium uppercase tracking-[0.16em] sm:px-8 sm:text-[10px]">
-              {tickerText}
-            </span>
-          </div>
-        </div>
-      </div>
+          {cleanMessages[currentIndex]}
+        </motion.p>
+      </AnimatePresence>
     </div>
   );
 }
@@ -323,7 +325,7 @@ export function StorefrontLayout() {
                   to={item.path}
                   className={({ isActive }) =>
                     [
-                      'relative py-1 text-[13px] transition-colors',
+                      'group relative py-1.5 px-0.5 text-[13.5px] transition-colors duration-150',
                       isActive
                         ? 'font-medium text-[#14120f]'
                         : 'text-[#6b6156] hover:text-[#14120f]',
@@ -332,11 +334,14 @@ export function StorefrontLayout() {
                 >
                   {({ isActive }) => (
                     <>
-                      {item.name}
-
-                      {isActive && (
-                        <span className="absolute -bottom-1 left-0 h-px w-full bg-[#b4491e]" />
-                      )}
+                      <span className="relative z-10">{item.name}</span>
+                      <span
+                        className={`absolute -bottom-0.5 left-0 h-[2px] w-full bg-[#b4491e] transition-transform duration-200 origin-left ${
+                          isActive
+                            ? 'scale-x-100'
+                            : 'scale-x-0 group-hover:scale-x-100 group-hover:bg-[#b4491e]/60'
+                        }`}
+                      />
                     </>
                   )}
                 </NavLink>
@@ -633,7 +638,7 @@ export function StorefrontLayout() {
 
               <p className="mt-4 max-w-sm text-[13.5px] leading-relaxed text-[#f7f4ee]/55">
                 3D printing, custom manufacturing and
-                physical prototyping — turning digital
+                physical prototyping to turn digital
                 designs into useful physical objects.
               </p>
 

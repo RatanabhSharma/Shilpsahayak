@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   ArrowDown,
   ArrowUp,

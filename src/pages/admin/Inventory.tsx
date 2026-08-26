@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Edit2, Check, X, Loader2, ImageIcon } from 'lucide-react';
 import { Card, Badge } from '../../components/ui';
 import { useProducts, useUpdateProduct } from '../../hooks/useProducts';

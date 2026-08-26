@@ -1,15 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
   CheckCircle2,
   Loader2,
   Lock,
-  User,
   MapPin,
   Home,
   ShieldCheck,
-  Pencil,
 } from 'lucide-react';
 
 import { useStore } from '../../store';
@@ -23,7 +21,6 @@ import {
   Button,
   Input,
   Textarea,
-  Card,
   Select,
 } from '../../components/ui';
 

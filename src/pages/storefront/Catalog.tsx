@@ -37,12 +37,12 @@ function formatPrice(value: number) {
 
 function getPriceCeiling(price: number) {
   if (price <= 0) {
-    return 5000;
+    return 15000;
   }
 
   return Math.max(
-    5000,
-    Math.ceil(price / PRICE_STEP) * PRICE_STEP
+    15000,
+    Math.ceil(price / 1000) * 1000
   );
 }
 
@@ -72,10 +72,13 @@ export function Catalog() {
     useState(0);
 
   const [maxPrice, setMaxPrice] =
-    useState(5000);
+    useState(15000);
 
-  const categoryFilter =
-    searchParams.get('category');
+  const selectedCategories = useMemo(() => {
+    const param = searchParams.get('category');
+    if (!param) return [];
+    return param.split(',').map((c) => decodeURIComponent(c.trim())).filter(Boolean);
+  }, [searchParams]);
 
   const occasionFilter =
     searchParams.get('occasion');
@@ -202,12 +205,13 @@ export function Catalog() {
     }
 
     /*
-     * Category
+     * Category (multi-select supported)
      */
-    if (categoryFilter) {
+    if (selectedCategories.length > 0) {
       result = result.filter(
         (product) =>
-          product.category === categoryFilter
+          product.category &&
+          selectedCategories.includes(product.category)
       );
     }
 
@@ -301,7 +305,7 @@ export function Catalog() {
     return result;
   }, [
     activeProducts,
-    categoryFilter,
+    selectedCategories,
     occasionFilter,
     searchQuery,
     selectedMaterials,
@@ -334,12 +338,15 @@ export function Catalog() {
     setSearchParams(nextParams);
   };
 
-  const handleCategoryChange = (
-    category: string | null
-  ) => {
+  const toggleCategory = (category: string) => {
+    const current = selectedCategories;
+    const next = current.includes(category)
+      ? current.filter((c) => c !== category)
+      : [...current, category];
+
     updateSearchParam(
       'category',
-      category
+      next.length > 0 ? next.join(',') : null
     );
   };
 
@@ -447,13 +454,12 @@ export function Catalog() {
       remove: () => void;
     }> = [];
 
-    if (categoryFilter) {
+    selectedCategories.forEach((category) => {
       chips.push({
-        label: categoryFilter,
-        remove: () =>
-          handleCategoryChange(null),
+        label: category,
+        remove: () => toggleCategory(category),
       });
-    }
+    });
 
     if (occasionFilter) {
       chips.push({
@@ -506,7 +512,7 @@ export function Catalog() {
 
     return chips;
   }, [
-    categoryFilter,
+    selectedCategories,
     occasionFilter,
     selectedMaterials,
     minPrice,
@@ -601,17 +607,8 @@ export function Catalog() {
           <CheckboxFilter
             key={category.name}
             label={`${category.name} (${category.count})`}
-            checked={
-              categoryFilter === category.name
-            }
-            onChange={() =>
-              handleCategoryChange(
-                categoryFilter ===
-                  category.name
-                  ? null
-                  : category.name
-              )
-            }
+            checked={selectedCategories.includes(category.name)}
+            onChange={() => toggleCategory(category.name)}
           />
         ))}
       </FilterGroup>

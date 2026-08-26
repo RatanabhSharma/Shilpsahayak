@@ -1425,6 +1425,70 @@ export function Account() {
                   </>
                 )}
               </Card>
+
+              {/* ========================================================= */}
+              {/* ADDRESS CHANGE HISTORY                                   */}
+              {/* ========================================================= */}
+              <div className="mt-8 border-t border-[#d9d2c7] pt-8">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8e8275]">
+                      Address log
+                    </p>
+                    <h3 className="mt-1 font-display text-[18px] font-semibold text-[#14120f]">
+                      Address Change History
+                    </h3>
+                  </div>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#8e8275]">
+                    {profile?.addressHistory?.length || 0} record(s)
+                  </span>
+                </div>
+
+                {profile?.addressHistory && profile.addressHistory.length > 0 ? (
+                  <div className="mt-4 space-y-3">
+                    {profile.addressHistory.map((item, idx) => (
+                      <div
+                        key={item.id || idx}
+                        className="flex flex-col justify-between gap-4 border border-[#e5dfd5] bg-white p-4 sm:flex-row sm:items-center"
+                      >
+                        <div>
+                          <p className="text-[13px] font-medium text-[#14120f]">
+                            {item.address.line1}
+                            {item.address.line2 ? `, ${item.address.line2}` : ''}
+                            {item.address.city ? `, ${item.address.city}` : ''}
+                            {item.address.state ? `, ${item.address.state}` : ''}
+                            {item.address.pincode ? ` - ${item.address.pincode}` : ''}
+                          </p>
+                          <p className="mt-1 font-mono text-[9px] text-[#8e8275]">
+                            Saved on{' '}
+                            {new Date(item.updatedAt).toLocaleDateString('en-IN', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setProfileAddress({ ...item.address });
+                            setIsAddressEditing(true);
+                          }}
+                          disabled={saveUserProfile.isPending}
+                          className="shrink-0"
+                        >
+                          Use this address
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-[13px] leading-6 text-[#8e8275]">
+                    No previous address changes recorded yet. When you update your address, your previous addresses will be logged here.
+                  </p>
+                )}
+              </div>
             </div>
           )}
 

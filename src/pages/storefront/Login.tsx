@@ -24,7 +24,7 @@ type LoginLocationState = {
   };
 };
 
-type AuthMode = 'login' | 'signup';
+type AuthMode = 'login' | 'signup' | 'forgot';
 
 function getFirebaseErrorMessage(error: unknown): string {
   const firebaseError = error as { code?: string; message?: string };
@@ -100,7 +100,6 @@ export function Login() {
 
   const [mode, setMode] = useState<AuthMode>('login');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -121,7 +120,6 @@ export function Login() {
   useEffect(() => {
     if (user && profile === null) {
       // Profile creation is handled during registration.
-      // This branch intentionally does not redirect or overwrite data.
     }
   }, [user, profile]);
 
@@ -130,27 +128,25 @@ export function Login() {
     setSuccess('');
   };
 
-  const switchMode = () => {
+  const switchMode = (newMode?: AuthMode) => {
     clearMessages();
     setPasswordValue('');
     setConfirmPasswordValue('');
     setShowPassword(false);
     setShowConfirmPassword(false);
 
-    setMode((current) => (current === 'login' ? 'signup' : 'login'));
+    if (newMode) {
+      setMode(newMode);
+    } else {
+      setMode((current) => (current === 'login' ? 'signup' : 'login'));
+    }
   };
 
-  const handleForgotPassword = async (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-
-    const form = event.currentTarget.form;
-    const formData = form ? new FormData(form) : null;
-    const email = String(formData?.get('email') || '').trim();
-
+  const handleForgotPasswordSubmit = async (email: string) => {
     clearMessages();
 
     if (!email) {
-      setError('Enter your email address first, then select Forgot password.');
+      setError('Please enter your email address.');
       return;
     }
 
@@ -159,31 +155,36 @@ export function Login() {
       return;
     }
 
-    setIsResetting(true);
+    setIsSubmitting(true);
 
     try {
       await resetPassword(email);
       setSuccess(
-        'If an account exists for this email, a password reset link has been sent. Check your inbox and spam folder.'
+        'Password reset link has been sent. Please check your inbox and spam folder.'
       );
     } catch (err: unknown) {
       setError(getFirebaseErrorMessage(err));
     } finally {
-      setIsResetting(false);
+      setIsSubmitting(false);
     }
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (isSubmitting || isResetting) return;
+    if (isSubmitting) return;
 
     clearMessages();
 
     const formData = new FormData(event.currentTarget);
+    const email = String(formData.get('email') || '').trim();
+
+    if (mode === 'forgot') {
+      await handleForgotPasswordSubmit(email);
+      return;
+    }
 
     const name = String(formData.get('name') || '').trim();
-    const email = String(formData.get('email') || '').trim();
     const password = String(formData.get('password') || '');
     const confirmPassword = String(
       formData.get('confirmPassword') || ''
@@ -211,12 +212,7 @@ export function Login() {
     }
 
     if (mode === 'signup') {
-      if (!name) {
-        setError('Please enter your full name.');
-        return;
-      }
-
-      if (name.length < 2) {
+      if (!name || name.length < 2) {
         setError('Please enter your full name.');
         return;
       }
@@ -274,6 +270,7 @@ export function Login() {
   if (user) return null;
 
   const isSignup = mode === 'signup';
+  const isForgot = mode === 'forgot';
 
   return (
     <div className="grid min-h-screen w-full lg:grid-cols-2">
@@ -300,132 +297,118 @@ export function Login() {
 
           <div className="max-w-md">
             <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#d9784b]">
-              Since 2019 · Shilp Sahayak
+              Precision 3D Printing & Prototyping
             </p>
-
-            <h1 className="mt-4 font-display text-[42px] font-semibold leading-[1.02] tracking-[-0.04em] text-[#f7f4ee] xl:text-5xl">
-              Your orders,
-              <br />
-              quotes and files,
-              <br />
-              in one place.
-            </h1>
-
-            <p className="mt-6 max-w-md text-[14.5px] leading-7 text-[#f7f4ee]/55">
-              Track your orders, manage saved details and keep your custom
-              printing requests connected to your Shilp Sahayak account.
+            <h2 className="mt-3 font-display text-2xl font-semibold text-[#f7f4ee]">
+              Turn ideas into physical parts.
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-[#f7f4ee]/60">
+              Access your order history, custom print quotes, delivery tracking, and saved settings in one unified dashboard.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span
-              className="h-1.5 w-1.5 rounded-full bg-[#a94b27]"
-              aria-hidden="true"
-            />
-            <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#f7f4ee]/35">
-              Secure Firebase authentication
-            </span>
-          </div>
+          <p className="font-mono text-[8px] uppercase tracking-[0.1em] text-[#f7f4ee]/30">
+            Shilp Sahayak Technologies · Studio Access
+          </p>
         </div>
       </div>
 
-      <div className="flex min-h-screen flex-col bg-[#f7f4ee]">
-        <div className="flex items-center justify-between border-b border-[#ded7cc] px-6 py-4 lg:hidden">
-          <div>
-            <p className="font-display text-lg font-semibold tracking-[-0.02em] text-[#14120f]">
-              Shilp Sahayak
+      <div className="flex min-h-screen items-center justify-center bg-[#f7f4ee] px-5 py-12 sm:px-8 lg:px-12">
+        <div className="w-full max-w-[420px]">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-[#6b6156] transition-colors hover:text-[#14120f]"
+          >
+            <ArrowLeft className="h-3 w-3" aria-hidden="true" />
+            Back to the shop
+          </Link>
+
+          <div className="mt-7">
+            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#a94b27]">
+              {isForgot
+                ? 'Password Recovery'
+                : isSignup
+                ? 'Create account'
+                : 'Customer login'}
             </p>
-            <p className="font-mono text-[8px] uppercase tracking-[0.14em] text-[#8e8275]">
-              Customer account
+
+            <h1 className="mt-3 font-display text-[30px] font-semibold tracking-[-0.035em] text-[#14120f] sm:text-[34px]">
+              {isForgot
+                ? 'Reset your password.'
+                : isSignup
+                ? 'Create an account.'
+                : 'Welcome back.'}
+            </h1>
+
+            <p className="mt-2.5 text-[14px] leading-6 text-[#6b6156]">
+              {isForgot
+                ? "Enter your registered email and we'll send you a secure link to reset your password."
+                : isSignup
+                ? 'Create an account to manage your orders, saved details and custom printing requests.'
+                : 'Sign in to access your orders, profile and saved information.'}
             </p>
           </div>
-        </div>
 
-        <div className="flex flex-1 items-center justify-center px-5 py-12 sm:px-8 lg:px-12 xl:px-20">
-          <div className="w-full max-w-[420px]">
-            <Link
-              to="/"
-              className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-[#6b6156] transition-colors hover:text-[#14120f]"
-            >
-              <ArrowLeft className="h-3 w-3" aria-hidden="true" />
-              Back to the shop
-            </Link>
-
-            <div className="mt-7">
-              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#a94b27]">
-                {isSignup ? 'Create account' : 'Customer login'}
-              </p>
-
-              <h1 className="mt-3 font-display text-[30px] font-semibold tracking-[-0.035em] text-[#14120f] sm:text-[34px]">
-                {isSignup ? 'Create an account.' : 'Welcome back.'}
-              </h1>
-
-              <p className="mt-2.5 text-[14px] leading-6 text-[#6b6156]">
-                {isSignup
-                  ? 'Create an account to manage your orders, saved details and custom printing requests.'
-                  : 'Sign in to access your orders, profile and saved information.'}
-              </p>
-            </div>
-
-            <Card className="mt-7 border-[#d9d2c7] bg-white p-6 shadow-[0_8px_30px_rgba(20,18,15,0.05)] sm:p-7">
-              <form onSubmit={handleSubmit} noValidate className="space-y-4">
-                {isSignup && (
-                  <div className="relative">
-                    <User
-                      className="pointer-events-none absolute left-3.5 top-[37px] z-10 h-4 w-4 text-[#8e8275]"
-                      aria-hidden="true"
-                    />
-                    <Input
-                      name="name"
-                      type="text"
-                      label="Full Name"
-                      placeholder="Your full name"
-                      autoComplete="name"
-                      required
-                      className="pl-10"
-                    />
-                  </div>
-                )}
-
-                {isSignup && (
-                  <div className="relative">
-                    <Phone
-                      className="pointer-events-none absolute left-3.5 top-[37px] z-10 h-4 w-4 text-[#8e8275]"
-                      aria-hidden="true"
-                    />
-                    <Input
-                      name="phone"
-                      type="tel"
-                      label="Mobile Number"
-                      placeholder="10-digit mobile number"
-                      autoComplete="tel"
-                      inputMode="numeric"
-                      maxLength={10}
-                      required
-                      className="pl-10"
-                    />
-                  </div>
-                )}
-
+          <Card className="mt-7 border-[#d9d2c7] bg-white p-6 shadow-[0_8px_30px_rgba(20,18,15,0.05)] sm:p-7">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
+              {isSignup && (
                 <div className="relative">
-                  <Mail
+                  <User
                     className="pointer-events-none absolute left-3.5 top-[37px] z-10 h-4 w-4 text-[#8e8275]"
                     aria-hidden="true"
                   />
                   <Input
-                    name="email"
-                    type="email"
-                    label="Email"
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                    inputMode="email"
-                    autoCapitalize="none"
-                    spellCheck={false}
+                    name="name"
+                    type="text"
+                    label="Full Name"
+                    placeholder="Your full name"
+                    autoComplete="name"
                     required
                     className="pl-10"
                   />
                 </div>
+              )}
 
+              {isSignup && (
+                <div className="relative">
+                  <Phone
+                    className="pointer-events-none absolute left-3.5 top-[37px] z-10 h-4 w-4 text-[#8e8275]"
+                    aria-hidden="true"
+                  />
+                  <Input
+                    name="phone"
+                    type="tel"
+                    label="Mobile Number"
+                    placeholder="10-digit mobile number"
+                    autoComplete="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    required
+                    className="pl-10"
+                  />
+                </div>
+              )}
+
+              <div className="relative">
+                <Mail
+                  className="pointer-events-none absolute left-3.5 top-[37px] z-10 h-4 w-4 text-[#8e8275]"
+                  aria-hidden="true"
+                />
+                <Input
+                  name="email"
+                  type="email"
+                  label="Email"
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  inputMode="email"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  required
+                  className="pl-10"
+                />
+              </div>
+
+              {!isForgot && (
                 <div className="relative">
                   <Lock
                     className="pointer-events-none absolute left-3.5 top-[37px] z-10 h-4 w-4 text-[#8e8275]"
@@ -460,158 +443,187 @@ export function Login() {
                     )}
                   </button>
                 </div>
+              )}
 
-                {isSignup && passwordValue && (
-                  <div aria-live="polite" className="-mt-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#8e8275]">
-                        Password strength
-                      </span>
-                      <span className="text-[11px] font-medium text-[#6b6156]">
-                        {passwordStrength.label}
-                      </span>
-                    </div>
-
-                    <div className="mt-2 flex gap-1">
-                      {[1, 2, 3, 4, 5].map((segment) => (
-                        <div
-                          key={segment}
-                          className={`h-1 flex-1 rounded-full transition-colors ${
-                            segment <= passwordStrength.score
-                              ? 'bg-[#a94b27]'
-                              : 'bg-[#e5dfd5]'
-                          }`}
-                        />
-                      ))}
-                    </div>
-
-                    <p className="mt-2 text-[11px] leading-4 text-[#8e8275]">
-                      Use 8+ characters with a mix of letters, numbers and
-                      symbols for a stronger password.
-                    </p>
+              {isSignup && passwordValue && (
+                <div aria-live="polite" className="-mt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#8e8275]">
+                      Password strength
+                    </span>
+                    <span className="text-[11px] font-medium text-[#6b6156]">
+                      {passwordStrength.label}
+                    </span>
                   </div>
-                )}
 
-                {isSignup && (
-                  <div className="relative">
-                    <Lock
-                      className="pointer-events-none absolute left-3.5 top-[37px] z-10 h-4 w-4 text-[#8e8275]"
-                      aria-hidden="true"
-                    />
-                    <Input
-                      name="confirmPassword"
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      label="Confirm Password"
-                      placeholder="Enter your password again"
-                      autoComplete="new-password"
-                      minLength={6}
-                      required
-                      value={confirmPasswordValue}
-                      onChange={(event) =>
-                        setConfirmPasswordValue(event.target.value)
-                      }
-                      className="pr-10 pl-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowConfirmPassword((value) => !value)
-                      }
-                      className="absolute right-3.5 top-[34px] z-10 p-1 text-[#8e8275] transition-colors hover:text-[#14120f]"
-                      aria-label={
-                        showConfirmPassword
-                          ? 'Hide confirm password'
-                          : 'Show confirm password'
-                      }
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="h-4 w-4" aria-hidden="true" />
-                      ) : (
-                        <Eye className="h-4 w-4" aria-hidden="true" />
-                      )}
-                    </button>
+                  <div className="mt-2 flex gap-1">
+                    {[1, 2, 3, 4, 5].map((segment) => (
+                      <div
+                        key={segment}
+                        className={`h-1 flex-1 rounded-full transition-colors ${
+                          segment <= passwordStrength.score
+                            ? 'bg-[#a94b27]'
+                            : 'bg-[#e5dfd5]'
+                        }`}
+                      />
+                    ))}
                   </div>
-                )}
 
-                {!isSignup && (
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={handleForgotPassword}
-                      disabled={isResetting}
-                      className="text-[13px] text-[#a94b27] underline underline-offset-4 transition-colors hover:text-[#14120f] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {isResetting ? 'Sending reset link...' : 'Forgot password?'}
-                    </button>
-                  </div>
-                )}
-
-                {error && (
-                  <div
-                    role="alert"
-                    className="flex items-start gap-3 border border-red-200 bg-red-50 p-3.5 text-sm text-red-700"
-                  >
-                    <AlertCircle
-                      className="mt-0.5 h-4 w-4 shrink-0"
-                      aria-hidden="true"
-                    />
-                    <span className="leading-5">{error}</span>
-                  </div>
-                )}
-
-                {success && (
-                  <div
-                    role="status"
-                    aria-live="polite"
-                    className="flex items-start gap-3 border border-[#cfdcca] bg-[#f1f6ee] p-3.5 text-sm text-[#496044]"
-                  >
-                    <CheckCircle2
-                      className="mt-0.5 h-4 w-4 shrink-0"
-                      aria-hidden="true"
-                    />
-                    <span className="leading-5">{success}</span>
-                  </div>
-                )}
-
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="w-full"
-                  isLoading={isSubmitting}
-                >
-                  {isSignup ? 'Create account' : 'Sign in'}
-                </Button>
-              </form>
-
-              <div className="mt-6 border-t border-[#ebe6dc] pt-5">
-                <div className="flex items-start gap-2.5">
-                  <CheckCircle2
-                    className="mt-0.5 h-4 w-4 shrink-0 text-[#a94b27]"
-                    aria-hidden="true"
-                  />
-                  <p className="text-xs leading-5 text-[#8e8275]">
-                    Authentication is securely handled through Firebase. Your
-                    password is not stored by the Shilp Sahayak application.
+                  <p className="mt-2 text-[11px] leading-4 text-[#8e8275]">
+                    Use 8+ characters with a mix of letters, numbers and
+                    symbols for a stronger password.
                   </p>
                 </div>
-              </div>
-            </Card>
+              )}
 
-            <p className="mt-6 text-[13.5px] text-[#6b6156]">
-              {isSignup ? 'Already have an account?' : 'New to Shilp Sahayak?'}{' '}
-              <button
-                type="button"
-                onClick={switchMode}
-                className="border-b border-[#6b6156] font-medium text-[#14120f] transition-colors hover:border-[#a94b27] hover:text-[#a94b27]"
+              {isSignup && (
+                <div className="relative">
+                  <Lock
+                    className="pointer-events-none absolute left-3.5 top-[37px] z-10 h-4 w-4 text-[#8e8275]"
+                    aria-hidden="true"
+                  />
+                  <Input
+                    name="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    label="Confirm Password"
+                    placeholder="Enter your password again"
+                    autoComplete="new-password"
+                    minLength={6}
+                    required
+                    value={confirmPasswordValue}
+                    onChange={(event) =>
+                      setConfirmPasswordValue(event.target.value)
+                    }
+                    className="pr-10 pl-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowConfirmPassword((value) => !value)
+                    }
+                    className="absolute right-3.5 top-[34px] z-10 p-1 text-[#8e8275] transition-colors hover:text-[#14120f]"
+                    aria-label={
+                      showConfirmPassword
+                        ? 'Hide confirm password'
+                        : 'Show confirm password'
+                    }
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" aria-hidden="true" />
+                    ) : (
+                      <Eye className="h-4 w-4" aria-hidden="true" />
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {!isSignup && !isForgot && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => switchMode('forgot')}
+                    className="text-[13px] text-[#a94b27] underline underline-offset-4 transition-colors hover:text-[#14120f]"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
+
+              {error && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-3 border border-red-200 bg-red-50 p-3.5 text-sm text-red-700"
+                >
+                  <AlertCircle
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <span className="leading-5">{error}</span>
+                </div>
+              )}
+
+              {success && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="flex items-start gap-3 border border-[#cfdcca] bg-[#f1f6ee] p-3.5 text-sm text-[#496044]"
+                >
+                  <CheckCircle2
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <span className="leading-5">{success}</span>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full"
+                isLoading={isSubmitting}
               >
-                {isSignup ? 'Sign in instead' : 'Create one'}
-              </button>
-            </p>
+                {isForgot
+                  ? 'Send reset link'
+                  : isSignup
+                  ? 'Create account'
+                  : 'Sign in'}
+              </Button>
+            </form>
 
-            <p className="mt-6 text-center font-mono text-[8px] uppercase tracking-[0.1em] text-[#9c9184]">
-              Secure customer authentication · Shilp Sahayak
-            </p>
-          </div>
+            <div className="mt-6 border-t border-[#ebe6dc] pt-5">
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2
+                  className="mt-0.5 h-4 w-4 shrink-0 text-[#a94b27]"
+                  aria-hidden="true"
+                />
+                <p className="text-xs leading-5 text-[#8e8275]">
+                  Authentication is securely handled through Firebase. Your
+                  password is not stored by the Shilp Sahayak application.
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <p className="mt-6 text-[13.5px] text-[#6b6156]">
+            {isForgot ? (
+              <>
+                Remembered your password?{' '}
+                <button
+                  type="button"
+                  onClick={() => switchMode('login')}
+                  className="border-b border-[#6b6156] font-medium text-[#14120f] transition-colors hover:border-[#a94b27] hover:text-[#a94b27]"
+                >
+                  Sign in instead
+                </button>
+              </>
+            ) : isSignup ? (
+              <>
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => switchMode('login')}
+                  className="border-b border-[#6b6156] font-medium text-[#14120f] transition-colors hover:border-[#a94b27] hover:text-[#a94b27]"
+                >
+                  Sign in instead
+                </button>
+              </>
+            ) : (
+              <>
+                New to Shilp Sahayak?{' '}
+                <button
+                  type="button"
+                  onClick={() => switchMode('signup')}
+                  className="border-b border-[#6b6156] font-medium text-[#14120f] transition-colors hover:border-[#a94b27] hover:text-[#a94b27]"
+                >
+                  Create one
+                </button>
+              </>
+            )}
+          </p>
+
+          <p className="mt-6 text-center font-mono text-[8px] uppercase tracking-[0.1em] text-[#9c9184]">
+            Secure customer authentication · Shilp Sahayak
+          </p>
         </div>
       </div>
     </div>

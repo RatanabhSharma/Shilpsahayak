@@ -43,7 +43,10 @@ function Button({ children, to, variant = 'primary' }: ButtonProps) {
 }
 
 const IMG = {
-  workshop: '/images/workshop.jpg',
+  workshop:
+    'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&q=80&w=1200',
+  fallback:
+    'https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&q=80&w=1200',
 };
 
 
@@ -139,8 +142,11 @@ export function About() {
               <div className="relative overflow-hidden border border-line-strong bg-ink">
                 <img
                   src={IMG.workshop}
+                  onError={(event) => {
+                    event.currentTarget.src = IMG.fallback;
+                  }}
                   alt="3D printing workshop"
-                  className="h-[320px] w-full object-cover opacity-80 sm:h-[390px]"
+                  className="h-[320px] w-full object-cover opacity-85 sm:h-[390px]"
                 />
 
                 <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-transparent to-transparent" />

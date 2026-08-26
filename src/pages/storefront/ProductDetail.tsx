@@ -64,6 +64,9 @@ export function ProductDetail() {
   const [customNotes, setCustomNotes] =
     useState('');
 
+  const [customMode, setCustomMode] =
+    useState<'text' | 'quote'>('text');
+
   const [added, setAdded] =
     useState(false);
 
@@ -759,42 +762,104 @@ export function ProductDetail() {
               </div>
 
               {/* =================================================
-                  CUSTOM NOTES
+                  CUSTOMISATION WORKFLOW
               ================================================== */}
 
-              {product.isCustomizable && (
-                <div className="mt-6">
-                  <label
-                    htmlFor="custom-notes"
-                    className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#8d847a]"
-                  >
-                    Personalisation notes
-                    <span className="ml-2 text-[#aaa197]">
-                      Optional
+              {product.isCustomizable ? (
+                <div className="mt-6 border border-[#e2b8a5] bg-[#fdfaf7] p-4 sm:p-5">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[#b4491e]" />
+                    <span className="font-mono text-[9px] uppercase tracking-[0.14em] font-semibold text-[#b4491e]">
+                      Customisation Options Available
                     </span>
-                  </label>
+                  </div>
 
-                  <textarea
-                    id="custom-notes"
-                    value={customNotes}
-                    onChange={(event) =>
-                      setCustomNotes(
-                        event.target.value
-                      )
-                    }
-                    placeholder="Name, date, special request..."
-                    rows={4}
-                    className="mt-3 w-full resize-y border border-[#d4cdc2] bg-white px-3.5 py-3 text-sm leading-6 text-[#171512] outline-none transition-colors placeholder:text-[#aaa197] focus:border-[#171512]"
-                  />
+                  <p className="mt-1 text-[13px] text-[#625b53]">
+                    How would you like to personalise this item?
+                  </p>
+
+                  <div className="mt-3.5 grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => setCustomMode('text')}
+                      className={`border p-3 text-left transition-all ${
+                        customMode === 'text'
+                          ? 'border-[#b4491e] bg-white ring-1 ring-[#b4491e]'
+                          : 'border-[#d4cdc2] bg-white/70 hover:border-[#171512]'
+                      }`}
+                    >
+                      <span className="block text-xs font-semibold text-[#171512]">
+                        1. Add Personalised Message
+                      </span>
+                      <span className="mt-0.5 block text-[11px] text-[#746c63]">
+                        Add custom name, date, or inscription
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCustomMode('quote')}
+                      className={`border p-3 text-left transition-all ${
+                        customMode === 'quote'
+                          ? 'border-[#b4491e] bg-white ring-1 ring-[#b4491e]'
+                          : 'border-[#d4cdc2] bg-white/70 hover:border-[#171512]'
+                      }`}
+                    >
+                      <span className="block text-xs font-semibold text-[#171512]">
+                        2. Have a Reference / CAD?
+                      </span>
+                      <span className="mt-0.5 block text-[11px] text-[#746c63]">
+                        Upload your sketch, photo, or 3D file
+                      </span>
+                    </button>
+                  </div>
+
+                  {customMode === 'text' && (
+                    <div className="mt-4 border-t border-[#e2b8a5]/60 pt-3.5">
+                      <label
+                        htmlFor="custom-notes"
+                        className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#8d847a]"
+                      >
+                        Personalisation instructions
+                      </label>
+                      <textarea
+                        id="custom-notes"
+                        value={customNotes}
+                        onChange={(event) =>
+                          setCustomNotes(
+                            event.target.value
+                          )
+                        }
+                        placeholder="e.g. Engrave 'Rahul & Priya · 2026' on base, custom matte black color..."
+                        rows={3}
+                        className="mt-1.5 w-full border border-[#d4cdc2] bg-white px-3.5 py-2.5 text-xs leading-5 text-[#171512] outline-none placeholder:text-[#aaa197] focus:border-[#b4491e]"
+                      />
+                    </div>
+                  )}
+
+                  {customMode === 'quote' && (
+                    <div className="mt-4 border-t border-[#e2b8a5]/60 pt-3.5">
+                      <p className="text-xs leading-relaxed text-[#625b53]">
+                        Have a modified CAD model, drawing, or photo to build a bespoke variant of this piece? Open our engineering quote builder with this product reference.
+                      </p>
+                      <Link
+                        to={`/custom-service?productId=${product.id}${
+                          selectedVariant ? `&variantId=${selectedVariant.id}` : ''
+                        }`}
+                        className="mt-3 inline-flex items-center gap-1.5 border border-[#b4491e] bg-[#b4491e] px-4 py-2.5 text-xs font-medium text-white hover:bg-[#8f3612]"
+                      >
+                        Open Custom Studio for this item →
+                      </Link>
+                    </div>
+                  )}
                 </div>
-              )}
+              ) : null}
 
               {/* =================================================
                   ACTIONS
               ================================================== */}
 
               <div className="mt-6 flex flex-col gap-2.5 sm:flex-row">
-
                 <Button
                   size="lg"
                   disabled={outOfStock}
@@ -815,18 +880,20 @@ export function ProductDetail() {
                     : 'Add to cart'}
                 </Button>
 
-                <Link
-                  to="/custom-service"
-                  className="flex-1"
-                >
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full border-[#bdb5aa] bg-white"
+                {!product.isCustomizable && (
+                  <Link
+                    to="/custom-service"
+                    className="flex-1"
                   >
-                    Request custom print
-                  </Button>
-                </Link>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="w-full border-[#bdb5aa] bg-white"
+                    >
+                      Request custom print
+                    </Button>
+                  </Link>
+                )}
               </div>
 
               {/* =================================================

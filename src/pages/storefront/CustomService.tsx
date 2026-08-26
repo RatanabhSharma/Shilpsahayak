@@ -9,6 +9,7 @@ import {
   Lightbulb,
   Box,
   ShoppingCart,
+  X,
 } from 'lucide-react';
 import {
   Link,
@@ -283,6 +284,9 @@ export function CustomService() {
 
   const [material, setMaterial] =
     useState<MaterialType>('PLA');
+
+  const [infoMaterialModal, setInfoMaterialModal] =
+    useState<MaterialType | null>(null);
 
   const [color, setColor] =
     useState('#FFFFFF');
@@ -1353,52 +1357,63 @@ export function CustomService() {
                       material ===
                       option.id;
 
+                    const meta = MATERIAL_CONFIG[option.id];
+
                     return (
-                      <button
-                        key={
-                          option.id
-                        }
-                        type="button"
-                        onClick={() =>
-                          setMaterial(
-                            option.id
-                          )
-                        }
-                        aria-pressed={
+                      <div
+                        key={option.id}
+                        className={`group relative flex flex-col justify-between border transition-all ${
                           active
-                        }
-                        className={`border p-3.5 text-left transition-colors ${
-                          active
-                            ? 'border-ink bg-white shadow-hair'
+                            ? 'border-ink bg-white ring-1 ring-ink shadow-sm'
                             : 'border-line bg-white hover:border-line-strong'
                         }`}
                       >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setMaterial(
+                              option.id
+                            )
+                          }
+                          aria-pressed={
+                            active
+                          }
+                          className="w-full p-3.5 text-left"
+                        >
+                          <div className="flex items-baseline justify-between gap-2 pr-7">
+                            <span className="font-display text-[15px] font-semibold text-ink">
+                              {option.name}
+                            </span>
 
-                        <div className="flex items-baseline justify-between gap-2">
+                            <span className="font-mono text-2xs font-medium text-ink-500">
+                              ₹{option.rate}/g
+                            </span>
+                          </div>
 
-                          <span className="font-display text-[16px] font-semibold text-ink">
-                            {option.name}
-                          </span>
+                          <p className="mt-1 line-clamp-1 text-[12px] text-ink-600">
+                            {meta?.tagline || `Density ${option.density} g/cc`}
+                          </p>
 
-                          <span className="font-mono text-2xs text-ink-500">
-                            ₹
-                            {
-                              option.rate
-                            }
-                            /g
-                          </span>
+                          <div className="mt-2 flex items-center gap-2 font-mono text-[10px] text-ink-500">
+                            <span>{meta?.strength.split('·')[0] || 'Standard'}</span>
+                            <span>·</span>
+                            <span>{meta?.heatResistance || 'Up to 55°C'}</span>
+                          </div>
+                        </button>
 
-                        </div>
-
-                        <p className="mt-1 text-[12.5px] text-ink-600">
-                          Density{' '}
-                          {
-                            option.density
-                          }{' '}
-                          g/cc
-                        </p>
-
-                      </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setInfoMaterialModal(option.id);
+                          }}
+                          title={`Learn more about ${option.name}`}
+                          aria-label={`Learn more about ${option.name}`}
+                          className="absolute right-2.5 top-2.5 flex h-6 w-6 items-center justify-center rounded-full border border-line-strong/60 bg-paper-light text-ink-500 transition-colors hover:border-ink hover:bg-white hover:text-ink"
+                        >
+                          <span className="font-serif text-[11px] font-bold italic">i</span>
+                        </button>
+                      </div>
                     );
                   }
                 )}
@@ -1863,6 +1878,112 @@ export function CustomService() {
 
       </section>
 
+      {/* ================================================================== */}
+      {/* MATERIAL INFO MODAL                                                */}
+      {/* ================================================================== */}
+      {infoMaterialModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="material-modal-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
+          onClick={() => setInfoMaterialModal(null)}
+        >
+          <div
+            className="relative w-full max-w-lg border border-line-strong bg-white p-6 shadow-2xl sm:p-7"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="label-tech text-clay-600">
+                  Material Guide
+                </span>
+                <h3
+                  id="material-modal-title"
+                  className="mt-1 font-display text-2xl font-semibold text-ink"
+                >
+                  {MATERIAL_CONFIG[infoMaterialModal].label}
+                </h3>
+                <p className="text-xs text-ink-600">
+                  {MATERIAL_CONFIG[infoMaterialModal].tagline}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setInfoMaterialModal(null)}
+                className="p-1.5 text-ink-500 transition-colors hover:text-ink"
+                aria-label="Close material guide"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="mt-4 text-[13.5px] leading-relaxed text-ink-700">
+              {MATERIAL_CONFIG[infoMaterialModal].description}
+            </p>
+
+            <div className="mt-5 divide-y divide-line border-y border-line text-xs">
+              <div className="flex justify-between py-2.5">
+                <span className="text-ink-500">Price Rate</span>
+                <span className="font-mono font-medium text-ink">
+                  ₹{MATERIAL_CONFIG[infoMaterialModal].pricePerGram} / gram
+                </span>
+              </div>
+              <div className="flex justify-between py-2.5">
+                <span className="text-ink-500">Density</span>
+                <span className="font-mono text-ink">
+                  {MATERIAL_CONFIG[infoMaterialModal].density} g/cm³
+                </span>
+              </div>
+              <div className="flex justify-between py-2.5">
+                <span className="text-ink-500">Strength Rating</span>
+                <span className="font-medium text-ink">
+                  {MATERIAL_CONFIG[infoMaterialModal].strength}
+                </span>
+              </div>
+              <div className="flex justify-between py-2.5">
+                <span className="text-ink-500">Heat Deflection</span>
+                <span className="font-medium text-ink">
+                  {MATERIAL_CONFIG[infoMaterialModal].heatResistance}
+                </span>
+              </div>
+              <div className="flex justify-between py-2.5">
+                <span className="text-ink-500">Surface Finish</span>
+                <span className="font-medium text-ink">
+                  {MATERIAL_CONFIG[infoMaterialModal].finish}
+                </span>
+              </div>
+              <div className="py-2.5">
+                <span className="block text-ink-500">Ideal Applications:</span>
+                <span className="mt-0.5 block font-medium text-ink">
+                  {MATERIAL_CONFIG[infoMaterialModal].bestFor}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setInfoMaterialModal(null)}
+                className="border border-line px-4 py-2 text-xs font-medium text-ink-700 hover:border-ink"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMaterial(infoMaterialModal);
+                  setInfoMaterialModal(null);
+                }}
+                className="bg-ink px-4 py-2 text-xs font-medium text-white hover:bg-clay-600"
+              >
+                Choose {MATERIAL_CONFIG[infoMaterialModal].label}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

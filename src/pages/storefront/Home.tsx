@@ -46,14 +46,17 @@ export function Home() {
   const selectedProducts = useMemo(() => {
     const configuredIds = homepageSettings?.selectedProductIds ?? [];
 
-    if (configuredIds.length === 0) {
-      return activeProducts.slice(0, 4);
+    if (configuredIds.length > 0) {
+      return configuredIds
+        .map((id) => activeProducts.find((product) => product.id === id))
+        .filter(Boolean) as typeof activeProducts;
     }
 
-    return configuredIds
-      .map((id) => activeProducts.find((product) => product.id === id))
-      .filter(Boolean) as typeof activeProducts;
-  }, [activeProducts, homepageSettings?.selectedProductIds]);
+    const featuredIds = new Set(featuredProducts.map((p) => p.id));
+    const nonFeatured = activeProducts.filter((p) => !featuredIds.has(p.id));
+
+    return (nonFeatured.length >= 4 ? nonFeatured : activeProducts).slice(0, 4);
+  }, [activeProducts, featuredProducts, homepageSettings?.selectedProductIds]);
 
   const categories = useMemo(() => {
     const categoryMap = new Map<string, string>();
@@ -327,23 +330,30 @@ export function Home() {
             </div>
           ) : (
             <div className="max-w-3xl">
-              <h1 className="font-serif text-6xl font-semibold leading-[0.95] tracking-[-0.05em] sm:text-7xl lg:text-8xl">
-                Objects
+              <div className="mb-6 flex items-center gap-3">
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#d9784b]">
+                  Shilp Sahayak Technologies · India
+                </span>
+                <span className="h-px w-10 bg-[#b4491e]" aria-hidden="true" />
+              </div>
+
+              <h1 className="font-serif text-5xl font-semibold leading-[0.98] tracking-[-0.045em] sm:text-6xl lg:text-7xl">
+                Precision 3D Printing,
                 <br />
-                <span className="text-[#d9784b]">worth keeping.</span>
+                <span className="text-[#d9784b]">Robotics & Drones.</span>
               </h1>
 
-              <p className="mt-8 max-w-2xl text-lg leading-8 text-[#f7f4ee]/55 sm:text-xl">
-                Studio-crafted precision 3D printing. From personalized pieces to functional objects, we turn ideas into things worth keeping.
+              <p className="mt-7 max-w-2xl text-base leading-7 text-[#f7f4ee]/65 sm:text-lg">
+                India-based prototyping and manufacturing studio. From bespoke 3D printed objects and rapid functional parts to specialized robotics brackets and drone components.
               </p>
 
-              <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <Link to="/catalog" className="inline-flex">
                   <Button
                     size="lg"
-                    className="w-full rounded-2xl bg-[#b4491e] px-10 py-4 text-sm hover:bg-[#963c18] sm:w-auto"
+                    className="w-full bg-[#b4491e] px-8 hover:bg-[#963c18] sm:w-auto"
                   >
-                    Explore collection
+                    Explore catalog
                     <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                   </Button>
                 </Link>
@@ -352,7 +362,7 @@ export function Home() {
                   <Button
                     variant="outline"
                     size="lg"
-                    className="w-full rounded-2xl border-[#f7f4ee]/25 bg-transparent px-10 py-4 text-sm text-[#f7f4ee] hover:bg-[#f7f4ee] hover:text-[#171512] sm:w-auto"
+                    className="w-full border-[#f7f4ee]/25 bg-transparent px-8 text-[#f7f4ee] hover:bg-[#f7f4ee] hover:text-[#171512] sm:w-auto"
                   >
                     Start a custom print
                   </Button>
@@ -371,23 +381,23 @@ export function Home() {
           {[
             {
               icon: PenTool,
-              title: 'Studio Crafted',
-              description: 'Attention to every detail',
+              title: '3D Printing Studio',
+              description: 'Precision rapid prototyping',
             },
             {
               icon: ShieldCheck,
-              title: 'Quality Assured',
-              description: 'Checked before dispatch',
+              title: 'Robotics & Drones',
+              description: 'Custom mounts & components',
             },
             {
               icon: Star,
-              title: 'Premium PLA',
-              description: 'Reliable, durable materials',
+              title: 'Engineered Materials',
+              description: 'PLA, PETG, ABS, Resin',
             },
             {
               icon: Truck,
-              title: 'Pan-India',
-              description: 'Safe delivery across India',
+              title: 'Pan-India Delivery',
+              description: 'Tracked shipping across India',
             },
           ].map((item) => {
             const Icon = item.icon;
@@ -403,7 +413,7 @@ export function Home() {
                 />
 
                 <div>
-                  <p className="font-serif text-sm font-semibold">
+                  <p className="font-serif text-sm font-semibold text-[#171512]">
                     {item.title}
                   </p>
 
@@ -522,9 +532,9 @@ export function Home() {
                     <Link
                       key={product.id}
                       to={`/product/${product.id}`}
-                      className="group"
+                      className="group flex flex-col"
                     >
-                      <Card className="h-full overflow-hidden rounded-none border-[#ded8ce] bg-white shadow-none">
+                      <Card className="flex h-full flex-col justify-between overflow-hidden rounded-none border-[#ded8ce] bg-white shadow-none transition-shadow duration-300 hover:shadow-[0_12px_35px_rgba(23,21,18,0.08)]">
                         <div className="overflow-hidden bg-[#e9e3d9]">
                           <img
                             src={product.image}
@@ -533,21 +543,30 @@ export function Home() {
                           />
                         </div>
 
-                        <div className="p-4 sm:p-5">
-                          <p className="font-mono text-[9px] uppercase tracking-[0.13em] text-[#958c81]">
-                            {product.category}
-                          </p>
+                        <div className="flex flex-1 flex-col justify-between p-4 sm:p-5">
+                          <div>
+                            <p className="font-mono text-[9px] uppercase tracking-[0.13em] text-[#958c81]">
+                              {product.category}
+                            </p>
 
-                          <h3 className="mt-2 line-clamp-2 font-serif text-lg font-semibold">
-                            {product.name}
-                          </h3>
+                            <h3 className="mt-2 line-clamp-2 font-serif text-lg font-semibold text-[#171512]">
+                              {product.name}
+                            </h3>
+                          </div>
 
-                          <p className="mt-3 text-sm font-medium text-[#b4491e]">
-                            ₹
-                            {product.price.toLocaleString(
-                              'en-IN'
-                            )}
-                          </p>
+                          <div className="mt-4 flex items-center justify-between border-t border-[#f4f0e8] pt-3">
+                            <span className="text-sm font-medium text-[#b4491e]">
+                              ₹
+                              {product.price.toLocaleString(
+                                'en-IN'
+                              )}
+                            </span>
+
+                            <ArrowRight
+                              className="h-4 w-4 text-[#958c81] transition-all group-hover:translate-x-1 group-hover:text-[#b4491e]"
+                              aria-hidden="true"
+                            />
+                          </div>
                         </div>
                       </Card>
                     </Link>
@@ -906,9 +925,9 @@ export function Home() {
                 <Link
                   key={product.id}
                   to={`/product/${product.id}`}
-                  className="group"
+                  className="group flex flex-col"
                 >
-                  <Card className="h-full overflow-hidden rounded-none border-[#ded8ce] bg-white shadow-none transition-shadow duration-300 hover:shadow-[0_12px_35px_rgba(23,21,18,0.08)]">
+                  <Card className="flex h-full flex-col justify-between overflow-hidden rounded-none border-[#ded8ce] bg-white shadow-none transition-shadow duration-300 hover:shadow-[0_12px_35px_rgba(23,21,18,0.08)]">
                     <div className="relative overflow-hidden bg-[#e9e3d9]">
                       <img
                         src={product.image}
@@ -927,16 +946,18 @@ export function Home() {
                       )}
                     </div>
 
-                    <div className="p-5">
-                      <p className="font-mono text-[9px] uppercase tracking-[0.13em] text-[#958c81]">
-                        {product.category}
-                      </p>
+                    <div className="flex flex-1 flex-col justify-between p-5">
+                      <div>
+                        <p className="font-mono text-[9px] uppercase tracking-[0.13em] text-[#958c81]">
+                          {product.category}
+                        </p>
 
-                      <h3 className="mt-2 line-clamp-2 font-serif text-lg font-semibold leading-snug">
-                        {product.name}
-                      </h3>
+                        <h3 className="mt-2 line-clamp-2 font-serif text-lg font-semibold leading-snug text-[#171512]">
+                          {product.name}
+                        </h3>
+                      </div>
 
-                      <div className="mt-4 flex items-center justify-between">
+                      <div className="mt-4 flex items-center justify-between border-t border-[#f4f0e8] pt-3">
                         <span className="font-medium text-[#b4491e]">
                           ₹
                           {product.price.toLocaleString(
@@ -976,7 +997,7 @@ export function Home() {
       {/* =====================================================
           FINAL CTA
       ====================================================== */}
-      <section className="bg-[#171512] px-5 py-16 text-center text-[#f7f4ee] sm:px-8 lg:py-24">
+      <section className="bg-[#171512] px-5 py-20 text-center text-[#f7f4ee] sm:px-8 sm:py-24 lg:py-28">
         <div className="mx-auto max-w-3xl">
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#d9784b]">
             Start creating
@@ -991,11 +1012,11 @@ export function Home() {
             for a custom print.
           </p>
 
-          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+          <div className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
             <Link to="/catalog">
               <Button
                 size="lg"
-                className="w-full bg-[#b4491e] px-8 hover:bg-[#963c18] sm:w-auto"
+                className="w-full bg-[#b4491e] px-9 hover:bg-[#963c18] sm:w-auto"
               >
                 Shop the collection
               </Button>
@@ -1005,7 +1026,7 @@ export function Home() {
               <Button
                 size="lg"
                 variant="outline"
-                className="w-full border-[#f7f4ee]/25 bg-transparent px-8 text-[#f7f4ee] hover:bg-[#f7f4ee] hover:text-[#171512] sm:w-auto"
+                className="w-full border-[#f7f4ee]/25 bg-transparent px-9 text-[#f7f4ee] hover:bg-[#f7f4ee] hover:text-[#171512] sm:w-auto"
               >
                 Request a custom print
               </Button>
