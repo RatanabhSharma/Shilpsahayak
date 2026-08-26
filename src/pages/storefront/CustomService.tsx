@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Upload,
   Loader2,
-  CheckCircle2Icon,
+  CheckCircle2,
   FileBox,
   Lock,
   Image as ImageIcon,
@@ -10,6 +10,11 @@ import {
   Box,
   ShoppingCart,
   X,
+  Sparkles,
+  ShieldCheck,
+  Info,
+  Zap,
+  HelpCircle,
 } from 'lucide-react';
 import {
   Link,
@@ -22,138 +27,23 @@ import {
   BASE_FEE,
   MaterialType,
 } from '../../config/pricing';
-
 import { calculateSTLVolume } from '../../utils/calculateVolume';
-
 import {
   useSubmitQuote,
   QuoteRequestType,
 } from '../../hooks/useQuotes';
-
 import { useAuth } from '../../hooks/useAuth';
 import { useUserProfile } from '../../hooks/useUserProfile';
-
+import { useSettings } from '../../hooks/useSettings';
 import { upload3DFile } from '../../utils/uploadFile';
-
 import {
   CustomPrintData,
   Product,
   useStore,
 } from '../../store';
+import { Button, Card, Badge, Input, Textarea } from '../../components/ui';
 
-type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  to?: string;
-  variant?: 'primary' | 'secondary';
-  size?: 'sm' | 'md' | 'lg';
-  loading?: boolean;
-};
-
-function Shell({
-  children,
-  className = '',
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={`mx-auto w-full max-w-7xl px-5 sm:px-8 ${className}`}>
-      {children}
-    </div>
-  );
-}
-
-function Button({
-  children,
-  to,
-  variant = 'primary',
-  size = 'md',
-  loading = false,
-  disabled,
-  ...props
-}: ButtonProps) {
-  const className = `inline-flex items-center justify-center border px-4 font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-    size === 'lg' ? 'h-12 text-sm' : size === 'sm' ? 'h-9 text-xs' : 'h-10 text-sm'
-  } ${
-    variant === 'secondary'
-      ? 'border-line-strong bg-white text-ink hover:bg-paper'
-      : 'border-ink bg-ink text-paper hover:bg-ink-800'
-  }`;
-
-  if (to) {
-    return <Link to={to} className={className}>{children}</Link>;
-  }
-
-  return (
-    <button {...props} className={`${className} ${props.className || ''}`} disabled={disabled || loading}>
-      {children}
-    </button>
-  );
-}
-
-function Alert({
-  title,
-  children,
-}: {
-  title?: string;
-  children: React.ReactNode;
-  tone?: 'info' | 'success' | 'warning' | 'error';
-}) {
-  return (
-    <div className="border border-line bg-white p-4 text-sm text-ink-600">
-      {title && <p className="font-medium text-ink">{title}</p>}
-      <div className={title ? 'mt-1' : ''}>{children}</div>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block text-[13px] font-medium text-ink-800">
-      {label}{required && <span className="ml-1 text-clay-600">*</span>}
-      <div className="mt-1.5">{children}</div>
-    </label>
-  );
-}
-
-function Input({
-  label,
-  required,
-  className = '',
-  ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & {
-  label?: string;
-  required?: boolean;
-}) {
-  const input = (
-    <input
-      {...props}
-      required={required}
-      className={`h-10 w-full border border-line-strong bg-white px-3 text-sm text-ink outline-none focus:border-clay-500 ${className}`}
-    />
-  );
-
-  return label ? (
-    <label className="block text-[13px] font-medium text-ink-800">
-      {label}{required && <span className="ml-1 text-clay-600">*</span>}
-      <span className="mt-1.5 block">{input}</span>
-    </label>
-  ) : input;
-}
-
-
-type ServiceMode =
-  | '3d-model'
-  | 'image'
-  | 'idea';
-
+type ServiceMode = '3d-model' | 'image' | 'idea';
 
 type MaterialOption = {
   id: MaterialType;
@@ -162,225 +52,85 @@ type MaterialOption = {
   density: number;
 };
 
-
-const MAX_FILE_SIZE =
-  100 * 1024 * 1024;
-
+const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
 const LAYER_HEIGHT_OPTIONS = [
-  {
-    value: '0.12',
-    label: '0.12 mm — High Detail',
-  },
-  {
-    value: '0.16',
-    label: '0.16 mm',
-  },
-  {
-    value: '0.2',
-    label: '0.20 mm — Standard',
-  },
-  {
-    value: '0.28',
-    label: '0.28 mm — Draft',
-  },
+  { value: '0.12', label: '0.12 mm — Ultra Detail (Miniatures)' },
+  { value: '0.16', label: '0.16 mm — Fine Finish' },
+  { value: '0.2', label: '0.20 mm — Standard (Recommended)' },
+  { value: '0.28', label: '0.28 mm — Fast Prototype' },
 ];
-
 
 export function CustomService() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const submitQuote = useSubmitQuote();
+  const { user, loading: authLoading } = useAuth();
+  const { data: profile, isLoading: profileLoading } = useUserProfile();
+  const { data: settings } = useSettings();
 
-  const [searchParams] =
-    useSearchParams();
+  const whatsappNumber = settings?.whatsappNumber || '919876543210';
+  const whatsappLink = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}`;
 
-  const submitQuote =
-    useSubmitQuote();
+  const addToCart = useStore((state) => state.addToCart);
+  const products = useStore((state) => state.products);
 
-  const {
-    user,
-    loading: authLoading,
-  } = useAuth();
+  const productId = searchParams.get('productId');
+  const variantId = searchParams.get('variantId');
 
-  const {
-    data: profile,
-    isLoading: profileLoading,
-  } = useUserProfile();
-
-  const addToCart =
-    useStore(
-      (state) => state.addToCart
-    );
-
-  const products =
-    useStore(
-      (state) => state.products
-    );
-
+  const selectedProduct = products.find((product) => product.id === productId);
+  const selectedVariant = selectedProduct?.variants?.find((variant) => variant.id === variantId);
 
   /* ---------------------------------------------------------------------- */
-  /* Product / Variant                                                      */
+  /* Service Mode & File State                                              */
   /* ---------------------------------------------------------------------- */
 
-  const productId =
-    searchParams.get('productId');
-
-  const variantId =
-    searchParams.get('variantId');
-
-  const selectedProduct =
-    products.find(
-      (product) =>
-        product.id === productId
-    );
-
-  const selectedVariant =
-    selectedProduct?.variants?.find(
-      (variant) =>
-        variant.id === variantId
-    );
-
+  const [mode, setMode] = useState<ServiceMode>('3d-model');
+  const [file, setFile] = useState<File | null>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   /* ---------------------------------------------------------------------- */
-  /* State                                                                  */
+  /* Print Settings                                                         */
   /* ---------------------------------------------------------------------- */
 
-  const [mode, setMode] =
-    useState<ServiceMode>(
-      '3d-model'
-    );
+  const [material, setMaterial] = useState<MaterialType>('PLA');
+  const [infoMaterialModal, setInfoMaterialModal] = useState<MaterialType | null>(null);
+  const [color, setColor] = useState('#FF6B1A');
+  const [infill, setInfill] = useState(20);
+  const [layerHeight, setLayerHeight] = useState(0.2);
+  const [quantity, setQuantity] = useState(1);
+  const [notes, setNotes] = useState('');
+  const [description, setDescription] = useState('');
 
-  const [file, setFile] =
-    useState<File | null>(null);
+  /* Dimensions */
+  const [length, setLength] = useState('');
+  const [width, setWidth] = useState('');
+  const [height, setHeight] = useState('');
 
-  const [
-    isCalculating,
-    setIsCalculating,
-  ] = useState(false);
+  /* Customer Details */
+  const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
 
-  const [
-    isSubmitting,
-    setIsSubmitting,
-  ] = useState(false);
+  /* Calculations */
+  const [volume, setVolume] = useState<number | null>(null);
+  const [estimatedWeight, setEstimatedWeight] = useState<number | null>(null);
+  const [estimatedPrice, setEstimatedPrice] = useState<number | null>(null);
 
-  const [
-    isSuccess,
-    setIsSuccess,
-  ] = useState(false);
-
-  const [
-    successMessage,
-    setSuccessMessage,
-  ] = useState('');
-
-  const [
-    uploadProgress,
-    setUploadProgress,
-  ] = useState<number | null>(null);
-
-
-  /* ---------------------------------------------------------------------- */
-  /* Print settings                                                         */
-  /* ---------------------------------------------------------------------- */
-
-  const [material, setMaterial] =
-    useState<MaterialType>('PLA');
-
-  const [infoMaterialModal, setInfoMaterialModal] =
-    useState<MaterialType | null>(null);
-
-  const [color, setColor] =
-    useState('#FFFFFF');
-
-  const [infill, setInfill] =
-    useState(20);
-
-  const [layerHeight, setLayerHeight] =
-    useState(0.2);
-
-  const [quantity, setQuantity] =
-    useState(1);
-
-  const [notes, setNotes] =
-    useState('');
-
-  const [description, setDescription] =
-    useState('');
-
-
-  /* ---------------------------------------------------------------------- */
-  /* Dimensions                                                             */
-  /* ---------------------------------------------------------------------- */
-
-  const [length, setLength] =
-    useState('');
-
-  const [width, setWidth] =
-    useState('');
-
-  const [height, setHeight] =
-    useState('');
-
-
-  /* ---------------------------------------------------------------------- */
-  /* Customer                                                               */
-  /* ---------------------------------------------------------------------- */
-
-  const [customerName, setCustomerName] =
-    useState('');
-
-  const [customerEmail, setCustomerEmail] =
-    useState('');
-
-  const [customerPhone, setCustomerPhone] =
-    useState('');
-
-
-  /* ---------------------------------------------------------------------- */
-  /* Calculation                                                            */
-  /* ---------------------------------------------------------------------- */
-
-  const [volume, setVolume] =
-    useState<number | null>(null);
-
-  const [
-    estimatedWeight,
-    setEstimatedWeight,
-  ] = useState<number | null>(null);
-
-  const [
-    estimatedPrice,
-    setEstimatedPrice,
-  ] = useState<number | null>(null);
-
-
-  /* ---------------------------------------------------------------------- */
-  /* Material options                                                       */
-  /* ---------------------------------------------------------------------- */
-
-  const materialOptions =
-    useMemo<MaterialOption[]>(
-      () =>
-        (
-          Object.keys(
-            MATERIAL_CONFIG
-          ) as MaterialType[]
-        ).map((id) => ({
-          id,
-          name: id,
-          rate:
-            MATERIAL_CONFIG[id]
-              .pricePerGram,
-          density:
-            MATERIAL_CONFIG[id]
-              .density,
-        })),
-      []
-    );
-
-
-  /* ---------------------------------------------------------------------- */
-  /* Price calculation                                                      */
-  /* ---------------------------------------------------------------------- */
+  const materialOptions = useMemo<MaterialOption[]>(
+    () =>
+      (Object.keys(MATERIAL_CONFIG) as MaterialType[]).map((id) => ({
+        id,
+        name: id,
+        rate: MATERIAL_CONFIG[id].pricePerGram,
+        density: MATERIAL_CONFIG[id].density,
+      })),
+    []
+  );
 
   const calculatePrice = (
     modelVolume: number,
@@ -388,107 +138,34 @@ export function CustomService() {
     selectedInfill: number,
     selectedQuantity: number
   ) => {
-    const config =
-      MATERIAL_CONFIG[
-        selectedMaterial
-      ];
+    const config = MATERIAL_CONFIG[selectedMaterial];
+    if (!config) return;
 
-    if (!config) {
-      return;
-    }
+    const infillFactor = 0.3 + (selectedInfill / 100) * 0.7;
+    const weight = modelVolume * config.density * infillFactor;
+    const price = (weight * config.pricePerGram + BASE_FEE) * selectedQuantity;
 
-    const infillFactor =
-      0.3 +
-      (selectedInfill / 100) *
-        0.7;
-
-    const weight =
-      modelVolume *
-      config.density *
-      infillFactor;
-
-    const price =
-      (
-        weight *
-          config.pricePerGram +
-        BASE_FEE
-      ) *
-      selectedQuantity;
-
-    setEstimatedWeight(
-      Math.round(
-        weight * 10
-      ) / 10
-    );
-
-    setEstimatedPrice(
-      Math.round(price)
-    );
+    setEstimatedWeight(Math.round(weight * 10) / 10);
+    setEstimatedPrice(Math.round(price));
   };
 
+  useEffect(() => {
+    if (mode === '3d-model' && volume !== null) {
+      calculatePrice(volume, material, infill, quantity);
+    }
+  }, [mode, volume, material, infill, quantity]);
 
   useEffect(() => {
-    if (
-      mode === '3d-model' &&
-      volume !== null
-    ) {
-      calculatePrice(
-        volume,
-        material,
-        infill,
-        quantity
-      );
+    if (profile?.name || user?.displayName) {
+      setCustomerName(profile?.name || user?.displayName || '');
     }
-  }, [
-    mode,
-    volume,
-    material,
-    infill,
-    quantity,
-  ]);
-
-
-  /* ---------------------------------------------------------------------- */
-  /* Populate customer information                                         */
-  /* ---------------------------------------------------------------------- */
-
-  useEffect(() => {
-    if (
-      profile?.name ||
-      user?.displayName
-    ) {
-      setCustomerName(
-        profile?.name ||
-          user?.displayName ||
-          ''
-      );
+    if (profile?.email || user?.email) {
+      setCustomerEmail(profile?.email || user?.email || '');
     }
-
-    if (
-      profile?.email ||
-      user?.email
-    ) {
-      setCustomerEmail(
-        profile?.email ||
-          user?.email ||
-          ''
-      );
-    }
-
     if (profile?.phone) {
-      setCustomerPhone(
-        profile.phone
-      );
+      setCustomerPhone(profile.phone);
     }
-  }, [
-    profile,
-    user,
-  ]);
-
-
-  /* ---------------------------------------------------------------------- */
-  /* Reset file                                                             */
-  /* ---------------------------------------------------------------------- */
+  }, [profile, user]);
 
   const resetFileState = () => {
     setFile(null);
@@ -498,1413 +175,998 @@ export function CustomService() {
     setUploadProgress(null);
   };
 
-
-  /* ---------------------------------------------------------------------- */
-  /* Change service mode                                                    */
-  /* ---------------------------------------------------------------------- */
-
-  const handleModeChange = (
-    newMode: ServiceMode
-  ) => {
+  const handleModeChange = (newMode: ServiceMode) => {
     setMode(newMode);
-
     resetFileState();
-
     setDescription('');
     setLength('');
     setWidth('');
     setHeight('');
   };
 
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) return;
 
-  /* ---------------------------------------------------------------------- */
-  /* File upload                                                            */
-  /* ---------------------------------------------------------------------- */
+    const is3DModel = mode === '3d-model';
+    const allowedExtensions = is3DModel
+      ? ['.stl', '.obj', '.3mf', '.step', '.stp']
+      : ['.jpg', '.jpeg', '.png', '.webp', '.pdf'];
 
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const selectedFile =
-      event.target.files?.[0];
-
-    if (!selectedFile) {
-      return;
-    }
-
-    const is3DModel =
-      mode === '3d-model';
-
-    const allowedExtensions =
-      is3DModel
-        ? [
-            '.stl',
-            '.obj',
-            '.3mf',
-          ]
-        : [
-            '.jpg',
-            '.jpeg',
-            '.png',
-            '.webp',
-          ];
-
-    const isValid =
-      allowedExtensions.some(
-        (extension) =>
-          selectedFile.name
-            .toLowerCase()
-            .endsWith(extension)
-      );
+    const isValid = allowedExtensions.some((ext) =>
+      selectedFile.name.toLowerCase().endsWith(ext)
+    );
 
     if (!isValid) {
       alert(
         is3DModel
-          ? 'Please upload a valid 3D file: STL, OBJ or 3MF.'
-          : 'Please upload a valid image: JPG, PNG or WEBP.'
+          ? 'Please upload a valid 3D file: STL, OBJ, 3MF or STEP.'
+          : 'Please upload a valid reference image: JPG, PNG, WEBP or PDF.'
       );
-
       event.target.value = '';
-
       return;
     }
 
-    if (
-      selectedFile.size >
-      MAX_FILE_SIZE
-    ) {
-      alert(
-        'File is too large. Maximum size is 100MB.'
-      );
-
+    if (selectedFile.size > MAX_FILE_SIZE) {
+      alert('File is too large. Maximum supported size is 100MB.');
       event.target.value = '';
-
       return;
     }
 
     setFile(selectedFile);
-
     setEstimatedPrice(null);
     setEstimatedWeight(null);
     setVolume(null);
 
-    /*
-     * Only STL is automatically analysed.
-     * OBJ and 3MF go through manual review.
-     */
-    if (
-      !is3DModel ||
-      !selectedFile.name
-        .toLowerCase()
-        .endsWith('.stl')
-    ) {
+    if (!is3DModel || !selectedFile.name.toLowerCase().endsWith('.stl')) {
       return;
     }
 
     setIsCalculating(true);
-
     try {
-      const calculatedVolume =
-        await calculateSTLVolume(
-          selectedFile
-        );
-
-      setVolume(
-        calculatedVolume
-      );
-
-      calculatePrice(
-        calculatedVolume,
-        material,
-        infill,
-        quantity
-      );
+      const calculatedVolume = await calculateSTLVolume(selectedFile);
+      setVolume(calculatedVolume);
+      calculatePrice(calculatedVolume, material, infill, quantity);
     } catch (error) {
-      console.error(
-        'Volume calculation failed:',
-        error
-      );
-
-      alert(
-        'Could not calculate the model volume. You can still request a quote.'
-      );
+      console.error('Volume calculation failed:', error);
+      alert('Could not auto-calculate volume for this STL. You can still submit for engineering review.');
     } finally {
       setIsCalculating(false);
     }
   };
 
+  const uploadRequestFile = async () => {
+    if (!file || !user) return undefined;
+    setUploadProgress(0);
+    return upload3DFile(file, user.uid, (progress) => setUploadProgress(progress));
+  };
 
-  /* ---------------------------------------------------------------------- */
-  /* Upload file to Firebase                                                */
-  /* ---------------------------------------------------------------------- */
+  const validateRequest = () => {
+    if (mode !== 'idea' && !file) {
+      alert('Please upload a file before submitting.');
+      return false;
+    }
+    if (mode !== '3d-model' && !description.trim()) {
+      alert('Please describe what you would like us to make.');
+      return false;
+    }
+    if (!customerName.trim()) {
+      alert('Please enter your full name.');
+      return false;
+    }
+    if (!customerEmail.trim()) {
+      alert('Please enter your email address.');
+      return false;
+    }
+    if (!customerPhone.trim()) {
+      alert('Please enter your contact phone number.');
+      return false;
+    }
+    if (quantity < 1) {
+      alert('Quantity must be at least 1.');
+      return false;
+    }
+    return true;
+  };
 
-  const uploadRequestFile =
-    async () => {
-      if (!file || !user) {
-        return undefined;
-      }
+  const submitRequest = async () => {
+    if (!user || !validateRequest()) return;
+    setIsSubmitting(true);
 
-      setUploadProgress(0);
+    try {
+      const fileUrl = file ? await uploadRequestFile() : undefined;
+      const dimensions = {
+        length: length ? Number(length) : undefined,
+        width: width ? Number(width) : undefined,
+        height: height ? Number(height) : undefined,
+        unit: 'mm' as const,
+      };
 
-      return upload3DFile(
-        file,
-        user.uid,
-        (progress) =>
-          setUploadProgress(
-            progress
-          )
+      await submitQuote.mutateAsync({
+        requestType: mode as QuoteRequestType,
+        customerName,
+        customerEmail,
+        customerPhone,
+        productId: selectedProduct?.id,
+        productName: selectedProduct?.name,
+        variantLabel: selectedVariant?.label,
+        fileName: file?.name,
+        fileUrl,
+        material,
+        color,
+        infill: mode === '3d-model' ? infill : undefined,
+        layerHeight: mode === '3d-model' ? layerHeight : undefined,
+        quantity,
+        volume: mode === '3d-model' ? volume ?? undefined : undefined,
+        estimatedWeight: mode === '3d-model' ? estimatedWeight ?? undefined : undefined,
+        estimatedPrice: mode === '3d-model' ? estimatedPrice ?? undefined : undefined,
+        dimensions: mode !== '3d-model' ? dimensions : undefined,
+        description: description || undefined,
+        notes: notes || undefined,
+        adminPrice: undefined,
+        adminNotes: undefined,
+      });
+
+      setSuccessMessage(
+        mode === '3d-model'
+          ? 'Your 3D model and specifications have been received! Our workshop engineers will review tolerances and confirm the final quote.'
+          : 'Your request has been received! Our makers will review your design brief and prepare an exact quotation.'
       );
-    };
-
-
-  /* ---------------------------------------------------------------------- */
-  /* Validation                                                             */
-  /* ---------------------------------------------------------------------- */
-
-  const validateRequest =
-    () => {
-      if (
-        mode !== 'idea' &&
-        !file
-      ) {
-        alert(
-          'Please upload a file before requesting a quote.'
-        );
-
-        return false;
-      }
-
-      if (
-        mode !== '3d-model' &&
-        !description.trim()
-      ) {
-        alert(
-          'Please describe what you want us to make.'
-        );
-
-        return false;
-      }
-
-      if (
-        !customerName.trim()
-      ) {
-        alert(
-          'Please enter your name.'
-        );
-
-        return false;
-      }
-
-      if (
-        !customerEmail.trim()
-      ) {
-        alert(
-          'Please enter your email address.'
-        );
-
-        return false;
-      }
-
-      if (
-        !customerPhone.trim()
-      ) {
-        alert(
-          'Please enter your phone number.'
-        );
-
-        return false;
-      }
-
-      if (
-        quantity < 1
-      ) {
-        alert(
-          'Quantity must be at least 1.'
-        );
-
-        return false;
-      }
-
-      return true;
-    };
-
-
-  /* ---------------------------------------------------------------------- */
-  /* Submit quote                                                           */
-  /* ---------------------------------------------------------------------- */
-
-  const submitRequest =
-    async () => {
-      if (!user) {
-        return;
-      }
-
-      if (
-        !validateRequest()
-      ) {
-        return;
-      }
-
-      setIsSubmitting(true);
-
-      try {
-        const fileUrl =
-          file
-            ? await uploadRequestFile()
-            : undefined;
-
-        const dimensions = {
-          length: length
-            ? Number(length)
-            : undefined,
-
-          width: width
-            ? Number(width)
-            : undefined,
-
-          height: height
-            ? Number(height)
-            : undefined,
-
-          unit: 'mm' as const,
-        };
-
-        await submitQuote.mutateAsync(
-          {
-            requestType:
-              mode as QuoteRequestType,
-
-            customerName,
-
-            customerEmail,
-
-            customerPhone,
-
-            productId:
-              selectedProduct?.id,
-
-            productName:
-              selectedProduct?.name,
-
-            variantLabel:
-              selectedVariant?.label,
-
-            fileName:
-              file?.name,
-
-            fileUrl,
-
-            material,
-
-            color,
-
-            infill:
-              mode === '3d-model'
-                ? infill
-                : undefined,
-
-            layerHeight:
-              mode === '3d-model'
-                ? layerHeight
-                : undefined,
-
-            quantity,
-
-            volume:
-              mode === '3d-model'
-                ? volume ??
-                  undefined
-                : undefined,
-
-            estimatedWeight:
-              mode === '3d-model'
-                ? estimatedWeight ??
-                  undefined
-                : undefined,
-
-            estimatedPrice:
-              mode === '3d-model'
-                ? estimatedPrice ??
-                  undefined
-                : undefined,
-
-            dimensions:
-              mode !== '3d-model'
-                ? dimensions
-                : undefined,
-
-            description:
-              description ||
-              undefined,
-
-            notes:
-              notes ||
-              undefined,
-
-            adminPrice:
-              undefined,
-
-            adminNotes:
-              undefined,
-          }
-        );
-
-        setSuccessMessage(
-          mode === '3d-model'
-            ? 'Your 3D model and printing specifications have been submitted. The displayed amount is only an estimate; our team will review the model before confirming the final price.'
-            : 'Your request has been received. Our team will review your requirements and prepare a custom quotation.'
-        );
-
-        setIsSuccess(true);
-      } catch (error) {
-        console.error(
-          'Failed to submit custom request:',
-          error
-        );
-
-        alert(
-          'Failed to submit your request. Please try again.'
-        );
-      } finally {
-        setIsSubmitting(false);
-        setUploadProgress(null);
-      }
-    };
-
-
-  /* ---------------------------------------------------------------------- */
-  /* Add custom print to cart                                               */
-  /* ---------------------------------------------------------------------- */
-
-  const handleAddToCart =
-    async () => {
-      if (
-        !user ||
-        !file
-      ) {
-        return;
-      }
-
-      if (
-        estimatedPrice === null
-      ) {
-        alert(
-          'An estimated price could not be calculated for this model. Please request a custom quote instead.'
-        );
-
-        return;
-      }
-
-      setIsSubmitting(true);
-
-      try {
-        const fileUrl =
-          await uploadRequestFile();
-
-        const customPrint:
-          CustomPrintData = {
-            fileName:
-              file.name,
-
-            fileUrl,
-
-            material,
-
-            color,
-
-            infill,
-
-            layerHeight,
-
-            volume:
-              volume ??
-              undefined,
-
-            estimatedWeight:
-              estimatedWeight ??
-              undefined,
-
-            customPrice:
-              estimatedPrice,
-          };
-
-        const customProduct:
-          Product = {
-            id:
-              `custom-print-${Date.now()}`,
-
-            name:
-              selectedProduct?.name ||
-              'Custom 3D Print',
-
-            description:
-              'Custom 3D printed item',
-
-            price:
-              estimatedPrice,
-
-            category:
-              'Custom Printing',
-
-            image:
-              selectedProduct?.image ||
-              '',
-
-            images:
-              selectedProduct?.images ||
-              [],
-
-            stock: 999,
-
-            material,
-
-            isCustomizable:
-              true,
-
-            active: true,
-
-            featured: false,
-
-            hasVariants: false,
-
-            variants: [],
-          };
-
-        addToCart(
-          customProduct,
-          quantity,
-          notes || undefined,
-          selectedVariant?.label,
-          selectedVariant?.id,
-          customPrint
-        );
-
-        navigate('/cart');
-      } catch (error) {
-        console.error(
-          'Failed to add custom print to cart:',
-          error
-        );
-
-        alert(
-          'Could not add the custom print to your cart. Please try again.'
-        );
-      } finally {
-        setIsSubmitting(false);
-        setUploadProgress(null);
-      }
-    };
-
-
-  /* ---------------------------------------------------------------------- */
-  /* Loading                                                                */
-  /* ---------------------------------------------------------------------- */
+      setIsSuccess(true);
+    } catch (error) {
+      console.error('Failed to submit quote request:', error);
+      alert('Failed to submit your request. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+      setUploadProgress(null);
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (!user || !file) return;
+
+    if (estimatedPrice === null) {
+      alert('Estimated price could not be computed automatically. Please submit for an engineering quote.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const fileUrl = await uploadRequestFile();
+
+      const customPrint: CustomPrintData = {
+        fileName: file.name,
+        fileUrl,
+        material,
+        color,
+        infill,
+        layerHeight,
+        volume: volume ?? undefined,
+        estimatedWeight: estimatedWeight ?? undefined,
+        customPrice: estimatedPrice,
+      };
+
+      const customProduct: Product = {
+        id: `custom-print-${Date.now()}`,
+        name: selectedProduct?.name || `Custom Print (${file.name})`,
+        description: `Custom 3D print in ${material} (${infill}% infill)`,
+        price: estimatedPrice,
+        category: 'Custom 3D Printing',
+        image: selectedProduct?.image || 'https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&q=80&w=800',
+        images: selectedProduct?.images || [],
+        stock: 999,
+        material,
+        isCustomizable: true,
+        active: true,
+        featured: false,
+        hasVariants: false,
+        variants: [],
+      };
+
+      addToCart(
+        customProduct,
+        quantity,
+        notes || undefined,
+        selectedVariant?.label,
+        selectedVariant?.id,
+        customPrint
+      );
+
+      navigate('/cart');
+    } catch (error) {
+      console.error('Failed to add custom print to cart:', error);
+      alert('Could not add print to cart. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+      setUploadProgress(null);
+    }
+  };
 
   if (authLoading) {
     return (
-      <LoadingState
-        text="Checking your account..."
-      />
+      <div className="flex flex-col items-center justify-center py-28 bg-[#faf9f6]">
+        <Loader2 className="h-10 w-10 animate-spin text-brand-500" />
+        <p className="mt-4 text-sm font-semibold text-charcoal">Checking your account...</p>
+      </div>
     );
   }
-
-
-  /* ---------------------------------------------------------------------- */
-  /* Authentication required                                               */
-  /* ---------------------------------------------------------------------- */
 
   if (!user) {
     return (
-      <Shell className="py-20">
-        <div className="mx-auto max-w-md text-center">
-
-          <div className="mx-auto flex h-14 w-14 items-center justify-center border border-line bg-white">
-            <Lock className="h-6 w-6 text-clay-600" />
+      <div className="min-h-[70vh] bg-[#faf9f6] flex items-center justify-center px-5 py-20">
+        <div className="mx-auto max-w-md rounded-3xl border border-zinc-200 bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+            <Lock className="h-7 w-7" />
           </div>
 
-          <h1 className="mt-5 font-display text-[26px] font-semibold text-ink">
-            Login required
+          <h1 className="mt-5 font-serif text-2xl font-bold text-charcoal">
+            Sign In to Upload 3D Files
           </h1>
 
-          <p className="mt-2 text-[14px] leading-relaxed text-ink-600">
-            Sign in before submitting a custom printing request.
+          <p className="mt-2.5 text-sm text-charcoal-light leading-relaxed">
+            Please sign in to your Shilp Sahayak account so we can link your 3D models and quotes to your dashboard.
           </p>
 
-          <div className="mt-6 flex justify-center gap-2">
-
-            <Button
+          <div className="mt-7 flex flex-col gap-3 sm:flex-row justify-center">
+            <Link
               to={`/login?redirect=${encodeURIComponent(
-                window.location.pathname +
-                  window.location.search
+                window.location.pathname + window.location.search
               )}`}
+              className="w-full"
             >
-              Sign in
-            </Button>
-
-            <Button
-              to="/register"
-              variant="secondary"
-            >
-              Create account
-            </Button>
-
+              <Button className="w-full font-bold">
+                Sign In to Continue
+              </Button>
+            </Link>
+            <Link to="/register" className="w-full">
+              <Button variant="outline" className="w-full font-semibold">
+                Create Free Account
+              </Button>
+            </Link>
           </div>
         </div>
-      </Shell>
+      </div>
     );
   }
-
-
-  /* ---------------------------------------------------------------------- */
-  /* Profile loading                                                        */
-  /* ---------------------------------------------------------------------- */
 
   if (profileLoading) {
     return (
-      <LoadingState
-        text="Loading your information..."
-      />
+      <div className="flex flex-col items-center justify-center py-28 bg-[#faf9f6]">
+        <Loader2 className="h-10 w-10 animate-spin text-brand-500" />
+        <p className="mt-4 text-sm font-semibold text-charcoal">Loading your profile...</p>
+      </div>
     );
   }
-
-
-  /* ---------------------------------------------------------------------- */
-  /* Success                                                                */
-  /* ---------------------------------------------------------------------- */
 
   if (isSuccess) {
     return (
-      <Shell className="py-20">
+      <div className="min-h-[70vh] bg-[#faf9f6] flex items-center justify-center px-5 py-20">
+        <div className="mx-auto max-w-lg rounded-3xl border border-emerald-200 bg-white p-8 text-center shadow-xl">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+            <CheckCircle2 className="h-9 w-9" />
+          </div>
 
-        <div className="mx-auto max-w-lg border border-line-strong bg-white p-7 text-center">
-
-          <CheckCircle2Icon className="mx-auto h-9 w-9 text-moss" />
-
-          <h1 className="mt-4 font-display text-[25px] font-semibold text-ink">
-            Request submitted
+          <h1 className="mt-5 font-serif text-3xl font-bold text-charcoal">
+            Request Received!
           </h1>
 
-          <p className="mt-2 text-[14px] leading-relaxed text-ink-600">
+          <p className="mt-3 text-sm text-charcoal-light leading-relaxed">
             {successMessage}
           </p>
 
-          <div className="mt-7 flex justify-center gap-2">
-
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row justify-center">
             <Button
-              variant="secondary"
+              variant="outline"
               onClick={() => {
                 resetFileState();
-
                 setDescription('');
                 setNotes('');
-
                 setLength('');
                 setWidth('');
                 setHeight('');
-
                 setIsSuccess(false);
               }}
+              className="font-semibold"
             >
-              Submit another request
+              Submit Another Print
             </Button>
 
-            <Button to="/account">
-              View account
-            </Button>
-
+            <Link to="/account">
+              <Button className="font-bold">
+                View My Quotes & Dashboard
+              </Button>
+            </Link>
           </div>
         </div>
-
-      </Shell>
+      </div>
     );
   }
 
-
-  /* ---------------------------------------------------------------------- */
-  /* Manual review                                                          */
-  /* ---------------------------------------------------------------------- */
-
-  const hasManualFile =
-    !!file &&
-    mode === '3d-model' &&
-    /\.(obj|3mf)$/i.test(
-      file.name
-    );
-
-
-  /* ---------------------------------------------------------------------- */
-  /* Page                                                                   */
-  /* ---------------------------------------------------------------------- */
-
   return (
-    <>
-      <section className="border-b border-line bg-white">
-
-        <Shell className="py-10">
-
+    <div className="min-h-screen bg-[#faf9f6] text-charcoal">
+      {/* 1. Header Section */}
+      <section className="border-b border-zinc-200/80 bg-white">
+        <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8 lg:px-10 lg:py-12">
           <div className="grid items-end gap-8 lg:grid-cols-12">
-
             <div className="lg:col-span-7">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-bold text-brand-600">
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>Instant 3D Prototyping & Studio Fab</span>
+              </div>
 
-              <p className="label-tech">
-                Custom 3D printing
-              </p>
-
-              <h1 className="mt-3 font-display text-[32px] font-semibold leading-[1.1] tracking-[-0.03em] text-ink sm:text-[38px]">
-                Send the file. We will tell you what it costs to make.
+              <h1 className="mt-3 font-serif text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl text-charcoal">
+                Send the file. Get an instant quote.
               </h1>
 
-              <p className="mt-4 max-w-xl text-[15.5px] leading-relaxed text-ink-600">
-                Upload a model, choose how it should be printed and see an estimate straight away. A production engineer reviews every job before it is confirmed.
+              <p className="mt-3 max-w-xl text-sm leading-relaxed text-charcoal-light sm:text-base">
+                Upload your 3D CAD model for live STL volume and pricing calculations. Our engineering makers verify tolerances before manufacturing.
               </p>
-
             </div>
 
-            <dl className="grid grid-cols-3 gap-5 lg:col-span-5">
+            {/* Quick Specs Pill Badges */}
+            <div className="grid grid-cols-3 gap-3 rounded-2xl border border-zinc-200 bg-zinc-50/60 p-4 lg:col-span-5">
+              <div>
+                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-charcoal-lighter block">
+                  Build Envelope
+                </span>
+                <span className="font-serif text-xs sm:text-sm font-bold text-charcoal">
+                  300 × 300 × 350 mm
+                </span>
+              </div>
 
-              {[
-                [
-                  'Build volume',
-                  '300 × 300 × 350 mm',
-                ],
-                [
-                  'Quote turnaround',
-                  '4 working hours',
-                ],
-                [
-                  'File formats',
-                  'STL · OBJ · 3MF',
-                ],
-              ].map(
-                ([key, value]) => (
-                  <div key={key}>
-                    <dt className="font-mono text-2xs uppercase tracking-[0.1em] text-ink-500">
-                      {key}
-                    </dt>
+              <div>
+                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-charcoal-lighter block">
+                  Turnaround
+                </span>
+                <span className="font-serif text-xs sm:text-sm font-bold text-charcoal">
+                  24–48 Hours
+                </span>
+              </div>
 
-                    <dd className="mt-1 text-[14px] font-medium text-ink">
-                      {value}
-                    </dd>
-                  </div>
-                )
-              )}
-
-            </dl>
-
+              <div>
+                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-charcoal-lighter block">
+                  Supported Files
+                </span>
+                <span className="font-serif text-xs sm:text-sm font-bold text-charcoal">
+                  STL · OBJ · 3MF
+                </span>
+              </div>
+            </div>
           </div>
-
-        </Shell>
-
+        </div>
       </section>
 
+      {/* 2. Transparent Pricing Comparison Banner */}
+      <section className="bg-brand-50/60 border-b border-brand-200/70">
+        <div className="mx-auto max-w-[1440px] px-5 py-4 sm:px-8 lg:px-10">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3 text-left">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-sm">
+                <Zap className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="font-serif text-sm font-bold text-charcoal block">
+                  Transparent Per-Gram Pricing: Starting at ₹4.5/g vs Market ₹10–15/g
+                </span>
+                <span className="text-xs text-charcoal-light">
+                  No hidden slicing surcharge. Direct maker fabrication from our Patiala studio.
+                </span>
+              </div>
+            </div>
 
-      <Shell className="py-10">
+            <a
+              href={whatsappLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 text-xs font-bold text-brand-600 hover:text-brand-700 underline"
+            >
+              Need bulk / batch manufacturing? Chat on WhatsApp →
+            </a>
+          </div>
+        </div>
+      </section>
 
+      {/* 3. Main Form & Sidebar */}
+      <main className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8 lg:px-10">
         {selectedProduct && (
-          <div className="mb-8 border border-line bg-white p-4">
-
-            <p className="label-tech">
-              Customising product
-            </p>
-
-            <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
-
-              <h2 className="font-display text-[18px] font-semibold text-ink">
+          <div className="mb-8 rounded-2xl border border-brand-300 bg-brand-50/50 p-4 sm:p-5 flex items-center justify-between">
+            <div>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-brand-600">
+                Customizing Product Base
+              </span>
+              <h2 className="font-serif text-lg font-bold text-charcoal">
                 {selectedProduct.name}
               </h2>
-
-              {selectedVariant && (
-                <span className="font-mono text-xs text-ink-500">
-                  {selectedVariant.label}
-                </span>
-              )}
-
             </div>
+            {selectedVariant && (
+              <Badge variant="brand">{selectedVariant.label}</Badge>
+            )}
           </div>
         )}
 
-
         <div className="grid gap-10 lg:grid-cols-12 lg:gap-14">
-
-          <div className="lg:col-span-7">
-
-            {/* STEP 01 */}
-
-            <Step
-              n="01"
-              title="What are you starting with?"
-            >
-
-              <div className="grid gap-2.5 sm:grid-cols-3">
-
-                <ModeButton
-                  active={
-                    mode === '3d-model'
-                  }
-                  icon={
-                    <Box className="h-5 w-5" />
-                  }
-                  title="3D model"
-                  description="STL, OBJ or 3MF"
-                  onClick={() =>
-                    handleModeChange(
-                      '3d-model'
-                    )
-                  }
-                />
-
-                <ModeButton
-                  active={
-                    mode === 'image'
-                  }
-                  icon={
-                    <ImageIcon className="h-5 w-5" />
-                  }
-                  title="Reference image"
-                  description="Image or drawing"
-                  onClick={() =>
-                    handleModeChange(
-                      'image'
-                    )
-                  }
-                />
-
-                <ModeButton
-                  active={
-                    mode === 'idea'
-                  }
-                  icon={
-                    <Lightbulb className="h-5 w-5" />
-                  }
-                  title="Just an idea"
-                  description="We help model it"
-                  onClick={() =>
-                    handleModeChange(
-                      'idea'
-                    )
-                  }
-                />
-
+          {/* Left Column: Multi-Step Configuration */}
+          <div className="lg:col-span-7 space-y-10">
+            {/* STEP 01: Starting Method */}
+            <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm">
+              <div className="flex items-center gap-2.5 mb-5">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 font-mono text-xs font-bold text-white">
+                  1
+                </span>
+                <h2 className="font-serif text-xl font-bold text-charcoal">
+                  What are you starting with?
+                </h2>
               </div>
 
-            </Step>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {[
+                  {
+                    id: '3d-model',
+                    icon: Box,
+                    title: '3D CAD Model',
+                    desc: 'STL, OBJ, 3MF, STEP',
+                  },
+                  {
+                    id: 'image',
+                    icon: ImageIcon,
+                    title: 'Reference Images',
+                    desc: 'Sketches or photos',
+                  },
+                  {
+                    id: 'idea',
+                    icon: Lightbulb,
+                    title: 'Concept / Idea',
+                    desc: 'We assist with 3D design',
+                  },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  const isActive = mode === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleModeChange(item.id as ServiceMode)}
+                      className={`rounded-2xl border p-4 text-left transition-all ${
+                        isActive
+                          ? 'border-brand-500 bg-brand-50/70 ring-2 ring-brand-500/20 shadow-sm'
+                          : 'border-zinc-200 bg-zinc-50/50 hover:border-zinc-300'
+                      }`}
+                    >
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${
+                        isActive ? 'bg-brand-500 text-white' : 'bg-zinc-200 text-charcoal-light'
+                      }`}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <h3 className="mt-3 font-serif text-sm font-bold text-charcoal">
+                        {item.title}
+                      </h3>
+                      <p className="mt-0.5 text-xs text-charcoal-lighter">
+                        {item.desc}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-
-            {/* STEP 02 */}
-
-            <Step
-              n="02"
-              title={
-                mode === '3d-model'
-                  ? 'Upload your model'
-                  : mode === 'image'
-                  ? 'Upload your reference'
-                  : 'Describe your idea'
-              }
-            >
+            {/* STEP 02: Upload or Description */}
+            <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm">
+              <div className="flex items-center gap-2.5 mb-5">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 font-mono text-xs font-bold text-white">
+                  2
+                </span>
+                <h2 className="font-serif text-xl font-bold text-charcoal">
+                  {mode === '3d-model'
+                    ? 'Upload 3D CAD Geometry'
+                    : mode === 'image'
+                    ? 'Upload Reference Images & Dimensions'
+                    : 'Describe Your Project Concept'}
+                </h2>
+              </div>
 
               {mode !== 'idea' && (
-                <FileUpload
-                  file={file}
-                  mode={mode}
-                  onChange={
-                    handleFileChange
-                  }
-                />
+                <div className="space-y-4">
+                  <input
+                    id="custom-file-input"
+                    type="file"
+                    accept={
+                      mode === '3d-model'
+                        ? '.stl,.obj,.3mf,.step,.stp'
+                        : '.jpg,.jpeg,.png,.webp,.pdf'
+                    }
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+
+                  <label
+                    htmlFor="custom-file-input"
+                    className={`flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all ${
+                      file
+                        ? 'border-brand-500 bg-brand-50/40'
+                        : 'border-zinc-300 bg-zinc-50/50 hover:border-brand-400 hover:bg-brand-50/20'
+                    }`}
+                  >
+                    {file ? (
+                      <div className="flex flex-col items-center">
+                        <FileBox className="h-10 w-10 text-brand-500" />
+                        <span className="mt-2 font-mono text-xs font-bold text-charcoal max-w-xs truncate">
+                          {file.name}
+                        </span>
+                        <span className="text-[11px] text-brand-600 mt-0.5">
+                          Click to replace file
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        <Upload className="h-10 w-10 text-charcoal-lighter" />
+                        <span className="mt-2 text-sm font-bold text-charcoal">
+                          {mode === '3d-model'
+                            ? 'Drop STL, OBJ, 3MF or STEP file'
+                            : 'Drop JPG, PNG, WEBP or PDF'}
+                        </span>
+                        <span className="text-xs text-charcoal-lighter mt-1">
+                          Max file size: 100MB · Instant volume parsing for STL
+                        </span>
+                      </div>
+                    )}
+                  </label>
+                </div>
               )}
 
               {mode !== '3d-model' && (
-                <label className="mt-5 block text-[13px] font-medium text-ink-800">
-
-                  {mode === 'image'
-                    ? 'What would you like us to make?'
-                    : 'Describe your idea'}
-
-                  <textarea
+                <div className="mt-5 space-y-2">
+                  <label className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter block">
+                    {mode === 'image' ? 'Design Instructions & Desired Dimensions' : 'Detailed Project Idea'}
+                  </label>
+                  <Textarea
                     value={description}
-                    onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
-                      setDescription(
-                        event.target.value
-                      )
-                    }
+                    onChange={(e) => setDescription(e.target.value)}
                     placeholder={
                       mode === 'image'
-                        ? 'Example: recreate this object as a 10 cm desk model.'
-                        : 'Tell us what you want to create, how it should look and how you plan to use it.'
+                        ? 'e.g. Recreate this object at 120mm height with mounting brackets on the rear...'
+                        : 'Tell us what you would like to create, its intended function, desired dimensions, and use case...'
                     }
-                    rows={5}
-                    className="mt-1.5 w-full border border-line-strong bg-white px-3 py-2.5 text-[14px] leading-relaxed text-ink outline-none placeholder:text-ink-500/60 focus:border-clay-500 focus:ring-2 focus:ring-clay-500/15"
+                    rows={4}
                   />
-
-                </label>
+                </div>
               )}
+            </div>
 
-            </Step>
+            {/* STEP 03: Material Selection */}
+            <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 font-mono text-xs font-bold text-white">
+                    3
+                  </span>
+                  <h2 className="font-serif text-xl font-bold text-charcoal">
+                    Choose Material
+                  </h2>
+                </div>
 
-
-            {/* STEP 03 — MATERIAL FOR ALL MODES */}
-
-            <Step
-              n="03"
-              title="Choose a material"
-            >
-
-              <div className="grid gap-2.5 sm:grid-cols-2">
-
-                {materialOptions.map(
-                  (option) => {
-
-                    const active =
-                      material ===
-                      option.id;
-
-                    const meta = MATERIAL_CONFIG[option.id];
-
-                    return (
-                      <div
-                        key={option.id}
-                        className={`group relative flex flex-col justify-between border transition-all ${
-                          active
-                            ? 'border-ink bg-white ring-1 ring-ink shadow-sm'
-                            : 'border-line bg-white hover:border-line-strong'
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setMaterial(
-                              option.id
-                            )
-                          }
-                          aria-pressed={
-                            active
-                          }
-                          className="w-full p-3.5 text-left"
-                        >
-                          <div className="flex items-baseline justify-between gap-2 pr-7">
-                            <span className="font-display text-[15px] font-semibold text-ink">
-                              {option.name}
-                            </span>
-
-                            <span className="font-mono text-2xs font-medium text-ink-500">
-                              ₹{option.rate}/g
-                            </span>
-                          </div>
-
-                          <p className="mt-1 line-clamp-1 text-[12px] text-ink-600">
-                            {meta?.tagline || `Density ${option.density} g/cc`}
-                          </p>
-
-                          <div className="mt-2 flex items-center gap-2 font-mono text-[10px] text-ink-500">
-                            <span>{meta?.strength.split('·')[0] || 'Standard'}</span>
-                            <span>·</span>
-                            <span>{meta?.heatResistance || 'Up to 55°C'}</span>
-                          </div>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setInfoMaterialModal(option.id);
-                          }}
-                          title={`Learn more about ${option.name}`}
-                          aria-label={`Learn more about ${option.name}`}
-                          className="absolute right-2.5 top-2.5 flex h-6 w-6 items-center justify-center rounded-full border border-line-strong/60 bg-paper-light text-ink-500 transition-colors hover:border-ink hover:bg-white hover:text-ink"
-                        >
-                          <span className="font-serif text-[11px] font-bold italic">i</span>
-                        </button>
-                      </div>
-                    );
-                  }
-                )}
-
+                <button
+                  type="button"
+                  onClick={() => setInfoMaterialModal('PLA')}
+                  className="inline-flex items-center gap-1 font-mono text-xs font-bold text-brand-600 hover:text-brand-700"
+                >
+                  <HelpCircle className="h-3.5 w-3.5" />
+                  <span>Material Guide</span>
+                </button>
               </div>
 
-            </Step>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {materialOptions.map((opt) => {
+                  const isActive = material === opt.id;
+                  const meta = MATERIAL_CONFIG[opt.id];
+                  return (
+                    <div
+                      key={opt.id}
+                      className={`relative rounded-2xl border p-4 transition-all ${
+                        isActive
+                          ? 'border-brand-500 bg-brand-50/60 ring-1 ring-brand-500 shadow-sm'
+                          : 'border-zinc-200 bg-white hover:border-zinc-300'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setMaterial(opt.id)}
+                        className="w-full text-left"
+                      >
+                        <div className="flex items-baseline justify-between pr-7">
+                          <span className="font-serif text-base font-bold text-charcoal">
+                            {opt.name}
+                          </span>
+                          <span className="font-mono text-xs font-bold text-brand-600">
+                            ₹{opt.rate}/g
+                          </span>
+                        </div>
 
+                        <p className="mt-1 text-xs text-charcoal-light line-clamp-1">
+                          {meta?.tagline || `Density ${opt.density} g/cc`}
+                        </p>
 
-            {/* STEP 04 — 3D SETTINGS */}
+                        <div className="mt-2.5 flex items-center gap-2 text-[11px] font-mono text-charcoal-lighter">
+                          <span>{meta?.strength.split('·')[0] || 'Standard'}</span>
+                          <span>•</span>
+                          <span>{meta?.heatResistance || '55°C'}</span>
+                        </div>
+                      </button>
 
-            {mode === '3d-model' && (
-              <Step
-                n="04"
-                title="Print settings"
-              >
+                      <button
+                        type="button"
+                        onClick={() => setInfoMaterialModal(opt.id)}
+                        title={`View ${opt.name} details`}
+                        className="absolute top-3.5 right-3.5 flex h-6 w-6 items-center justify-center rounded-full bg-zinc-100 text-charcoal-lighter hover:bg-brand-500 hover:text-white transition-colors"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
-                <div className="grid gap-5 sm:grid-cols-2">
+            {/* STEP 04: Slicing Parameters (Infill, Resolution, Color, Quantity) */}
+            <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm space-y-6">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 font-mono text-xs font-bold text-white">
+                  4
+                </span>
+                <h2 className="font-serif text-xl font-bold text-charcoal">
+                  Print Parameters & Quantity
+                </h2>
+              </div>
 
-                  <Field
-                    label={`Infill density: ${infill}%`}
-                  >
-
+              {mode === '3d-model' && (
+                <div className="grid gap-6 sm:grid-cols-2 border-b border-zinc-100 pb-6">
+                  {/* Infill */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter">
+                        Infill Density: {infill}%
+                      </label>
+                      <span className="text-[11px] font-semibold text-brand-600">
+                        {infill <= 20
+                          ? 'Standard / Decorative'
+                          : infill <= 50
+                          ? 'Structural Functional'
+                          : 'Solid Mechanical'}
+                      </span>
+                    </div>
                     <input
                       type="range"
                       min="10"
                       max="100"
                       step="5"
                       value={infill}
-                      onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                        setInfill(
-                          Number(
-                            event.target.value
-                          )
-                        )
-                      }
-                      className="w-full accent-clay-500"
+                      onChange={(e) => setInfill(Number(e.target.value))}
+                      className="w-full accent-brand-500 cursor-pointer"
                     />
+                  </div>
 
-                  </Field>
-
-                  <Field label="Layer height">
-
+                  {/* Layer Height */}
+                  <div>
+                    <label className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter block mb-2">
+                      Layer Resolution
+                    </label>
                     <select
-                      value={String(
-                        layerHeight
-                      )}
-                      onChange={(event: React.ChangeEvent<HTMLSelectElement>) =>
-                        setLayerHeight(
-                          Number(
-                            event.target.value
-                          )
-                        )
-                      }
-                      className="h-10 w-full border border-line-strong bg-white px-3 text-sm text-ink outline-none focus:border-clay-500"
+                      value={String(layerHeight)}
+                      onChange={(e) => setLayerHeight(Number(e.target.value))}
+                      className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-xs font-semibold text-charcoal outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
                     >
-
-                      {LAYER_HEIGHT_OPTIONS.map(
-                        (option) => (
-                          <option
-                            key={
-                              option.value
-                            }
-                            value={
-                              option.value
-                            }
-                          >
-                            {
-                              option.label
-                            }
-                          </option>
-                        )
-                      )}
-
+                      {LAYER_HEIGHT_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
                     </select>
-
-                  </Field>
-
+                  </div>
                 </div>
+              )}
 
-              </Step>
-            )}
-
-
-            {/* COLOUR / QUANTITY / DIMENSIONS */}
-
-            <Step
-              n={
-                mode === '3d-model'
-                  ? '05'
-                  : '04'
-              }
-              title="Colour, quantity and notes"
-              last
-            >
-
-              <div className="grid gap-5 sm:grid-cols-2">
-
-                <Field label="Preferred colour">
-
+              {/* Color & Quantity */}
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div>
+                  <label className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter block mb-2">
+                    Primary Filament Color
+                  </label>
                   <div className="flex items-center gap-3">
-
                     <input
                       type="color"
                       value={color}
-                      onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                        setColor(
-                          event.target.value
-                        )
-                      }
-                      className="h-10 w-12 cursor-pointer border border-line-strong bg-white p-1"
+                      onChange={(e) => setColor(e.target.value)}
+                      className="h-10 w-12 rounded-xl border border-zinc-200 p-1 cursor-pointer bg-white"
                     />
-
-                    <span className="font-mono text-[13px] text-ink">
+                    <span className="font-mono text-xs font-bold text-charcoal">
                       {color.toUpperCase()}
                     </span>
-
                   </div>
+                </div>
 
-                </Field>
-
-                <Field
-                  label="Quantity"
-                  required
-                >
-
+                <div>
+                  <label className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter block mb-2">
+                    Print Quantity
+                  </label>
                   <Input
                     type="number"
                     min={1}
                     value={quantity}
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                      setQuantity(
-                        Math.max(
-                          1,
-                          Number(
-                            event.target.value
-                          ) || 1
-                        )
-                      )
-                    }
+                    onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
                   />
-
-                </Field>
-
+                </div>
               </div>
 
-
+              {/* Dimensions for 2D/Idea mode */}
               {mode !== '3d-model' && (
-                <div className="mt-5 grid grid-cols-3 gap-3">
-
+                <div className="grid grid-cols-3 gap-3 border-t border-zinc-100 pt-5">
                   <Input
-                    label="Length"
+                    label="Length (mm)"
                     type="number"
                     min={0}
-                    placeholder="mm"
+                    placeholder="e.g. 100"
                     value={length}
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                      setLength(
-                        event.target.value
-                      )
-                    }
+                    onChange={(e) => setLength(e.target.value)}
                   />
-
                   <Input
-                    label="Width"
+                    label="Width (mm)"
                     type="number"
                     min={0}
-                    placeholder="mm"
+                    placeholder="e.g. 80"
                     value={width}
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                      setWidth(
-                        event.target.value
-                      )
-                    }
+                    onChange={(e) => setWidth(e.target.value)}
                   />
-
                   <Input
-                    label="Height"
+                    label="Height (mm)"
                     type="number"
                     min={0}
-                    placeholder="mm"
+                    placeholder="e.g. 50"
                     value={height}
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                      setHeight(
-                        event.target.value
-                      )
-                    }
+                    onChange={(e) => setHeight(e.target.value)}
                   />
-
                 </div>
               )}
 
-
-              <label className="mt-5 block text-[13px] font-medium text-ink-800">
-
-                Anything we should know?{' '}
-
-                <span className="font-normal text-ink-500">
-                  optional
-                </span>
-
-                <textarea
+              {/* Special Notes */}
+              <div className="border-t border-zinc-100 pt-5">
+                <label className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter block mb-2">
+                  Special Finishing or Engineering Instructions (Optional)
+                </label>
+                <Textarea
                   value={notes}
-                    onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
-                    setNotes(
-                      event.target.value
-                    )
-                  }
-                  placeholder="Tolerances, inserts, deadline, finishing instructions or other details…"
-                  rows={3}
-                  className="mt-1.5 w-full border border-line-strong bg-white px-3 py-2.5 text-[14px] leading-relaxed text-ink outline-none placeholder:text-ink-500/60 focus:border-clay-500 focus:ring-2 focus:ring-clay-500/15"
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="e.g. Brass threaded heat-set inserts required, critical 0.2mm tolerance on inner bore, matte finish..."
+                  rows={2}
                 />
+              </div>
+            </div>
 
-              </label>
-
-            </Step>
-
-
-            {/* CUSTOMER DETAILS */}
-
-            <Step
-              n={
-                mode === '3d-model'
-                  ? '06'
-                  : '05'
-              }
-              title="Your details"
-              last
-            >
+            {/* STEP 05: Contact Details */}
+            <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm space-y-5">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 font-mono text-xs font-bold text-white">
+                  5
+                </span>
+                <h2 className="font-serif text-xl font-bold text-charcoal">
+                  Your Contact Details
+                </h2>
+              </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-
                 <Input
-                  label="Full name"
+                  label="Full Name *"
                   value={customerName}
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                    setCustomerName(
-                      event.target.value
-                    )
-                  }
+                  onChange={(e) => setCustomerName(e.target.value)}
                   required
                 />
-
                 <Input
-                  label="Phone"
+                  label="Phone / WhatsApp Number *"
                   type="tel"
                   value={customerPhone}
-                  onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                    setCustomerPhone(
-                      event.target.value
-                    )
-                  }
+                  onChange={(e) => setCustomerPhone(e.target.value)}
                   required
                 />
-
                 <Input
-                  label="Email"
+                  label="Email Address *"
                   type="email"
                   value={customerEmail}
-                  onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                    setCustomerEmail(
-                      event.target.value
-                    )
-                  }
+                  onChange={(e) => setCustomerEmail(e.target.value)}
                   required
                   className="sm:col-span-2"
                 />
-
               </div>
-
-            </Step>
-
+            </div>
           </div>
 
-
-          {/* ESTIMATE SIDEBAR */}
-
+          {/* Right Column: Live Estimate Sidebar */}
           <aside className="lg:col-span-5">
+            <div className="lg:sticky lg:top-28 space-y-6">
+              {/* Estimate Calculation Card */}
+              <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-md">
+                <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+                  <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+                    Live Calculation
+                  </span>
+                  <Badge variant="default">Patiala Workshop</Badge>
+                </div>
 
-            <div className="lg:sticky lg:top-28">
+                {isCalculating ? (
+                  <div className="py-8 text-center space-y-3">
+                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-brand-500" />
+                    <p className="text-xs font-semibold text-charcoal">
+                      Analyzing 3D STL mesh & volume...
+                    </p>
+                  </div>
+                ) : mode === '3d-model' && estimatedPrice !== null ? (
+                  <div className="py-6 space-y-5">
+                    <div>
+                      <span className="font-serif text-4xl font-bold text-charcoal">
+                        ₹{estimatedPrice.toLocaleString('en-IN')}
+                      </span>
+                      <span className="text-xs text-charcoal-lighter block mt-1">
+                        Includes base slicing fee + {quantity} × {material} ({infill}% infill)
+                      </span>
+                    </div>
 
-              {isCalculating ? (
-                <EstimatePanel
-                  loading
-                />
-              ) : mode ===
-                '3d-model' ? (
-                <EstimatePanel
-                  file={file}
-                  volume={volume}
-                  estimatedWeight={
-                    estimatedWeight
-                  }
-                  estimatedPrice={
-                    estimatedPrice
-                  }
-                  material={
-                    material
-                  }
-                  color={color}
-                  infill={infill}
-                  layerHeight={
-                    layerHeight
-                  }
-                  quantity={quantity}
-                  manualReview={
-                    hasManualFile
-                  }
-                />
-              ) : (
-                <ManualPanel
-                  mode={mode}
-                  material={
-                    material
-                  }
-                  color={color}
-                  quantity={
-                    quantity
-                  }
-                />
-              )}
+                    <div className="divide-y divide-zinc-100 rounded-2xl border border-zinc-100 bg-zinc-50/50 px-4 py-2 text-xs">
+                      <div className="flex justify-between py-2">
+                        <span className="text-charcoal-lighter">Volume</span>
+                        <span className="font-mono font-bold text-charcoal">
+                          {volume?.toFixed(2)} cm³
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-2">
+                        <span className="text-charcoal-lighter">Est. Weight</span>
+                        <span className="font-mono font-bold text-charcoal">
+                          {estimatedWeight} g
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-2">
+                        <span className="text-charcoal-lighter">Material Rate</span>
+                        <span className="font-mono font-bold text-charcoal">
+                          ₹{MATERIAL_CONFIG[material].pricePerGram}/g
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-2">
+                        <span className="text-charcoal-lighter">Total Quantity</span>
+                        <span className="font-mono font-bold text-charcoal">
+                          {quantity} pcs
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-6 text-center space-y-2">
+                    <Box className="mx-auto h-8 w-8 text-brand-500/60" />
+                    <p className="font-serif text-base font-bold text-charcoal">
+                      {mode === '3d-model'
+                        ? 'Upload an STL file to calculate cost'
+                        : 'Manual Engineering Review'}
+                    </p>
+                    <p className="text-xs text-charcoal-lighter">
+                      {mode === '3d-model'
+                        ? 'Live calculation computes per-gram weight and slicing tolerances.'
+                        : 'Our team will review your photos or brief and provide a quote within 4 hours.'}
+                    </p>
+                  </div>
+                )}
 
-              <div className="mt-5">
+                {/* Primary Action Buttons */}
+                <div className="space-y-3 pt-2">
+                  {mode === '3d-model' && (
+                    <Button
+                      size="lg"
+                      disabled={!file || estimatedPrice === null || isCalculating || isSubmitting}
+                      onClick={handleAddToCart}
+                      className="w-full font-bold shadow-lg shadow-brand-500/20"
+                    >
+                      <ShoppingCart className="mr-2 h-4 w-4" />
+                      {isSubmitting
+                        ? uploadProgress !== null
+                          ? `Uploading ${uploadProgress}%...`
+                          : 'Adding...'
+                        : 'Add Print to Cart & Checkout'}
+                    </Button>
+                  )}
 
-                <Alert
-                  tone="info"
-                  title="Working on something confidential?"
-                >
-                  We can review confidential production files before quoting.{' '}
-                  <Link
-                    to="/contact"
-                    className="border-b border-line-strong hover:text-ink"
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    disabled={isSubmitting || isCalculating || (mode !== 'idea' && !file)}
+                    isLoading={isSubmitting}
+                    onClick={submitRequest}
+                    className="w-full font-bold"
                   >
+                    {mode === '3d-model'
+                      ? 'Request Confirmed Engineering Review'
+                      : 'Submit for Custom Quote'}
+                  </Button>
+                </div>
+              </div>
+
+              {/* NDA & Confidentiality Note */}
+              <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm space-y-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-brand-500" />
+                  <h4 className="text-xs font-bold text-charcoal">Confidentiality Guaranteed</h4>
+                </div>
+                <p className="text-xs text-charcoal-light leading-relaxed">
+                  Working on proprietary hardware or an unreleased invention? We protect your CAD intellectual property with standard NDA agreements.{' '}
+                  <Link to="/contact" className="font-bold text-brand-600 hover:text-brand-700 underline">
                     Request an NDA
                   </Link>
-                  .
-                </Alert>
-
+                </p>
               </div>
-
             </div>
-
           </aside>
-
         </div>
+      </main>
 
-
-        {/* ACTIONS */}
-
-        <div className="mt-8 flex flex-col gap-2 sm:flex-row sm:justify-end">
-
-          {mode ===
-            '3d-model' && (
-            <Button
-              variant="secondary"
-              size="lg"
-              disabled={
-                !file ||
-                estimatedPrice ===
-                  null ||
-                isCalculating ||
-                isSubmitting
-              }
-              onClick={
-                handleAddToCart
-              }
-            >
-
-              <ShoppingCart className="mr-2 h-4 w-4" />
-
-              {isSubmitting
-                ? uploadProgress !==
-                  null
-                  ? `Uploading ${uploadProgress}%`
-                  : 'Adding…'
-                : 'Add to cart'}
-
-            </Button>
-          )}
-
-          <Button
-            size="lg"
-            disabled={
-              isSubmitting ||
-              isCalculating ||
-              (
-                mode !==
-                  'idea' &&
-                !file
-              )
-            }
-            loading={
-              isSubmitting
-            }
-            onClick={
-              submitRequest
-            }
-          >
-            {isSubmitting
-              ? uploadProgress !==
-                null
-                ? `Uploading ${uploadProgress}%`
-                : 'Submitting…'
-              : mode ===
-                '3d-model'
-              ? 'Request a confirmed quote'
-              : 'Request quote'}
-          </Button>
-
-        </div>
-
-      </Shell>
-
-
-      {/* ENGINEERING INFORMATION */}
-
-      <section className="border-t border-line bg-paper-dark/50 py-14">
-
-        <Shell>
-
-          <div className="grid gap-8 lg:grid-cols-4">
-
-            {[
-              [
-                'Wall thickness',
-                'Anything below about 1.2 mm on FDM can become fragile.',
-              ],
-              [
-                'Orientation',
-                'Layer direction affects strength; tell us how the part will be loaded.',
-              ],
-              [
-                'Tolerances',
-                'Flag holes, press fits and mating surfaces that need tighter control.',
-              ],
-              [
-                'Build volume',
-                '300 × 300 × 350 mm per piece; larger geometry can be sectioned.',
-              ],
-            ].map(
-              ([key, value]) => (
-                <div
-                  key={key}
-                  className="border-t border-line pt-4"
-                >
-
-                  <h2 className="font-display text-[17px] font-semibold text-ink">
-                    {key}
-                  </h2>
-
-                  <p className="mt-1.5 text-[14px] leading-relaxed text-ink-600">
-                    {value}
-                  </p>
-
-                </div>
-              )
-            )}
-
+      {/* 4. Engineering Info Section */}
+      <section className="border-t border-zinc-200 bg-white py-16">
+        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
+          <div className="mb-8">
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+              Workshop Best Practices
+            </span>
+            <h3 className="mt-1 font-serif text-2xl font-bold text-charcoal sm:text-3xl">
+              Design for 3D Printing Guidelines
+            </h3>
           </div>
 
-        </Shell>
-
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                title: 'Minimum Wall Thickness',
+                desc: 'Maintain at least 1.2mm on FDM prints for structural durability and clean exterior perimeters.',
+              },
+              {
+                title: 'Orientation & Layer Shear',
+                desc: 'Parts are strongest along the XY axes. Let our team know how the part will be mechanically loaded.',
+              },
+              {
+                title: 'Tolerances & Clearances',
+                desc: 'We recommend 0.3mm to 0.4mm clearance for interlocking or sliding mechanical components.',
+              },
+              {
+                title: 'Support Minimization',
+                desc: 'Angles over 45 degrees require support structures. Chamfers are preferred over fillets at the base.',
+              },
+            ].map((tip) => (
+              <Card key={tip.title} className="p-6">
+                <h4 className="font-serif text-base font-bold text-charcoal">
+                  {tip.title}
+                </h4>
+                <p className="mt-2 text-xs leading-relaxed text-charcoal-light">
+                  {tip.desc}
+                </p>
+              </Card>
+            ))}
+          </div>
+        </div>
       </section>
 
-      {/* ================================================================== */}
-      {/* MATERIAL INFO MODAL                                                */}
-      {/* ================================================================== */}
+      {/* 5. Material Info Modal */}
       {infoMaterialModal && (
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="material-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
           onClick={() => setInfoMaterialModal(null)}
         >
           <div
-            className="relative w-full max-w-lg border border-line-strong bg-white p-6 shadow-2xl sm:p-7"
+            className="relative w-full max-w-lg rounded-3xl border border-zinc-200 bg-white p-7 shadow-2xl animate-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <span className="label-tech text-clay-600">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
                   Material Guide
                 </span>
-                <h3
-                  id="material-modal-title"
-                  className="mt-1 font-display text-2xl font-semibold text-ink"
-                >
+                <h3 id="material-modal-title" className="mt-1 font-serif text-2xl font-bold text-charcoal">
                   {MATERIAL_CONFIG[infoMaterialModal].label}
                 </h3>
-                <p className="text-xs text-ink-600">
+                <p className="text-xs text-charcoal-light">
                   {MATERIAL_CONFIG[infoMaterialModal].tagline}
                 </p>
               </div>
@@ -1912,530 +1174,73 @@ export function CustomService() {
               <button
                 type="button"
                 onClick={() => setInfoMaterialModal(null)}
-                className="p-1.5 text-ink-500 transition-colors hover:text-ink"
-                aria-label="Close material guide"
+                className="rounded-lg p-1.5 text-charcoal-lighter hover:text-charcoal transition-colors"
+                aria-label="Close guide"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <p className="mt-4 text-[13.5px] leading-relaxed text-ink-700">
+            <p className="mt-4 text-xs leading-relaxed text-charcoal-light">
               {MATERIAL_CONFIG[infoMaterialModal].description}
             </p>
 
-            <div className="mt-5 divide-y divide-line border-y border-line text-xs">
+            <div className="mt-5 divide-y divide-zinc-100 rounded-2xl border border-zinc-100 bg-zinc-50/60 px-4 py-1 text-xs">
               <div className="flex justify-between py-2.5">
-                <span className="text-ink-500">Price Rate</span>
-                <span className="font-mono font-medium text-ink">
+                <span className="text-charcoal-lighter">Rate</span>
+                <span className="font-mono font-bold text-brand-600">
                   ₹{MATERIAL_CONFIG[infoMaterialModal].pricePerGram} / gram
                 </span>
               </div>
               <div className="flex justify-between py-2.5">
-                <span className="text-ink-500">Density</span>
-                <span className="font-mono text-ink">
+                <span className="text-charcoal-lighter">Density</span>
+                <span className="font-mono text-charcoal">
                   {MATERIAL_CONFIG[infoMaterialModal].density} g/cm³
                 </span>
               </div>
               <div className="flex justify-between py-2.5">
-                <span className="text-ink-500">Strength Rating</span>
-                <span className="font-medium text-ink">
+                <span className="text-charcoal-lighter">Strength</span>
+                <span className="font-semibold text-charcoal">
                   {MATERIAL_CONFIG[infoMaterialModal].strength}
                 </span>
               </div>
               <div className="flex justify-between py-2.5">
-                <span className="text-ink-500">Heat Deflection</span>
-                <span className="font-medium text-ink">
+                <span className="text-charcoal-lighter">Heat Deflection</span>
+                <span className="font-semibold text-charcoal">
                   {MATERIAL_CONFIG[infoMaterialModal].heatResistance}
                 </span>
               </div>
-              <div className="flex justify-between py-2.5">
-                <span className="text-ink-500">Surface Finish</span>
-                <span className="font-medium text-ink">
-                  {MATERIAL_CONFIG[infoMaterialModal].finish}
-                </span>
-              </div>
               <div className="py-2.5">
-                <span className="block text-ink-500">Ideal Applications:</span>
-                <span className="mt-0.5 block font-medium text-ink">
+                <span className="text-charcoal-lighter block mb-0.5">Best For:</span>
+                <span className="font-semibold text-charcoal">
                   {MATERIAL_CONFIG[infoMaterialModal].bestFor}
                 </span>
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-2">
-              <button
+            <div className="mt-6 flex justify-end gap-2.5">
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => setInfoMaterialModal(null)}
-                className="border border-line px-4 py-2 text-xs font-medium text-ink-700 hover:border-ink"
+                className="font-semibold"
               >
                 Close
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={() => {
                   setMaterial(infoMaterialModal);
                   setInfoMaterialModal(null);
                 }}
-                className="bg-ink px-4 py-2 text-xs font-medium text-white hover:bg-clay-600"
+                className="font-bold"
               >
-                Choose {MATERIAL_CONFIG[infoMaterialModal].label}
-              </button>
+                Select {MATERIAL_CONFIG[infoMaterialModal].label}
+              </Button>
             </div>
           </div>
         </div>
       )}
-    </>
-  );
-}
-
-
-/* ========================================================================== */
-/* Loading                                                                    */
-/* ========================================================================== */
-
-function LoadingState({
-  text,
-}: {
-  text: string;
-}) {
-  return (
-    <div className="flex flex-col items-center justify-center py-24">
-
-      <Loader2 className="h-8 w-8 animate-spin text-clay-600" />
-
-      <p className="mt-4 text-sm text-ink-600">
-        {text}
-      </p>
-
-    </div>
-  );
-}
-
-
-/* ========================================================================== */
-/* Step                                                                       */
-/* ========================================================================== */
-
-function Step({
-  n,
-  title,
-  children,
-  last,
-}: {
-  n: string;
-  title: string;
-  children: React.ReactNode;
-  last?: boolean;
-}) {
-  return (
-    <section
-      className={
-        last
-          ? ''
-          : 'mb-8 border-b border-line pb-8'
-      }
-    >
-
-      <div className="mb-4 flex items-baseline gap-3">
-
-        <span className="font-mono text-2xs text-clay-600">
-          {n}
-        </span>
-
-        <h2 className="font-display text-[19px] font-semibold tracking-[-0.015em] text-ink">
-          {title}
-        </h2>
-
-      </div>
-
-      {children}
-
-    </section>
-  );
-}
-
-
-/* ========================================================================== */
-/* Mode Button                                                                */
-/* ========================================================================== */
-
-function ModeButton({
-  active,
-  icon,
-  title,
-  description,
-  onClick,
-}: {
-  active: boolean;
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`border p-4 text-left transition-colors ${
-        active
-          ? 'border-ink bg-white shadow-hair'
-          : 'border-line bg-white hover:border-line-strong'
-      }`}
-    >
-
-      <div className="flex items-center gap-3">
-
-        <span
-          className={`flex h-9 w-9 items-center justify-center ${
-            active
-              ? 'bg-ink text-paper'
-              : 'bg-paper-dark text-ink-600'
-          }`}
-        >
-          {icon}
-        </span>
-
-        <span>
-
-          <span className="block font-medium text-ink">
-            {title}
-          </span>
-
-          <span className="mt-0.5 block text-[11.5px] text-ink-500">
-            {description}
-          </span>
-
-        </span>
-
-      </div>
-
-    </button>
-  );
-}
-
-
-/* ========================================================================== */
-/* File Upload                                                                */
-/* ========================================================================== */
-
-function FileUpload({
-  file,
-  mode,
-  onChange,
-}: {
-  file: File | null;
-  mode: ServiceMode;
-  onChange: (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => void;
-}) {
-  const accept =
-    mode === '3d-model'
-      ? '.stl,.obj,.3mf'
-      : '.jpg,.jpeg,.png,.webp';
-
-  return (
-    <div>
-
-      <input
-        id="custom-file"
-        type="file"
-        accept={accept}
-        onChange={onChange}
-        className="hidden"
-      />
-
-      <label
-        htmlFor="custom-file"
-        className={`flex min-h-[180px] cursor-pointer flex-col items-center justify-center border border-dashed p-8 text-center transition-colors ${
-          file
-            ? 'border-ink bg-paper'
-            : 'border-line-strong bg-white hover:border-ink'
-        }`}
-      >
-
-        {file ? (
-          <FileBox className="h-9 w-9 text-clay-600" />
-        ) : (
-          <Upload className="h-9 w-9 text-ink-500" />
-        )}
-
-        <p className="mt-3 break-all font-medium text-ink">
-          {file
-            ? file.name
-            : mode === '3d-model'
-            ? 'Upload STL, OBJ or 3MF'
-            : 'Upload JPG, PNG or WEBP'}
-        </p>
-
-        <p className="mt-1 text-xs text-ink-500">
-          {file
-            ? 'Click to replace'
-            : 'Maximum file size: 100MB'}
-        </p>
-
-      </label>
-
-    </div>
-  );
-}
-
-
-/* ========================================================================== */
-/* Estimate Panel                                                             */
-/* ========================================================================== */
-
-function EstimatePanel({
-  loading,
-  file,
-  volume,
-  estimatedWeight,
-  estimatedPrice,
-  material,
-  color,
-  infill,
-  layerHeight,
-  quantity,
-  manualReview,
-}: {
-  loading?: boolean;
-  file?: File | null;
-  volume?: number | null;
-  estimatedWeight?: number | null;
-  estimatedPrice?: number | null;
-  material?: MaterialType;
-  color?: string;
-  infill?: number;
-  layerHeight?: number;
-  quantity?: number;
-  manualReview?: boolean;
-}) {
-  return (
-    <div className="border border-line-strong bg-white">
-
-      <div className="border-b border-line px-5 py-4">
-
-        <p className="font-mono text-2xs uppercase tracking-[0.14em] text-ink-500">
-          Estimate
-        </p>
-
-        {loading ? (
-          <Loader2 className="mt-3 h-7 w-7 animate-spin text-clay-600" />
-        ) : (
-          <p className="mt-2 font-display text-[30px] font-semibold leading-none tracking-[-0.025em] text-ink">
-            {estimatedPrice !==
-              null &&
-            estimatedPrice !==
-              undefined
-              ? `₹${estimatedPrice.toLocaleString(
-                  'en-IN'
-                )}`
-              : '—'}
-          </p>
-        )}
-
-        <p className="mt-1.5 text-[12.5px] text-ink-600">
-          {loading
-            ? 'Analysing your model…'
-            : estimatedPrice !==
-                null &&
-              estimatedPrice !==
-                undefined
-            ? `${quantity} × ${material} · ${color?.toUpperCase()}`
-            : 'Upload an STL file to calculate pricing'}
-        </p>
-
-      </div>
-
-
-      <div className="px-5 py-4">
-
-        {manualReview ? (
-          <div className="py-4">
-
-            <FileBox className="h-8 w-8 text-clay-600" />
-
-            <h3 className="mt-3 font-display text-[18px] font-semibold text-ink">
-              Manual review required
-            </h3>
-
-            <p className="mt-2 text-[13.5px] leading-relaxed text-ink-600">
-              Your{' '}
-              {file?.name
-                .toLowerCase()
-                .endsWith(
-                  '.3mf'
-                )
-                ? '3MF'
-                : 'OBJ'}{' '}
-              file is accepted. Our team will inspect it and prepare the final quotation.
-            </p>
-
-          </div>
-        ) : estimatedPrice !==
-          null &&
-          estimatedPrice !==
-            undefined ? (
-
-          <dl className="space-y-2.5 text-[13.5px]">
-
-            <Row
-              k="Material"
-              v={material || '—'}
-            />
-
-            <Row
-              k="Colour"
-              v={
-                color?.toUpperCase() ||
-                '—'
-              }
-            />
-
-            <Row
-              k="Volume"
-              v={
-                volume != null
-                  ? `${volume.toFixed(
-                      2
-                    )} cm³`
-                  : '—'
-              }
-            />
-
-            <Row
-              k="Estimated weight"
-              v={
-                estimatedWeight !=
-                null
-                  ? `${estimatedWeight} g`
-                  : '—'
-              }
-            />
-
-            <Row
-              k="Infill"
-              v={`${infill}%`}
-            />
-
-            <Row
-              k="Layer height"
-              v={`${layerHeight} mm`}
-            />
-
-            <Row
-              k="Quantity"
-              v={String(
-                quantity
-              )}
-            />
-
-          </dl>
-
-        ) : (
-
-          <p className="text-[13.5px] leading-relaxed text-ink-600">
-            Pricing is calculated from model volume, material, infill and quantity. OBJ and 3MF files are submitted for manual review.
-          </p>
-
-        )}
-
-      </div>
-
-    </div>
-  );
-}
-
-
-/* ========================================================================== */
-/* Manual Panel                                                               */
-/* ========================================================================== */
-
-function ManualPanel({
-  mode,
-  material,
-  color,
-  quantity,
-}: {
-  mode: ServiceMode;
-  material: MaterialType;
-  color: string;
-  quantity: number;
-}) {
-  return (
-    <div className="border border-line-strong bg-white p-5">
-
-      <div className="flex h-10 w-10 items-center justify-center bg-paper-dark text-clay-600">
-
-        {mode === 'image' ? (
-          <ImageIcon className="h-5 w-5" />
-        ) : (
-          <Lightbulb className="h-5 w-5" />
-        )}
-
-      </div>
-
-      <h2 className="mt-4 font-display text-[20px] font-semibold text-ink">
-        {mode === 'image'
-          ? 'Manual quotation'
-          : "Let's build it together"}
-      </h2>
-
-      <p className="mt-2 text-[14px] leading-relaxed text-ink-600">
-        {mode === 'image'
-          ? 'Images do not contain enough information for reliable automatic pricing. Our team will review your reference and dimensions.'
-          : 'Tell us what you have in mind. We can help with modelling, material selection and printing requirements.'}
-      </p>
-
-      <dl className="mt-5 space-y-2.5 text-[13.5px]">
-
-        <Row
-          k="Material"
-          v={material}
-        />
-
-        <Row
-          k="Colour"
-          v={color.toUpperCase()}
-        />
-
-        <Row
-          k="Quantity"
-          v={String(
-            quantity
-          )}
-        />
-
-      </dl>
-
-    </div>
-  );
-}
-
-
-/* ========================================================================== */
-/* Row                                                                        */
-/* ========================================================================== */
-
-function Row({
-  k,
-  v,
-}: {
-  k: string;
-  v: string;
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-4">
-
-      <dt className="text-ink-500">
-        {k}
-      </dt>
-
-      <dd className="font-mono text-ink">
-        {v}
-      </dd>
-
     </div>
   );
 }

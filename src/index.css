@@ -7,7 +7,89 @@
    Fonts
    --------------------------------------------------------- */
 
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
+
+/* Local IBM Plex Serif Font Family */
+
+@font-face {
+  font-family: 'IBM Plex Serif';
+  src: url('./assets/fonts/IBMPlexSerif-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Serif';
+  src: url('./assets/fonts/IBMPlexSerif-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Serif';
+  src: url('./assets/fonts/IBMPlexSerif-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Serif';
+  src: url('./assets/fonts/IBMPlexSerif-MediumItalic.ttf') format('truetype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Serif';
+  src: url('./assets/fonts/IBMPlexSerif-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Serif';
+  src: url('./assets/fonts/IBMPlexSerif-SemiBoldItalic.ttf') format('truetype');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Serif';
+  src: url('./assets/fonts/IBMPlexSerif-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Serif';
+  src: url('./assets/fonts/IBMPlexSerif-BoldItalic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Serif';
+  src: url('./assets/fonts/IBMPlexSerif-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Serif';
+  src: url('./assets/fonts/IBMPlexSerif-LightItalic.ttf') format('truetype');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
 
 /* ---------------------------------------------------------
    Tailwind
@@ -22,7 +104,7 @@
    ========================================================= */
 
 html {
-  font-size: 17px;
+  font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -32,10 +114,11 @@ html {
 body {
   margin: 0;
   min-width: 320px;
-  background-color: #f7f4ee;
-  color: #14120f;
+  background-color: #faf9f6;
+  color: #18181b;
   font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont,
     'Segoe UI', sans-serif;
+  font-weight: 400;
   line-height: 1.6;
 }
 
@@ -82,18 +165,25 @@ h4,
 h5,
 h6 {
   margin: 0;
-  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+  font-family: 'IBM Plex Serif', Georgia, serif;
   font-weight: 600;
-  line-height: 1.15;
-  letter-spacing: -0.025em;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: #18181b;
 }
 
 p {
   margin: 0;
 }
 
-.font-serif {
-  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+.font-serif,
+.font-display {
+  font-family: 'IBM Plex Serif', Georgia, serif;
+}
+
+.font-sans {
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
 }
 
 .font-mono {
@@ -107,11 +197,11 @@ p {
   font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco,
     Consolas, 'Liberation Mono', monospace;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.14em;
   line-height: 1.4;
   text-transform: uppercase;
-  color: #6b6156;
+  color: #ff6b1a;
 }
 
 /* =========================================================
@@ -119,14 +209,14 @@ p {
    ========================================================= */
 
 ::selection {
-  background-color: #f4dccf;
-  color: #7b2f11;
+  background-color: #ffedd5;
+  color: #c2410c;
 }
 
 :focus-visible {
-  outline: 2px solid #b4491e;
+  outline: 2px solid #ff6b1a;
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: 4px;
 }
 
 /* =========================================================
@@ -139,23 +229,23 @@ p {
 }
 
 ::-webkit-scrollbar-track {
-  background: #ebe6dc;
+  background: #f4efe6;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #b8aea0;
-  border-radius: 2px;
+  background: #d4ccbe;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #8e8275;
+  background: #a89f8f;
 }
 
 /* Firefox */
 
 html {
   scrollbar-width: thin;
-  scrollbar-color: #b8aea0 #ebe6dc;
+  scrollbar-color: #d4ccbe #f4efe6;
 }
 
 /* =========================================================
@@ -235,7 +325,7 @@ html {
    ========================================================= */
 
 .surface-paper {
-  background-color: #f7f4ee;
+  background-color: #faf9f6;
 }
 
 .surface-white {
@@ -243,12 +333,12 @@ html {
 }
 
 .surface-dark {
-  background-color: #14120f;
-  color: #f7f4ee;
+  background-color: #0b0f17;
+  color: #f8fafc;
 }
 
 .surface-muted {
-  background-color: #ebe6dc;
+  background-color: #f4efe6;
 }
 
 /* =========================================================
@@ -256,27 +346,27 @@ html {
    ========================================================= */
 
 .text-brand {
-  color: #b4491e;
+  color: #ff6b1a;
 }
 
 .text-brand-dark {
-  color: #7b2f11;
+  color: #c2410c;
 }
 
 .text-ink {
-  color: #14120f;
+  color: #18181b;
 }
 
 .text-muted {
-  color: #6b6156;
+  color: #71717a;
 }
 
 .border-brand {
-  border-color: #b4491e;
+  border-color: #ff6b1a;
 }
 
 .border-subtle {
-  border-color: #d9d2c7;
+  border-color: #e4e4e7;
 }
 
 /* =========================================================
@@ -286,7 +376,7 @@ html {
 .technical-divider {
   width: 100%;
   height: 1px;
-  background-color: #d9d2c7;
+  background-color: #e4e4e7;
 }
 
 /* =========================================================

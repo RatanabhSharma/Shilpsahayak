@@ -16,6 +16,10 @@ import {
   ShoppingBag,
   User,
   X,
+  Sparkles,
+  Phone,
+  Mail,
+  MapPin,
 } from 'lucide-react';
 import {
   AnimatePresence,
@@ -27,6 +31,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
 import { useHomepage } from '../hooks/useHomepage';
 import { useUserRole } from '../hooks/useUserRole';
+import { BrandLogo } from './ui';
 
 type NavItem = {
   name: string;
@@ -41,7 +46,7 @@ const NAV_ITEMS: NavItem[] = [
     end: true,
   },
   {
-    name: 'Shop',
+    name: 'Shop All',
     path: '/catalog',
   },
   {
@@ -49,7 +54,7 @@ const NAV_ITEMS: NavItem[] = [
     path: '/custom-service',
   },
   {
-    name: 'About',
+    name: 'About Studio',
     path: '/about',
   },
   {
@@ -92,22 +97,28 @@ function AnnouncementBar({
 
   return (
     <div
-      className="relative z-40 h-8 overflow-hidden bg-[#b4491e] text-white flex items-center justify-center px-4"
+      className="relative z-40 h-9 overflow-hidden bg-charcoal text-white flex items-center justify-center px-4 border-b border-white/10"
       role="region"
       aria-label="Store announcements"
     >
-      <AnimatePresence mode="wait">
-        <motion.p
-          key={currentIndex}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="text-center font-mono text-[9px] font-medium uppercase tracking-[0.16em] sm:text-[10px] text-white/95 truncate"
-        >
-          {cleanMessages[currentIndex]}
-        </motion.p>
-      </AnimatePresence>
+      <div className="flex items-center gap-2 max-w-full">
+        <span className="flex h-2 w-2 relative shrink-0">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
+        </span>
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={currentIndex}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="text-center font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 truncate"
+          >
+            {cleanMessages[currentIndex]}
+          </motion.p>
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
@@ -117,24 +128,17 @@ function AnnouncementBar({
    ============================================================ */
 
 export function StorefrontLayout() {
-  const [
-    isMobileMenuOpen,
-    setIsMobileMenuOpen,
-  ] = useState(false);
-
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
   /* ----------------------------------------------------------
      Store / Cart
      ---------------------------------------------------------- */
 
-  const cart = useStore(
-    (state) => state.cart
-  );
+  const cart = useStore((state) => state.cart);
 
   const cartItemCount = cart.reduce(
-    (total, item) =>
-      total + item.quantity,
+    (total, item) => total + item.quantity,
     0
   );
 
@@ -142,38 +146,28 @@ export function StorefrontLayout() {
      Authentication
      ---------------------------------------------------------- */
 
-  const {
-    user,
-    loading: authLoading,
-  } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   /* ----------------------------------------------------------
      User role
      ---------------------------------------------------------- */
 
-  const {
-    isAdmin,
-    loading: roleLoading,
-  } = useUserRole();
+  const { isAdmin, loading: roleLoading } = useUserRole();
 
   /* ----------------------------------------------------------
      Business settings
      ---------------------------------------------------------- */
 
-  const {
-    data: settings,
-  } = useSettings();
+  const { data: settings } = useSettings();
 
   /* ----------------------------------------------------------
      Homepage settings
      ---------------------------------------------------------- */
 
-  const {
-    data: homepageSettings,
-  } = useHomepage();
+  const { data: homepageSettings } = useHomepage();
 
   /* ----------------------------------------------------------
-     Close mobile menu when route changes
+     Close mobile menu on route change
      ---------------------------------------------------------- */
 
   useEffect(() => {
@@ -181,7 +175,7 @@ export function StorefrontLayout() {
   }, [location.pathname]);
 
   /* ----------------------------------------------------------
-     Prevent page scrolling when mobile menu is open
+     Lock body scroll when mobile menu open
      ---------------------------------------------------------- */
 
   useEffect(() => {
@@ -200,389 +194,238 @@ export function StorefrontLayout() {
      Business information
      ---------------------------------------------------------- */
 
-  const businessName =
-    settings?.businessName ||
-    'Shilp Sahayak';
-
-  const businessEmail =
-    settings?.email ||
-    'hello@shilpsahayak.com';
-
-  const whatsappNumber =
-    settings?.whatsappNumber || '';
-
-  const businessAddress =
-    settings?.address ||
-    'Patiala, Punjab 147001';
+  const businessName = settings?.businessName || 'Shilp Sahayak';
+  const businessEmail = settings?.email || 'hello@shilpsahayak.com';
+  const whatsappNumber = settings?.whatsappNumber || '919876543210';
+  const businessPhone = settings?.phone || '+91 98765 43210';
+  const businessAddress = settings?.address || 'Patiala, Punjab 147001';
 
   const whatsappLink = whatsappNumber
-    ? `https://wa.me/${whatsappNumber.replace(
-        /\D/g,
-        ''
-      )}`
-    : '';
+    ? `https://wa.me/${whatsappNumber.replace(/\D/g, '')}`
+    : 'https://wa.me/919876543210';
 
-  const currentYear =
-    new Date().getFullYear();
+  const currentYear = new Date().getFullYear();
 
-  /* ----------------------------------------------------------
-     Authentication state
-     ---------------------------------------------------------- */
-
-  const isAuthenticated =
-    !authLoading && !!user;
-
-  const showAdmin =
-    !authLoading &&
-    !roleLoading &&
-    isAuthenticated &&
-    isAdmin;
+  const isAuthenticated = !authLoading && !!user;
+  const showAdmin = !authLoading && !roleLoading && isAuthenticated && isAdmin;
 
   return (
-    <div className="min-h-screen bg-[#f7f4ee] text-[#14120f]">
-
-      {/* ======================================================
-          ACCESSIBILITY
-          ====================================================== */}
-
+    <div className="min-h-screen flex flex-col bg-[#faf9f6] text-charcoal">
+      {/* Accessibility Skip Link */}
       <a
         href="#main-content"
-        className="fixed left-4 top-4 z-[100] -translate-y-20 bg-[#14120f] px-4 py-2 text-sm font-medium text-[#f7f4ee] shadow-lg transition-transform focus:translate-y-0"
+        className="fixed left-4 top-4 z-[100] -translate-y-20 rounded-xl bg-charcoal px-4 py-2 text-sm font-medium text-white shadow-lg transition-transform focus:translate-y-0"
       >
         Skip to content
       </a>
 
-      {/* ======================================================
-          ANNOUNCEMENT BAR
-
-          Completely controlled by Firestore / Admin.
-          No hardcoded announcement text here.
-          ====================================================== */}
-
+      {/* Announcement Bar */}
       {homepageSettings?.announcementEnabled &&
         homepageSettings.announcementMessages.length > 0 && (
           <AnnouncementBar
-            messages={
-              homepageSettings.announcementMessages
-            }
-            duration={
-              homepageSettings.announcementDuration
-            }
+            messages={homepageSettings.announcementMessages}
+            duration={homepageSettings.announcementDuration}
           />
         )}
 
-      {/* ======================================================
-          HEADER
-          ====================================================== */}
-
-      <header className="sticky top-0 z-50 border-b border-[#d9d2c7] bg-[#f7f4ee]/95 backdrop-blur-sm">
-
-        <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-5 px-5 sm:px-8 lg:h-[72px] lg:px-10">
-
-          {/* ------------------------------------------------
-              LOGO
-              ------------------------------------------------ */}
-
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-zinc-200/80 bg-[#faf9f6]/95 backdrop-blur-md transition-shadow">
+        <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-4 sm:px-6 lg:h-20 lg:px-10">
+          {/* Logo */}
           <Link
             to="/"
-            className="group flex min-w-0 shrink-0 items-center gap-2.5"
+            className="group flex items-center"
             aria-label={`${businessName} home`}
           >
-            <div
-              className="relative flex h-9 w-9 shrink-0 items-center justify-center border border-[#14120f] bg-[#14120f] text-[#f7f4ee]"
-              aria-hidden="true"
-            >
-              <span className="font-display text-sm font-bold tracking-[-0.08em]">
-                SS
-              </span>
-
-              <span className="absolute -bottom-px -right-px h-2 w-2 bg-[#b4491e]" />
-            </div>
-
-            <div className="min-w-0">
-              <span className="block truncate font-display text-[16px] font-semibold leading-none tracking-[-0.02em] text-[#14120f] transition-colors group-hover:text-[#b4491e] sm:text-[17px]">
-                {businessName}
-              </span>
-
-              <span className="mt-1 block font-mono text-[8px] uppercase tracking-[0.16em] text-[#8e8275]">
-                Crafted with precision
-              </span>
-            </div>
+            <BrandLogo size="md" />
           </Link>
 
-          {/* ==================================================
-              DESKTOP NAVIGATION
-              ================================================== */}
-
+          {/* Desktop Navigation Links */}
           <nav
             aria-label="Primary navigation"
-            className="ml-auto hidden items-center gap-6 lg:flex"
+            className="hidden items-center gap-1 xl:gap-2 lg:flex"
           >
-            {NAV_ITEMS.slice(1).map(
-              (item) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({ isActive }) =>
-                    [
-                      'group relative py-1.5 px-0.5 text-[13.5px] transition-colors duration-150',
-                      isActive
-                        ? 'font-medium text-[#14120f]'
-                        : 'text-[#6b6156] hover:text-[#14120f]',
-                    ].join(' ')
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      <span className="relative z-10">{item.name}</span>
-                      <span
-                        className={`absolute -bottom-0.5 left-0 h-[2px] w-full bg-[#b4491e] transition-transform duration-200 origin-left ${
-                          isActive
-                            ? 'scale-x-100'
-                            : 'scale-x-0 group-hover:scale-x-100 group-hover:bg-[#b4491e]/60'
-                        }`}
-                      />
-                    </>
-                  )}
-                </NavLink>
-              )
-            )}
+            {NAV_ITEMS.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.end}
+                className={({ isActive }) =>
+                  [
+                    'relative px-3.5 py-2 text-[13.5px] font-semibold tracking-[-0.01em] transition-colors rounded-xl',
+                    isActive
+                      ? 'text-brand-500 bg-brand-50/80'
+                      : 'text-charcoal-light hover:text-charcoal hover:bg-zinc-100/60',
+                  ].join(' ')
+                }
+              >
+                {({ isActive }) => (
+                  <span className="flex items-center gap-1.5">
+                    {item.name}
+                    {isActive && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+                    )}
+                  </span>
+                )}
+              </NavLink>
+            ))}
 
-            {/* Admin Panel */}
+            {/* Admin Panel Badge */}
             {showAdmin && (
               <NavLink
                 to="/admin"
                 className={({ isActive }) =>
                   [
-                    'inline-flex items-center gap-1.5 border px-2.5 py-1.5',
-                    'font-mono text-[9px] uppercase tracking-[0.12em]',
+                    'ml-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5',
+                    'font-mono text-[10px] font-semibold uppercase tracking-wider',
                     'transition-all duration-150',
                     isActive
-                      ? 'border-[#14120f] bg-[#14120f] text-[#f7f4ee]'
-                      : 'border-[#cfc7bb] text-[#514a42] hover:border-[#14120f] hover:bg-[#14120f] hover:text-[#f7f4ee]',
+                      ? 'border-brand-500 bg-brand-500 text-white shadow-sm'
+                      : 'border-zinc-300 text-charcoal hover:border-brand-500 hover:text-brand-600',
                   ].join(' ')
                 }
               >
-                <ShieldCheck
-                  className="h-3 w-3"
-                  aria-hidden="true"
-                />
-
-                Admin Panel
+                <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                Admin
               </NavLink>
             )}
           </nav>
 
-          {/* ==================================================
-              HEADER ACTIONS
-              ================================================== */}
+          {/* Header Action Buttons */}
+          <div className="flex items-center gap-2">
+            {/* Custom Print Quick Action (Desktop) */}
+            <Link
+              to="/custom-service"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-brand-500/30 bg-brand-50 px-3.5 py-2 text-xs font-bold text-brand-700 hover:bg-brand-100 transition-colors shadow-sm"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-brand-500" />
+              <span>Instant Quote</span>
+            </Link>
 
-          <div className="ml-auto flex items-center gap-1 lg:ml-5">
-
-            {/* Authentication */}
+            {/* User Auth / Account */}
             {authLoading ? (
-              <div
-                className="h-10 w-16 animate-pulse"
-                aria-hidden="true"
-              />
+              <div className="h-10 w-10 animate-pulse rounded-xl bg-zinc-200" />
             ) : isAuthenticated ? (
               <Link
                 to="/account"
-                className="group inline-flex h-10 items-center gap-2 px-2.5 text-[#514a42] transition-colors hover:text-[#14120f]"
-                aria-label="Open my account"
+                className="inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium text-charcoal hover:bg-zinc-100 transition-colors"
+                aria-label="My account"
               >
-                <User
-                  className="h-[18px] w-[18px]"
-                  aria-hidden="true"
-                />
-
-                <span className="hidden text-[13px] font-medium sm:inline">
-                  Account
-                </span>
+                <User className="h-4 w-4 text-charcoal-light" />
+                <span className="hidden md:inline font-semibold text-xs">Account</span>
               </Link>
             ) : (
               <Link
                 to="/login"
-                className="group inline-flex h-10 items-center gap-2 px-2.5 text-[#514a42] transition-colors hover:text-[#14120f]"
-                aria-label="Login to your account"
+                className="inline-flex h-10 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-charcoal hover:bg-zinc-100 transition-colors"
+                aria-label="Sign in"
               >
-                <User
-                  className="h-[18px] w-[18px]"
-                  aria-hidden="true"
-                />
-
-                <span className="hidden text-[13px] font-medium sm:inline">
-                  Login
-                </span>
+                <User className="h-4 w-4 text-charcoal-light" />
+                <span>Sign In</span>
               </Link>
             )}
 
-            {/* Cart */}
+            {/* Shopping Cart Button */}
             <Link
               to="/cart"
-              className="relative inline-flex h-10 w-10 items-center justify-center text-[#514a42] transition-colors hover:text-[#14120f]"
-              aria-label={`Shopping cart with ${cartItemCount} ${
-                cartItemCount === 1
-                  ? 'item'
-                  : 'items'
-              }`}
+              className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-charcoal hover:bg-zinc-100 transition-colors"
+              aria-label={`Shopping cart with ${cartItemCount} items`}
             >
-              <ShoppingBag
-                className="h-[19px] w-[19px]"
-                aria-hidden="true"
-              />
-
+              <ShoppingBag className="h-5 w-5" aria-hidden="true" />
               {cartItemCount > 0 && (
-                <span className="absolute right-0.5 top-0.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-[#b4491e] px-1 font-mono text-[9px] font-semibold leading-none text-white">
-                  {cartItemCount > 99
-                    ? '99+'
-                    : cartItemCount}
+                <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-500 px-1 font-mono text-[10px] font-bold leading-none text-white shadow-sm animate-in zoom-in">
+                  {cartItemCount > 99 ? '99+' : cartItemCount}
                 </span>
               )}
             </Link>
 
-            {/* Mobile menu button */}
+            {/* Mobile menu hamburger toggle */}
             <button
               type="button"
-              onClick={() =>
-                setIsMobileMenuOpen(
-                  (previous) =>
-                    !previous
-                )
-              }
-              className="inline-flex h-10 w-10 items-center justify-center text-[#514a42] transition-colors hover:text-[#14120f] lg:hidden"
-              aria-label={
-                isMobileMenuOpen
-                  ? 'Close navigation menu'
-                  : 'Open navigation menu'
-              }
-              aria-expanded={
-                isMobileMenuOpen
-              }
+              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-charcoal hover:bg-zinc-100 transition-colors lg:hidden"
+              aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={isMobileMenuOpen}
               aria-controls="mobile-navigation"
             >
               {isMobileMenuOpen ? (
-                <X
-                  className="h-5 w-5"
-                  aria-hidden="true"
-                />
+                <X className="h-5 w-5" aria-hidden="true" />
               ) : (
-                <Menu
-                  className="h-5 w-5"
-                  aria-hidden="true"
-                />
+                <Menu className="h-5 w-5" aria-hidden="true" />
               )}
             </button>
           </div>
         </div>
 
-        {/* ==================================================
-            MOBILE NAVIGATION
-            ================================================== */}
-
+        {/* Mobile Dropdown Navigation */}
         <AnimatePresence initial={false}>
           {isMobileMenuOpen && (
             <motion.div
               id="mobile-navigation"
-              initial={{
-                opacity: 0,
-                height: 0,
-              }}
-              animate={{
-                opacity: 1,
-                height: 'auto',
-              }}
-              exit={{
-                opacity: 0,
-                height: 0,
-              }}
-              transition={{
-                duration: 0.2,
-                ease: 'easeOut',
-              }}
-              className="overflow-hidden border-t border-[#d9d2c7] bg-[#f7f4ee] lg:hidden"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="overflow-hidden border-t border-zinc-200 bg-[#faf9f6] lg:hidden"
             >
               <nav
                 aria-label="Mobile navigation"
-                className="mx-auto max-w-[1440px] px-5 py-4 sm:px-8"
+                className="mx-auto max-w-[1440px] px-5 py-5 sm:px-8 space-y-2"
               >
-                <div className="space-y-0.5">
-
-                  {NAV_ITEMS.map(
-                    (item) => (
-                      <NavLink
-                        key={item.path}
-                        to={item.path}
-                        end={item.end}
-                        className={({ isActive }) =>
-                          [
-                            'flex items-center justify-between border-b border-[#ebe6dc] px-1 py-3.5 text-[15px] transition-colors',
-                            isActive
-                              ? 'font-medium text-[#b4491e]'
-                              : 'text-[#514a42] hover:text-[#14120f]',
-                          ].join(' ')
-                        }
-                      >
-                        {({ isActive }) => (
-                          <>
-                            <span>
-                              {item.name}
-                            </span>
-
-                            {isActive && (
-                              <span className="h-1.5 w-1.5 rounded-full bg-[#b4491e]" />
-                            )}
-                          </>
+                {NAV_ITEMS.map((item) => (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    end={item.end}
+                    className={({ isActive }) =>
+                      [
+                        'flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition-colors',
+                        isActive
+                          ? 'bg-brand-50 text-brand-600'
+                          : 'text-charcoal hover:bg-zinc-100',
+                      ].join(' ')
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <span>{item.name}</span>
+                        {isActive ? (
+                          <span className="h-2 w-2 rounded-full bg-brand-500" />
+                        ) : (
+                          <ArrowRight className="h-4 w-4 text-charcoal-lighter" />
                         )}
-                      </NavLink>
-                    )
-                  )}
+                      </>
+                    )}
+                  </NavLink>
+                ))}
 
-                  {/* Mobile Admin */}
-                  {showAdmin && (
-                    <NavLink
-                      to="/admin"
-                      className={({ isActive }) =>
-                        [
-                          'mt-3 flex items-center justify-between border px-3 py-3',
-                          'font-mono text-[10px] uppercase tracking-[0.12em]',
-                          isActive
-                            ? 'border-[#14120f] bg-[#14120f] text-[#f7f4ee]'
-                            : 'border-[#cfc7bb] text-[#514a42] hover:border-[#14120f] hover:text-[#14120f]',
-                        ].join(' ')
-                      }
-                    >
-                      <span className="inline-flex items-center gap-2">
-                        <ShieldCheck
-                          className="h-3.5 w-3.5"
-                          aria-hidden="true"
-                        />
+                {showAdmin && (
+                  <NavLink
+                    to="/admin"
+                    className={({ isActive }) =>
+                      [
+                        'flex items-center justify-between rounded-xl border px-4 py-3 text-xs font-mono uppercase tracking-wider',
+                        isActive
+                          ? 'border-brand-500 bg-brand-500 text-white'
+                          : 'border-zinc-300 text-charcoal hover:border-charcoal',
+                      ].join(' ')
+                    }
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4" />
+                      Admin Workspace
+                    </span>
+                    <ArrowRight className="h-4 w-4" />
+                  </NavLink>
+                )}
 
-                        Admin Panel
-                      </span>
-
-                      <ArrowRight
-                        className="h-3.5 w-3.5"
-                        aria-hidden="true"
-                      />
-                    </NavLink>
-                  )}
-                </div>
-
-                {/* Custom print CTA */}
-                <div className="mt-5 border-t border-[#d9d2c7] pt-5">
+                <div className="pt-3">
                   <Link
                     to="/custom-service"
-                    className="flex items-center justify-between bg-[#14120f] px-4 py-3.5 text-[#f7f4ee] transition-colors hover:bg-[#2b2724]"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-3.5 text-sm font-bold text-white shadow-md hover:bg-brand-600 transition-colors"
                   >
-                    <span className="text-sm font-medium">
-                      Start a custom print
-                    </span>
-
-                    <ArrowRight
-                      className="h-4 w-4"
-                      aria-hidden="true"
-                    />
+                    <Sparkles className="h-4 w-4" />
+                    <span>Get an Instant Custom Quote</span>
                   </Link>
                 </div>
               </nav>
@@ -591,233 +434,132 @@ export function StorefrontLayout() {
         </AnimatePresence>
       </header>
 
-      {/* ======================================================
-          MAIN CONTENT
-          ====================================================== */}
-
-      <main
-        id="main-content"
-        className="min-h-0 flex-1"
-      >
+      {/* Main Content Area */}
+      <main id="main-content" className="min-h-0 flex-1">
         <Outlet />
       </main>
 
-      {/* ======================================================
-          FOOTER
-          ====================================================== */}
+      {/* Rich Dark Theme Footer */}
+      <footer className="mt-20 border-t border-slate-800 bg-[#0b0f17] text-slate-300 relative overflow-hidden">
+        {/* Subtle grid background texture */}
+        <div className="absolute inset-0 grid-plate opacity-20 pointer-events-none" />
 
-      <footer className="mt-20 border-t border-[#d9d2c7] bg-[#14120f] text-[#f7f4ee]/75">
-        <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10">
-
-          <div className="grid gap-12 lg:grid-cols-[1.5fr_repeat(2,1fr)_1.1fr]">
-
-            {/* ------------------------------------------------
-                Footer brand
-                ------------------------------------------------ */}
-
-            <div className="max-w-sm">
-              <Link
-                to="/"
-                className="group inline-flex items-center gap-2.5"
-              >
-                <div
-                  className="relative flex h-9 w-9 items-center justify-center border border-[#f7f4ee]/30 bg-[#f7f4ee] text-[#14120f]"
-                  aria-hidden="true"
-                >
-                  <span className="font-display text-sm font-bold tracking-[-0.08em]">
-                    SS
-                  </span>
-
-                  <span className="absolute -bottom-px -right-px h-2 w-2 bg-[#b4491e]" />
-                </div>
-
-                <span className="font-display text-[18px] font-semibold tracking-[-0.02em] text-[#f7f4ee] transition-colors group-hover:text-[#d9784b]">
-                  {businessName}
-                </span>
+        <div className="relative mx-auto max-w-[1440px] px-5 py-16 sm:px-8 lg:px-10">
+          <div className="grid gap-12 lg:grid-cols-[1.6fr_repeat(3,1fr)]">
+            {/* Column 1: Brand intro */}
+            <div className="space-y-5 max-w-sm">
+              <Link to="/" className="inline-block">
+                <BrandLogo theme="dark" size="lg" showTagline taglineText="If you can imagine it, we can print it." />
               </Link>
 
-              <p className="mt-4 max-w-sm text-[13.5px] leading-relaxed text-[#f7f4ee]/55">
-                3D printing, custom manufacturing and
-                physical prototyping to turn digital
-                designs into useful physical objects.
+              <p className="text-sm leading-relaxed text-slate-400">
+                A custom 3D printing & rapid prototyping studio. From one-off personalized gifts to production batches for startups and engineering teams.
               </p>
 
-              <address className="mt-6 not-italic font-mono text-[9px] uppercase leading-relaxed tracking-[0.1em] text-[#f7f4ee]/35">
-                {businessAddress}
-              </address>
+              <div className="flex items-center gap-3 pt-2">
+                <a
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#1EBE5D] transition-colors"
+                >
+                  <span>Chat on WhatsApp</span>
+                </a>
+                <a
+                  href="https://instagram.com/shilpsahayak"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900/60 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:border-brand-500 hover:text-white transition-colors"
+                >
+                  <span>@shilpsahayak</span>
+                </a>
+              </div>
             </div>
 
-            {/* ------------------------------------------------
-                Explore
-                ------------------------------------------------ */}
-
-            <div>
-              <h3 className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#f7f4ee]/35">
+            {/* Column 2: Explore */}
+            <div className="space-y-4">
+              <h3 className="font-mono text-xs font-bold uppercase tracking-[0.16em] text-brand-400">
                 Explore
               </h3>
-
-              <ul className="mt-4 space-y-2.5">
-
+              <ul className="space-y-2.5 text-sm">
                 <li>
-                  <Link
-                    to="/catalog"
-                    className="text-[13.5px] text-[#f7f4ee]/65 transition-colors hover:text-[#f7f4ee]"
-                  >
-                    Shop all
+                  <Link to="/catalog" className="text-slate-400 hover:text-white transition-colors">
+                    Catalog & Products
                   </Link>
                 </li>
-
                 <li>
-                  <Link
-                    to="/custom-service"
-                    className="text-[13.5px] text-[#f7f4ee]/65 transition-colors hover:text-[#f7f4ee]"
-                  >
-                    Custom 3D printing
+                  <Link to="/custom-service" className="text-slate-400 hover:text-white transition-colors">
+                    Custom 3D Printing
                   </Link>
                 </li>
-
                 <li>
-                  <Link
-                    to="/about"
-                    className="text-[13.5px] text-[#f7f4ee]/65 transition-colors hover:text-[#f7f4ee]"
-                  >
-                    About us
+                  <Link to="/about" className="text-slate-400 hover:text-white transition-colors">
+                    About Our Workshop
                   </Link>
                 </li>
-
                 <li>
-                  <Link
-                    to="/contact"
-                    className="text-[13.5px] text-[#f7f4ee]/65 transition-colors hover:text-[#f7f4ee]"
-                  >
-                    Contact
+                  <Link to="/contact" className="text-slate-400 hover:text-white transition-colors">
+                    Contact & Studio
                   </Link>
                 </li>
-
               </ul>
             </div>
 
-            {/* ------------------------------------------------
-                Services
-                ------------------------------------------------ */}
-
-            <div>
-              <h3 className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#f7f4ee]/35">
-                Services
+            {/* Column 3: Capabilities */}
+            <div className="space-y-4">
+              <h3 className="font-mono text-xs font-bold uppercase tracking-[0.16em] text-brand-400">
+                Capabilities
               </h3>
-
-              <ul className="mt-4 space-y-2.5">
-
-                <li>
-                  <Link
-                    to="/custom-service"
-                    className="text-[13.5px] text-[#f7f4ee]/65 transition-colors hover:text-[#f7f4ee]"
-                  >
-                    Custom prints
-                  </Link>
-                </li>
-
-                <li>
-                  <Link
-                    to="/custom-service"
-                    className="text-[13.5px] text-[#f7f4ee]/65 transition-colors hover:text-[#f7f4ee]"
-                  >
-                    Prototyping
-                  </Link>
-                </li>
-
-                <li>
-                  <Link
-                    to="/account"
-                    className="text-[13.5px] text-[#f7f4ee]/65 transition-colors hover:text-[#f7f4ee]"
-                  >
-                    Track an order
-                  </Link>
-                </li>
-
-                <li>
-                  <Link
-                    to="/account"
-                    className="text-[13.5px] text-[#f7f4ee]/65 transition-colors hover:text-[#f7f4ee]"
-                  >
-                    My account
-                  </Link>
-                </li>
-
+              <ul className="space-y-2.5 text-sm text-slate-400">
+                <li>FDM Printing (PLA / PETG / ABS)</li>
+                <li>High-Detail Resin SLA</li>
+                <li>Functional CAD Prototyping</li>
+                <li>Batch Enclosures & Mounts</li>
+                <li>Personalized Decor & Gifts</li>
               </ul>
             </div>
 
-            {/* ------------------------------------------------
-                Contact
-                ------------------------------------------------ */}
-
-            <div>
-              <h3 className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#f7f4ee]/35">
-                Get in touch
+            {/* Column 4: Contact & Studio Info */}
+            <div className="space-y-4">
+              <h3 className="font-mono text-xs font-bold uppercase tracking-[0.16em] text-brand-400">
+                Studio Location
               </h3>
-
-              <ul className="mt-4 space-y-3.5 text-[13.5px] text-[#f7f4ee]/65">
-
-                {whatsappNumber && (
-                  <li>
-                    <a
-                      href={whatsappLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="transition-colors hover:text-[#f7f4ee]"
-                    >
-                      WhatsApp
-                    </a>
-                  </li>
-                )}
-
-                <li>
-                  <a
-                    href={`mailto:${businessEmail}`}
-                    className="break-all transition-colors hover:text-[#f7f4ee]"
-                  >
+              <ul className="space-y-3 text-sm text-slate-400">
+                <li className="flex items-start gap-2.5">
+                  <MapPin className="h-4 w-4 shrink-0 text-brand-500 mt-0.5" />
+                  <span>{businessAddress}</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Mail className="h-4 w-4 shrink-0 text-brand-500" />
+                  <a href={`mailto:${businessEmail}`} className="hover:text-white transition-colors">
                     {businessEmail}
                   </a>
                 </li>
-
-                <li className="leading-relaxed text-[#f7f4ee]/45">
-                  {businessAddress}
+                <li className="flex items-center gap-2.5">
+                  <Phone className="h-4 w-4 shrink-0 text-brand-500" />
+                  <a href={`tel:${businessPhone.replace(/\s+/g, '')}`} className="hover:text-white transition-colors">
+                    {businessPhone}
+                  </a>
                 </li>
-
               </ul>
             </div>
           </div>
 
-          {/* ------------------------------------------------
-              Footer bottom
-              ------------------------------------------------ */}
-
-          <div className="mt-14 flex flex-col gap-4 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
-
-            <p className="font-mono text-[9px] uppercase tracking-[0.08em] text-[#f7f4ee]/35">
-              © {currentYear}{' '}
-              {businessName}. All rights reserved.
+          {/* Footer Bottom Bar */}
+          <div className="mt-16 flex flex-col gap-4 border-t border-slate-800/80 pt-8 sm:flex-row sm:items-center sm:justify-between text-xs text-slate-500">
+            <p className="font-mono">
+              © {currentYear} {businessName}. If you can imagine it, we can print it.
             </p>
 
-            <div className="flex items-center gap-5 font-mono text-[9px] uppercase tracking-[0.08em] text-[#f7f4ee]/35">
-
-              <span>
-                Make in India
+            <div className="flex items-center gap-4 font-mono text-[11px] uppercase tracking-wider">
+              <span className="inline-flex items-center gap-1.5 text-slate-400">
+                <span className="h-2 w-2 rounded-full bg-brand-500" />
+                Proudly Made in India
               </span>
-
-              <span
-                className="h-1 w-1 rounded-full bg-[#b4491e]"
-                aria-hidden="true"
-              />
-
-              <span>
-                3D printing & fabrication
-              </span>
-
             </div>
           </div>
         </div>
       </footer>
     </div>
   );
-}
+}

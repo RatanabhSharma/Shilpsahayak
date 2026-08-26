@@ -11,6 +11,9 @@ import {
   CheckCircle,
   XCircle,
   X,
+  Sparkles,
+  ChevronRight,
+  ShieldCheck,
 } from 'lucide-react';
 
 import { useAuth } from '../../hooks/useAuth';
@@ -34,39 +37,40 @@ import {
 } from '../../hooks/useOrders';
 
 import {
-  Card,
   Button,
   Input,
+  Badge,
 } from '../../components/ui';
 
 /* -------------------------------------------------------------------------- */
 /* Status styling                                                             */
 /* -------------------------------------------------------------------------- */
 
-const STATUS_STYLES: Record<string, string> = {
-  Pending: 'border-amber-200 bg-amber-50 text-amber-700',
-  Quoted: 'border-blue-200 bg-blue-50 text-blue-700',
-  Accepted: 'border-green-200 bg-green-50 text-green-700',
-  Rejected: 'border-red-200 bg-red-50 text-red-700',
-  Completed: 'border-purple-200 bg-purple-50 text-purple-700',
-  Confirmed: 'border-blue-200 bg-blue-50 text-blue-700',
-  Printing: 'border-purple-200 bg-purple-50 text-purple-700',
-  'Quality Check':
-    'border-indigo-200 bg-indigo-50 text-indigo-700',
-  Shipped: 'border-cyan-200 bg-cyan-50 text-cyan-700',
-  Delivered: 'border-green-200 bg-green-50 text-green-700',
-  Cancelled: 'border-red-200 bg-red-50 text-red-700',
+const STATUS_STYLES: Record<string, { bg: string; text: string; border: string }> = {
+  Pending: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+  Quoted: { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
+  Accepted: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  Rejected: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+  Completed: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
+  Confirmed: { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
+  Printing: { bg: 'bg-brand-50', text: 'text-brand-700', border: 'border-brand-200' },
+  'Quality Check': { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
+  Shipped: { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200' },
+  Delivered: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  Cancelled: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
 };
 
-/* -------------------------------------------------------------------------- */
-/* Helpers                                                                    */
-/* -------------------------------------------------------------------------- */
+function getStatusBadge(status: string) {
+  const style = STATUS_STYLES[status] || { bg: 'bg-zinc-50', text: 'text-zinc-700', border: 'border-zinc-200' };
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${style.bg} ${style.text} ${style.border}`}>
+      {status}
+    </span>
+  );
+}
 
 function getInitials(name?: string | null) {
-  if (!name) {
-    return 'SS';
-  }
-
+  if (!name) return 'SS';
   return name
     .trim()
     .split(/\s+/)
@@ -74,10 +78,6 @@ function getInitials(name?: string | null) {
     .map((part) => part.charAt(0).toUpperCase())
     .join('');
 }
-
-/* -------------------------------------------------------------------------- */
-/* Account                                                                    */
-/* -------------------------------------------------------------------------- */
 
 export function Account() {
   const {
@@ -90,7 +90,6 @@ export function Account() {
   const {
     data: profile,
     isLoading: profileLoading,
-    isError: profileLoadError,
   } = useUserProfile();
 
   const saveUserProfile = useSaveUserProfile();
@@ -112,79 +111,38 @@ export function Account() {
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] =
-    useState<'orders' | 'quotes' | 'addresses' | 'profile'>(
-      'orders'
-    );
+    useState<'orders' | 'quotes' | 'addresses' | 'profile'>('orders');
 
   const [selectedOrder, setSelectedOrder] =
-    useState<typeof myOrders[number] | null>(null);
+    useState<(typeof myOrders)[number] | null>(null);
 
-  const [profileMessage, setProfileMessage] =
-    useState('');
+  const [profileMessage, setProfileMessage] = useState('');
+  const [profileError, setProfileError] = useState('');
+  const [isProfileEditing, setIsProfileEditing] = useState(false);
 
-  const [profileError, setProfileError] =
-    useState('');
+  const [profileName, setProfileName] = useState('');
+  const [profileEmail, setProfileEmail] = useState('');
+  const [profilePhone, setProfilePhone] = useState('');
 
-  const [isProfileEditing, setIsProfileEditing] =
-    useState(false);
-
-  const [profileName, setProfileName] =
-    useState('');
-
-  const [profileEmail, setProfileEmail] =
-    useState('');
-
-  const [profilePhone, setProfilePhone] =
-    useState('');
-
-  const [addressMessage, setAddressMessage] =
-    useState('');
-
-  const [addressError, setAddressError] =
-    useState('');
-
-  const [isAddressEditing, setIsAddressEditing] =
-    useState(false);
-
-  const [profileAddress, setProfileAddress] =
-    useState<UserAddress>(emptyAddress);
+  const [addressMessage, setAddressMessage] = useState('');
+  const [addressError, setAddressError] = useState('');
+  const [isAddressEditing, setIsAddressEditing] = useState(false);
+  const [profileAddress, setProfileAddress] = useState<UserAddress>(emptyAddress);
 
   const {
     location: pincodeLocation,
     isLookingUp: isPincodeLookingUp,
     error: pincodeLookupError,
-  } = usePincodeLookup(
-    profileAddress.pincode,
-    isAddressEditing
-  );
+  } = usePincodeLookup(profileAddress.pincode, isAddressEditing);
 
-  const [isLoggingOut, setIsLoggingOut] =
-    useState(false);
-
-  /* ------------------------------------------------------------------------ */
-  /* Editable customer profile                                                */
-  /* ------------------------------------------------------------------------ */
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
-    if (!profile) {
-      return;
-    }
+    if (!profile) return;
 
-    setProfileName(
-      profile.name ||
-        user?.displayName ||
-        ''
-    );
-
-    setProfileEmail(
-      profile.email ||
-        user?.email ||
-        ''
-    );
-
-    setProfilePhone(
-      profile.phone || ''
-    );
+    setProfileName(profile.name || user?.displayName || '');
+    setProfileEmail(profile.email || user?.email || '');
+    setProfilePhone(profile.phone || '');
 
     if (!isAddressEditing) {
       setProfileAddress({
@@ -195,21 +153,10 @@ export function Account() {
         pincode: profile.address?.pincode || '',
       });
     }
-  }, [
-    profile,
-    user?.displayName,
-    user?.email,
-    isAddressEditing,
-  ]);
-
-  /* ------------------------------------------------------------------------ */
-  /* Automatic PIN code lookup                                                */
-  /* ------------------------------------------------------------------------ */
+  }, [profile, user?.displayName, user?.email, isAddressEditing]);
 
   useEffect(() => {
-    if (!pincodeLocation) {
-      return;
-    }
+    if (!pincodeLocation) return;
 
     setProfileAddress((current) => ({
       ...current,
@@ -219,31 +166,12 @@ export function Account() {
     }));
   }, [pincodeLocation]);
 
-  /* ------------------------------------------------------------------------ */
-  /* Profile and address editing                                              */
-  /* ------------------------------------------------------------------------ */
-
   const startProfileEditing = () => {
     setProfileError('');
     setProfileMessage('');
-
-    setProfileName(
-      profile?.name ||
-        user?.displayName ||
-        ''
-    );
-
-    setProfileEmail(
-      profile?.email ||
-        user?.email ||
-        ''
-    );
-
-    setProfilePhone(
-      profile?.phone ||
-      ''
-    );
-
+    setProfileName(profile?.name || user?.displayName || '');
+    setProfileEmail(profile?.email || user?.email || '');
+    setProfilePhone(profile?.phone || '');
     setIsProfileEditing(true);
   };
 
@@ -256,7 +184,6 @@ export function Account() {
   const startAddressEditing = () => {
     setAddressError('');
     setAddressMessage('');
-
     setProfileAddress({
       line1: profile?.address?.line1 || '',
       line2: profile?.address?.line2 || '',
@@ -264,7 +191,6 @@ export function Account() {
       state: profile?.address?.state || '',
       pincode: profile?.address?.pincode || '',
     });
-
     setIsAddressEditing(true);
   };
 
@@ -274,37 +200,23 @@ export function Account() {
     setIsAddressEditing(false);
   };
 
-  const updateAddressField = (
-    field: keyof UserAddress,
-    value: string
-  ) => {
+  const updateAddressField = (field: keyof UserAddress, value: string) => {
     setProfileAddress((current) => ({
       ...current,
       [field]: value,
     }));
   };
 
-  /* ------------------------------------------------------------------------ */
-  /* Save profile                                                             */
-  /* ------------------------------------------------------------------------ */
-
-  const handleSaveProfile = async (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleSaveProfile = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    if (!user || saveUserProfile.isPending) {
-      return;
-    }
+    if (!user || saveUserProfile.isPending) return;
 
     setProfileError('');
     setProfileMessage('');
 
     const name = profileName.trim();
     const email = profileEmail.trim().toLowerCase();
-    const phone = profilePhone
-      .replace(/\D/g, '')
-      .slice(0, 10);
+    const phone = profilePhone.replace(/\D/g, '').slice(0, 10);
 
     const address: UserAddress = {
       line1: profile?.address?.line1 || '',
@@ -318,73 +230,40 @@ export function Account() {
       setProfileError('Please enter your full name.');
       return;
     }
-
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setProfileError('Please enter a valid email address.');
       return;
     }
-
     if (!/^[6-9]\d{9}$/.test(phone)) {
-      setProfileError(
-        'Please enter a valid 10-digit Indian mobile number.'
-      );
+      setProfileError('Please enter a valid 10-digit Indian mobile number.');
       return;
     }
 
     try {
-      await updateAccount({
-        name,
-        email,
-      });
-
-      await saveUserProfile.mutateAsync({
-        name,
-        email,
-        phone,
-        address,
-      });
-
+      await updateAccount({ name, email });
+      await saveUserProfile.mutateAsync({ name, email, phone, address });
       setProfileMessage(
         email !== user?.email
-          ? 'Profile updated. A verification email has been sent to your new email address.'
-          : 'Profile updated successfully.'
+          ? 'Profile updated. A verification link was sent to your new email.'
+          : 'Profile saved successfully.'
       );
-
       setIsProfileEditing(false);
     } catch (error) {
       const message =
-        error instanceof Error
-          ? error.message
-          : 'Unable to update your profile. Please try again.';
-
+        error instanceof Error ? error.message : 'Unable to update profile. Please try again.';
       if (message.includes('auth/requires-recent-login')) {
-        setProfileError(
-          'For security, Firebase requires you to sign in again before changing your email. Please sign out and sign in again, then retry.'
-        );
+        setProfileError('For security, please sign out and sign in again before changing your email.');
       } else if (message.includes('auth/email-already-in-use')) {
-        setProfileError(
-          'That email address is already in use by another account.'
-        );
-      } else if (message.includes('auth/invalid-email')) {
-        setProfileError('Please enter a valid email address.');
+        setProfileError('That email is already registered.');
       } else {
         setProfileError(message);
       }
     }
   };
 
-  /* ------------------------------------------------------------------------ */
-  /* Save address                                                             */
-  /* ------------------------------------------------------------------------ */
-
-  const handleSaveAddress = async (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleSaveAddress = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    if (!user || saveUserProfile.isPending) {
-      return;
-    }
+    if (!user || saveUserProfile.isPending) return;
 
     setAddressError('');
     setAddressMessage('');
@@ -394,28 +273,21 @@ export function Account() {
       line2: profileAddress.line2.trim(),
       city: profileAddress.city.trim(),
       state: profileAddress.state.trim(),
-      pincode: profileAddress.pincode
-        .replace(/\D/g, '')
-        .slice(0, 6),
+      pincode: profileAddress.pincode.replace(/\D/g, '').slice(0, 6),
     };
 
     if (!address.line1) {
-      setAddressError(
-        'Please enter your house, flat, or building details.'
-      );
+      setAddressError('Please enter your house/building details.');
       return;
     }
-
     if (!address.city) {
       setAddressError('Please enter your city.');
       return;
     }
-
     if (!address.state) {
       setAddressError('Please select your state.');
       return;
     }
-
     if (!/^\d{6}$/.test(address.pincode)) {
       setAddressError('Please enter a valid 6-digit PIN code.');
       return;
@@ -428,188 +300,99 @@ export function Account() {
         phone: profile?.phone || '',
         address,
       });
-
       setAddressMessage('Saved address updated successfully.');
       setIsAddressEditing(false);
     } catch (error) {
       setAddressError(
-        error instanceof Error
-          ? error.message
-          : 'Unable to save your address. Please try again.'
+        error instanceof Error ? error.message : 'Unable to save address.'
       );
     }
   };
 
-  /* ------------------------------------------------------------------------ */
-  /* Logout                                                                   */
-  /* ------------------------------------------------------------------------ */
-
   const handleLogout = async () => {
-    if (isLoggingOut) {
-      return;
-    }
-
+    if (isLoggingOut) return;
     setIsLoggingOut(true);
-
     try {
       await logout();
-
-      navigate('/', {
-        replace: true,
-      });
+      navigate('/', { replace: true });
     } catch (error) {
-      console.error(
-        'Logout failed:',
-        error
-      );
-
+      console.error('Logout failed:', error);
       setIsLoggingOut(false);
     }
   };
 
-  /* ------------------------------------------------------------------------ */
-  /* Quote actions                                                            */
-  /* ------------------------------------------------------------------------ */
-
-  const handleAcceptQuote = async (
-    quoteId: string
-  ) => {
+  const handleAcceptQuote = async (quoteId: string) => {
     try {
-      await updateQuote.mutateAsync({
-        id: quoteId,
-        status: 'Accepted',
-      });
+      await updateQuote.mutateAsync({ id: quoteId, status: 'Accepted' });
     } catch (error) {
-      console.error(
-        'Failed to accept quote:',
-        error
-      );
-
-      alert(
-        'Failed to accept quote. Please try again.'
-      );
+      console.error('Failed to accept quote:', error);
+      alert('Failed to accept quote. Please try again.');
     }
   };
 
-  const handleRejectQuote = async (
-    quoteId: string
-  ) => {
-    const confirmed =
-      window.confirm(
-        'Are you sure you want to decline this quote?'
-      );
-
-    if (!confirmed) {
-      return;
-    }
-
+  const handleRejectQuote = async (quoteId: string) => {
+    if (!window.confirm('Are you sure you want to decline this quote?')) return;
     try {
-      await updateQuote.mutateAsync({
-        id: quoteId,
-        status: 'Rejected',
-      });
+      await updateQuote.mutateAsync({ id: quoteId, status: 'Rejected' });
     } catch (error) {
-      console.error(
-        'Failed to decline quote:',
-        error
-      );
-
-      alert(
-        'Failed to decline quote. Please try again.'
-      );
+      console.error('Failed to decline quote:', error);
+      alert('Failed to decline quote. Please try again.');
     }
   };
-
-  /* ------------------------------------------------------------------------ */
-  /* Refresh orders                                                           */
-  /* ------------------------------------------------------------------------ */
 
   const handleRefreshOrders = async () => {
     try {
       await refetchOrders();
     } catch (error) {
-      console.error(
-        'Failed to refresh orders:',
-        error
-      );
+      console.error('Failed to refresh orders:', error);
     }
   };
 
-  /* ------------------------------------------------------------------------ */
-  /* Reorder                                                                  */
-  /* ------------------------------------------------------------------------ */
-
-  const handleOrderAgain = async (
-    order: typeof myOrders[number]
-  ) => {
+  const handleOrderAgain = async (order: (typeof myOrders)[number]) => {
     try {
       await reorderOrder.mutateAsync(order);
-
       navigate('/cart');
     } catch (error) {
-      console.error(
-        'Failed to reorder:',
-        error
-      );
-
-      alert(
-        error instanceof Error
-          ? error.message
-          : 'Unable to reorder this order. Please try again.'
-      );
+      console.error('Failed to reorder:', error);
+      alert(error instanceof Error ? error.message : 'Unable to reorder. Please try again.');
     }
   };
-
-  /* ------------------------------------------------------------------------ */
-  /* Loading                                                                  */
-  /* ------------------------------------------------------------------------ */
 
   if (authLoading) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-[#f7f4ee]">
+      <div className="flex min-h-[70vh] items-center justify-center bg-[#faf9f6]">
         <div className="text-center">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[#d9d2c7] border-t-[#b4491e]" />
-
-          <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[#8e8275]">
-            Checking account
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+          <p className="mt-4 font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter">
+            Authenticating account...
           </p>
         </div>
       </div>
     );
   }
-
-  /* ------------------------------------------------------------------------ */
-  /* Not logged in                                                            */
-  /* ------------------------------------------------------------------------ */
 
   if (!user) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-[#f7f4ee] px-5">
-        <div className="max-w-md text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center border border-[#d9d2c7] bg-white text-[#b4491e]">
-            <User className="h-6 w-6" />
+      <div className="flex min-h-[70vh] items-center justify-center bg-[#faf9f6] px-5 py-20">
+        <div className="max-w-md rounded-3xl border border-zinc-200 bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+            <User className="h-7 w-7" />
           </div>
 
-          <h1 className="mt-6 font-display text-[28px] font-semibold tracking-[-0.025em] text-[#14120f]">
+          <h1 className="mt-5 font-serif text-2xl font-bold text-charcoal">
             You are signed out
           </h1>
 
-          <p className="mt-3 text-[14px] leading-6 text-[#6b6156]">
-            Sign in to see your orders, quotes,
-            saved information and account details.
+          <p className="mt-2 text-sm text-charcoal-light leading-relaxed">
+            Sign in to track orders, review 3D print quotes, and manage your delivery address.
           </p>
 
-          <div className="mt-7 flex justify-center gap-3">
+          <div className="mt-6 flex justify-center gap-3">
             <Link to="/login">
-              <Button>
-                Sign in
-              </Button>
+              <Button className="font-bold">Sign in</Button>
             </Link>
-
             <Link to="/catalog">
-              <Button variant="outline">
-                Keep browsing
-              </Button>
+              <Button variant="outline" className="font-semibold">Browse Catalogue</Button>
             </Link>
           </div>
         </div>
@@ -617,54 +400,37 @@ export function Account() {
     );
   }
 
-  /* ------------------------------------------------------------------------ */
-  /* Active order                                                             */
-  /* ------------------------------------------------------------------------ */
-
-  const activeOrder =
-    myOrders.find(
-      (order) =>
-        order.status !== 'Delivered' &&
-        order.status !== 'Cancelled'
-    );
-
-  /* ------------------------------------------------------------------------ */
-  /* Page                                                                     */
-  /* ------------------------------------------------------------------------ */
+  const activeOrder = myOrders.find(
+    (order) => order.status !== 'Delivered' && order.status !== 'Cancelled'
+  );
 
   return (
-    <>
-      {/* ================================================================== */}
-      {/* ACCOUNT HEADER                                                     */}
-      {/* ================================================================== */}
-
-      <section className="border-b border-[#d9d2c7] bg-white">
-        <div className="mx-auto max-w-[1200px] px-5 py-9 sm:px-8 lg:px-10">
-          <div className="flex flex-wrap items-start justify-between gap-6">
+    <div className="min-h-screen bg-[#faf9f6] text-charcoal">
+      {/* Account Hero Header */}
+      <section className="border-b border-zinc-200/80 bg-white">
+        <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10">
+          <div className="flex flex-wrap items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center border border-[#d9d2c7] bg-[#f7f4ee] font-display text-[19px] font-semibold text-[#14120f]">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-brand-500 font-mono text-xl font-bold text-white shadow-md shadow-brand-500/20">
                 {getInitials(user?.displayName)}
               </div>
 
               <div>
-                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8e8275]">
-                  Customer account
-                </p>
-
-                <h1 className="mt-1 font-display text-[26px] font-semibold leading-tight tracking-[-0.025em] text-[#14120f]">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
+                  Studio Member Account
+                </span>
+                <h1 className="mt-1 font-serif text-2xl font-bold text-charcoal sm:text-3xl">
                   {user?.displayName || 'My Account'}
                 </h1>
-
-                <p className="text-[13.5px] text-[#6b6156]">
-                  {user?.email}
-                </p>
+                <p className="text-xs text-charcoal-light">{user?.email}</p>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-3">
               <Link to="/custom-service">
-                <Button size="sm">
-                  Start a custom print
+                <Button size="sm" className="font-bold">
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                  New Custom Print
                 </Button>
               </Link>
 
@@ -673,470 +439,295 @@ export function Account() {
                 size="sm"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
+                className="font-semibold text-rose-600 hover:bg-rose-50"
               >
                 <LogOut className="mr-1.5 h-3.5 w-3.5" />
-
-                {isLoggingOut
-                  ? 'Signing out...'
-                  : 'Sign out'}
+                {isLoggingOut ? 'Signing out...' : 'Sign out'}
               </Button>
             </div>
           </div>
 
-          {/* Active order */}
-
+          {/* Active Order Alert Bar */}
           {activeOrder && (
-            <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-2 border-l-2 border-[#b4491e] bg-[#f7f4ee] px-4 py-3">
-              <p className="text-[13.5px] text-[#14120f]">
-                <span className="font-medium">
-                  Order #{activeOrder.id.slice(0, 8)}
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-brand-200 bg-brand-50/60 p-4">
+              <div className="flex items-center gap-3">
+                <span className="relative flex h-3 w-3">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
+                  <span className="relative inline-flex h-3 w-3 rounded-full bg-brand-500" />
                 </span>
-
-                {' is currently '}
-
-                <span className="font-medium text-[#b4491e]">
-                  {activeOrder.status.toLowerCase()}
-                </span>
-              </p>
+                <p className="text-xs text-charcoal">
+                  <span className="font-bold">Active Order #{activeOrder.id.slice(0, 8).toUpperCase()}</span>
+                  {' is currently '}
+                  <span className="font-bold text-brand-600 uppercase">{activeOrder.status}</span>
+                </p>
+              </div>
 
               <button
                 type="button"
-                onClick={() =>
-                  setSelectedOrder(activeOrder)
-                }
-                className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#b4491e] underline underline-offset-4 hover:text-[#14120f]"
+                onClick={() => setSelectedOrder(activeOrder)}
+                className="inline-flex items-center gap-1 font-mono text-xs font-bold text-brand-600 hover:text-brand-700"
               >
-                See details
+                <span>Track Progress</span>
+                <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
           )}
         </div>
       </section>
 
-      {/* ================================================================== */}
-      {/* MAIN ACCOUNT AREA                                                  */}
-      {/* ================================================================== */}
+      {/* Main Tabs Container */}
+      <main className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10">
+        {/* Navigation Tabs */}
+        <div className="flex overflow-x-auto border-b border-zinc-200 gap-2 pb-px">
+          {[
+            { id: 'orders', label: 'Orders', count: myOrders.length, icon: Package },
+            { id: 'quotes', label: 'CAD Quotes', count: myQuotes.length, icon: FileText },
+            { id: 'addresses', label: 'Saved Address', icon: MapPin },
+            { id: 'profile', label: 'Profile Settings', icon: User },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                className={`flex items-center gap-2 rounded-t-2xl px-5 py-3 font-mono text-xs font-bold uppercase tracking-wider transition-all ${
+                  active
+                    ? 'border-b-2 border-brand-500 bg-white text-brand-600 shadow-sm'
+                    : 'text-charcoal-light hover:text-charcoal hover:bg-zinc-100/60'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] ${active ? 'bg-brand-100 text-brand-700' : 'bg-zinc-200/60 text-charcoal-lighter'}`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
-      <main className="min-h-[60vh] bg-[#f7f4ee]">
-        <div className="mx-auto max-w-[1200px] px-5 py-8 sm:px-8 lg:px-10">
-
-          {/* Tabs */}
-
-          <div className="overflow-x-auto border-b border-[#d9d2c7]">
-            <div className="flex min-w-max">
-              {[
-                {
-                  id: 'orders',
-                  label: 'Orders',
-                  count: myOrders.length,
-                  icon: Package,
-                },
-                {
-                  id: 'quotes',
-                  label: 'Quotes',
-                  count: myQuotes.length,
-                  icon: FileText,
-                },
-                {
-                  id: 'addresses',
-                  label: 'Saved address',
-                  icon: MapPin,
-                },
-                {
-                  id: 'profile',
-                  label: 'Profile',
-                  icon: User,
-                },
-              ].map((tab) => {
-                const Icon = tab.icon;
-                const active =
-                  activeTab === tab.id;
-
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() =>
-                      setActiveTab(
-                        tab.id as typeof activeTab
-                      )
-                    }
-                    className={`flex items-center gap-2 border-b-2 px-5 py-3 font-mono text-[9px] uppercase tracking-[0.1em] transition-colors ${
-                      active
-                        ? 'border-[#b4491e] text-[#b4491e]'
-                        : 'border-transparent text-[#8e8275] hover:text-[#14120f]'
-                    }`}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-
-                    {tab.label}
-
-                    {tab.count !== undefined && (
-                      <span className="text-[8px] opacity-70">
-                        ({tab.count})
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* ================================================================= */}
-          {/* ORDERS                                                           */}
-          {/* ================================================================= */}
-
-          {activeTab === 'orders' && (
-            <div className="mt-8">
-              <div className="mb-6 flex items-center justify-between gap-4">
-                <div>
-                  <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8e8275]">
-                    Purchase history
-                  </p>
-
-                  <h2 className="mt-1 font-display text-[21px] font-semibold tracking-[-0.015em] text-[#14120f]">
-                    Your orders
-                  </h2>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleRefreshOrders}
-                  disabled={ordersLoading}
-                  className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.1em] text-[#b4491e] disabled:opacity-50"
-                >
-                  <RefreshCw
-                    className={`h-3.5 w-3.5 ${
-                      ordersLoading
-                        ? 'animate-spin'
-                        : ''
-                    }`}
-                  />
-
-                  Refresh
-                </button>
-              </div>
-
-              {ordersLoading ? (
-                <div className="py-20 text-center">
-                  <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-[#d9d2c7] border-t-[#b4491e]" />
-
-                  <p className="mt-4 text-sm text-[#6b6156]">
-                    Loading your orders...
-                  </p>
-                </div>
-              ) : myOrders.length === 0 ? (
-                <Card className="border-[#d9d2c7] bg-white p-12 text-center shadow-none">
-                  <Package className="mx-auto h-10 w-10 text-[#b8aea0]" />
-
-                  <h3 className="mt-4 font-display text-[19px] font-semibold text-[#14120f]">
-                    No orders yet
-                  </h3>
-
-                  <p className="mt-2 text-[14px] text-[#6b6156]">
-                    Your completed and active orders
-                    will appear here.
-                  </p>
-
-                  <div className="mt-6">
-                    <Link to="/catalog">
-                      <Button>
-                        Browse catalogue
-                      </Button>
-                    </Link>
-                  </div>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {myOrders.map((order) => (
-                    <Card
-                      key={order.id}
-                      className="border-[#d9d2c7] bg-white p-5 shadow-none sm:p-6"
-                    >
-                      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-3">
-                            <h3 className="font-mono text-[13px] font-medium text-[#14120f]">
-                              #{order.id.slice(0, 8)}
-                            </h3>
-
-                            <span
-                              className={`border px-2.5 py-1 font-mono text-[8px] uppercase tracking-[0.08em] ${
-                                STATUS_STYLES[
-                                  order.status
-                                ] ||
-                                'border-gray-200 bg-gray-50 text-gray-700'
-                              }`}
-                            >
-                              {order.status}
-                            </span>
-                          </div>
-
-                          <p className="mt-2 text-[13.5px] text-[#6b6156]">
-                            {order.items.length}{' '}
-                            item
-                            {order.items.length !== 1
-                              ? 's'
-                              : ''}
-
-                            {' · '}
-
-                            {new Date(
-                              order.date
-                            ).toLocaleDateString(
-                              'en-IN',
-                              {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                              }
-                            )}
-                          </p>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-3">
-                          <div className="text-left sm:text-right">
-                            <p className="font-mono text-[8px] uppercase tracking-[0.1em] text-[#8e8275]">
-                              Total
-                            </p>
-
-                            <p className="mt-1 font-display text-[20px] font-semibold text-[#14120f]">
-                              ₹
-                              {order.total.toLocaleString(
-                                'en-IN'
-                              )}
-                            </p>
-                          </div>
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                              setSelectedOrder(order)
-                            }
-                          >
-                            View details
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            onClick={() =>
-                              handleOrderAgain(order)
-                            }
-                            disabled={
-                              reorderOrder.isPending
-                            }
-                          >
-                            <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
-
-                            {reorderOrder.isPending
-                              ? 'Adding...'
-                              : 'Order again'}
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ================================================================= */}
-          {/* QUOTES                                                           */}
-          {/* ================================================================= */}
-
-          {activeTab === 'quotes' && (
-            <div className="mt-8">
-              <div className="mb-6">
-                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8e8275]">
-                  Custom printing
-                </p>
-
-                <h2 className="mt-1 font-display text-[21px] font-semibold tracking-[-0.015em] text-[#14120f]">
-                  Your quotes
+        {/* ================================================================= */}
+        {/* ORDERS TAB                                                        */}
+        {/* ================================================================= */}
+        {activeTab === 'orders' && (
+          <div className="mt-8 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-serif text-2xl font-bold text-charcoal">
+                  Your Orders
                 </h2>
+                <p className="text-xs text-charcoal-light">
+                  Track fabrication stages and pan-India courier dispatch.
+                </p>
               </div>
 
-              {quotesLoading ? (
-                <div className="py-20 text-center">
-                  <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-[#d9d2c7] border-t-[#b4491e]" />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefreshOrders}
+                disabled={ordersLoading}
+                className="font-bold text-xs"
+              >
+                <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${ordersLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
 
-                  <p className="mt-4 text-sm text-[#6b6156]">
-                    Loading your quotes...
-                  </p>
-                </div>
-              ) : myQuotes.length === 0 ? (
-                <Card className="border-[#d9d2c7] bg-white p-12 text-center shadow-none">
-                  <FileText className="mx-auto h-10 w-10 text-[#b8aea0]" />
+            {ordersLoading ? (
+              <div className="py-20 text-center">
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+                <p className="mt-4 text-xs font-semibold text-charcoal-light">Loading orders...</p>
+              </div>
+            ) : myOrders.length === 0 ? (
+              <div className="rounded-3xl border border-zinc-200 bg-white p-12 text-center shadow-sm">
+                <Package className="mx-auto h-12 w-12 text-zinc-300" />
+                <h3 className="mt-4 font-serif text-xl font-bold text-charcoal">No orders yet</h3>
+                <p className="mt-1 text-xs text-charcoal-light">
+                  Browse our catalog or submit custom 3D files to start your first order.
+                </p>
+                <Link to="/catalog" className="mt-5 inline-block">
+                  <Button className="font-bold">Browse Catalogue</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {myOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="flex flex-col gap-5 rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="font-mono text-sm font-bold text-charcoal">
+                          #{order.id.slice(0, 8).toUpperCase()}
+                        </span>
+                        {getStatusBadge(order.status)}
+                      </div>
 
-                  <h3 className="mt-4 font-display text-[19px] font-semibold text-[#14120f]">
-                    No quotes yet
-                  </h3>
+                      <p className="text-xs text-charcoal-light">
+                        {order.items.length} {order.items.length === 1 ? 'item' : 'items'} •{' '}
+                        {new Date(order.date).toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </p>
+                    </div>
 
-                  <p className="mx-auto mt-2 max-w-md text-[14px] leading-6 text-[#6b6156]">
-                    Upload your model and request a
-                    custom print quote. Your requests
-                    will appear here.
-                  </p>
+                    <div className="flex flex-wrap items-center gap-4">
+                      <div className="sm:text-right">
+                        <span className="font-mono text-[10px] text-charcoal-lighter uppercase block">Total</span>
+                        <span className="font-mono text-base font-bold text-charcoal">
+                          ₹{order.total.toLocaleString('en-IN')}
+                        </span>
+                      </div>
 
-                  <div className="mt-6">
-                    <Link to="/custom-service">
-                      <Button>
-                        Upload a model
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedOrder(order)}
+                        className="font-bold text-xs"
+                      >
+                        View Details
                       </Button>
-                    </Link>
+
+                      <Button
+                        size="sm"
+                        onClick={() => handleOrderAgain(order)}
+                        disabled={reorderOrder.isPending}
+                        className="font-bold text-xs"
+                      >
+                        <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
+                        {reorderOrder.isPending ? 'Adding...' : 'Order Again'}
+                      </Button>
+                    </div>
                   </div>
-                </Card>
-              ) : (
-                <div className="overflow-x-auto border border-[#d9d2c7] bg-white">
-                  <table className="w-full min-w-[760px] border-collapse text-left">
-                    <thead>
-                      <tr className="border-b border-[#14120f]">
-                        {[
-                          'Quote',
-                          'File',
-                          'Settings',
-                          'Status',
-                          'Amount',
-                          '',
-                        ].map((heading) => (
-                          <th
-                            key={heading}
-                            className="px-4 py-3 font-mono text-[8px] uppercase tracking-[0.12em] text-[#8e8275]"
-                          >
-                            {heading}
-                          </th>
-                        ))}
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ================================================================= */}
+        {/* QUOTES TAB                                                        */}
+        {/* ================================================================= */}
+        {activeTab === 'quotes' && (
+          <div className="mt-8 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-serif text-2xl font-bold text-charcoal">
+                  Custom Print Quotes
+                </h2>
+                <p className="text-xs text-charcoal-light">
+                  Engineer reviews, slicing feasibility, and price confirmations for your CAD uploads.
+                </p>
+              </div>
+
+              <Link to="/custom-service">
+                <Button size="sm" className="font-bold text-xs">
+                  Upload New Model
+                </Button>
+              </Link>
+            </div>
+
+            {quotesLoading ? (
+              <div className="py-20 text-center">
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+                <p className="mt-4 text-xs font-semibold text-charcoal-light">Loading quotes...</p>
+              </div>
+            ) : myQuotes.length === 0 ? (
+              <div className="rounded-3xl border border-zinc-200 bg-white p-12 text-center shadow-sm">
+                <FileText className="mx-auto h-12 w-12 text-zinc-300" />
+                <h3 className="mt-4 font-serif text-xl font-bold text-charcoal">No quotes requested</h3>
+                <p className="mt-1 text-xs text-charcoal-light">
+                  Upload an STL/OBJ model or share reference images for an instant or engineer-verified quote.
+                </p>
+                <Link to="/custom-service" className="mt-5 inline-block">
+                  <Button className="font-bold">Request Custom Quote</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-zinc-50 border-b border-zinc-200 font-mono text-[10px] uppercase text-charcoal-lighter">
+                      <tr>
+                        <th className="px-6 py-4">Quote ID</th>
+                        <th className="px-6 py-4">File Name</th>
+                        <th className="px-6 py-4">Specs</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4">Price</th>
+                        <th className="px-6 py-4 text-right">Action</th>
                       </tr>
                     </thead>
-
-                    <tbody>
+                    <tbody className="divide-y divide-zinc-100">
                       {myQuotes.map((quote) => (
-                        <tr
-                          key={quote.id}
-                          className="border-b border-[#ebe6dc] align-top last:border-b-0"
-                        >
-                          <td className="px-4 py-4 font-mono text-[12px] text-[#14120f]">
-                            #{quote.id.slice(0, 8)}
+                        <tr key={quote.id} className="hover:bg-zinc-50/50">
+                          <td className="px-6 py-4 font-mono font-bold text-charcoal">
+                            #{quote.id.slice(0, 8).toUpperCase()}
                           </td>
-
-                          <td className="px-4 py-4">
-                            <p className="max-w-[220px] truncate font-mono text-[12px] text-[#14120f]">
+                          <td className="px-6 py-4">
+                            <p className="max-w-[200px] truncate font-bold text-charcoal">
                               {quote.fileName}
                             </p>
-
-                            <p className="mt-1 text-[11px] text-[#8e8275]">
-                              Submitted{' '}
-                              {new Date(
-                                quote.date
-                              ).toLocaleDateString(
-                                'en-IN',
-                                {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  year: 'numeric',
-                                }
-                              )}
-                            </p>
-                          </td>
-
-                          <td className="px-4 py-4 text-[12px] text-[#6b6156]">
-                            <p>
-                              {quote.material}
-                              {' · '}
-                              {quote.color}
-                            </p>
-
-                            <p className="mt-1 font-mono text-[9px] text-[#8e8275]">
-                              {quote.infill}% infill
-                            </p>
-                          </td>
-
-                          <td className="px-4 py-4">
-                            <span
-                              className={`inline-flex border px-2.5 py-1 font-mono text-[8px] uppercase tracking-[0.08em] ${
-                                STATUS_STYLES[
-                                  quote.status
-                                ] ||
-                                'border-gray-200 bg-gray-50 text-gray-700'
-                              }`}
-                            >
-                              {quote.status}
+                            <span className="font-mono text-[10px] text-charcoal-lighter">
+                              {new Date(quote.date).toLocaleDateString('en-IN', {
+                                day: 'numeric',
+                                month: 'short',
+                              })}
                             </span>
                           </td>
-
-                          <td className="px-4 py-4 font-mono text-[12px] text-[#14120f]">
+                          <td className="px-6 py-4">
+                            <span className="font-semibold text-charcoal">{quote.material}</span> • {quote.color}
+                            <p className="font-mono text-[10px] text-charcoal-lighter">{quote.infill}% Infill</p>
+                          </td>
+                          <td className="px-6 py-4">
+                            {getStatusBadge(quote.status)}
+                          </td>
+                          <td className="px-6 py-4 font-mono font-bold text-charcoal">
                             {quote.adminPrice ? (
-                              <>
-                                ₹
-                                {quote.adminPrice.toLocaleString(
-                                  'en-IN'
-                                )}
-
-                                <span className="mt-1 block text-[8px] uppercase tracking-[0.08em] text-green-600">
-                                  Final quote
-                                </span>
-                              </>
+                              <div>
+                                <span>₹{quote.adminPrice.toLocaleString('en-IN')}</span>
+                                <span className="block text-[10px] font-bold text-emerald-600">Final Price</span>
+                              </div>
                             ) : (
-                              <>
-                                ₹
-                                {(
-                                  quote.estimatedPrice ??
-                                  0
-                                ).toLocaleString(
-                                  'en-IN'
-                                )}
-
-                                <span className="mt-1 block text-[8px] uppercase tracking-[0.08em] text-[#8e8275]">
-                                  Estimate
-                                </span>
-                              </>
+                              <div>
+                                <span>₹{(quote.estimatedPrice ?? 0).toLocaleString('en-IN')}</span>
+                                <span className="block text-[10px] text-charcoal-lighter">Estimate</span>
+                              </div>
                             )}
                           </td>
-
-                          <td className="px-4 py-4 text-right">
-                            {quote.status === 'Quoted' &&
-                            quote.adminPrice ? (
+                          <td className="px-6 py-4 text-right">
+                            {quote.status === 'Quoted' && quote.adminPrice ? (
                               <div className="flex justify-end gap-2">
                                 <Button
                                   size="sm"
-                                  onClick={() =>
-                                    handleAcceptQuote(
-                                      quote.id
-                                    )
-                                  }
-                                  disabled={
-                                    updateQuote.isPending
-                                  }
+                                  onClick={() => handleAcceptQuote(quote.id)}
+                                  disabled={updateQuote.isPending}
+                                  className="font-bold text-xs"
                                 >
-                                  <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
+                                  <CheckCircle className="mr-1 h-3.5 w-3.5" />
                                   Accept
                                 </Button>
-
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() =>
-                                    handleRejectQuote(
-                                      quote.id
-                                    )
-                                  }
-                                  disabled={
-                                    updateQuote.isPending
-                                  }
+                                  onClick={() => handleRejectQuote(quote.id)}
+                                  disabled={updateQuote.isPending}
+                                  className="font-bold text-xs"
                                 >
-                                  <XCircle className="mr-1.5 h-3.5 w-3.5" />
+                                  <XCircle className="mr-1 h-3.5 w-3.5" />
                                   Decline
                                 </Button>
                               </div>
                             ) : (
                               <Link to="/custom-service">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                >
-                                  New quote
+                                <Button size="sm" variant="ghost" className="font-bold text-xs">
+                                  New Quote
                                 </Button>
                               </Link>
                             )}
@@ -1146,327 +737,182 @@ export function Account() {
                     </tbody>
                   </table>
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* ================================================================= */}
-          {/* SAVED ADDRESS                                                   */}
-          {/* ================================================================= */}
-
-          {activeTab === 'addresses' && (
-            <div className="mt-8">
-              <div className="mb-6">
-                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8e8275]">
-                  Delivery details
-                </p>
-
-                <h2 className="mt-1 font-display text-[21px] font-semibold tracking-[-0.015em] text-[#14120f]">
-                  Saved address
-                </h2>
-
-                <p className="mt-2 max-w-xl text-[13.5px] leading-6 text-[#6b6156]">
-                  Manage the address used for future orders and custom print requests.
-                </p>
               </div>
+            )}
+          </div>
+        )}
 
-              <Card className="max-w-2xl border-[#d9d2c7] bg-white p-6 shadow-none">
+        {/* ================================================================= */}
+        {/* ADDRESS TAB                                                       */}
+        {/* ================================================================= */}
+        {activeTab === 'addresses' && (
+          <div className="mt-8 grid gap-8 lg:grid-cols-12">
+            <div className="lg:col-span-7">
+              <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm">
+                <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                      <MapPin className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="font-serif text-xl font-bold text-charcoal">
+                        Primary Delivery Address
+                      </h2>
+                      <span className="text-xs text-charcoal-light">Used to auto-populate checkout.</span>
+                    </div>
+                  </div>
+                  <Badge variant="brand">Active</Badge>
+                </div>
+
                 {profileLoading ? (
-                  <div className="flex items-center gap-3 py-6">
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#d9d2c7] border-t-[#b4491e]" />
-
-                    <p className="text-[13px] text-[#6b6156]">
-                      Loading saved address...
-                    </p>
+                  <div className="py-8 text-center">
+                    <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
                   </div>
                 ) : (
-                  <>
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#f7f4ee] text-[#b4491e]">
-                          <MapPin className="h-4 w-4" />
+                  <div className="mt-5 space-y-4">
+                    {profile?.address && Object.values(profile.address).some(Boolean) ? (
+                      <p className="text-sm text-charcoal-light leading-relaxed">
+                        {profile.address.line1}
+                        {profile.address.line2 ? `, ${profile.address.line2}` : ''}
+                        <br />
+                        {profile.address.city ? `${profile.address.city}, ` : ''}
+                        {profile.address.state ? `${profile.address.state} ` : ''}
+                        {profile.address.pincode ? ` - ${profile.address.pincode}` : ''}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-charcoal-lighter">
+                        No saved delivery address yet. Add your address for faster 1-click checkout.
+                      </p>
+                    )}
+
+                    {!isAddressEditing ? (
+                      <div className="pt-2">
+                        <Button size="sm" onClick={startAddressEditing} className="font-bold">
+                          {profile?.address && Object.values(profile.address).some(Boolean)
+                            ? 'Edit Address'
+                            : 'Add Address'}
+                        </Button>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleSaveAddress} className="border-t border-zinc-100 pt-5 space-y-4">
+                        <Input
+                          name="addressLine1"
+                          label="Flat / House / Building *"
+                          value={profileAddress.line1}
+                          onChange={(e) => updateAddressField('line1', e.target.value)}
+                          placeholder="e.g. Flat 304, Green Heights"
+                          required
+                        />
+
+                        <Input
+                          name="addressLine2"
+                          label="Street / Locality"
+                          value={profileAddress.line2}
+                          onChange={(e) => updateAddressField('line2', e.target.value)}
+                          placeholder="e.g. Model Town Road"
+                        />
+
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <Input
+                            name="addressCity"
+                            label="City *"
+                            value={profileAddress.city}
+                            onChange={(e) => updateAddressField('city', e.target.value)}
+                            placeholder="e.g. Patiala"
+                            required
+                          />
+
+                          <Input
+                            name="addressState"
+                            label="State *"
+                            value={profileAddress.state}
+                            onChange={(e) => updateAddressField('state', e.target.value)}
+                            placeholder="e.g. Punjab"
+                            required
+                          />
                         </div>
 
                         <div>
-                          <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#8e8275]">
-                            Primary address
-                          </p>
-
-                          <h3 className="mt-1 text-[15px] font-medium text-[#14120f]">
-                            {profile?.name ||
-                              user?.displayName ||
-                              'Customer'}
-                          </h3>
-                        </div>
-                      </div>
-
-                      <span className="border border-green-200 bg-green-50 px-2.5 py-1 font-mono text-[8px] uppercase tracking-[0.08em] text-green-700">
-                        Saved
-                      </span>
-                    </div>
-
-                    {profile?.address &&
-                    Object.values(
-                      profile.address
-                    ).some(Boolean) ? (
-                      <div className="mt-5 border-t border-[#ebe6dc] pt-5">
-                        <p className="text-[13.5px] leading-6 text-[#6b6156]">
-                          {profile.address.line1}
-
-                          {profile.address.line2
-                            ? `, ${profile.address.line2}`
-                            : ''}
-
-                          {profile.address.city
-                            ? `, ${profile.address.city}`
-                            : ''}
-
-                          {profile.address.state
-                            ? `, ${profile.address.state}`
-                            : ''}
-
-                          {profile.address.pincode
-                            ? ` - ${profile.address.pincode}`
-                            : ''}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="mt-5 border-t border-[#ebe6dc] pt-5">
-                        <p className="text-[13.5px] leading-6 text-[#6b6156]">
-                          No saved address yet. Add one to speed up checkout.
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        onClick={startAddressEditing}
-                      >
-                        {profile?.address &&
-                        Object.values(
-                          profile.address
-                        ).some(Boolean)
-                          ? 'Edit address'
-                          : 'Add address'}
-                      </Button>
-
-                      <Link to="/checkout">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                        >
-                          Continue to checkout
-                        </Button>
-                      </Link>
-                    </div>
-
-                    {isAddressEditing && (
-                      <form
-                        onSubmit={handleSaveAddress}
-                        className="mt-6 border-t border-[#d9d2c7] pt-6"
-                      >
-                        <p className="font-mono text-[8px] uppercase tracking-[0.14em] text-[#8e8275]">
-                          Edit saved address
-                        </p>
-
-                        <div className="mt-4 space-y-4">
-                          <Input
-                            name="addressLine1"
-                            label="House / Flat / Building"
-                            value={profileAddress.line1}
-                            onChange={(event) =>
-                              updateAddressField(
-                                'line1',
-                                event.target.value
-                              )
-                            }
-                            autoComplete="address-line1"
-                            placeholder="House no., flat, building"
-                            required
-                          />
-
-                          <Input
-                            name="addressLine2"
-                            label="Street / Locality"
-                            value={profileAddress.line2}
-                            onChange={(event) =>
-                              updateAddressField(
-                                'line2',
-                                event.target.value
-                              )
-                            }
-                            autoComplete="address-line2"
-                            placeholder="Street, locality, area"
-                          />
-
-                          <div className="grid gap-4 sm:grid-cols-2">
-                            <Input
-                              name="addressCity"
-                              label="City"
-                              value={profileAddress.city}
-                              onChange={(event) =>
-                                updateAddressField(
-                                  'city',
-                                  event.target.value
-                                )
-                              }
-                              autoComplete="address-level2"
-                              placeholder="City"
-                              required
-                            />
-
-                            <Input
-                              name="addressState"
-                              label="State"
-                              value={profileAddress.state}
-                              onChange={(event) =>
-                                updateAddressField(
-                                  'state',
-                                  event.target.value
-                                )
-                              }
-                              autoComplete="address-level1"
-                              placeholder="State"
-                              required
-                            />
-                          </div>
-
                           <Input
                             name="addressPincode"
-                            label="PIN Code"
+                            label="6-Digit PIN Code *"
                             value={profileAddress.pincode}
-                            onChange={(event) =>
+                            onChange={(e) =>
                               updateAddressField(
                                 'pincode',
-                                event.target.value
-                                  .replace(/\D/g, '')
-                                  .slice(0, 6)
+                                e.target.value.replace(/\D/g, '').slice(0, 6)
                               )
                             }
-                            autoComplete="postal-code"
-                            inputMode="numeric"
+                            placeholder="e.g. 147001"
                             maxLength={6}
-                            placeholder="6-digit PIN code"
                             required
                           />
-
                           {profileAddress.pincode.length === 6 && (
-                            <div
-                              className="min-h-5 text-[11px] leading-5 text-[#6b6156]"
-                              aria-live="polite"
-                            >
+                            <p className="mt-1 text-[11px]">
                               {isPincodeLookingUp ? (
-                                <span className="inline-flex items-center gap-2">
-                                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-[#d9d2c7] border-t-[#b4491e]" />
-                                  Detecting city and state...
-                                </span>
+                                <span className="text-charcoal-lighter">Auto-detecting postal circle...</span>
                               ) : pincodeLookupError ? (
-                                <span className="text-[#9b3d2c]">
-                                  {pincodeLookupError}
-                                </span>
+                                <span className="text-rose-600">{pincodeLookupError}</span>
                               ) : pincodeLocation ? (
-                                <span className="text-green-700">
-                                  ✓ {pincodeLocation.city},{' '}
-                                  {pincodeLocation.state}
+                                <span className="text-emerald-700 font-bold">
+                                  ✓ {pincodeLocation.city}, {pincodeLocation.state}
                                 </span>
                               ) : null}
-                            </div>
+                            </p>
                           )}
+                        </div>
 
-                          <p className="text-[11px] leading-5 text-[#8e8275]">
-                            Enter your 6-digit PIN and we’ll automatically fill the city and state.
-                          </p>
-
-                          <div className="flex flex-wrap gap-2 pt-2">
-                            <Button
-                              type="submit"
-                              isLoading={
-                                saveUserProfile.isPending
-                              }
-                            >
-                              Save address
-                            </Button>
-
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={
-                                cancelAddressEditing
-                              }
-                              disabled={
-                                saveUserProfile.isPending
-                              }
-                            >
-                              Cancel
-                            </Button>
+                        {addressError && (
+                          <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">
+                            {addressError}
                           </div>
+                        )}
 
-                          {addressError && (
-                            <div
-                              role="alert"
-                              className="border border-red-200 bg-red-50 px-4 py-3 text-[13px] leading-5 text-red-700"
-                            >
-                              {addressError}
-                            </div>
-                          )}
+                        {addressMessage && (
+                          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-700">
+                            {addressMessage}
+                          </div>
+                        )}
 
-                          {addressMessage && (
-                            <div
-                              role="status"
-                              className="border border-green-200 bg-green-50 px-4 py-3 text-[13px] leading-5 text-green-700"
-                            >
-                              {addressMessage}
-                            </div>
-                          )}
+                        <div className="flex gap-2 pt-2">
+                          <Button type="submit" isLoading={saveUserProfile.isPending} className="font-bold">
+                            Save Address
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={cancelAddressEditing}
+                            disabled={saveUserProfile.isPending}
+                          >
+                            Cancel
+                          </Button>
                         </div>
                       </form>
                     )}
-                  </>
-                )}
-              </Card>
-
-              {/* ========================================================= */}
-              {/* ADDRESS CHANGE HISTORY                                   */}
-              {/* ========================================================= */}
-              <div className="mt-8 border-t border-[#d9d2c7] pt-8">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8e8275]">
-                      Address log
-                    </p>
-                    <h3 className="mt-1 font-display text-[18px] font-semibold text-[#14120f]">
-                      Address Change History
-                    </h3>
                   </div>
-                  <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#8e8275]">
-                    {profile?.addressHistory?.length || 0} record(s)
-                  </span>
-                </div>
+                )}
+              </div>
+
+              {/* Address Change History */}
+              <div className="mt-8 rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm">
+                <h3 className="font-serif text-lg font-bold text-charcoal">
+                  Address History
+                </h3>
+                <p className="text-xs text-charcoal-lighter">
+                  Previous delivery destinations logged for your account.
+                </p>
 
                 {profile?.addressHistory && profile.addressHistory.length > 0 ? (
-                  <div className="mt-4 space-y-3">
+                  <div className="mt-4 divide-y divide-zinc-100">
                     {profile.addressHistory.map((item, idx) => (
-                      <div
-                        key={item.id || idx}
-                        className="flex flex-col justify-between gap-4 border border-[#e5dfd5] bg-white p-4 sm:flex-row sm:items-center"
-                      >
+                      <div key={item.id || idx} className="flex items-center justify-between py-3 text-xs">
                         <div>
-                          <p className="text-[13px] font-medium text-[#14120f]">
-                            {item.address.line1}
-                            {item.address.line2 ? `, ${item.address.line2}` : ''}
-                            {item.address.city ? `, ${item.address.city}` : ''}
-                            {item.address.state ? `, ${item.address.state}` : ''}
-                            {item.address.pincode ? ` - ${item.address.pincode}` : ''}
+                          <p className="font-medium text-charcoal">
+                            {item.address.line1}, {item.address.city}, {item.address.state} - {item.address.pincode}
                           </p>
-                          <p className="mt-1 font-mono text-[9px] text-[#8e8275]">
-                            Saved on{' '}
-                            {new Date(item.updatedAt).toLocaleDateString('en-IN', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            })}
-                          </p>
+                          <span className="font-mono text-[10px] text-charcoal-lighter">
+                            {new Date(item.updatedAt).toLocaleDateString('en-IN')}
+                          </span>
                         </div>
                         <Button
                           size="sm"
@@ -1475,458 +921,248 @@ export function Account() {
                             setProfileAddress({ ...item.address });
                             setIsAddressEditing(true);
                           }}
-                          disabled={saveUserProfile.isPending}
-                          className="shrink-0"
+                          className="font-bold text-xs"
                         >
-                          Use this address
+                          Use
                         </Button>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="mt-3 text-[13px] leading-6 text-[#8e8275]">
-                    No previous address changes recorded yet. When you update your address, your previous addresses will be logged here.
-                  </p>
+                  <p className="mt-3 text-xs text-charcoal-lighter">No prior addresses recorded.</p>
                 )}
               </div>
             </div>
-          )}
 
-          {/* ================================================================= */}
-          {/* PROFILE                                                          */}
-          {/* ================================================================= */}
-
-          {activeTab === 'profile' && (
-            <div className="mt-8 grid gap-10 lg:grid-cols-12">
-              <div className="lg:col-span-7">
-                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8e8275]">
-                  Account details
+            <aside className="lg:col-span-5">
+              <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 text-charcoal font-bold text-sm">
+                  <ShieldCheck className="h-4 w-4 text-brand-500" />
+                  <span>Pan-India Delivery Guarantee</span>
+                </div>
+                <p className="text-xs text-charcoal-light leading-relaxed">
+                  We verify pin codes directly with Indian Postal & courier databases to prevent dispatch errors and transit delays.
                 </p>
+              </div>
+            </aside>
+          </div>
+        )}
 
-                <h2 className="mt-1 font-display text-[21px] font-semibold tracking-[-0.015em] text-[#14120f]">
-                  Profile
+        {/* ================================================================= */}
+        {/* PROFILE TAB                                                       */}
+        {/* ================================================================= */}
+        {activeTab === 'profile' && (
+          <div className="mt-8 grid gap-8 lg:grid-cols-12">
+            <div className="lg:col-span-7">
+              <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm">
+                <h2 className="font-serif text-xl font-bold text-charcoal">
+                  Account Details
                 </h2>
-
-                <p className="mt-2 text-[13.5px] leading-6 text-[#6b6156]">
-                  Update your personal information here. Orders and quotes remain view-only.
+                <p className="text-xs text-charcoal-light">
+                  Update your contact details for order notifications and invoices.
                 </p>
 
                 {profileLoading ? (
-                  <div className="mt-6 flex items-center gap-3 py-8">
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#d9d2c7] border-t-[#b4491e]" />
-
-                    <p className="text-[13px] text-[#6b6156]">
-                      Loading your profile...
-                    </p>
+                  <div className="py-8 text-center">
+                    <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
                   </div>
                 ) : (
-                  <form
-                    className="mt-6 space-y-5"
-                    onSubmit={handleSaveProfile}
-                  >
+                  <form onSubmit={handleSaveProfile} className="mt-6 space-y-4">
                     <Input
                       name="profileName"
-                      label="Full Name"
+                      label="Full Name *"
                       value={profileName}
-                      onChange={(event) =>
-                        setProfileName(
-                          event.target.value
-                        )
-                      }
-                      placeholder="Your full name"
-                      autoComplete="name"
+                      onChange={(e) => setProfileName(e.target.value)}
                       disabled={!isProfileEditing}
                       required
                     />
 
                     <Input
                       name="profileEmail"
-                      label="Email Address"
+                      label="Email Address *"
                       type="email"
                       value={profileEmail}
-                      onChange={(event) =>
-                        setProfileEmail(
-                          event.target.value
-                        )
-                      }
-                      placeholder="you@example.com"
-                      autoComplete="email"
+                      onChange={(e) => setProfileEmail(e.target.value)}
                       disabled={!isProfileEditing}
                       required
                     />
 
                     <Input
                       name="profilePhone"
-                      label="Mobile Number"
+                      label="Mobile Number *"
                       type="tel"
                       value={profilePhone}
-                      onChange={(event) =>
-                        setProfilePhone(
-                          event.target.value
-                            .replace(/\D/g, '')
-                            .slice(0, 10)
-                        )
-                      }
-                      placeholder="10-digit mobile number"
-                      autoComplete="tel"
-                      inputMode="numeric"
-                      maxLength={10}
+                      onChange={(e) => setProfilePhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                       disabled={!isProfileEditing}
+                      maxLength={10}
                       required
                     />
 
-                    <div className="rounded-none border border-[#d9d2c7] bg-white p-4">
-                      <p className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#8e8275]">
-                        Account security
-                      </p>
-
-                      <p className="mt-2 text-[13px] leading-5 text-[#6b6156]">
-                        Email changes are updated through Firebase Authentication and require email verification. If Firebase requires a recent login, sign in again before changing your email.
-                      </p>
-                    </div>
-
-                    {profileLoadError && (
-                      <div
-                        role="alert"
-                        className="border border-red-200 bg-red-50 px-4 py-3 text-[13px] leading-5 text-red-700"
-                      >
-                        Unable to load your saved profile. Please refresh and try again.
-                      </div>
-                    )}
-
                     {profileError && (
-                      <div
-                        role="alert"
-                        className="border border-red-200 bg-red-50 px-4 py-3 text-[13px] leading-5 text-red-700"
-                      >
+                      <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">
                         {profileError}
                       </div>
                     )}
 
                     {profileMessage && (
-                      <div
-                        role="status"
-                        className="border border-green-200 bg-green-50 px-4 py-3 text-[13px] leading-5 text-green-700"
-                      >
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-700">
                         {profileMessage}
                       </div>
                     )}
 
-                    {!isProfileEditing ? (
-                      <Button
-                        type="button"
-                        onClick={
-                          startProfileEditing
-                        }
-                      >
-                        Edit profile
-                      </Button>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="submit"
-                          isLoading={
-                            saveUserProfile.isPending
-                          }
-                        >
-                          Save profile
+                    <div className="pt-2">
+                      {!isProfileEditing ? (
+                        <Button type="button" onClick={startProfileEditing} className="font-bold">
+                          Edit Profile
                         </Button>
-
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={
-                            cancelProfileEditing
-                          }
-                          disabled={
-                            saveUserProfile.isPending
-                          }
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="flex gap-2">
+                          <Button type="submit" isLoading={saveUserProfile.isPending} className="font-bold">
+                            Save Changes
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={cancelProfileEditing}
+                            disabled={saveUserProfile.isPending}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </form>
                 )}
               </div>
-
-              <aside className="lg:col-span-5">
-                <Card className="border-[#d9d2c7] bg-white p-5 shadow-none">
-                  <p className="font-mono text-[8px] uppercase tracking-[0.14em] text-[#8e8275]">
-                    Account summary
-                  </p>
-
-                  <dl className="mt-4 divide-y divide-[#ebe6dc] border-y border-[#ebe6dc]">
-                    <div className="flex justify-between gap-5 py-3">
-                      <dt className="text-[13px] text-[#6b6156]">
-                        Orders placed
-                      </dt>
-
-                      <dd className="font-mono text-[13px] text-[#14120f]">
-                        {myOrders.length}
-                      </dd>
-                    </div>
-
-                    <div className="flex justify-between gap-5 py-3">
-                      <dt className="text-[13px] text-[#6b6156]">
-                        Quotes raised
-                      </dt>
-
-                      <dd className="font-mono text-[13px] text-[#14120f]">
-                        {myQuotes.length}
-                      </dd>
-                    </div>
-
-                    <div className="flex justify-between gap-5 py-3">
-                      <dt className="text-[13px] text-[#6b6156]">
-                        Email
-                      </dt>
-
-                      <dd className="max-w-[180px] truncate font-mono text-[12px] text-[#14120f]">
-                        {profile?.email ||
-                          user?.email ||
-                          'Not available'}
-                      </dd>
-                    </div>
-
-                    <div className="flex justify-between gap-5 py-3">
-                      <dt className="text-[13px] text-[#6b6156]">
-                        Mobile
-                      </dt>
-
-                      <dd className="max-w-[180px] truncate font-mono text-[12px] text-[#14120f]">
-                        {profile?.phone ||
-                          'Not saved'}
-                      </dd>
-                    </div>
-                  </dl>
-
-                  <p className="mt-5 text-[13px] leading-6 text-[#6b6156]">
-                    Personal information is editable. Orders and quotes are protected transaction records and cannot be edited from the customer account.
-                  </p>
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setActiveTab('addresses')
-                      }
-                    >
-                      Manage address
-                    </Button>
-
-                    <Link to="/custom-service">
-                      <Button size="sm">
-                        Start a custom print
-                      </Button>
-                    </Link>
-                  </div>
-                </Card>
-              </aside>
             </div>
-          )}
-        </div>
+
+            <aside className="lg:col-span-5">
+              <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm space-y-4">
+                <h3 className="font-serif text-lg font-bold text-charcoal">
+                  Account Overview
+                </h3>
+                <dl className="divide-y divide-zinc-100 text-xs">
+                  <div className="flex justify-between py-2.5">
+                    <span className="text-charcoal-lighter">Total Orders</span>
+                    <span className="font-mono font-bold text-charcoal">{myOrders.length}</span>
+                  </div>
+                  <div className="flex justify-between py-2.5">
+                    <span className="text-charcoal-lighter">CAD Quotes</span>
+                    <span className="font-mono font-bold text-charcoal">{myQuotes.length}</span>
+                  </div>
+                  <div className="flex justify-between py-2.5">
+                    <span className="text-charcoal-lighter">Account Email</span>
+                    <span className="font-mono font-medium text-charcoal truncate max-w-[160px]">{user.email}</span>
+                  </div>
+                </dl>
+              </div>
+            </aside>
+          </div>
+        )}
       </main>
 
       {/* ================================================================== */}
       {/* ORDER DETAILS MODAL                                                */}
       {/* ================================================================== */}
-
       {selectedOrder && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#14120f]/60 px-4 py-8"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-8"
           role="dialog"
           aria-modal="true"
-          aria-label="Order details"
-          onClick={() =>
-            setSelectedOrder(null)
-          }
+          onClick={() => setSelectedOrder(null)}
         >
           <div
-            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto border border-[#d9d2c7] bg-white shadow-2xl"
-            onClick={(event) =>
-              event.stopPropagation()
-            }
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-zinc-200 bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal header */}
-
-            <div className="flex items-start justify-between gap-5 border-b border-[#d9d2c7] p-5 sm:p-6">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-zinc-100 p-6">
               <div>
-                <p className="font-mono text-[8px] uppercase tracking-[0.14em] text-[#8e8275]">
-                  Order details
-                </p>
-
-                <h2 className="mt-1 font-display text-[21px] font-semibold text-[#14120f]">
-                  #{selectedOrder.id.slice(0, 8)}
+                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-brand-500 block">
+                  Order Details
+                </span>
+                <h2 className="font-serif text-2xl font-bold text-charcoal">
+                  #{selectedOrder.id.slice(0, 8).toUpperCase()}
                 </h2>
-
-                <p className="mt-1 text-[12.5px] text-[#6b6156]">
-                  {new Date(
-                    selectedOrder.date
-                  ).toLocaleDateString(
-                    'en-IN',
-                    {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    }
-                  )}
+                <p className="text-xs text-charcoal-lighter">
+                  {new Date(selectedOrder.date).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
                 </p>
               </div>
 
               <button
                 type="button"
-                onClick={() =>
-                  setSelectedOrder(null)
-                }
-                className="flex h-8 w-8 items-center justify-center border border-[#d9d2c7] text-[#6b6156] hover:bg-[#f7f4ee] hover:text-[#14120f]"
+                onClick={() => setSelectedOrder(null)}
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 text-charcoal-light hover:bg-zinc-200"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Modal body */}
-
-            <div className="p-5 sm:p-6">
-              <div className="mb-5 flex items-center justify-between">
-                <span className="font-mono text-[8px] uppercase tracking-[0.1em] text-[#8e8275]">
-                  Current status
-                </span>
-
-                <span
-                  className={`border px-2.5 py-1 font-mono text-[8px] uppercase tracking-[0.08em] ${
-                    STATUS_STYLES[
-                      selectedOrder.status
-                    ] ||
-                    'border-gray-200 bg-gray-50 text-gray-700'
-                  }`}
-                >
-                  {selectedOrder.status}
-                </span>
+            {/* Modal Body */}
+            <div className="p-6 space-y-6">
+              <div className="flex items-center justify-between rounded-2xl bg-zinc-50 p-4">
+                <span className="font-mono text-xs font-bold text-charcoal-lighter uppercase">Fabrication Status</span>
+                {getStatusBadge(selectedOrder.status)}
               </div>
 
-              {/* Items */}
+              {/* Items List */}
+              <div className="divide-y divide-zinc-100 border-y border-zinc-100">
+                {selectedOrder.items.map((item, index) => (
+                  <div key={`${item.productId}-${index}`} className="flex items-center gap-4 py-3">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                      <Package className="h-5 w-5" />
+                    </div>
 
-              <div className="border-y border-[#ebe6dc]">
-                {selectedOrder.items.map(
-                  (item, index) => (
-                    <div
-                      key={`${item.productId}-${index}`}
-                      className="flex items-center gap-4 border-b border-[#ebe6dc] py-4 last:border-b-0"
-                    >
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center bg-[#f7f4ee]">
-                        <Package className="h-5 w-5 text-[#8e8275]" />
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[13.5px] font-medium text-[#14120f]">
-                          {item.productName}
-                        </p>
-
-                        <p className="mt-1 font-mono text-[8px] uppercase tracking-[0.08em] text-[#8e8275]">
-                          Qty {item.quantity}
-
-                          {item.variantLabel &&
-                            ` · ${item.variantLabel}`}
-                        </p>
-                      </div>
-
-                      <p className="font-mono text-[12.5px] text-[#14120f]">
-                        ₹
-                        {(
-                          item.price *
-                          item.quantity
-                        ).toLocaleString(
-                          'en-IN'
-                        )}
+                    <div className="min-w-0 flex-1 text-xs">
+                      <p className="font-bold text-charcoal">{item.productName}</p>
+                      <p className="font-mono text-[11px] text-charcoal-lighter">
+                        Qty {item.quantity} {item.variantLabel && `• ${item.variantLabel}`}
                       </p>
                     </div>
-                  )
-                )}
+
+                    <span className="font-mono text-xs font-bold text-charcoal">
+                      ₹{(item.price * item.quantity).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                ))}
               </div>
 
-              {/* Totals */}
-
-              <div className="mt-5 space-y-3">
-                <div className="flex justify-between text-[13px]">
-                  <span className="text-[#6b6156]">
-                    Items
-                  </span>
-
-                  <span className="font-mono text-[#14120f]">
-                    ₹
-                    {selectedOrder.items
-                      .reduce(
-                        (sum, item) =>
-                          sum +
-                          item.price *
-                            item.quantity,
-                        0
-                      )
-                      .toLocaleString(
-                        'en-IN'
-                      )}
-                  </span>
+              {/* Price Breakdown */}
+              <div className="space-y-2 text-xs divide-y divide-zinc-100">
+                <div className="flex justify-between pt-2">
+                  <span className="text-charcoal-lighter">Delivery</span>
+                  <span className="font-mono font-bold text-emerald-600">Pan-India Tracked</span>
                 </div>
-
-                <div className="flex justify-between text-[13px]">
-                  <span className="text-[#6b6156]">
-                    Shipping
-                  </span>
-
-                  <span className="font-mono text-[#14120f]">
-                    Included
-                  </span>
-                </div>
-
-                <div className="flex justify-between border-t border-[#d9d2c7] pt-4">
-                  <span className="font-medium text-[#14120f]">
-                    Total paid
-                  </span>
-
-                  <span className="font-display text-[21px] font-semibold text-[#14120f]">
-                    ₹
-                    {selectedOrder.total.toLocaleString(
-                      'en-IN'
-                    )}
+                <div className="flex items-baseline justify-between pt-3">
+                  <span className="font-serif text-base font-bold text-charcoal">Total Amount</span>
+                  <span className="font-serif text-2xl font-bold text-charcoal">
+                    ₹{selectedOrder.total.toLocaleString('en-IN')}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Modal footer */}
-
-            <div className="flex flex-wrap justify-end gap-2 border-t border-[#d9d2c7] bg-[#f7f4ee] p-4">
-              <Button
-                variant="ghost"
-                onClick={() =>
-                  setSelectedOrder(null)
-                }
-              >
+            {/* Modal Footer */}
+            <div className="flex justify-end gap-3 border-t border-zinc-100 bg-zinc-50/60 p-4 rounded-b-3xl">
+              <Button variant="ghost" onClick={() => setSelectedOrder(null)} className="font-semibold text-xs">
                 Close
               </Button>
-
               <Button
-                onClick={() =>
-                  handleOrderAgain(
-                    selectedOrder
-                  )
-                }
-                disabled={
-                  reorderOrder.isPending
-                }
+                onClick={() => handleOrderAgain(selectedOrder)}
+                disabled={reorderOrder.isPending}
+                className="font-bold text-xs"
               >
                 <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
-
-                {reorderOrder.isPending
-                  ? 'Adding...'
-                  : 'Order again'}
+                {reorderOrder.isPending ? 'Adding...' : 'Order Again'}
               </Button>
             </div>
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

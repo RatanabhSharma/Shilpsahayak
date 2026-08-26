@@ -3,19 +3,23 @@ import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
-  Check,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  PenTool,
+  Cpu,
+  Layers,
+  MessageSquare,
   ShieldCheck,
   Sparkles,
-  Star,
   Truck,
+  Wrench,
+  Zap,
 } from 'lucide-react';
 
 import { useProducts } from '../../hooks/useProducts';
 import { useHomepage } from '../../hooks/useHomepage';
-import { Button, Card } from '../../components/ui';
+import { useSettings } from '../../hooks/useSettings';
+import { Button, Card, Badge } from '../../components/ui';
 import {
   CategoryGridSkeleton,
   FeaturedProductSkeleton,
@@ -25,6 +29,10 @@ import {
 export function Home() {
   const { data: products = [], isLoading } = useProducts();
   const { data: homepageSettings } = useHomepage();
+  const { data: settings } = useSettings();
+
+  const whatsappNumber = settings?.whatsappNumber || '919876543210';
+  const whatsappLink = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}`;
 
   const activeProducts = useMemo(
     () => products.filter((product) => product.active !== false),
@@ -103,7 +111,7 @@ export function Home() {
 
     const timer = window.setInterval(() => {
       setSlideIndex((currentIndex) => (currentIndex + 1) % slideCount);
-    }, homepageSettings.heroInterval);
+    }, homepageSettings.heroInterval || 5000);
 
     return () => window.clearInterval(timer);
   }, [homepageSettings?.heroAutoplay, homepageSettings?.heroInterval, slideCount]);
@@ -147,13 +155,10 @@ export function Home() {
         >
           <Button
             size="lg"
-            className="group w-full bg-[#b4491e] px-7 hover:bg-[#963c18] sm:w-auto"
+            className="group w-full px-8 font-bold sm:w-auto"
           >
             {slide.buttonText}
-            <ArrowRight
-              className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"
-              aria-hidden="true"
-            />
+            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Button>
         </a>
       );
@@ -163,48 +168,32 @@ export function Home() {
       <Link to={slide.buttonLink} className="inline-flex">
         <Button
           size="lg"
-          className="group w-full bg-[#b4491e] px-7 hover:bg-[#963c18] sm:w-auto"
+          className="group w-full px-8 font-bold sm:w-auto"
         >
           {slide.buttonText}
-          <ArrowRight
-            className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"
-            aria-hidden="true"
-          />
+          <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
         </Button>
       </Link>
     );
   };
 
   return (
-    <div className="bg-[#f7f4ee] text-[#171512]">
-
+    <div className="bg-[#faf9f6] text-charcoal">
       {/* =====================================================
-          HERO PROMOTIONS
+          1. DARK HERO SECTION
       ====================================================== */}
-      <section className="relative overflow-hidden border-b border-[#ded8ce] bg-[#171512] text-[#f7f4ee]">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.07]"
-          aria-hidden="true"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.7) 1px, transparent 1px)',
-            backgroundSize: '48px 48px',
-          }}
-        />
+      <section className="relative overflow-hidden bg-[#0b0f17] text-white">
+        {/* Subtle engineering grid background texture */}
+        <div className="absolute inset-0 grid-plate opacity-20 pointer-events-none" />
 
-        <div
-          className="pointer-events-none absolute -right-40 -top-40 h-[520px] w-[520px] rounded-full border border-[#f7f4ee]/10"
-          aria-hidden="true"
-        />
-
-        <div
-          className="pointer-events-none absolute -bottom-48 -left-40 h-[480px] w-[480px] rounded-full border border-[#b4491e]/20"
-          aria-hidden="true"
-        />
+        {/* Ambient atmospheric orange glows */}
+        <div className="pointer-events-none absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-brand-500/10 blur-[120px]" />
+        <div className="pointer-events-none absolute -bottom-40 -right-40 h-[600px] w-[600px] rounded-full bg-brand-500/15 blur-[140px]" />
 
         <div className="relative mx-auto max-w-[1440px] px-5 py-16 sm:px-8 lg:px-10 lg:py-24">
           {currentSlide ? (
-            <div className="grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
+            /* Configured Dynamic Hero Slideshow */
+            <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentSlide.id}
@@ -214,45 +203,47 @@ export function Home() {
                   transition={{ duration: 0.4, ease: 'easeOut' }}
                   className="order-2 lg:order-1"
                 >
-                  <div className="mb-7 flex items-center gap-3">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#d9784b]">
-                      {currentSlide.eyebrow || 'Shilp Sahayak'}
+                  {/* Eyebrow badge */}
+                  <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-3.5 py-1.5 backdrop-blur-sm">
+                    <span className="h-2 w-2 rounded-full bg-brand-500 animate-pulse" />
+                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-400">
+                      {currentSlide.eyebrow || 'Shilp Sahayak Studio'}
                     </span>
-                    <span className="h-px w-10 bg-[#b4491e]" aria-hidden="true" />
                   </div>
 
-                  <h1 className="max-w-2xl font-serif text-5xl font-semibold leading-[0.96] tracking-[-0.045em] sm:text-6xl lg:text-7xl">
+                  <h1 className="max-w-2xl font-serif text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl text-white">
                     {currentSlide.title}
                   </h1>
 
                   {currentSlide.description && (
-                    <p className="mt-7 max-w-xl text-base leading-7 text-[#f7f4ee]/60 sm:text-lg">
+                    <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
                       {currentSlide.description}
                     </p>
                   )}
 
-                  <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                  <div className="mt-8 flex flex-col gap-3.5 sm:flex-row">
                     {renderHeroButton(currentSlide)}
-                    <Link to="/catalog" className="inline-flex">
+                    <Link to="/custom-service" className="inline-flex">
                       <Button
                         variant="outline"
                         size="lg"
-                        className="w-full border-[#f7f4ee]/25 bg-transparent px-7 text-[#f7f4ee] hover:bg-[#f7f4ee] hover:text-[#171512] sm:w-auto"
+                        className="w-full border-slate-700 bg-slate-900/60 text-white hover:border-brand-500 hover:bg-slate-800 sm:w-auto"
                       >
-                        Browse collection
+                        <Sparkles className="mr-2 h-4 w-4 text-brand-400" />
+                        Custom 3D Print
                       </Button>
                     </Link>
                   </div>
 
                   {slideCount > 1 && (
-                    <div className="mt-10 flex items-center gap-5">
+                    <div className="mt-10 flex items-center gap-4">
                       <button
                         type="button"
                         onClick={previousSlide}
-                        aria-label="Previous promotion"
-                        className="flex h-9 w-9 items-center justify-center border border-[#f7f4ee]/20 text-[#f7f4ee]/60 transition-colors hover:border-[#f7f4ee]/60 hover:text-[#f7f4ee]"
+                        aria-label="Previous slide"
+                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700 bg-slate-800/60 text-slate-300 transition-colors hover:border-brand-500 hover:text-white"
                       >
-                        <span aria-hidden="true">←</span>
+                        <ChevronLeft className="h-4 w-4" />
                       </button>
 
                       <div className="flex items-center gap-2">
@@ -261,12 +252,11 @@ export function Home() {
                             key={slide.id}
                             type="button"
                             onClick={() => goToSlide(index)}
-                            aria-label={`Show promotion ${index + 1}`}
-                            aria-current={index === slideIndex ? 'true' : undefined}
-                            className={`h-1 transition-all duration-300 ${
+                            aria-label={`Slide ${index + 1}`}
+                            className={`h-1.5 rounded-full transition-all duration-300 ${
                               index === slideIndex
-                                ? 'w-10 bg-[#d9784b]'
-                                : 'w-4 bg-[#f7f4ee]/20 hover:bg-[#f7f4ee]/40'
+                                ? 'w-8 bg-brand-500'
+                                : 'w-2 bg-slate-700 hover:bg-slate-500'
                             }`}
                           />
                         ))}
@@ -275,10 +265,10 @@ export function Home() {
                       <button
                         type="button"
                         onClick={nextSlide}
-                        aria-label="Next promotion"
-                        className="flex h-9 w-9 items-center justify-center border border-[#f7f4ee]/20 text-[#f7f4ee]/60 transition-colors hover:border-[#f7f4ee]/60 hover:text-[#f7f4ee]"
+                        aria-label="Next slide"
+                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700 bg-slate-800/60 text-slate-300 transition-colors hover:border-brand-500 hover:text-white"
                       >
-                        <span aria-hidden="true">→</span>
+                        <ChevronRight className="h-4 w-4" />
                       </button>
                     </div>
                   )}
@@ -286,87 +276,128 @@ export function Home() {
               </AnimatePresence>
 
               <div className="order-1 lg:order-2">
-                <div className="relative">
-                  <div
-                    className="absolute -inset-3 border border-[#f7f4ee]/10"
-                    aria-hidden="true"
-                  />
-
-                  <div className="relative overflow-hidden bg-[#24211d]">
-                    <AnimatePresence mode="wait">
-                      {currentSlide.image ? (
-                        <motion.img
-                          key={currentSlide.id}
-                          src={currentSlide.image}
-                          alt={currentSlide.title}
-                          initial={{ opacity: 0, scale: 1.03 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.99 }}
-                          transition={{ duration: 0.5, ease: 'easeOut' }}
-                          className="aspect-[4/3] w-full object-cover"
-                        />
-                      ) : (
-                        <motion.div
-                          key={`${currentSlide.id}-placeholder`}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="flex aspect-[4/3] w-full items-center justify-center bg-[#24211d] p-8 text-center"
-                        >
-                          <span className="max-w-md font-serif text-3xl font-semibold text-[#f7f4ee]/80 sm:text-4xl">
-                            {currentSlide.title}
-                          </span>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    <div
-                      className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent"
-                      aria-hidden="true"
+                <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/80 p-2 shadow-2xl">
+                  {currentSlide.image ? (
+                    <img
+                      src={currentSlide.image}
+                      alt={currentSlide.title}
+                      className="aspect-[4/3] w-full rounded-2xl object-cover"
                     />
-                  </div>
+                  ) : (
+                    <div className="flex aspect-[4/3] w-full items-center justify-center rounded-2xl bg-slate-800/50 p-8 text-center">
+                      <Layers className="h-16 w-16 text-brand-500/60" />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           ) : (
-            <div className="max-w-3xl">
-              <div className="mb-6 flex items-center gap-3">
-                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#d9784b]">
-                  Shilp Sahayak Technologies · India
-                </span>
-                <span className="h-px w-10 bg-[#b4491e]" aria-hidden="true" />
+            /* Default Hero View */
+            <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
+              <div>
+                {/* Free Delivery Badge */}
+                <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-4 py-1.5 backdrop-blur-sm">
+                  <Truck className="h-4 w-4 text-brand-400" />
+                  <span className="font-mono text-xs font-semibold tracking-wide text-brand-300">
+                    Free Pan-India Delivery on orders above ₹499
+                  </span>
+                </div>
+
+                <h1 className="font-serif text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl text-white">
+                  If you can imagine it,{' '}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 via-brand-500 to-amber-300">
+                    we can print it.
+                  </span>
+                </h1>
+
+                <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
+                  Welcome to <strong className="text-white">Shilp Sahayak</strong>. We are a friendly custom 3D printing studio based in India helping creators, students, hobbyists, and startups bring their ideas to physical reality.
+                </p>
+
+                <div className="mt-9 flex flex-col gap-3.5 sm:flex-row">
+                  <Link to="/custom-service" className="inline-flex">
+                    <Button
+                      size="lg"
+                      className="w-full gap-2 px-8 font-bold sm:w-auto shadow-lg shadow-brand-500/25"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Get a Custom Quote
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+
+                  <Link to="/catalog" className="inline-flex">
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="w-full border-slate-700 bg-slate-900/60 text-white hover:border-brand-500 hover:bg-slate-800 sm:w-auto font-semibold"
+                    >
+                      Browse Products
+                    </Button>
+                  </Link>
+                </div>
+
+                {/* Micro trust indicators */}
+                <div className="mt-10 flex flex-wrap items-center gap-6 text-xs text-slate-400">
+                  <span className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-brand-400" />
+                    No Minimum Order Quantity
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-brand-400" />
+                    24–48h Rapid Dispatch
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-brand-400" />
+                    Precision Quality Check
+                  </span>
+                </div>
               </div>
 
-              <h1 className="font-serif text-5xl font-semibold leading-[0.98] tracking-[-0.045em] sm:text-6xl lg:text-7xl">
-                Precision 3D Printing,
-                <br />
-                <span className="text-[#d9784b]">Robotics & Drones.</span>
-              </h1>
+              {/* Hero Visual Card */}
+              <div className="relative">
+                <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/90 to-slate-950 p-6 shadow-2xl">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-3 w-3 rounded-full bg-rose-500/80" />
+                      <div className="flex h-3 w-3 rounded-full bg-amber-500/80" />
+                      <div className="flex h-3 w-3 rounded-full bg-emerald-500/80" />
+                    </div>
+                    <span className="font-mono text-[11px] uppercase tracking-wider text-slate-400">
+                      Live Studio Fab
+                    </span>
+                  </div>
 
-              <p className="mt-7 max-w-2xl text-base leading-7 text-[#f7f4ee]/65 sm:text-lg">
-                India-based prototyping and manufacturing studio. From bespoke 3D printed objects and rapid functional parts to specialized robotics brackets and drone components.
-              </p>
+                  <div className="mt-5 space-y-4">
+                    <div className="group relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
+                      <img
+                        src="https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&q=80&w=800"
+                        alt="3D Printing in action"
+                        className="aspect-[16/10] w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                      <div className="absolute bottom-4 left-4 right-4">
+                        <Badge variant="brand" className="mb-1.5">
+                          High Precision FDM & SLA
+                        </Badge>
+                        <p className="font-serif text-lg font-bold text-white">
+                          From CAD Model to Finished Part in 48 Hours
+                        </p>
+                      </div>
+                    </div>
 
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <Link to="/catalog" className="inline-flex">
-                  <Button
-                    size="lg"
-                    className="w-full bg-[#b4491e] px-8 hover:bg-[#963c18] sm:w-auto"
-                  >
-                    Explore catalog
-                    <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-                  </Button>
-                </Link>
-
-                <Link to="/custom-service" className="inline-flex">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="w-full border-[#f7f4ee]/25 bg-transparent px-8 text-[#f7f4ee] hover:bg-[#f7f4ee] hover:text-[#171512] sm:w-auto"
-                  >
-                    Start a custom print
-                  </Button>
-                </Link>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
+                        <p className="font-mono text-[10px] uppercase text-brand-400">Materials</p>
+                        <p className="mt-1 text-sm font-semibold text-white">PLA · PETG · ABS · Resin</p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
+                        <p className="font-mono text-[10px] uppercase text-brand-400">Pricing</p>
+                        <p className="mt-1 text-sm font-semibold text-white">From ₹4.5 / gram</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -374,30 +405,30 @@ export function Home() {
       </section>
 
       {/* =====================================================
-          TRUST STRIP
+          2. TRUST STRIP
       ====================================================== */}
-      <section className="border-b border-[#ded8ce] bg-[#f7f4ee]">
-        <div className="mx-auto grid max-w-[1440px] grid-cols-2 divide-x divide-[#ded8ce] md:grid-cols-4">
+      <section className="border-b border-zinc-200 bg-white">
+        <div className="mx-auto grid max-w-[1440px] grid-cols-2 divide-x divide-zinc-200 lg:grid-cols-4">
           {[
             {
-              icon: PenTool,
-              title: '3D Printing Studio',
-              description: 'Precision rapid prototyping',
+              icon: Sparkles,
+              title: 'Bespoke 3D Printing',
+              description: 'Custom figurines, gifts, & decor',
             },
             {
-              icon: ShieldCheck,
-              title: 'Robotics & Drones',
-              description: 'Custom mounts & components',
+              icon: Cpu,
+              title: 'Startup & Robotics',
+              description: 'Custom enclosures & mounts',
             },
             {
-              icon: Star,
-              title: 'Engineered Materials',
-              description: 'PLA, PETG, ABS, Resin',
+              icon: Layers,
+              title: 'Multi-Material Range',
+              description: 'PLA, PETG, ABS, Resin, Wood',
             },
             {
               icon: Truck,
-              title: 'Pan-India Delivery',
-              description: 'Tracked shipping across India',
+              title: 'Pan-India Tracked',
+              description: 'Free delivery above ₹499',
             },
           ].map((item) => {
             const Icon = item.icon;
@@ -405,19 +436,17 @@ export function Home() {
             return (
               <div
                 key={item.title}
-                className="flex items-center gap-3 px-5 py-6 sm:px-8 lg:px-10"
+                className="flex items-center gap-3.5 px-5 py-6 sm:px-8"
               >
-                <Icon
-                  className="h-5 w-5 shrink-0 text-[#b4491e]"
-                  aria-hidden="true"
-                />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                  <Icon className="h-5 w-5" aria-hidden="true" />
+                </div>
 
                 <div>
-                  <p className="font-serif text-sm font-semibold text-[#171512]">
+                  <p className="font-serif text-sm font-bold text-charcoal">
                     {item.title}
                   </p>
-
-                  <p className="mt-0.5 text-[11px] text-[#7d756c]">
+                  <p className="mt-0.5 text-xs text-charcoal-lighter">
                     {item.description}
                   </p>
                 </div>
@@ -428,376 +457,326 @@ export function Home() {
       </section>
 
       {/* =====================================================
-          FEATURED PRODUCTS
+          3. ABOUT SHILP SAHAYAK (3 CORE PILLARS)
       ====================================================== */}
-      <section
-        className="border-b border-[#ded8ce] py-16 lg:py-24"
-        aria-labelledby="featured-products-heading"
-      >
+      <section className="py-20 lg:py-24 bg-[#faf9f6]">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
+          <div className="mx-auto max-w-3xl text-center">
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+              Meet Your Makers
+            </span>
+            <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl text-charcoal">
+              A studio built around your creativity.
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-charcoal-light">
+              We aren't a generic factory — we are a passionate team of 3D printing enthusiasts and engineers based in Patiala. We help you choose the right material, optimize your tolerances, and deliver high-finish physical objects.
+            </p>
+          </div>
 
-          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#b4491e]">
-                From the shelf
+          {/* 3 Core Focus Pillars */}
+          <div className="mt-14 grid gap-6 md:grid-cols-3">
+            {/* Pillar 1 */}
+            <Card className="p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-brand-300">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100/70 text-brand-600">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <h3 className="mt-5 font-serif text-xl font-bold text-charcoal">
+                1. Personalization & Bespoke Creations
+              </h3>
+              <p className="mt-2.5 text-sm leading-relaxed text-charcoal-light">
+                Turn memories into tangible art. Customized lithophane lamps, anniversary trophies, custom nameplates, personalized phone holders, and decorative collectibles.
               </p>
+              <div className="mt-5 pt-4 border-t border-zinc-100 flex items-center justify-between">
+                <span className="text-xs font-semibold text-brand-600">Great for gifts & decor</span>
+                <ArrowRight className="h-4 w-4 text-brand-500" />
+              </div>
+            </Card>
 
-              <h2
-                id="featured-products-heading"
-                className="mt-3 font-serif text-4xl font-semibold tracking-[-0.035em] sm:text-5xl"
+            {/* Pillar 2 */}
+            <Card className="p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-brand-300">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100/70 text-amber-600">
+                <Cpu className="h-6 w-6" />
+              </div>
+              <h3 className="mt-5 font-serif text-xl font-bold text-charcoal">
+                2. Startup & Maker Branding
+              </h3>
+              <p className="mt-2.5 text-sm leading-relaxed text-charcoal-light">
+                Short-run hardware manufacturing without expensive injection molds. Custom IoT enclosures, drone arm mounts, action camera brackets, and branded event badges.
+              </p>
+              <div className="mt-5 pt-4 border-t border-zinc-100 flex items-center justify-between">
+                <span className="text-xs font-semibold text-amber-700">Small batch production</span>
+                <ArrowRight className="h-4 w-4 text-amber-600" />
+              </div>
+            </Card>
+
+            {/* Pillar 3 */}
+            <Card className="p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-brand-300">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100/70 text-rose-600">
+                <Wrench className="h-6 w-6" />
+              </div>
+              <h3 className="mt-5 font-serif text-xl font-bold text-charcoal">
+                3. Prototyping & Engineering
+              </h3>
+              <p className="mt-2.5 text-sm leading-relaxed text-charcoal-light">
+                Rapid turnaround for college projects, robotics clubs, and mechanical R&D. High-strength PETG and heat-resistant ABS fabricated with tight mechanical clearances.
+              </p>
+              <div className="mt-5 pt-4 border-t border-zinc-100 flex items-center justify-between">
+                <span className="text-xs font-semibold text-rose-700">Functional test prototypes</span>
+                <ArrowRight className="h-4 w-4 text-rose-600" />
+              </div>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* =====================================================
+          4. "WHAT IS 3D PRINTING?" 3-STEP EXPLAINER (Dark Theme)
+      ====================================================== */}
+      <section className="bg-[#121824] py-20 text-white relative overflow-hidden border-y border-slate-800">
+        <div className="absolute inset-0 grid-plate opacity-15 pointer-events-none" />
+
+        <div className="relative mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
+          <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+            <div>
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-400">
+                How It Works
+              </span>
+              <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl text-white">
+                How 3D printing turns your idea into reality.
+              </h2>
+            </div>
+            <p className="text-base leading-relaxed text-slate-300">
+              3D printing (additive manufacturing) builds objects by depositing material layer by microscopic layer directly from digital geometry — eliminating tooling costs and enabling endless customization.
+            </p>
+          </div>
+
+          <div className="mt-14 grid gap-6 md:grid-cols-3">
+            {[
+              {
+                step: '01',
+                title: 'Share File or Idea',
+                description:
+                  'Upload an STL, OBJ, or 3MF file from CAD, share reference images, or tell us your concept for 3D modeling assistance.',
+                badge: 'Instant File Review',
+              },
+              {
+                step: '02',
+                title: 'Precision Slicing & Printing',
+                description:
+                  'We slice your model with optimized infill and layer height, then fabricate on calibrated FDM or high-detail SLA resin machines.',
+                badge: 'Sub-Millimeter Accuracy',
+              },
+              {
+                step: '03',
+                title: 'Quality Check & Delivery',
+                description:
+                  'Every print undergoes hand-finishing, dimensional inspection, and safe multi-layer bubble packaging before tracked Pan-India dispatch.',
+                badge: 'Pan-India Delivery',
+              },
+            ].map((card) => (
+              <div
+                key={card.step}
+                className="relative rounded-2xl border border-slate-800 bg-slate-900/70 p-7 backdrop-blur-sm hover:border-brand-500/60 transition-colors"
               >
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-2xl font-extrabold text-brand-400">
+                    {card.step}
+                  </span>
+                  <Badge variant="brand" className="border-brand-500/30 bg-brand-500/15 text-brand-300">
+                    {card.badge}
+                  </Badge>
+                </div>
+
+                <h3 className="mt-5 font-serif text-xl font-bold text-white">
+                  {card.title}
+                </h3>
+                <p className="mt-2.5 text-sm leading-relaxed text-slate-400">
+                  {card.description}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Quick CTA to Custom Service */}
+          <div className="mt-12 flex flex-col sm:flex-row items-center justify-between rounded-2xl border border-brand-500/30 bg-gradient-to-r from-brand-950/60 via-slate-900 to-slate-900 p-6 sm:p-8">
+            <div className="space-y-1 text-center sm:text-left">
+              <h3 className="font-serif text-xl font-bold text-white">
+                Have a 3D model ready right now?
+              </h3>
+              <p className="text-sm text-slate-300">
+                Get an instant volume and weight calculation in under 30 seconds.
+              </p>
+            </div>
+
+            <Link to="/custom-service" className="mt-4 sm:mt-0">
+              <Button size="lg" className="font-bold px-7">
+                Upload & Calculate Quote
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* =====================================================
+          5. FEATURED PRODUCTS ("PIECES WE KEEP STOCKED")
+      ====================================================== */}
+      <section className="py-20 lg:py-24 bg-white border-b border-zinc-200">
+        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+                Workshop Stock
+              </span>
+              <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight sm:text-4xl text-charcoal">
                 Pieces we keep stocked.
               </h2>
-
-              <p className="mt-4 max-w-xl text-sm leading-6 text-[#746c63]">
-                Designed, printed and packed with care.
-                Explore pieces currently available from
-                the Shilp Sahayak collection.
+              <p className="mt-2 max-w-xl text-sm text-charcoal-light">
+                Ready-to-dispatch 3D printed items, crafted with care and ready for your home or desk.
               </p>
             </div>
 
             <Link
               to="/catalog"
-              className="inline-flex shrink-0 items-center gap-2 self-start border-b border-[#171512] pb-1 text-sm font-medium transition-colors hover:border-[#b4491e] hover:text-[#b4491e] sm:self-auto"
+              className="inline-flex items-center gap-1.5 text-sm font-bold text-brand-600 hover:text-brand-700 transition-colors"
             >
-              View collection
-              <ArrowRight
-                className="h-3.5 w-3.5"
-                aria-hidden="true"
-              />
+              <span>View All Collection</span>
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
 
           {isLoading ? (
-            <div className="mt-10" role="status" aria-label="Loading featured products">
+            <div className="mt-10">
               <FeaturedProductSkeleton />
             </div>
           ) : featuredProducts.length === 0 ? (
-            <div className="mt-10 border border-dashed border-[#d5cec3] py-16 text-center">
-              <p className="text-sm text-[#746c63]">
-                No featured products yet.
-              </p>
-
-              <p className="mt-2 text-xs text-[#968d83]">
-                Mark products as Featured in Admin to
-                display them here.
-              </p>
+            <div className="mt-10 rounded-2xl border border-dashed border-zinc-200 p-12 text-center text-charcoal-lighter">
+              No featured products yet. Add products from the Admin catalog.
             </div>
           ) : (
-            <div className="mt-10 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-
-              {/* Large featured piece */}
-              {featuredProducts[0] && (
+            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {featuredProducts.map((product) => (
                 <Link
-                  to={`/product/${featuredProducts[0].id}`}
-                  className="group"
+                  key={product.id}
+                  to={`/product/${product.id}`}
+                  className="group flex flex-col"
                 >
-                  <div className="relative overflow-hidden bg-[#e9e3d9]">
-                    <img
-                      src={featuredProducts[0].image}
-                      alt={featuredProducts[0].name}
-                      className="aspect-[4/3] w-full object-cover transition-transform duration-700 group-hover:scale-[1.025]"
-                    />
+                  <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-xl group-hover:border-brand-300">
+                    <div className="relative overflow-hidden bg-zinc-100">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                      {product.isCustomizable && (
+                        <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-charcoal/85 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+                          <Sparkles className="h-3 w-3 text-brand-400" />
+                          Personalize
+                        </span>
+                      )}
+                    </div>
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+                    <div className="flex flex-1 flex-col justify-between p-5">
+                      <div>
+                        <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-charcoal-lighter">
+                          {product.category || 'Workshop Piece'}
+                        </span>
+                        <h3 className="mt-1.5 line-clamp-2 font-serif text-lg font-bold text-charcoal group-hover:text-brand-600 transition-colors">
+                          {product.name}
+                        </h3>
+                      </div>
 
-                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white sm:p-8">
-                      <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-white/55">
-                        Featured
-                      </p>
+                      <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-3.5">
+                        <div>
+                          <span className="text-xs text-charcoal-lighter block">Price</span>
+                          <span className="font-serif text-lg font-bold text-charcoal">
+                            ₹{product.price.toLocaleString('en-IN')}
+                          </span>
+                        </div>
 
-                      <h3 className="mt-2 font-serif text-2xl font-semibold sm:text-3xl">
-                        {featuredProducts[0].name}
-                      </h3>
-
-                      <div className="mt-3 flex items-center justify-end">
-                        <span className="flex items-center gap-2 text-sm">
-                          View piece
-                          <ArrowRight
-                            className="h-4 w-4 transition-transform group-hover:translate-x-1"
-                            aria-hidden="true"
-                          />
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600 group-hover:bg-brand-500 group-hover:text-white transition-colors">
+                          <ArrowRight className="h-4 w-4" />
                         </span>
                       </div>
                     </div>
-                  </div>
+                  </Card>
                 </Link>
-              )}
-
-              {/* Supporting pieces */}
-              <div className="grid grid-cols-2 gap-5">
-                {featuredProducts
-                  .slice(1, 3)
-                  .map((product) => (
-                    <Link
-                      key={product.id}
-                      to={`/product/${product.id}`}
-                      className="group flex flex-col"
-                    >
-                      <Card className="flex h-full flex-col justify-between overflow-hidden rounded-none border-[#ded8ce] bg-white shadow-none transition-shadow duration-300 hover:shadow-[0_12px_35px_rgba(23,21,18,0.08)]">
-                        <div className="overflow-hidden bg-[#e9e3d9]">
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="aspect-square w-full object-cover transition-transform duration-700 group-hover:scale-[1.035]"
-                          />
-                        </div>
-
-                        <div className="flex flex-1 flex-col justify-between p-4 sm:p-5">
-                          <div>
-                            <p className="font-mono text-[9px] uppercase tracking-[0.13em] text-[#958c81]">
-                              {product.category}
-                            </p>
-
-                            <h3 className="mt-2 line-clamp-2 font-serif text-lg font-semibold text-[#171512]">
-                              {product.name}
-                            </h3>
-                          </div>
-
-                          <div className="mt-4 flex items-center justify-between border-t border-[#f4f0e8] pt-3">
-                            <span className="text-sm font-medium text-[#b4491e]">
-                              ₹
-                              {product.price.toLocaleString(
-                                'en-IN'
-                              )}
-                            </span>
-
-                            <ArrowRight
-                              className="h-4 w-4 text-[#958c81] transition-all group-hover:translate-x-1 group-hover:text-[#b4491e]"
-                              aria-hidden="true"
-                            />
-                          </div>
-                        </div>
-                      </Card>
-                    </Link>
-                  ))}
-              </div>
+              ))}
             </div>
           )}
         </div>
       </section>
 
       {/* =====================================================
-          PROCESS
+          6. SHOP BY CATEGORY CAROUSEL
       ====================================================== */}
-      <section className="bg-[#171512] py-16 text-[#f7f4ee] lg:py-20">
+      <section className="py-20 lg:py-24 bg-[#faf9f6]">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-
-          <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#d9784b]">
-                How it works
-              </p>
-
-              <h2 className="mt-3 max-w-xl font-serif text-4xl font-semibold leading-tight tracking-[-0.035em] sm:text-5xl">
-                From digital model
-                <br />
-                to physical object.
-              </h2>
-            </div>
-
-            <p className="max-w-xl text-sm leading-7 text-[#f7f4ee]/50">
-              Every piece moves through a controlled
-              workflow designed around precision, material
-              quality and careful finishing.
-            </p>
-          </div>
-
-          <div className="mt-12 grid border-y border-[#f7f4ee]/10 md:grid-cols-3">
-            {[
-              {
-                number: '01',
-                title: 'Choose',
-                text: 'Pick a design from the collection or start with your own idea.',
-              },
-              {
-                number: '02',
-                title: 'Print',
-                text: 'Your piece is produced using calibrated 3D printing equipment.',
-              },
-              {
-                number: '03',
-                title: 'Deliver',
-                text: 'We inspect, pack and ship the finished object safely.',
-              },
-            ].map((step, index) => (
-              <div
-                key={step.number}
-                className={`py-8 md:px-8 ${
-                  index !== 0
-                    ? 'border-t border-[#f7f4ee]/10 md:border-l md:border-t-0'
-                    : ''
-                }`}
-              >
-                <span className="font-mono text-[10px] text-[#d9784b]">
-                  {step.number}
-                </span>
-
-                <h3 className="mt-5 font-serif text-2xl font-semibold">
-                  {step.title}
-                </h3>
-
-                <p className="mt-3 max-w-sm text-sm leading-6 text-[#f7f4ee]/45">
-                  {step.text}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* =====================================================
-          MATERIALS
-      ====================================================== */}
-      <section className="border-b border-[#ded8ce] py-16 lg:py-20">
-        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-
-          <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#b4491e]">
-                Material matters
-              </p>
-
-              <h2 className="mt-3 max-w-xl font-serif text-4xl font-semibold tracking-[-0.035em] sm:text-5xl">
-                Built around reliable materials.
-              </h2>
-
-              <p className="mt-5 max-w-xl text-sm leading-7 text-[#746c63]">
-                We focus on practical materials and
-                controlled printing parameters so the
-                finished object looks good and holds up to
-                everyday use.
-              </p>
-            </div>
-
-            <div className="grid gap-px border border-[#ded8ce] bg-[#ded8ce] sm:grid-cols-2">
-              {[
-                'Consistent print quality',
-                'Reliable layer adhesion',
-                'Clean surface finish',
-                'Practical material selection',
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="flex items-center gap-3 bg-[#f7f4ee] p-5"
-                >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center bg-[#171512] text-[#d9784b]">
-                    <Check
-                      className="h-3.5 w-3.5"
-                      aria-hidden="true"
-                    />
-                  </span>
-
-                  <span className="text-sm font-medium">
-                    {item}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* =====================================================
-          CATEGORIES
-      ====================================================== */}
-      <section
-        className="py-16 lg:py-20"
-        aria-labelledby="categories-heading"
-      >
-        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#b4491e]">
-                Explore
-              </p>
-
-              <h2
-                id="categories-heading"
-                className="mt-3 font-serif text-4xl font-semibold tracking-[-0.035em] sm:text-5xl"
-              >
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+                Browse Styles
+              </span>
+              <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight sm:text-4xl text-charcoal">
                 Shop by category.
               </h2>
             </div>
 
-            <div className="flex items-center gap-4">
-              {categories.length > 0 && (
-                <div className="hidden items-center gap-2 sm:flex">
-                  <button
-                    type="button"
-                    onClick={() => scrollCategories('left')}
-                    aria-label="Scroll categories left"
-                    className="flex h-9 w-9 items-center justify-center border border-[#ded8ce] text-[#746c63] transition-colors hover:border-[#b4491e] hover:text-[#b4491e]"
-                  >
-                    <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => scrollCategories('right')}
-                    aria-label="Scroll categories right"
-                    className="flex h-9 w-9 items-center justify-center border border-[#ded8ce] text-[#746c63] transition-colors hover:border-[#b4491e] hover:text-[#b4491e]"
-                  >
-                    <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                </div>
-              )}
-
-              <Link
-                to="/catalog"
-                className="inline-flex items-center gap-2 text-sm font-medium text-[#746c63] hover:text-[#b4491e]"
-              >
-                Browse everything
-                <ChevronRight
-                  className="h-4 w-4"
-                  aria-hidden="true"
-                />
-              </Link>
-            </div>
+            {categories.length > 0 && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => scrollCategories('left')}
+                  aria-label="Scroll categories left"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-charcoal hover:border-brand-500 hover:text-brand-600 transition-colors shadow-sm"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollCategories('right')}
+                  aria-label="Scroll categories right"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-charcoal hover:border-brand-500 hover:text-brand-600 transition-colors shadow-sm"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </div>
 
           {isLoading ? (
-            <div className="mt-9" role="status" aria-label="Loading categories">
+            <div className="mt-9">
               <CategoryGridSkeleton />
             </div>
           ) : categories.length === 0 ? (
-            <div className="py-16 text-center text-sm text-[#746c63]">
-              No categories available yet.
+            <div className="mt-9 rounded-2xl border border-dashed border-zinc-200 p-10 text-center text-charcoal-lighter">
+              No categories found.
             </div>
           ) : (
             <div
               ref={categoryScrollRef}
-              className="mt-9 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              className="mt-9 flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
-              {categories.map((category) => (
+              {categories.map((cat) => (
                 <Link
-                  key={category.name}
-                  to={`/catalog?category=${encodeURIComponent(
-                    category.name
-                  )}`}
-                  className="group w-[45%] shrink-0 snap-start sm:w-[31%] lg:w-[23%]"
+                  key={cat.name}
+                  to={`/catalog?category=${encodeURIComponent(cat.name)}`}
+                  className="group w-[60%] shrink-0 snap-start sm:w-[36%] lg:w-[23%]"
                 >
-                  <div className="relative overflow-hidden bg-[#ded8ce]">
+                  <div className="relative overflow-hidden rounded-2xl bg-zinc-200 shadow-md">
                     <img
-                      src={category.image}
-                      alt={category.name}
-                      className="aspect-[4/5] w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                      src={cat.image}
+                      alt={cat.name}
+                      className="aspect-[4/5] w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
-
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-transparent" />
-
-                    <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5">
-                      <p className="font-serif text-lg font-semibold text-white sm:text-xl">
-                        {category.name}
-                      </p>
-
-                      <span className="mt-1 inline-flex items-center gap-1 text-xs text-white/60 transition-colors group-hover:text-white">
-                        Explore
-                        <ArrowRight
-                          className="h-3 w-3 transition-transform group-hover:translate-x-1"
-                          aria-hidden="true"
-                        />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-5">
+                      <h3 className="font-serif text-xl font-bold text-white">
+                        {cat.name}
+                      </h3>
+                      <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-brand-300 group-hover:text-white transition-colors">
+                        Explore Category
+                        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                       </span>
                     </div>
                   </div>
@@ -809,166 +788,145 @@ export function Home() {
       </section>
 
       {/* =====================================================
-          CUSTOM PRINT CTA
+          7. "WHY CHOOSE US" 4-PILLAR SECTION (Dark Theme)
       ====================================================== */}
-      <section className="border-y border-[#ded8ce] bg-[#ebe5db]">
-        <div className="mx-auto grid max-w-[1440px] lg:grid-cols-2">
+      <section className="bg-[#0b0f17] py-20 text-white border-t border-slate-800 relative overflow-hidden">
+        <div className="absolute inset-0 grid-plate opacity-15 pointer-events-none" />
 
-          <div className="px-5 py-16 sm:px-8 lg:px-10 lg:py-24">
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#b4491e]">
-              Have something else in mind?
-            </p>
-
-            <h2 className="mt-4 max-w-xl font-serif text-4xl font-semibold leading-tight tracking-[-0.04em] sm:text-5xl">
-              Bring your own model to life.
+        <div className="relative mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
+          <div className="mx-auto max-w-3xl text-center">
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-400">
+              The Shilp Sahayak Difference
+            </span>
+            <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl text-white">
+              Why makers & teams choose us.
             </h2>
-
-            <p className="mt-5 max-w-xl text-sm leading-7 text-[#746c63]">
-              Upload your 3D model and tell us what you
-              need. We'll review the requirements and
-              prepare a quote for your custom print.
+            <p className="mt-4 text-base text-slate-300">
+              We treat every print like our own project — ensuring dimensional accuracy, clean layer bonding, and personal maker support.
             </p>
-
-            <Link
-              to="/custom-service"
-              className="mt-8 inline-flex"
-            >
-              <Button
-                size="lg"
-                className="group bg-[#171512] px-7 hover:bg-[#2b2824]"
-              >
-                Start a custom print
-                <ArrowRight
-                  className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"
-                  aria-hidden="true"
-                />
-              </Button>
-            </Link>
           </div>
 
-          <div className="relative min-h-[320px] overflow-hidden bg-[#171512]">
-            <div
-              className="absolute inset-0 opacity-[0.08]"
-              aria-hidden="true"
-              style={{
-                backgroundImage:
-                  'linear-gradient(90deg, #f7f4ee 1px, transparent 1px), linear-gradient(#f7f4ee 1px, transparent 1px)',
-                backgroundSize: '36px 36px',
-              }}
-            />
-
-            <div className="relative flex h-full items-center justify-center p-10">
-              <div className="max-w-sm border border-[#f7f4ee]/15 p-7">
-                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#d9784b]">
-                  Custom service
-                </p>
-
-                <p className="mt-4 font-serif text-2xl font-semibold text-[#f7f4ee]">
-                  Your file.
-                  <br />
-                  Our printer.
-                  <br />
-                  One finished piece.
-                </p>
-              </div>
-            </div>
+          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                icon: ShieldCheck,
+                title: 'Hand-Inspected Quality',
+                desc: 'Every completed part is visually inspected and measured before being approved for packaging.',
+              },
+              {
+                icon: Layers,
+                title: 'Engineering Materials',
+                desc: 'Premium PLA, impact-resistant PETG, heat-resistant ABS, ultra-fine SLA Resin, Silk & Wood.',
+              },
+              {
+                icon: MessageSquare,
+                title: 'Direct Maker WhatsApp',
+                desc: 'Need advice on wall thickness or print orientation? Chat directly with our printing engineers.',
+              },
+              {
+                icon: Zap,
+                title: 'Transparent Pricing',
+                desc: 'Honest rates from ₹4.5/g with volume discounts for batch orders and zero hidden setup surcharges.',
+              },
+            ].map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <div
+                  key={feature.title}
+                  className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-sm hover:border-brand-500/50 transition-colors"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500/15 text-brand-400">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mt-4 font-serif text-lg font-bold text-white">
+                    {feature.title}
+                  </h3>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-400">
+                    {feature.desc}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* =====================================================
-          SELECTED PRODUCTS
+          8. MORE FROM THE WORKSHOP (SELECTED PRODUCTS)
       ====================================================== */}
-      <section
-        className="border-b border-[#ded8ce] py-16 lg:py-20"
-        aria-labelledby="selected-products-heading"
-      >
+      <section className="py-20 lg:py-24 bg-white border-b border-zinc-200">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-
           <div className="flex items-end justify-between gap-5">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#b4491e]">
-                Also worth a look
-              </p>
-
-              <h2
-                id="selected-products-heading"
-                className="mt-3 font-serif text-4xl font-semibold tracking-[-0.035em] sm:text-5xl"
-              >
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+                Curated Picks
+              </span>
+              <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight sm:text-4xl text-charcoal">
                 More from the workshop.
               </h2>
             </div>
 
             <Link
               to="/catalog"
-              className="hidden items-center gap-2 text-sm font-medium hover:text-[#b4491e] sm:inline-flex"
+              className="hidden sm:inline-flex items-center gap-1.5 text-sm font-bold text-brand-600 hover:text-brand-700 transition-colors"
             >
-              All products
-              <ArrowRight
-                className="h-3.5 w-3.5"
-                aria-hidden="true"
-              />
+              <span>Explore All Products</span>
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
 
           {isLoading ? (
-            <div className="mt-9" role="status" aria-label="Loading workshop products">
+            <div className="mt-10">
               <WorkshopProductSkeleton />
             </div>
           ) : selectedProducts.length === 0 ? (
-            <div className="py-16 text-center text-sm text-[#746c63]">
-              No products available yet.
+            <div className="mt-10 rounded-2xl border border-dashed border-zinc-200 p-10 text-center text-charcoal-lighter">
+              No products available.
             </div>
           ) : (
-            <div className="mt-9 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {selectedProducts.map((product) => (
                 <Link
                   key={product.id}
                   to={`/product/${product.id}`}
                   className="group flex flex-col"
                 >
-                  <Card className="flex h-full flex-col justify-between overflow-hidden rounded-none border-[#ded8ce] bg-white shadow-none transition-shadow duration-300 hover:shadow-[0_12px_35px_rgba(23,21,18,0.08)]">
-                    <div className="relative overflow-hidden bg-[#e9e3d9]">
+                  <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-xl group-hover:border-brand-300">
+                    <div className="relative overflow-hidden bg-zinc-100">
                       <img
                         src={product.image}
                         alt={product.name}
-                        className="aspect-square w-full object-cover transition-transform duration-700 group-hover:scale-[1.035]"
+                        className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
-
                       {product.isCustomizable && (
-                        <span className="absolute left-3 top-3 flex items-center gap-1.5 border border-white/20 bg-[#171512]/85 px-2.5 py-1.5 font-mono text-[8px] uppercase tracking-[0.12em] text-white backdrop-blur-sm">
-                          <Sparkles
-                            className="h-3 w-3 text-[#d9784b]"
-                            aria-hidden="true"
-                          />
-                          Personalise
+                        <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-charcoal/85 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+                          <Sparkles className="h-3 w-3 text-brand-400" />
+                          Personalize
                         </span>
                       )}
                     </div>
 
                     <div className="flex flex-1 flex-col justify-between p-5">
                       <div>
-                        <p className="font-mono text-[9px] uppercase tracking-[0.13em] text-[#958c81]">
-                          {product.category}
-                        </p>
-
-                        <h3 className="mt-2 line-clamp-2 font-serif text-lg font-semibold leading-snug text-[#171512]">
+                        <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-charcoal-lighter">
+                          {product.category || 'Workshop Piece'}
+                        </span>
+                        <h3 className="mt-1.5 line-clamp-2 font-serif text-lg font-bold text-charcoal group-hover:text-brand-600 transition-colors">
                           {product.name}
                         </h3>
                       </div>
 
-                      <div className="mt-4 flex items-center justify-between border-t border-[#f4f0e8] pt-3">
-                        <span className="font-medium text-[#b4491e]">
-                          ₹
-                          {product.price.toLocaleString(
-                            'en-IN'
-                          )}
-                        </span>
+                      <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-3.5">
+                        <div>
+                          <span className="text-xs text-charcoal-lighter block">Price</span>
+                          <span className="font-serif text-lg font-bold text-charcoal">
+                            ₹{product.price.toLocaleString('en-IN')}
+                          </span>
+                        </div>
 
-                        <ArrowRight
-                          className="h-4 w-4 text-[#958c81] transition-all group-hover:translate-x-1 group-hover:text-[#b4491e]"
-                          aria-hidden="true"
-                        />
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600 group-hover:bg-brand-500 group-hover:text-white transition-colors">
+                          <ArrowRight className="h-4 w-4" />
+                        </span>
                       </div>
                     </div>
                   </Card>
@@ -976,64 +934,54 @@ export function Home() {
               ))}
             </div>
           )}
-
-          <div className="mt-8 sm:hidden">
-            <Link to="/catalog">
-              <Button
-                variant="outline"
-                className="w-full border-[#cfc7bb]"
-              >
-                View all products
-                <ArrowRight
-                  className="ml-2 h-4 w-4"
-                  aria-hidden="true"
-                />
-              </Button>
-            </Link>
-          </div>
         </div>
       </section>
 
       {/* =====================================================
-          FINAL CTA
+          9. FINAL CTA SECTION (Dark Theme)
       ====================================================== */}
-      <section className="bg-[#171512] px-5 py-20 text-center text-[#f7f4ee] sm:px-8 sm:py-24 lg:py-28">
-        <div className="mx-auto max-w-3xl">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#d9784b]">
-            Start creating
-          </p>
+      <section className="relative overflow-hidden bg-[#0b0f17] px-5 py-24 text-center text-white sm:px-8 sm:py-28">
+        <div className="absolute inset-0 grid-plate opacity-20 pointer-events-none" />
+        <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[450px] w-[600px] rounded-full bg-brand-500/10 blur-[130px]" />
 
-          <h2 className="mt-4 font-serif text-4xl font-semibold tracking-[-0.04em] sm:text-5xl lg:text-6xl">
-            Made for your idea.
+        <div className="relative mx-auto max-w-3xl">
+          <Badge variant="brand" className="mb-4">
+            Start Your Print Today
+          </Badge>
+
+          <h2 className="font-serif text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl text-white">
+            Have a custom idea in mind?
           </h2>
 
-          <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-[#f7f4ee]/50">
-            Browse the collection or send us your model
-            for a custom print.
+          <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-slate-300">
+            Send us your 3D CAD model, sketches, or project requirements. Our makers will review your design and prepare an exact quote within a few hours.
           </p>
 
           <div className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
-            <Link to="/catalog">
-              <Button
-                size="lg"
-                className="w-full bg-[#b4491e] px-9 hover:bg-[#963c18] sm:w-auto"
-              >
-                Shop the collection
+            <Link to="/custom-service">
+              <Button size="lg" className="w-full font-bold px-9 shadow-lg shadow-brand-500/25 sm:w-auto">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Get Instant 3D Quote
               </Button>
             </Link>
 
-            <Link to="/custom-service">
+            <a
+              href={whatsappLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex"
+            >
               <Button
                 size="lg"
-                variant="outline"
-                className="w-full border-[#f7f4ee]/25 bg-transparent px-9 text-[#f7f4ee] hover:bg-[#f7f4ee] hover:text-[#171512] sm:w-auto"
+                variant="whatsapp"
+                className="w-full font-bold px-8 sm:w-auto"
               >
-                Request a custom print
+                Chat with Maker on WhatsApp
               </Button>
-            </Link>
+            </a>
           </div>
         </div>
       </section>
     </div>
   );
-}
+}

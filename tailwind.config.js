@@ -1,43 +1,58 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
-  './index.html',
-  './src/**/*.{js,ts,jsx,tsx}'
-],
+    './index.html',
+    './src/**/*.{js,ts,jsx,tsx}'
+  ],
   theme: {
     extend: {
       colors: {
         brand: {
-          50: '#fcf9f2',
-          100: '#f7f0e1',
-          200: '#efdfc0',
-          300: '#e5c796',
-          400: '#dbab65',
-          500: '#c98a1e', // Deep amber
-          600: '#b87318',
-          700: '#995816',
-          800: '#7e4718',
-          900: '#653a16',
-          950: '#3a1e0a',
+          50: '#fff7ed',
+          100: '#ffedd5',
+          200: '#fed7aa',
+          300: '#fdba74',
+          400: '#fb923c',
+          500: '#ff6b1a', // Primary vibrant orange accent
+          600: '#ea580c',
+          700: '#c2410c',
+          800: '#9a3412',
+          900: '#7c2d12',
+          950: '#431407',
+        },
+        dark: {
+          DEFAULT: '#0b0f17',
+          bg: '#0b0f17',
+          card: '#121824',
+          elevated: '#182234',
+          border: '#232e42',
+          muted: '#94a3b8',
         },
         surface: {
-          DEFAULT: '#faf6ee', // Warm off-white background
+          DEFAULT: '#faf9f6', // Warm off-white background
           card: '#ffffff',
-          dark: '#f0e9dc',
+          dark: '#0b0f17',
+          muted: '#f4efe6',
+          lavender: '#f8f7ff',
         },
         charcoal: {
-          DEFAULT: '#2b2724',
-          light: '#4a4541',
-          lighter: '#736d68',
+          DEFAULT: '#18181b',
+          light: '#52525b',
+          lighter: '#71717a',
+          subtle: '#a1a1aa',
         }
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        serif: ['Playfair Display', 'serif'],
+        sans: ['"IBM Plex Sans"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
+        serif: ['"IBM Plex Serif"', 'Georgia', 'serif'],
+        display: ['"IBM Plex Serif"', 'Georgia', 'serif'],
+        mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', 'monospace'],
       },
       boxShadow: {
-        'soft': '0 4px 20px -2px rgba(43, 39, 36, 0.05)',
-        'glow': '0 0 20px rgba(201, 138, 30, 0.15)',
+        'soft': '0 4px 20px -2px rgba(24, 24, 27, 0.05)',
+        'card': '0 10px 30px -5px rgba(20, 20, 25, 0.05)',
+        'glow': '0 0 25px rgba(255, 107, 26, 0.25)',
+        'glow-lg': '0 0 45px rgba(255, 107, 26, 0.35)',
       }
     },
   },

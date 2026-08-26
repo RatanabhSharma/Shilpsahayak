@@ -6,15 +6,11 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
-  Lock,
-  Mail,
-  Phone,
-  User,
+  Sparkles,
 } from 'lucide-react';
 
 import { useAuth } from '../../hooks/useAuth';
-import { useUserProfile } from '../../hooks/useUserProfile';
-import { Button, Card, Input } from '../../components/ui';
+import { Button, BrandLogo, Input } from '../../components/ui';
 
 type LoginLocationState = {
   from?: {
@@ -59,7 +55,6 @@ function getPasswordStrength(password: string) {
   }
 
   let score = 0;
-
   if (password.length >= 8) score += 1;
   if (/[A-Z]/.test(password)) score += 1;
   if (/[a-z]/.test(password)) score += 1;
@@ -81,8 +76,6 @@ export function Login() {
     resetPassword,
   } = useAuth();
 
-  const { data: profile } = useUserProfile();
-
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -90,9 +83,7 @@ export function Login() {
 
   const from = useMemo(() => {
     const pathname = locationState?.from?.pathname;
-
     if (!pathname) return '/account';
-
     return `${pathname}${locationState?.from?.search || ''}${
       locationState?.from?.hash || ''
     }`;
@@ -116,12 +107,6 @@ export function Login() {
       navigate(from, { replace: true });
     }
   }, [authLoading, user, isSubmitting, navigate, from]);
-
-  useEffect(() => {
-    if (user && profile === null) {
-      // Profile creation is handled during registration.
-    }
-  }, [user, profile]);
 
   const clearMessages = () => {
     setError('');
@@ -149,19 +134,15 @@ export function Login() {
       setError('Please enter your email address.');
       return;
     }
-
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError('Please enter a valid email address.');
       return;
     }
 
     setIsSubmitting(true);
-
     try {
       await resetPassword(email);
-      setSuccess(
-        'Password reset link has been sent. Please check your inbox and spam folder.'
-      );
+      setSuccess('Password reset link has been dispatched to your email inbox.');
     } catch (err: unknown) {
       setError(getFirebaseErrorMessage(err));
     } finally {
@@ -171,11 +152,9 @@ export function Login() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     if (isSubmitting) return;
 
     clearMessages();
-
     const formData = new FormData(event.currentTarget);
     const email = String(formData.get('email') || '').trim();
 
@@ -186,28 +165,23 @@ export function Login() {
 
     const name = String(formData.get('name') || '').trim();
     const password = String(formData.get('password') || '');
-    const confirmPassword = String(
-      formData.get('confirmPassword') || ''
-    );
+    const confirmPassword = String(formData.get('confirmPassword') || '');
     const phone = String(formData.get('phone') || '').trim();
 
     if (!email) {
       setError('Please enter your email address.');
       return;
     }
-
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError('Please enter a valid email address.');
       return;
     }
-
     if (!password) {
       setError('Please enter your password.');
       return;
     }
-
     if (password.length < 6) {
-      setError('Password should be at least 6 characters.');
+      setError('Password must contain at least 6 characters.');
       return;
     }
 
@@ -216,34 +190,27 @@ export function Login() {
         setError('Please enter your full name.');
         return;
       }
-
       if (!/^[6-9]\d{9}$/.test(phone)) {
         setError('Please enter a valid 10-digit Indian mobile number.');
         return;
       }
-
       if (password !== confirmPassword) {
         setError('Passwords do not match.');
         return;
       }
-
       if (passwordStrength.score < 2) {
-        setError(
-          'Please choose a stronger password with at least 8 characters and a mix of letters and numbers.'
-        );
+        setError('Please choose a stronger password with numbers and symbols.');
         return;
       }
     }
 
     setIsSubmitting(true);
-
     try {
       if (mode === 'signup') {
         await register(email, password, name, phone);
       } else {
         await login(email, password);
       }
-
       navigate(from, { replace: true });
     } catch (err: unknown) {
       setError(getFirebaseErrorMessage(err));
@@ -254,14 +221,12 @@ export function Login() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen w-full bg-[#f4f0e8]">
-        <div className="mx-auto flex min-h-screen max-w-[1440px] items-center justify-center px-6">
-          <div className="text-center" role="status" aria-live="polite">
-            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[#d8d0c4] border-t-[#a94b27]" />
-            <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[#81776c]">
-              Checking session
-            </p>
-          </div>
+      <div className="flex min-h-screen w-full items-center justify-center bg-[#faf9f6]">
+        <div className="text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+          <p className="mt-4 font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter">
+            Verifying session...
+          </p>
         </div>
       </div>
     );
@@ -273,66 +238,74 @@ export function Login() {
   const isForgot = mode === 'forgot';
 
   return (
-    <div className="grid min-h-screen w-full lg:grid-cols-2">
-      <div className="relative hidden overflow-hidden bg-[#14120f] lg:block">
-        <div
-          className="absolute inset-0 opacity-40"
-          aria-hidden="true"
-        >
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(247,244,238,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(247,244,238,0.045)_1px,transparent_1px)] bg-[size:48px_48px]" />
-          <div className="absolute left-1/2 top-1/2 h-[620px] w-[620px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#f7f4ee]/10" />
-          <div className="absolute left-1/2 top-1/2 h-[440px] w-[440px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#f7f4ee]/10" />
-          <div className="absolute left-1/2 top-1/2 h-[260px] w-[260px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#a94b27]/25" />
+    <div className="grid min-h-screen w-full lg:grid-cols-12 bg-[#faf9f6]">
+      {/* Left Dark Showcase Column */}
+      <div className="relative hidden overflow-hidden bg-[#0b0f17] text-white lg:col-span-5 lg:flex lg:flex-col lg:justify-between p-12 xl:p-16 border-r border-zinc-800">
+        <div className="absolute inset-0 opacity-20 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(#ff6b1a_1px,transparent_1px)] [background-size:24px_24px]" />
+          <div className="absolute right-0 top-1/4 h-80 w-80 rounded-full bg-brand-500/20 blur-3xl" />
         </div>
 
-        <div className="relative flex h-full flex-col justify-between p-10 xl:p-14">
-          <div>
-            <p className="font-display text-xl font-semibold tracking-[-0.02em] text-[#f7f4ee]">
+        <div className="relative z-10">
+          <Link to="/" className="flex items-center gap-3 group">
+            <BrandLogo size="md" />
+            <span className="font-serif text-xl font-bold tracking-tight text-white group-hover:text-brand-400 transition-colors">
               Shilp Sahayak
-            </p>
-            <p className="mt-1 font-mono text-[8px] uppercase tracking-[0.16em] text-[#f7f4ee]/35">
-              Customer workspace
-            </p>
+            </span>
+          </Link>
+          <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-brand-400 mt-2 block">
+            Additive Manufacturing Studio
+          </span>
+        </div>
+
+        <div className="relative z-10 max-w-sm space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-3 py-1 text-xs font-bold text-brand-400">
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>Maker Studio in Patiala</span>
           </div>
 
-          <div className="max-w-md">
-            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#d9784b]">
-              Precision 3D Printing & Prototyping
-            </p>
-            <h2 className="mt-3 font-display text-2xl font-semibold text-[#f7f4ee]">
-              Turn ideas into physical parts.
-            </h2>
-            <p className="mt-3 text-sm leading-relaxed text-[#f7f4ee]/60">
-              Access your order history, custom print quotes, delivery tracking, and saved settings in one unified dashboard.
-            </p>
-          </div>
+          <h2 className="font-serif text-3xl font-bold text-white leading-tight">
+            If you can imagine it, we can print it.
+          </h2>
 
-          <p className="font-mono text-[8px] uppercase tracking-[0.1em] text-[#f7f4ee]/30">
-            Shilp Sahayak Technologies · Studio Access
+          <p className="text-xs text-zinc-400 leading-relaxed">
+            Log in to manage custom CAD slicing quotes, review real-time fabrication stages, and track pan-India courier shipments.
           </p>
+
+          <div className="pt-4 border-t border-zinc-800 flex items-center gap-4 text-xs font-mono text-zinc-400">
+            <span>⚡ ₹4.5/g Custom 3D Printing</span>
+            <span>•</span>
+            <span>🛡️ 256-Bit SSL Auth</span>
+          </div>
+        </div>
+
+        <div className="relative z-10 text-[11px] font-mono text-zinc-500">
+          © {new Date().getFullYear()} Shilp Sahayak Technologies. All rights reserved.
         </div>
       </div>
 
-      <div className="flex min-h-screen items-center justify-center bg-[#f7f4ee] px-5 py-12 sm:px-8 lg:px-12">
-        <div className="w-full max-w-[420px]">
+      {/* Right Form Column */}
+      <div className="flex min-h-screen items-center justify-center px-5 py-12 sm:px-8 lg:col-span-7 lg:px-12">
+        <div className="w-full max-w-[440px]">
           <Link
             to="/"
-            className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-[#6b6156] transition-colors hover:text-[#14120f]"
+            className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-charcoal-light hover:text-brand-600 transition-colors mb-6"
           >
-            <ArrowLeft className="h-3 w-3" aria-hidden="true" />
-            Back to the shop
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Back to Storefront</span>
           </Link>
 
-          <div className="mt-7">
-            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#a94b27]">
+          {/* Form Header */}
+          <div className="mb-6">
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
               {isForgot
                 ? 'Password Recovery'
                 : isSignup
-                ? 'Create account'
-                : 'Customer login'}
-            </p>
+                ? 'Studio Registration'
+                : 'Customer Authentication'}
+            </span>
 
-            <h1 className="mt-3 font-display text-[30px] font-semibold tracking-[-0.035em] text-[#14120f] sm:text-[34px]">
+            <h1 className="mt-1 font-serif text-3xl font-bold text-charcoal sm:text-4xl">
               {isForgot
                 ? 'Reset your password.'
                 : isSignup
@@ -340,179 +313,114 @@ export function Login() {
                 : 'Welcome back.'}
             </h1>
 
-            <p className="mt-2.5 text-[14px] leading-6 text-[#6b6156]">
+            <p className="mt-2 text-xs text-charcoal-light leading-relaxed">
               {isForgot
-                ? "Enter your registered email and we'll send you a secure link to reset your password."
+                ? "Enter your registered email and we'll send you a password reset link."
                 : isSignup
-                ? 'Create an account to manage your orders, saved details and custom printing requests.'
-                : 'Sign in to access your orders, profile and saved information.'}
+                ? 'Create an account to track your prints, upload CAD models, and save addresses.'
+                : 'Sign in to access your orders, saved address, and 3D printing quotes.'}
             </p>
           </div>
 
-          <Card className="mt-7 border-[#d9d2c7] bg-white p-6 shadow-[0_8px_30px_rgba(20,18,15,0.05)] sm:p-7">
+          {/* Form Card */}
+          <div className="rounded-3xl border border-zinc-200 bg-white p-7 sm:p-8 shadow-sm">
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
               {isSignup && (
-                <div className="relative">
-                  <User
-                    className="pointer-events-none absolute left-3.5 top-[37px] z-10 h-4 w-4 text-[#8e8275]"
-                    aria-hidden="true"
-                  />
-                  <Input
-                    name="name"
-                    type="text"
-                    label="Full Name"
-                    placeholder="Your full name"
-                    autoComplete="name"
-                    required
-                    className="pl-10"
-                  />
-                </div>
+                <Input
+                  name="name"
+                  type="text"
+                  label="Full Name *"
+                  placeholder="e.g. Gurpreet Singh"
+                  autoComplete="name"
+                  required
+                />
               )}
 
               {isSignup && (
-                <div className="relative">
-                  <Phone
-                    className="pointer-events-none absolute left-3.5 top-[37px] z-10 h-4 w-4 text-[#8e8275]"
-                    aria-hidden="true"
-                  />
-                  <Input
-                    name="phone"
-                    type="tel"
-                    label="Mobile Number"
-                    placeholder="10-digit mobile number"
-                    autoComplete="tel"
-                    inputMode="numeric"
-                    maxLength={10}
-                    required
-                    className="pl-10"
-                  />
-                </div>
+                <Input
+                  name="phone"
+                  type="tel"
+                  label="Mobile Number (for delivery SMS) *"
+                  placeholder="10-digit mobile number"
+                  autoComplete="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  required
+                />
               )}
 
-              <div className="relative">
-                <Mail
-                  className="pointer-events-none absolute left-3.5 top-[37px] z-10 h-4 w-4 text-[#8e8275]"
-                  aria-hidden="true"
-                />
-                <Input
-                  name="email"
-                  type="email"
-                  label="Email"
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  inputMode="email"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  required
-                  className="pl-10"
-                />
-              </div>
+              <Input
+                name="email"
+                type="email"
+                label="Email Address *"
+                placeholder="you@example.com"
+                autoComplete="email"
+                required
+              />
 
               {!isForgot && (
                 <div className="relative">
-                  <Lock
-                    className="pointer-events-none absolute left-3.5 top-[37px] z-10 h-4 w-4 text-[#8e8275]"
-                    aria-hidden="true"
-                  />
                   <Input
                     name="password"
                     type={showPassword ? 'text' : 'password'}
-                    label="Password"
+                    label="Password *"
                     placeholder={
-                      isSignup ? 'Create a password' : 'Enter your password'
+                      isSignup ? 'Create a secure password' : 'Enter your password'
                     }
-                    autoComplete={
-                      isSignup ? 'new-password' : 'current-password'
-                    }
+                    autoComplete={isSignup ? 'new-password' : 'current-password'}
                     minLength={6}
                     required
                     value={passwordValue}
-                    onChange={(event) => setPasswordValue(event.target.value)}
-                    className="pr-10 pl-10"
+                    onChange={(e) => setPasswordValue(e.target.value)}
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword((value) => !value)}
-                    className="absolute right-3.5 top-[34px] z-10 p-1 text-[#8e8275] transition-colors hover:text-[#14120f]"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-[38px] p-1 text-charcoal-lighter hover:text-charcoal transition-colors"
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" aria-hidden="true" />
-                    ) : (
-                      <Eye className="h-4 w-4" aria-hidden="true" />
-                    )}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               )}
 
               {isSignup && passwordValue && (
-                <div aria-live="polite" className="-mt-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#8e8275]">
-                      Password strength
-                    </span>
-                    <span className="text-[11px] font-medium text-[#6b6156]">
-                      {passwordStrength.label}
-                    </span>
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-mono text-[10px] text-charcoal-lighter uppercase">Password Strength</span>
+                    <span className="font-bold text-charcoal">{passwordStrength.label}</span>
                   </div>
-
-                  <div className="mt-2 flex gap-1">
-                    {[1, 2, 3, 4, 5].map((segment) => (
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((seg) => (
                       <div
-                        key={segment}
-                        className={`h-1 flex-1 rounded-full transition-colors ${
-                          segment <= passwordStrength.score
-                            ? 'bg-[#a94b27]'
-                            : 'bg-[#e5dfd5]'
+                        key={seg}
+                        className={`h-1.5 flex-1 rounded-full transition-colors ${
+                          seg <= passwordStrength.score ? 'bg-brand-500' : 'bg-zinc-100'
                         }`}
                       />
                     ))}
                   </div>
-
-                  <p className="mt-2 text-[11px] leading-4 text-[#8e8275]">
-                    Use 8+ characters with a mix of letters, numbers and
-                    symbols for a stronger password.
-                  </p>
                 </div>
               )}
 
               {isSignup && (
                 <div className="relative">
-                  <Lock
-                    className="pointer-events-none absolute left-3.5 top-[37px] z-10 h-4 w-4 text-[#8e8275]"
-                    aria-hidden="true"
-                  />
                   <Input
                     name="confirmPassword"
                     type={showConfirmPassword ? 'text' : 'password'}
-                    label="Confirm Password"
-                    placeholder="Enter your password again"
+                    label="Confirm Password *"
+                    placeholder="Re-type your password"
                     autoComplete="new-password"
                     minLength={6}
                     required
                     value={confirmPasswordValue}
-                    onChange={(event) =>
-                      setConfirmPasswordValue(event.target.value)
-                    }
-                    className="pr-10 pl-10"
+                    onChange={(e) => setConfirmPasswordValue(e.target.value)}
                   />
                   <button
                     type="button"
-                    onClick={() =>
-                      setShowConfirmPassword((value) => !value)
-                    }
-                    className="absolute right-3.5 top-[34px] z-10 p-1 text-[#8e8275] transition-colors hover:text-[#14120f]"
-                    aria-label={
-                      showConfirmPassword
-                        ? 'Hide confirm password'
-                        : 'Show confirm password'
-                    }
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3.5 top-[38px] p-1 text-charcoal-lighter hover:text-charcoal transition-colors"
                   >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4" aria-hidden="true" />
-                    ) : (
-                      <Eye className="h-4 w-4" aria-hidden="true" />
-                    )}
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               )}
@@ -522,7 +430,7 @@ export function Login() {
                   <button
                     type="button"
                     onClick={() => switchMode('forgot')}
-                    className="text-[13px] text-[#a94b27] underline underline-offset-4 transition-colors hover:text-[#14120f]"
+                    className="font-mono text-xs font-semibold text-brand-600 hover:text-brand-700 underline underline-offset-4"
                   >
                     Forgot password?
                   </button>
@@ -530,81 +438,56 @@ export function Login() {
               )}
 
               {error && (
-                <div
-                  role="alert"
-                  className="flex items-start gap-3 border border-red-200 bg-red-50 p-3.5 text-sm text-red-700"
-                >
-                  <AlertCircle
-                    className="mt-0.5 h-4 w-4 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <span className="leading-5">{error}</span>
+                <div className="flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-semibold text-rose-700">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>{error}</span>
                 </div>
               )}
 
               {success && (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  className="flex items-start gap-3 border border-[#cfdcca] bg-[#f1f6ee] p-3.5 text-sm text-[#496044]"
-                >
-                  <CheckCircle2
-                    className="mt-0.5 h-4 w-4 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <span className="leading-5">{success}</span>
+                <div className="flex items-start gap-2.5 rounded-2xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs font-bold text-emerald-700">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>{success}</span>
                 </div>
               )}
 
               <Button
                 type="submit"
                 size="lg"
-                className="w-full"
+                className="w-full font-bold shadow-md shadow-brand-500/20"
                 isLoading={isSubmitting}
               >
                 {isForgot
-                  ? 'Send reset link'
+                  ? 'Send Reset Link'
                   : isSignup
-                  ? 'Create account'
-                  : 'Sign in'}
+                  ? 'Create Account'
+                  : 'Sign In'}
               </Button>
             </form>
+          </div>
 
-            <div className="mt-6 border-t border-[#ebe6dc] pt-5">
-              <div className="flex items-start gap-2.5">
-                <CheckCircle2
-                  className="mt-0.5 h-4 w-4 shrink-0 text-[#a94b27]"
-                  aria-hidden="true"
-                />
-                <p className="text-xs leading-5 text-[#8e8275]">
-                  Authentication is securely handled through Firebase. Your
-                  password is not stored by the Shilp Sahayak application.
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          <p className="mt-6 text-[13.5px] text-[#6b6156]">
+          {/* Mode Switch Footnote */}
+          <p className="mt-6 text-center text-xs text-charcoal-light">
             {isForgot ? (
               <>
                 Remembered your password?{' '}
                 <button
                   type="button"
                   onClick={() => switchMode('login')}
-                  className="border-b border-[#6b6156] font-medium text-[#14120f] transition-colors hover:border-[#a94b27] hover:text-[#a94b27]"
+                  className="font-bold text-brand-600 hover:text-brand-700 underline underline-offset-4"
                 >
                   Sign in instead
                 </button>
               </>
             ) : isSignup ? (
               <>
-                Already have an account?{' '}
+                Already registered with Shilp Sahayak?{' '}
                 <button
                   type="button"
                   onClick={() => switchMode('login')}
-                  className="border-b border-[#6b6156] font-medium text-[#14120f] transition-colors hover:border-[#a94b27] hover:text-[#a94b27]"
+                  className="font-bold text-brand-600 hover:text-brand-700 underline underline-offset-4"
                 >
-                  Sign in instead
+                  Sign in
                 </button>
               </>
             ) : (
@@ -613,16 +496,12 @@ export function Login() {
                 <button
                   type="button"
                   onClick={() => switchMode('signup')}
-                  className="border-b border-[#6b6156] font-medium text-[#14120f] transition-colors hover:border-[#a94b27] hover:text-[#a94b27]"
+                  className="font-bold text-brand-600 hover:text-brand-700 underline underline-offset-4"
                 >
-                  Create one
+                  Create an account
                 </button>
               </>
             )}
-          </p>
-
-          <p className="mt-6 text-center font-mono text-[8px] uppercase tracking-[0.1em] text-[#9c9184]">
-            Secure customer authentication · Shilp Sahayak
           </p>
         </div>
       </div>

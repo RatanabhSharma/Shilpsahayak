@@ -1,454 +1,249 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowRightIcon,
-  CheckIcon,
-  FactoryIcon,
-  Layers3Icon,
-  RulerIcon,
-  WrenchIcon,
+  ArrowRight,
+  CheckCircle2,
+  Cpu,
+  Layers,
+  Sparkles,
+  Factory,
+  Compass,
 } from 'lucide-react';
 
-type LayoutProps = {
-  children: React.ReactNode;
-  className?: string;
-};
-
-type ButtonProps = LayoutProps & {
-  to: string;
-  variant?: 'primary' | 'secondary';
-};
-
-function Shell({ children, className = '' }: LayoutProps) {
-  return (
-    <div className={`mx-auto w-full max-w-7xl px-5 sm:px-8 ${className}`}>
-      {children}
-    </div>
-  );
-}
-
-function Button({ children, to, variant = 'primary' }: ButtonProps) {
-  return (
-    <Link
-      to={to}
-      className={
-        variant === 'secondary'
-          ? 'inline-flex items-center gap-2 border border-line-strong bg-white px-4 py-2.5 text-sm font-medium text-ink transition hover:bg-paper'
-          : 'inline-flex items-center gap-2 bg-ink px-4 py-2.5 text-sm font-medium text-paper transition hover:bg-ink-700'
-      }
-    >
-      {children}
-    </Link>
-  );
-}
-
-const IMG = {
-  workshop:
-    'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&q=80&w=1200',
-  fallback:
-    'https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&q=80&w=1200',
-};
-
+import { Button } from '../../components/ui';
 
 const CAPABILITIES = [
   {
-    icon: FactoryIcon,
-    title: '3D printing',
-    body:
-      'Functional parts, prototypes, enclosures, fixtures and small production runs made to the dimensions that matter.',
+    icon: Factory,
+    title: 'Precision 3D Fabrication',
+    body: 'Industrial FDM and SLA additive manufacturing with micron-level tolerances across PLA, PETG, ABS, and UV resins.',
   },
   {
-    icon: WrenchIcon,
-    title: 'Prototyping',
-    body:
-      'Turn an early CAD model into a physical part quickly, test the fit, revise the design and move toward a working build.',
+    icon: Cpu,
+    title: 'Robotics & Mechanical Prototyping',
+    body: 'Custom gears, robotic chassis, modular brackets, and sensor enclosures fabricated for college research, makers, and startups.',
   },
   {
-    icon: RulerIcon,
-    title: 'Design for manufacture',
-    body:
-      'We help identify printability issues, material constraints, tolerances and practical changes before a part goes into production.',
+    icon: Compass,
+    title: 'Design for Additive (DFAM)',
+    body: 'Pre-flight model analysis, overhang optimization, wall-thickness reinforcement, and infill geometry tuning to maximize part strength.',
   },
   {
-    icon: Layers3Icon,
-    title: 'Small-batch production',
-    body:
-      'Repeatable parts without committing to expensive tooling when your quantity is still too small for conventional manufacturing.',
+    icon: Layers,
+    title: 'Small-Batch Production',
+    body: 'Repeatable, tooling-free small runs (10 to 500+ pieces) with rapid turnaround, avoiding high injection molding startup costs.',
   },
 ];
-
 
 const PRINCIPLES = [
-  'Useful parts over decorative complexity.',
-  'Clear pricing before production whenever possible.',
-  'Materials chosen for the actual application.',
-  'Practical tolerances rather than unrealistic specifications.',
-  'Fast communication when a model needs clarification.',
-  'Repeatable results for parts that need to be made again.',
+  'Transparent, weight-based pricing (₹4.5/g vs industry ₹10–15/g).',
+  'Make in India ethos engineered at our Patiala studio.',
+  'Application-specific material matching (heat, impact, or aesthetic finish).',
+  'Strict dimensional verification before packaging & dispatch.',
+  '100% confidential handling of customer proprietary CAD files.',
+  'Shock-proof multi-layer packing with pan-India tracked delivery.',
 ];
-
 
 export function About() {
   return (
-    <div className="bg-paper text-ink">
+    <div className="min-h-screen bg-[#faf9f6] text-charcoal">
+      {/* Hero Header */}
+      <section className="border-b border-zinc-200/80 bg-white">
+        <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10 lg:py-20">
+          <div className="grid gap-12 lg:grid-cols-12 lg:items-center">
+            <div className="lg:col-span-7 space-y-6">
+              <div className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3.5 py-1 text-xs font-bold text-brand-700">
+                <Sparkles className="h-3.5 w-3.5 text-brand-500" />
+                <span>Patiala Engineering Studio</span>
+              </div>
 
-      {/* ============================================================
-          HERO
-      ============================================================ */}
-
-      <section className="border-b border-line bg-white">
-        <Shell className="py-14 sm:py-18 lg:py-24">
-          <div className="grid gap-12 lg:grid-cols-12 lg:items-end lg:gap-16">
-
-            <div className="lg:col-span-7">
-              <p className="label-tech">
-                About the workshop
-              </p>
-
-              <h1 className="mt-4 max-w-4xl font-display text-[42px] font-semibold leading-[0.98] tracking-[-0.04em] sm:text-[54px] lg:text-[68px]">
-                We turn digital
-                <br />
-                designs into
-                <br />
-                useful parts.
+              <h1 className="font-serif text-3xl font-bold tracking-tight text-charcoal sm:text-5xl lg:text-6xl leading-[1.1]">
+                Turning Digital Imaginations Into{' '}
+                <span className="text-brand-500">Precision Reality.</span>
               </h1>
 
-              <p className="mt-7 max-w-2xl text-[15.5px] leading-7 text-ink-600">
-                Shilp Sahayak is a working 3D printing and
-                prototyping shop built around one simple idea:
-                make it easier to go from a digital model to
-                something you can actually hold, test and use.
+              <p className="text-sm text-charcoal-light sm:text-base leading-relaxed max-w-2xl">
+                Shilp Sahayak is a custom 3D printing and digital fabrication studio founded in Patiala, Punjab. We bridge the gap between abstract computer models and physical reality with one simple promise: <strong className="text-charcoal font-semibold">&ldquo;If you can imagine it, we can print it.&rdquo;</strong>
               </p>
 
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Button to="/catalog">
-                  Browse our prints
-                  <ArrowRightIcon
-                    className="h-3.5 w-3.5"
-                    aria-hidden
-                  />
-                </Button>
-
-                <Button
-                  to="/custom-service"
-                  variant="secondary"
-                >
-                  Start a custom print
-                </Button>
+              <div className="flex flex-wrap gap-3 pt-2">
+                <Link to="/catalog">
+                  <Button size="lg" className="font-bold shadow-md shadow-brand-500/20">
+                    Browse Studio Pieces
+                    <ArrowRight className="ml-1.5 h-4 w-4" />
+                  </Button>
+                </Link>
+                <Link to="/custom-service">
+                  <Button size="lg" variant="outline" className="font-bold">
+                    Start Custom Print
+                  </Button>
+                </Link>
               </div>
             </div>
 
             <div className="lg:col-span-5">
-              <div className="relative overflow-hidden border border-line-strong bg-ink">
-                <img
-                  src={IMG.workshop}
-                  onError={(event) => {
-                    event.currentTarget.src = IMG.fallback;
-                  }}
-                  alt="3D printing workshop"
-                  className="h-[320px] w-full object-cover opacity-85 sm:h-[390px]"
-                />
+              <div className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-[#0b0f17] p-8 text-white shadow-xl">
+                <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-brand-500/20 blur-3xl" />
+                
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-400 block mb-2">
+                  The Shilp Sahayak Promise
+                </span>
+                
+                <h3 className="font-serif text-2xl font-bold text-white mb-4">
+                  Democratizing Additive Fabrication for India
+                </h3>
 
-                <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-transparent to-transparent" />
+                <p className="text-xs text-zinc-300 leading-relaxed mb-6">
+                  Too often, students, engineers, and creators are held back by exorbitant 3D printing charges. By optimizing our Patiala print farm and slicer pipelines, we deliver top-tier prints at just ₹4.5/gram.
+                </p>
 
-                <div className="absolute bottom-0 left-0 right-0 p-5">
-                  <p className="font-mono text-2xs uppercase tracking-[0.14em] text-paper/50">
-                    Workshop / Pune
-                  </p>
-
-                  <p className="mt-1.5 font-display text-[20px] font-semibold text-paper">
-                    From file to finished part.
-                  </p>
+                <div className="grid grid-cols-2 gap-4 border-t border-zinc-800 pt-5 text-xs font-mono">
+                  <div>
+                    <span className="text-zinc-500 block text-[10px] uppercase">Base Rate</span>
+                    <span className="font-bold text-brand-400 text-base">₹4.5 / gram</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block text-[10px] uppercase">Tolerance</span>
+                    <span className="font-bold text-white text-base">±0.1 mm</span>
+                  </div>
                 </div>
               </div>
             </div>
-
           </div>
-        </Shell>
+        </div>
       </section>
 
-
-      {/* ============================================================
-          INTRO / STORY
-      ============================================================ */}
-
-      <section className="border-b border-line">
-        <Shell className="py-14 sm:py-18 lg:py-20">
-          <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
-
-            <div className="lg:col-span-4">
-              <p className="label-tech">
-                What we do
-              </p>
-
-              <h2 className="mt-3 font-display text-[28px] font-semibold tracking-[-0.025em]">
-                A workshop, not just a printer.
-              </h2>
-            </div>
-
-            <div className="space-y-5 lg:col-span-7 lg:col-start-6">
-              <p className="text-[15px] leading-7 text-ink-700">
-                A 3D printer is only one part of making a good
-                component. The model, orientation, material,
-                tolerances, layer strategy and finishing all affect
-                whether the final object is actually useful.
-              </p>
-
-              <p className="text-[15px] leading-7 text-ink-700">
-                That is why our work sits between digital design
-                and physical manufacturing. You can bring us a
-                finished STL, ask for help with a prototype, or
-                come with an idea that still needs to be worked
-                out.
-              </p>
-
-              <p className="text-[15px] leading-7 text-ink-700">
-                We work with engineers, students, designers,
-                studios, robotics builders and makers who need
-                something physical without turning every small
-                project into a large manufacturing exercise.
-              </p>
-            </div>
-
+      {/* Story & Ethos Section */}
+      <section className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10 lg:py-20">
+        <div className="grid gap-10 lg:grid-cols-12 lg:gap-16 items-start">
+          <div className="lg:col-span-4">
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
+              Our Journey & Roots
+            </span>
+            <h2 className="mt-2 font-serif text-2xl font-bold text-charcoal sm:text-3xl">
+              Engineered in Patiala, Serving Creators Nationwide.
+            </h2>
           </div>
-        </Shell>
+
+          <div className="lg:col-span-8 space-y-4 text-xs sm:text-sm text-charcoal-light leading-relaxed">
+            <p>
+              A 3D printer is only as good as the engineering discipline behind it. Orientation, infill patterns, cooling curves, nozzle temperatures, and mechanical calibration dictate whether a printed gear can withstand high torque or if an architectural scale model will display crisp facade details.
+            </p>
+            <p>
+              At Shilp Sahayak, our workshop combines cutting-edge additive hardware with hands-on post-processing expertise. Whether you provide a finalized STL file, a CAD assembly from SolidWorks/Fusion 360, or simply reference photographs of a discontinued mechanical part, we help translate your vision into a durable, tangible part.
+            </p>
+            <p>
+              We proudly support engineering students, architectural firms, medical researchers, robotics teams, artisanal lamp designers, and DIY enthusiasts across every corner of India.
+            </p>
+          </div>
+        </div>
       </section>
 
-
-      {/* ============================================================
-          CAPABILITIES
-      ============================================================ */}
-
-      <section className="border-b border-line bg-white">
-        <Shell className="py-14 sm:py-18 lg:py-20">
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="label-tech">
-                Capabilities
-              </p>
-
-              <h2 className="mt-3 font-display text-[28px] font-semibold tracking-[-0.025em]">
-                What happens in the workshop.
-              </h2>
-            </div>
-
-            <p className="max-w-md text-[13.5px] leading-relaxed text-ink-600">
-              From one-off prototypes to repeat parts, the
-              workflow stays focused on practical manufacturing.
+      {/* Workshop Capabilities */}
+      <section className="border-y border-zinc-200/80 bg-white">
+        <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10 lg:py-20">
+          <div className="max-w-2xl">
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
+              Core Studio Pillars
+            </span>
+            <h2 className="mt-1 font-serif text-2xl font-bold text-charcoal sm:text-4xl">
+              Comprehensive Additive Solutions
+            </h2>
+            <p className="mt-2 text-xs sm:text-sm text-charcoal-light">
+              From one-off mechanical prototypes to full product manufacturing batches.
             </p>
           </div>
 
-          <div className="mt-10 grid gap-px border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
-            {CAPABILITIES.map((item) => {
-              const Icon = item.icon;
-
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {CAPABILITIES.map((cap) => {
+              const Icon = cap.icon;
               return (
-                <article
-                  key={item.title}
-                  className="bg-paper p-6 sm:p-7"
+                <div
+                  key={cap.title}
+                  className="rounded-3xl border border-zinc-200 bg-[#faf9f6] p-7 transition-all hover:border-brand-300 hover:shadow-md"
                 >
-                  <div className="flex h-10 w-10 items-center justify-center border border-line-strong bg-white text-clay-600">
-                    <Icon
-                      className="h-4.5 w-4.5"
-                      aria-hidden
-                    />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 mb-5">
+                    <Icon className="h-6 w-6" />
                   </div>
-
-                  <h3 className="mt-6 font-display text-[18px] font-semibold text-ink">
-                    {item.title}
+                  <h3 className="font-serif text-lg font-bold text-charcoal mb-2">
+                    {cap.title}
                   </h3>
-
-                  <p className="mt-2.5 text-[13.5px] leading-relaxed text-ink-600">
-                    {item.body}
+                  <p className="text-xs text-charcoal-light leading-relaxed">
+                    {cap.body}
                   </p>
-                </article>
+                </div>
               );
             })}
           </div>
-
-        </Shell>
+        </div>
       </section>
 
-
-      {/* ============================================================
-          WORKFLOW
-      ============================================================ */}
-
-      <section className="border-b border-line">
-        <Shell className="py-14 sm:py-18 lg:py-20">
-
-          <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
-
-            <div className="lg:col-span-5">
-              <p className="label-tech">
-                How we work
-              </p>
-
-              <h2 className="mt-3 font-display text-[30px] font-semibold leading-tight tracking-[-0.025em]">
-                A straightforward path from CAD to part.
+      {/* Engineering Principles (Dark Theme) */}
+      <section className="border-b border-zinc-800 bg-[#0b0f17] text-white">
+        <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10 lg:py-20">
+          <div className="grid gap-12 lg:grid-cols-12 lg:items-center">
+            <div className="lg:col-span-5 space-y-4">
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-400 block">
+                Quality & Standards
+              </span>
+              <h2 className="font-serif text-3xl font-bold text-white sm:text-4xl">
+                The Workshop Principles We Stand By
               </h2>
-
-              <p className="mt-4 max-w-md text-[14px] leading-relaxed text-ink-600">
-                The exact workflow changes with the job, but the
-                goal remains the same: reduce unnecessary back and
-                forth and get you a usable physical result.
+              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+                We believe in straightforward engineering without hidden surcharges or compromises on structural integrity.
               </p>
             </div>
 
-            <div className="lg:col-span-6 lg:col-start-7">
-              <div className="divide-y divide-line border-y border-line">
-
-                {[
-                  {
-                    number: '01',
-                    title: 'Share the model',
-                    body:
-                      'Upload your STL or other supported file, or tell us what you are trying to make.',
-                  },
-                  {
-                    number: '02',
-                    title: 'Review the requirements',
-                    body:
-                      'We look at dimensions, material, quantity, printability and any application-specific requirements.',
-                  },
-                  {
-                    number: '03',
-                    title: 'Print and inspect',
-                    body:
-                      'The part is produced, checked and prepared according to the agreed requirements.',
-                  },
-                  {
-                    number: '04',
-                    title: 'Dispatch',
-                    body:
-                      'Finished parts are packed and sent across India, or made ready for collection where applicable.',
-                  },
-                ].map((step) => (
+            <div className="lg:col-span-7">
+              <div className="grid gap-4 sm:grid-cols-2">
+                {PRINCIPLES.map((principle, index) => (
                   <div
-                    key={step.number}
-                    className="grid grid-cols-[48px_1fr] gap-4 py-5"
+                    key={index}
+                    className="flex items-start gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4"
                   >
-                    <span className="font-mono text-2xs tracking-[0.12em] text-clay-600">
-                      {step.number}
-                    </span>
-
-                    <div>
-                      <h3 className="text-[15px] font-medium text-ink">
-                        {step.title}
-                      </h3>
-
-                      <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-600">
-                        {step.body}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-
-              </div>
-            </div>
-
-          </div>
-
-        </Shell>
-      </section>
-
-
-      {/* ============================================================
-          PRINCIPLES
-      ============================================================ */}
-
-      <section className="bg-ink text-paper">
-        <Shell className="py-14 sm:py-18 lg:py-20">
-
-          <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
-
-            <div className="lg:col-span-5">
-              <p className="font-mono text-2xs uppercase tracking-[0.14em] text-clay-200">
-                Our approach
-              </p>
-
-              <h2 className="mt-3 font-display text-[30px] font-semibold leading-tight tracking-[-0.025em]">
-                Practical manufacturing decisions.
-              </h2>
-
-              <p className="mt-4 max-w-md text-[14px] leading-relaxed text-paper/60">
-                Good 3D printing is not about adding technology
-                for its own sake. It is about choosing the simplest
-                process that produces the right result.
-              </p>
-            </div>
-
-            <div className="lg:col-span-6 lg:col-start-7">
-              <ul className="divide-y divide-white/10 border-y border-white/10">
-                {PRINCIPLES.map((principle) => (
-                  <li
-                    key={principle}
-                    className="flex gap-3 py-4"
-                  >
-                    <CheckIcon
-                      className="mt-0.5 h-4 w-4 shrink-0 text-clay-300"
-                      aria-hidden
-                    />
-
-                    <span className="text-[14px] leading-relaxed text-paper/75">
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-brand-400 mt-0.5" />
+                    <span className="text-xs text-zinc-300 leading-relaxed font-medium">
                       {principle}
                     </span>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
-
           </div>
-
-        </Shell>
+        </div>
       </section>
 
-
-      {/* ============================================================
-          CTA
-      ============================================================ */}
-
-      <section className="border-b border-line bg-white">
-        <Shell className="py-14 sm:py-18 lg:py-20">
-          <div className="border border-line-strong bg-paper p-7 sm:p-10 lg:flex lg:items-center lg:justify-between lg:gap-10">
-
-            <div>
-              <p className="label-tech">
-                Have something to make?
-              </p>
-
-              <h2 className="mt-3 max-w-2xl font-display text-[28px] font-semibold tracking-[-0.025em]">
-                Bring the file. We will take it from there.
+      {/* Call to Action Banner */}
+      <section className="bg-white">
+        <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10">
+          <div className="rounded-3xl border border-zinc-200 bg-[#faf9f6] p-8 sm:p-12 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+            <div className="max-w-2xl">
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
+                Ready to Fabricate?
+              </span>
+              <h2 className="mt-2 font-serif text-2xl font-bold text-charcoal sm:text-3xl">
+                Have a 3D File Ready to Print?
               </h2>
-
-              <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-ink-600">
-                Upload a model for a custom print, or browse
-                ready-to-buy parts from the catalogue.
+              <p className="mt-2 text-xs sm:text-sm text-charcoal-light leading-relaxed">
+                Upload your STL file to calculate exact volume, weight, and price in seconds, or speak with our engineers for custom projects.
               </p>
             </div>
 
-            <div className="mt-7 flex flex-wrap gap-3 lg:mt-0 lg:shrink-0">
-              <Button to="/custom-service">
-                Start a custom print
-                <ArrowRightIcon
-                  className="h-3.5 w-3.5"
-                  aria-hidden
-                />
-              </Button>
-
-              <Button
-                to="/contact"
-                variant="secondary"
-              >
-                Talk to the workshop
-              </Button>
+            <div className="flex flex-wrap gap-3 shrink-0">
+              <Link to="/custom-service">
+                <Button size="lg" className="font-bold shadow-md shadow-brand-500/20">
+                  Upload 3D Model
+                  <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link to="/contact">
+                <Button size="lg" variant="outline" className="font-bold">
+                  Contact Studio
+                </Button>
+              </Link>
             </div>
-
           </div>
-        </Shell>
+        </div>
       </section>
-
     </div>
   );
 }

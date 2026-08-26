@@ -10,7 +10,11 @@ import {
   Plus,
   ShieldCheck,
   ShoppingCart,
+  Sparkles,
   Truck,
+  CheckCircle2,
+  Layers,
+  Box,
 } from 'lucide-react';
 import {
   Link,
@@ -22,9 +26,12 @@ import {
   useProducts,
 } from '../../hooks/useProducts';
 import { useStore } from '../../store';
+import { useSettings } from '../../hooks/useSettings';
 import {
   Button,
   Card,
+  Badge,
+  Textarea,
 } from '../../components/ui';
 import { ProductDetailSkeleton } from '../../components/loading/ProductSkeleton';
 
@@ -39,13 +46,12 @@ export function ProductDetail() {
     isError,
   } = useProducts();
 
-  const addToCart = useStore(
-    (state) => state.addToCart
-  );
+  const { data: settings } = useSettings();
+  const whatsappNumber = settings?.whatsappNumber || '919876543210';
 
-  const product = products.find(
-    (item) => item.id === id
-  );
+  const addToCart = useStore((state) => state.addToCart);
+
+  const product = products.find((item) => item.id === id);
 
   const hasVariants = Boolean(
     product?.hasVariants &&
@@ -53,229 +59,120 @@ export function ProductDetail() {
       product.variants.length > 0
   );
 
-  const [selectedVariant, setSelectedVariant] =
-    useState<ProductVariant | null>(null);
-
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [activeImage, setActiveImage] = useState('');
+  const [customNotes, setCustomNotes] = useState('');
+  const [customMode, setCustomMode] = useState<'text' | 'quote'>('text');
+  const [added, setAdded] = useState(false);
 
-  const [activeImage, setActiveImage] =
-    useState('');
-
-  const [customNotes, setCustomNotes] =
-    useState('');
-
-  const [customMode, setCustomMode] =
-    useState<'text' | 'quote'>('text');
-
-  const [added, setAdded] =
-    useState(false);
-
-  /*
-   * =========================================================
-   * INITIALIZE VARIANT + IMAGE
-   * =========================================================
-   */
+  /* ----------------------------------------------------------
+     Initialize Variant & Image
+     ---------------------------------------------------------- */
 
   useEffect(() => {
-    if (!product) {
-      return;
-    }
+    if (!product) return;
 
-    if (
-      hasVariants &&
-      product.variants &&
-      product.variants.length > 0
-    ) {
-      const firstVariant =
-        product.variants[0];
-
+    if (hasVariants && product.variants && product.variants.length > 0) {
+      const firstVariant = product.variants[0];
       setSelectedVariant(firstVariant);
-
-      setActiveImage(
-        firstVariant.image ||
-          product.image
-      );
-
+      setActiveImage(firstVariant.image || product.image);
       setQuantity(1);
-
       return;
     }
 
     setSelectedVariant(null);
     setActiveImage(product.image);
     setQuantity(1);
-  }, [
-    product,
-    hasVariants,
-  ]);
+  }, [product, hasVariants]);
 
-  /*
-   * =========================================================
-   * PRODUCT GALLERY
-   * =========================================================
-   */
+  /* ----------------------------------------------------------
+     Gallery Images
+     ---------------------------------------------------------- */
 
   const galleryImages = useMemo(() => {
-    if (!product) {
-      return [];
-    }
-
+    if (!product) return [];
     const images = new Set<string>();
 
-    if (product.image) {
-      images.add(product.image);
-    }
-
-    product.images?.forEach(
-      (image) => {
-        if (image) {
-          images.add(image);
-        }
-      }
-    );
-
-    product.variants?.forEach(
-      (variant) => {
-        if (variant.image) {
-          images.add(variant.image);
-        }
-      }
-    );
+    if (product.image) images.add(product.image);
+    product.images?.forEach((img) => img && images.add(img));
+    product.variants?.forEach((v) => v.image && images.add(v.image));
 
     return Array.from(images);
   }, [product]);
 
-  /*
-   * =========================================================
-   * CURRENT PRODUCT STATE
-   * =========================================================
-   */
+  /* ----------------------------------------------------------
+     Current State
+     ---------------------------------------------------------- */
 
-  const currentPrice =
-    selectedVariant?.price ??
-    product?.price ??
-    0;
+  const currentPrice = selectedVariant?.price ?? product?.price ?? 0;
+  const currentStock = selectedVariant?.stock ?? product?.stock ?? 0;
+  const outOfStock = currentStock <= 0;
 
-  const currentStock =
-    selectedVariant?.stock ??
-    product?.stock ??
-    0;
+  const whatsappInquiryLink = useMemo(() => {
+    const text = encodeURIComponent(
+      `Hello Shilp Sahayak! I have a question regarding "${product?.name || 'this piece'}" (₹${currentPrice}). Can you help?`
+    );
+    return `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${text}`;
+  }, [product?.name, currentPrice, whatsappNumber]);
 
-  const outOfStock =
-    currentStock <= 0;
-
-  /*
-   * =========================================================
-   * RELATED PRODUCTS
-   * =========================================================
-   */
+  /* ----------------------------------------------------------
+     Related Products
+     ---------------------------------------------------------- */
 
   const relatedProducts = useMemo(() => {
-    if (!product) {
-      return [];
-    }
+    if (!product) return [];
 
-    const sameCategory =
-      products.filter(
-        (item) =>
-          item.id !== product.id &&
-          item.active !== false &&
-          item.category ===
-            product.category
-      );
+    const sameCategory = products.filter(
+      (item) =>
+        item.id !== product.id &&
+        item.active !== false &&
+        item.category === product.category
+    );
 
-    const otherProducts =
-      products.filter(
-        (item) =>
-          item.id !== product.id &&
-          item.active !== false &&
-          item.category !==
-            product.category
-      );
+    const otherProducts = products.filter(
+      (item) =>
+        item.id !== product.id &&
+        item.active !== false &&
+        item.category !== product.category
+    );
 
-    return [
-      ...sameCategory,
-      ...otherProducts,
-    ].slice(0, 3);
-  }, [
-    product,
-    products,
-  ]);
+    return [...sameCategory, ...otherProducts].slice(0, 3);
+  }, [product, products]);
 
-  /*
-   * =========================================================
-   * VARIANT SELECT
-   * =========================================================
-   */
+  /* ----------------------------------------------------------
+     Handlers
+     ---------------------------------------------------------- */
 
-  const handleVariantSelect = (
-    variant: ProductVariant
-  ) => {
-    if (variant.stock <= 0) {
-      return;
-    }
-
+  const handleVariantSelect = (variant: ProductVariant) => {
+    if (variant.stock <= 0) return;
     setSelectedVariant(variant);
-
     if (variant.image) {
-      setActiveImage(
-        variant.image
-      );
+      setActiveImage(variant.image);
     } else if (product?.image) {
-      setActiveImage(
-        product.image
-      );
+      setActiveImage(product.image);
     }
-
     setQuantity(1);
     setAdded(false);
   };
 
-  /*
-   * =========================================================
-   * QUANTITY
-   * =========================================================
-   */
-
   const decreaseQuantity = () => {
-    setQuantity(
-      (current) =>
-        Math.max(1, current - 1)
-    );
+    setQuantity((current) => Math.max(1, current - 1));
   };
 
   const increaseQuantity = () => {
-    setQuantity(
-      (current) =>
-        Math.min(
-          currentStock || 1,
-          current + 1
-        )
-    );
+    setQuantity((current) => Math.min(currentStock || 1, current + 1));
   };
 
-  /*
-   * =========================================================
-   * ADD TO CART
-   * =========================================================
-   */
-
   const handleAddToCart = () => {
-    if (
-      !product ||
-      outOfStock
-    ) {
-      return;
-    }
+    if (!product || outOfStock) return;
 
     addToCart(
       {
         ...product,
         price: currentPrice,
         stock: currentStock,
-        image:
-          activeImage ||
-          product.image,
+        image: activeImage || product.image,
       },
       quantity,
       customNotes || undefined,
@@ -284,122 +181,63 @@ export function ProductDetail() {
     );
 
     setAdded(true);
-
-    window.setTimeout(() => {
-      setAdded(false);
-    }, 2000);
+    window.setTimeout(() => setAdded(false), 3000);
   };
-
-  /*
-   * =========================================================
-   * LOADING
-   * =========================================================
-   */
 
   if (isLoading) {
     return (
-      <div className="min-h-[70vh] bg-[#f7f4ee]">
-        <div
-          className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10 lg:py-20"
-          role="status"
-          aria-label="Loading product"
-        >
+      <div className="min-h-[70vh] bg-[#faf9f6]">
+        <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10 lg:py-20">
           <ProductDetailSkeleton />
         </div>
       </div>
     );
   }
 
-  /*
-   * =========================================================
-   * ERROR / NOT FOUND
-   * =========================================================
-   */
-
   if (isError || !product) {
     return (
-      <div className="min-h-[60vh] bg-[#f7f4ee]">
-        <div className="mx-auto flex min-h-[60vh] max-w-2xl items-center justify-center px-5 py-20 text-center">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#b4491e]">
-              Product unavailable
-            </p>
-
-            <h1 className="mt-3 font-serif text-4xl font-semibold tracking-[-0.035em] text-[#171512]">
-              Product not found
-            </h1>
-
-            <p className="mt-4 text-sm leading-6 text-[#746c63]">
-              This product may have been
-              removed or is no longer
-              available.
-            </p>
-
-            <Link
-              to="/catalog"
-              className="mt-7 inline-block"
-            >
-              <Button className="bg-[#171512] hover:bg-[#2b2824]">
-                Back to Catalogue
-              </Button>
-            </Link>
-          </div>
+      <div className="min-h-[60vh] bg-[#faf9f6] flex items-center justify-center px-5 py-20">
+        <div className="max-w-md text-center">
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+            Product Not Found
+          </span>
+          <h1 className="mt-3 font-serif text-3xl font-bold text-charcoal">
+            Piece is unavailable.
+          </h1>
+          <p className="mt-3 text-sm text-charcoal-light">
+            This design might have been updated, archived, or moved.
+          </p>
+          <Link to="/catalog" className="mt-6 inline-block">
+            <Button className="font-bold">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Catalog
+            </Button>
+          </Link>
         </div>
       </div>
     );
   }
 
-  /*
-   * =========================================================
-   * PAGE
-   * =========================================================
-   */
-
   return (
-    <div className="min-h-screen bg-[#f7f4ee] text-[#171512]">
-
-      {/* =====================================================
-          BREADCRUMB
-      ====================================================== */}
-
-      <div className="border-b border-[#ded8ce] bg-white">
-        <div className="mx-auto max-w-[1440px] px-5 py-4 sm:px-8 lg:px-10">
-          <nav
-            aria-label="Breadcrumb"
-          >
-            <ol className="flex flex-wrap items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-[#8d847a]">
+    <div className="min-h-screen bg-[#faf9f6] text-charcoal">
+      {/* Breadcrumbs */}
+      <div className="border-b border-zinc-200/80 bg-white">
+        <div className="mx-auto max-w-[1440px] px-5 py-3.5 sm:px-8 lg:px-10">
+          <nav aria-label="Breadcrumb">
+            <ol className="flex flex-wrap items-center gap-2 font-mono text-xs text-charcoal-lighter">
               <li>
-                <Link
-                  to="/"
-                  className="transition-colors hover:text-[#171512]"
-                >
+                <Link to="/" className="hover:text-brand-600 transition-colors">
                   Home
                 </Link>
               </li>
-
-              <ChevronRight
-                className="h-3 w-3"
-                aria-hidden="true"
-              />
-
+              <ChevronRight className="h-3 w-3" />
               <li>
-                <Link
-                  to="/catalog"
-                  className="transition-colors hover:text-[#171512]"
-                >
-                  Catalogue
+                <Link to="/catalog" className="hover:text-brand-600 transition-colors">
+                  Catalog
                 </Link>
               </li>
-
-              <ChevronRight
-                className="h-3 w-3"
-                aria-hidden="true"
-              />
-
-              <li
-                className="max-w-[220px] truncate text-[#171512]"
-                title={product.name}
-              >
+              <ChevronRight className="h-3 w-3" />
+              <li className="max-w-[200px] sm:max-w-none truncate font-bold text-charcoal">
                 {product.name}
               </li>
             </ol>
@@ -407,657 +245,450 @@ export function ProductDetail() {
         </div>
       </div>
 
-      {/* =====================================================
-          MAIN PRODUCT AREA
-      ====================================================== */}
-
+      {/* Main Product Container */}
       <main className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10 lg:py-12">
-
         <Link
           to="/catalog"
-          className="mb-8 inline-flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.12em] text-[#746c63] transition-colors hover:text-[#171512]"
+          className="mb-8 inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-charcoal-light hover:text-brand-600 transition-colors"
         >
-          <ArrowLeft
-            className="h-3.5 w-3.5"
-            aria-hidden="true"
-          />
-
-          Back to catalogue
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span>Back to Catalog</span>
         </Link>
 
-        <div className="grid gap-10 lg:grid-cols-12 lg:gap-14">
-
-          {/* =================================================
-              LEFT — PRODUCT GALLERY
-          ================================================== */}
-
-          <section className="lg:col-span-7">
-
-            <div className="overflow-hidden border border-[#ded8ce] bg-white">
-              <div className="aspect-square overflow-hidden bg-[#e8e2d8]">
-
+        <div className="grid gap-12 lg:grid-cols-12 lg:gap-14">
+          {/* Left Column: Gallery & Details */}
+          <section className="lg:col-span-7 space-y-8">
+            {/* Main Featured Image Card */}
+            <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white p-3 shadow-md">
+              <div className="relative aspect-square overflow-hidden rounded-2xl bg-zinc-100">
                 <img
-                  src={
-                    activeImage ||
-                    product.image
-                  }
+                  src={activeImage || product.image}
                   alt={product.name}
-                  className="h-full w-full object-cover"
-                  onError={(event) => {
-                    const image =
-                      event.currentTarget;
-
-                    if (
-                      image.dataset.fallbackApplied
-                    ) {
-                      return;
-                    }
-
-                    image.dataset.fallbackApplied =
-                      'true';
-
-                    image.src =
+                  className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (img.dataset.fallbackApplied) return;
+                    img.dataset.fallbackApplied = 'true';
+                    img.src =
                       'https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&q=80&w=1200';
                   }}
                 />
+
+                {product.isCustomizable && (
+                  <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-charcoal/90 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm shadow-md">
+                    <Sparkles className="h-3.5 w-3.5 text-brand-400" />
+                    Customizable Piece
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* Gallery thumbnails */}
+            {/* Gallery Thumbnails */}
             {galleryImages.length > 1 && (
-              <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
-                {galleryImages.map(
-                  (image) => {
-                    const selected =
-                      activeImage ===
-                      image;
-
-                    return (
-                      <button
-                        key={image}
-                        type="button"
-                        onClick={() =>
-                          setActiveImage(
-                            image
-                          )
-                        }
-                        aria-label={`View ${product.name} image`}
-                        aria-pressed={
-                          selected
-                        }
-                        className={`h-20 w-20 shrink-0 overflow-hidden border bg-white transition-colors ${
-                          selected
-                            ? 'border-[#171512]'
-                            : 'border-[#ded8ce] hover:border-[#8d847a]'
-                        }`}
-                      >
-                        <img
-                          src={image}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      </button>
-                    );
-                  }
-                )}
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {galleryImages.map((img, index) => {
+                  const isSelected = activeImage === img;
+                  return (
+                    <button
+                      key={`${img}-${index}`}
+                      type="button"
+                      onClick={() => setActiveImage(img)}
+                      className={`h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-2 transition-all shadow-sm ${
+                        isSelected
+                          ? 'border-brand-500 ring-2 ring-brand-500/20'
+                          : 'border-zinc-200 hover:border-brand-300'
+                      }`}
+                    >
+                      <img src={img} alt="" className="h-full w-full object-cover" />
+                    </button>
+                  );
+                })}
               </div>
             )}
 
-            {/* =================================================
-                DESCRIPTION + SPECIFICATIONS
-            ================================================== */}
-
-            <div className="mt-10 grid gap-10 border-t border-[#ded8ce] pt-8 sm:grid-cols-2">
-
+            {/* Product Story & Specs Tabs */}
+            <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm space-y-6">
               <div>
-                <h2 className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8d847a]">
-                  About this print
-                </h2>
-
-                <p className="mt-3 whitespace-pre-line text-[14px] leading-7 text-[#625b53]">
-                  {product.description ||
-                    'No description available.'}
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+                  Crafting & Design Notes
+                </span>
+                <h3 className="mt-1 font-serif text-xl font-bold text-charcoal">
+                  About this Piece
+                </h3>
+                <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-charcoal-light">
+                  {product.description || 'No description available for this workshop piece.'}
                 </p>
               </div>
 
-              <div>
-                <h2 className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8d847a]">
-                  Specifications
-                </h2>
+              <div className="border-t border-zinc-100 pt-6">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+                  Engineering Specifications
+                </span>
 
-                <div className="mt-3 divide-y divide-[#e7e1d8] border-y border-[#e7e1d8]">
-
-                  <div className="flex items-center justify-between gap-4 py-3">
-                    <span className="text-xs text-[#8d847a]">
-                      Category
-                    </span>
-
-                    <span className="text-right text-xs font-medium text-[#171512]">
-                      {product.category ||
-                        '—'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-4 py-3">
-                    <span className="text-xs text-[#8d847a]">
-                      Material
-                    </span>
-
-                    <span className="text-right text-xs font-medium text-[#171512]">
-                      {product.material ||
-                        '—'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-4 py-3">
-                    <span className="text-xs text-[#8d847a]">
-                      Availability
-                    </span>
-
-                    <span className="text-right text-xs font-medium text-[#171512]">
-                      {outOfStock
-                        ? 'Out of stock'
-                        : `${currentStock} available`}
-                    </span>
-                  </div>
-
-                  {product.isCustomizable && (
-                    <div className="flex items-center justify-between gap-4 py-3">
-                      <span className="text-xs text-[#8d847a]">
-                        Personalisation
-                      </span>
-
-                      <span className="text-right text-xs font-medium text-[#b4491e]">
-                        Available
-                      </span>
+                <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-zinc-100 bg-zinc-50/60 p-3.5">
+                    <div className="flex items-center gap-1.5 text-charcoal-lighter">
+                      <Layers className="h-3.5 w-3.5 text-brand-500" />
+                      <span className="font-mono text-[11px] uppercase">Material</span>
                     </div>
-                  )}
+                    <p className="mt-1 text-xs font-bold text-charcoal">
+                      {product.material || 'PLA / PETG'}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-zinc-100 bg-zinc-50/60 p-3.5">
+                    <div className="flex items-center gap-1.5 text-charcoal-lighter">
+                      <Box className="h-3.5 w-3.5 text-brand-500" />
+                      <span className="font-mono text-[11px] uppercase">Category</span>
+                    </div>
+                    <p className="mt-1 text-xs font-bold text-charcoal">
+                      {product.category || 'Standard Print'}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-zinc-100 bg-zinc-50/60 p-3.5">
+                    <div className="flex items-center gap-1.5 text-charcoal-lighter">
+                      <ShieldCheck className="h-3.5 w-3.5 text-brand-500" />
+                      <span className="font-mono text-[11px] uppercase">Quality</span>
+                    </div>
+                    <p className="mt-1 text-xs font-bold text-charcoal">
+                      100% Inspected
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           </section>
 
-          {/* =================================================
-              RIGHT — PRODUCT INFORMATION
-          ================================================== */}
-
+          {/* Right Column: Pricing, Options & Cart Action */}
           <section className="lg:col-span-5">
-            <div className="lg:sticky lg:top-28">
-
-              {/* Category / status */}
-              <div className="flex flex-wrap items-center gap-2">
-                {product.category && (
-                  <span className="border border-[#d4cdc2] bg-white px-2.5 py-1.5 font-mono text-[8px] uppercase tracking-[0.12em] text-[#625b53]">
-                    {product.category}
-                  </span>
-                )}
-
-                {product.isCustomizable && (
-                  <span className="border border-[#e2b8a5] bg-[#f7e5dd] px-2.5 py-1.5 font-mono text-[8px] uppercase tracking-[0.12em] text-[#9b3d17]">
-                    Customisable
-                  </span>
-                )}
-
-                {outOfStock && (
-                  <span className="border border-[#e1d0c8] bg-[#f3ece8] px-2.5 py-1.5 font-mono text-[8px] uppercase tracking-[0.12em] text-[#8b4a35]">
-                    Out of stock
-                  </span>
-                )}
-              </div>
-
-              {/* Title */}
-              <h1 className="mt-4 font-serif text-4xl font-semibold leading-[1.05] tracking-[-0.04em] text-[#171512] sm:text-5xl">
-                {product.name}
-              </h1>
-
-              {/* Material */}
-              {product.material && (
-                <p className="mt-3 text-sm text-[#746c63]">
-                  Printed in{' '}
-                  <span className="font-medium text-[#171512]">
-                    {product.material}
-                  </span>
-                </p>
-              )}
-
-              {/* Price */}
-              <div className="mt-6 flex items-baseline gap-3 border-y border-[#ded8ce] py-5">
-                <span className="font-serif text-3xl font-semibold tracking-[-0.025em] text-[#171512]">
-                  ₹
-                  {currentPrice.toLocaleString(
-                    'en-IN'
+            <div className="lg:sticky lg:top-28 space-y-6">
+              {/* Product Header Card */}
+              <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  {product.category && (
+                    <Badge variant="default">
+                      {product.category}
+                    </Badge>
                   )}
-                </span>
-
-                <span className="ml-auto font-mono text-[8px] uppercase tracking-[0.1em] text-[#8d847a]">
-                  Final price shown
-                </span>
-              </div>
-
-              {/* =================================================
-                  VARIANTS
-              ================================================== */}
-
-              {hasVariants &&
-                product.variants && (
-                  <fieldset className="mt-6">
-                    <legend className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#8d847a]">
-                      Select option
-                    </legend>
-
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {product.variants.map(
-                        (variant) => {
-                          const selected =
-                            selectedVariant?.id ===
-                            variant.id;
-
-                          const disabled =
-                            variant.stock <= 0;
-
-                          return (
-                            <button
-                              key={
-                                variant.id
-                              }
-                              type="button"
-                              disabled={
-                                disabled
-                              }
-                              onClick={() =>
-                                handleVariantSelect(
-                                  variant
-                                )
-                              }
-                              aria-pressed={
-                                selected
-                              }
-                              className={`inline-flex items-center gap-2 border px-3 py-2.5 text-[13px] transition-colors ${
-                                selected
-                                  ? 'border-[#171512] bg-[#171512] text-white'
-                                  : disabled
-                                  ? 'cursor-not-allowed border-[#ded8ce] bg-[#f4f1eb] text-[#aaa197] line-through'
-                                  : 'border-[#d4cdc2] bg-white text-[#171512] hover:border-[#171512]'
-                              }`}
-                            >
-                              {variant.label}
-
-                              {disabled && (
-                                <span className="font-mono text-[8px] no-underline">
-                                  OUT
-                                </span>
-                              )}
-                            </button>
-                          );
-                        }
-                      )}
-                    </div>
-                  </fieldset>
-                )}
-
-              {/* =================================================
-                  QUANTITY
-              ================================================== */}
-
-              <div className="mt-6 flex items-center gap-4">
-                <div>
-                  <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.12em] text-[#8d847a]">
-                    Quantity
-                  </p>
-
-                  <div className="flex h-11 items-center border border-[#d4cdc2] bg-white">
-
-                    <button
-                      type="button"
-                      onClick={
-                        decreaseQuantity
-                      }
-                      disabled={
-                        quantity <= 1
-                      }
-                      aria-label="Decrease quantity"
-                      className="flex h-full w-11 items-center justify-center text-[#625b53] transition-colors hover:bg-[#f7f4ee] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <Minus
-                        className="h-4 w-4"
-                        aria-hidden="true"
-                      />
-                    </button>
-
+                  {product.isCustomizable && (
+                    <Badge variant="brand">
+                      Customizable
+                    </Badge>
+                  )}
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider ${
+                      outOfStock
+                        ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                        : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    }`}
+                  >
                     <span
-                      aria-live="polite"
-                      className="flex w-12 justify-center text-sm font-medium"
-                    >
-                      {quantity}
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={
-                        increaseQuantity
-                      }
-                      disabled={
-                        outOfStock ||
-                        quantity >=
-                          currentStock
-                      }
-                      aria-label="Increase quantity"
-                      className="flex h-full w-11 items-center justify-center text-[#625b53] transition-colors hover:bg-[#f7f4ee] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <Plus
-                        className="h-4 w-4"
-                        aria-hidden="true"
-                      />
-                    </button>
-                  </div>
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        outOfStock ? 'bg-rose-500' : 'bg-emerald-500'
+                      }`}
+                    />
+                    {outOfStock ? 'Out of Stock' : `${currentStock} In Stock`}
+                  </span>
                 </div>
 
-                <div className="pt-5">
-                  <p className="font-mono text-[9px] uppercase tracking-[0.08em] text-[#746c63]">
-                    {outOfStock
-                      ? 'Currently unavailable'
-                      : `${currentStock} in stock`}
-                  </p>
-                </div>
-              </div>
+                <h1 className="mt-4 font-serif text-3xl font-bold tracking-tight sm:text-4xl text-charcoal">
+                  {product.name}
+                </h1>
 
-              {/* =================================================
-                  CUSTOMISATION WORKFLOW
-              ================================================== */}
-
-              {product.isCustomizable ? (
-                <div className="mt-6 border border-[#e2b8a5] bg-[#fdfaf7] p-4 sm:p-5">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-[#b4491e]" />
-                    <span className="font-mono text-[9px] uppercase tracking-[0.14em] font-semibold text-[#b4491e]">
-                      Customisation Options Available
+                {/* Price Display */}
+                <div className="mt-5 flex items-baseline justify-between border-y border-zinc-100 py-4">
+                  <div>
+                    <span className="text-xs text-charcoal-lighter block font-mono uppercase">Price</span>
+                    <span className="font-serif text-3xl font-bold text-charcoal">
+                      ₹{currentPrice.toLocaleString('en-IN')}
                     </span>
                   </div>
 
-                  <p className="mt-1 text-[13px] text-[#625b53]">
-                    How would you like to personalise this item?
-                  </p>
+                  <span className="font-mono text-xs text-brand-600 font-semibold">
+                    Free shipping over ₹499
+                  </span>
+                </div>
 
-                  <div className="mt-3.5 grid gap-2 sm:grid-cols-2">
-                    <button
-                      type="button"
-                      onClick={() => setCustomMode('text')}
-                      className={`border p-3 text-left transition-all ${
-                        customMode === 'text'
-                          ? 'border-[#b4491e] bg-white ring-1 ring-[#b4491e]'
-                          : 'border-[#d4cdc2] bg-white/70 hover:border-[#171512]'
-                      }`}
-                    >
-                      <span className="block text-xs font-semibold text-[#171512]">
-                        1. Add Personalised Message
-                      </span>
-                      <span className="mt-0.5 block text-[11px] text-[#746c63]">
-                        Add custom name, date, or inscription
-                      </span>
-                    </button>
+                {/* Variant Options */}
+                {hasVariants && product.variants && (
+                  <div className="mt-6">
+                    <label className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter block mb-2.5">
+                      Select Variant
+                    </label>
 
-                    <button
-                      type="button"
-                      onClick={() => setCustomMode('quote')}
-                      className={`border p-3 text-left transition-all ${
-                        customMode === 'quote'
-                          ? 'border-[#b4491e] bg-white ring-1 ring-[#b4491e]'
-                          : 'border-[#d4cdc2] bg-white/70 hover:border-[#171512]'
-                      }`}
-                    >
-                      <span className="block text-xs font-semibold text-[#171512]">
-                        2. Have a Reference / CAD?
-                      </span>
-                      <span className="mt-0.5 block text-[11px] text-[#746c63]">
-                        Upload your sketch, photo, or 3D file
-                      </span>
-                    </button>
-                  </div>
+                    <div className="flex flex-wrap gap-2.5">
+                      {product.variants.map((variant) => {
+                        const isSelected = selectedVariant?.id === variant.id;
+                        const isDisabled = variant.stock <= 0;
 
-                  {customMode === 'text' && (
-                    <div className="mt-4 border-t border-[#e2b8a5]/60 pt-3.5">
-                      <label
-                        htmlFor="custom-notes"
-                        className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#8d847a]"
-                      >
-                        Personalisation instructions
-                      </label>
-                      <textarea
-                        id="custom-notes"
-                        value={customNotes}
-                        onChange={(event) =>
-                          setCustomNotes(
-                            event.target.value
-                          )
-                        }
-                        placeholder="e.g. Engrave 'Rahul & Priya · 2026' on base, custom matte black color..."
-                        rows={3}
-                        className="mt-1.5 w-full border border-[#d4cdc2] bg-white px-3.5 py-2.5 text-xs leading-5 text-[#171512] outline-none placeholder:text-[#aaa197] focus:border-[#b4491e]"
-                      />
+                        return (
+                          <button
+                            key={variant.id}
+                            type="button"
+                            disabled={isDisabled}
+                            onClick={() => handleVariantSelect(variant)}
+                            className={`rounded-xl border px-4 py-2 text-xs font-bold transition-all ${
+                              isSelected
+                                ? 'border-brand-500 bg-brand-50 text-brand-700 ring-1 ring-brand-500'
+                                : isDisabled
+                                ? 'border-zinc-200 bg-zinc-100 text-zinc-400 line-through cursor-not-allowed'
+                                : 'border-zinc-200 bg-white text-charcoal hover:border-charcoal'
+                            }`}
+                          >
+                            <span>{variant.label}</span>
+                            {variant.price !== product.price && (
+                              <span className="ml-1.5 text-brand-600">
+                                ₹{variant.price.toLocaleString('en-IN')}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {customMode === 'quote' && (
-                    <div className="mt-4 border-t border-[#e2b8a5]/60 pt-3.5">
-                      <p className="text-xs leading-relaxed text-[#625b53]">
-                        Have a modified CAD model, drawing, or photo to build a bespoke variant of this piece? Open our engineering quote builder with this product reference.
-                      </p>
-                      <Link
-                        to={`/custom-service?productId=${product.id}${
-                          selectedVariant ? `&variantId=${selectedVariant.id}` : ''
+                {/* Quantity Adjuster */}
+                <div className="mt-6 flex items-center gap-4">
+                  <div>
+                    <label className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter block mb-2">
+                      Quantity
+                    </label>
+
+                    <div className="flex h-11 items-center rounded-xl border border-zinc-200 bg-zinc-50/50 p-1">
+                      <button
+                        type="button"
+                        onClick={decreaseQuantity}
+                        disabled={quantity <= 1}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-charcoal hover:bg-white disabled:opacity-30 transition-colors"
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+
+                      <span className="flex w-10 justify-center font-mono text-sm font-bold">
+                        {quantity}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={increaseQuantity}
+                        disabled={outOfStock || quantity >= currentStock}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-charcoal hover:bg-white disabled:opacity-30 transition-colors"
+                        aria-label="Increase quantity"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Customization Options Box */}
+                {product.isCustomizable && (
+                  <div className="mt-6 rounded-2xl border border-brand-200 bg-brand-50/40 p-4 sm:p-5">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-brand-500" />
+                      <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-600">
+                        Personalization Available
+                      </span>
+                    </div>
+
+                    <p className="mt-1 text-xs text-charcoal-light">
+                      Choose how you would like to customize this piece:
+                    </p>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCustomMode('text')}
+                        className={`rounded-xl border p-2.5 text-left text-xs font-bold transition-all ${
+                          customMode === 'text'
+                            ? 'border-brand-500 bg-white text-brand-700 shadow-sm'
+                            : 'border-zinc-200 bg-white/60 text-charcoal-light hover:border-zinc-300'
                         }`}
-                        className="mt-3 inline-flex items-center gap-1.5 border border-[#b4491e] bg-[#b4491e] px-4 py-2.5 text-xs font-medium text-white hover:bg-[#8f3612]"
                       >
-                        Open Custom Studio for this item →
-                      </Link>
+                        1. Inscription / Name
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setCustomMode('quote')}
+                        className={`rounded-xl border p-2.5 text-left text-xs font-bold transition-all ${
+                          customMode === 'quote'
+                            ? 'border-brand-500 bg-white text-brand-700 shadow-sm'
+                            : 'border-zinc-200 bg-white/60 text-charcoal-light hover:border-zinc-300'
+                        }`}
+                      >
+                        2. Custom 3D CAD
+                      </button>
                     </div>
-                  )}
-                </div>
-              ) : null}
 
-              {/* =================================================
-                  ACTIONS
-              ================================================== */}
+                    {customMode === 'text' && (
+                      <div className="mt-3.5">
+                        <label
+                          htmlFor="custom-notes"
+                          className="font-mono text-[10px] font-bold uppercase tracking-wider text-charcoal-lighter block mb-1"
+                        >
+                          Custom Text / Inscription
+                        </label>
+                        <Textarea
+                          id="custom-notes"
+                          value={customNotes}
+                          onChange={(e) => setCustomNotes(e.target.value)}
+                          placeholder="e.g. Engrave 'Rahul & Priya · 2026' on bottom, matte dark grey finish..."
+                          rows={2}
+                          className="bg-white text-xs"
+                        />
+                      </div>
+                    )}
 
-              <div className="mt-6 flex flex-col gap-2.5 sm:flex-row">
-                <Button
-                  size="lg"
-                  disabled={outOfStock}
-                  onClick={
-                    handleAddToCart
-                  }
-                  className="flex-1 bg-[#171512] hover:bg-[#2b2824]"
-                >
-                  <ShoppingCart
-                    className="mr-2 h-4 w-4"
-                    aria-hidden="true"
-                  />
+                    {customMode === 'quote' && (
+                      <div className="mt-3.5 rounded-xl border border-brand-200 bg-white p-3 space-y-2">
+                        <p className="text-xs text-charcoal-light leading-relaxed">
+                          Need custom dimensions, mounting holes, or unique 3D features? Open our Instant Quote builder with this design as a base.
+                        </p>
+                        <Link
+                          to={`/custom-service?productId=${product.id}${
+                            selectedVariant ? `&variantId=${selectedVariant.id}` : ''
+                          }`}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 hover:text-brand-700"
+                        >
+                          <span>Open Custom 3D Studio →</span>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-                  {added
-                    ? 'Added to cart'
-                    : outOfStock
-                    ? 'Out of stock'
-                    : 'Add to cart'}
-                </Button>
+                {/* Primary CTA Buttons */}
+                <div className="mt-7 space-y-3">
+                  <Button
+                    size="lg"
+                    disabled={outOfStock}
+                    onClick={handleAddToCart}
+                    className={`w-full font-bold shadow-lg shadow-brand-500/20 ${
+                      added ? 'bg-emerald-600 hover:bg-emerald-700' : ''
+                    }`}
+                  >
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    {added
+                      ? 'Added to Cart ✓'
+                      : outOfStock
+                      ? 'Currently Out of Stock'
+                      : `Add to Cart • ₹${(currentPrice * quantity).toLocaleString('en-IN')}`}
+                  </Button>
 
-                {!product.isCustomizable && (
-                  <Link
-                    to="/custom-service"
-                    className="flex-1"
+                  <a
+                    href={whatsappInquiryLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
                   >
                     <Button
                       size="lg"
                       variant="outline"
-                      className="w-full border-[#bdb5aa] bg-white"
+                      className="w-full font-bold border-zinc-200 hover:border-emerald-500 hover:text-emerald-700"
                     >
-                      Request custom print
+                      Ask about this piece on WhatsApp
                     </Button>
-                  </Link>
+                  </a>
+                </div>
+
+                {/* Added Toast */}
+                {added && (
+                  <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800 animate-in zoom-in-95">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <span>{product.name} has been added to your cart!</span>
+                  </div>
                 )}
               </div>
 
-              {/* =================================================
-                  TRUST / SERVICE INFORMATION
-              ================================================== */}
-
-              <ul className="mt-7 space-y-4 border-t border-[#ded8ce] pt-6">
-
-                <li className="flex gap-3">
-                  <Truck
-                    className="mt-0.5 h-4 w-4 shrink-0 text-[#8d847a]"
-                    aria-hidden="true"
-                  />
-
+              {/* Trust Badge Strip */}
+              <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm space-y-4">
+                <div className="flex items-start gap-3">
+                  <Truck className="h-5 w-5 text-brand-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[13px] font-medium text-[#171512]">
-                      Pan-India shipping
-                    </p>
-
-                    <p className="text-[12px] leading-5 text-[#746c63]">
-                      Carefully packed and
-                      shipped with tracked
-                      delivery.
+                    <h4 className="text-xs font-bold text-charcoal">Pan-India Tracked Delivery</h4>
+                    <p className="text-[11px] text-charcoal-lighter">
+                      Securely packed in bubble wrap and dispatched via express courier.
                     </p>
                   </div>
-                </li>
-
-                <li className="flex gap-3">
-                  <ShieldCheck
-                    className="mt-0.5 h-4 w-4 shrink-0 text-[#8d847a]"
-                    aria-hidden="true"
-                  />
-
-                  <div>
-                    <p className="text-[13px] font-medium text-[#171512]">
-                      Checked before packing
-                    </p>
-
-                    <p className="text-[12px] leading-5 text-[#746c63]">
-                      Every print is inspected
-                      before it leaves the
-                      workspace.
-                    </p>
-                  </div>
-                </li>
-
-                <li className="flex gap-3">
-                  <div className="mt-0.5 h-4 w-4 shrink-0 border border-[#8d847a] text-center font-mono text-[8px] leading-[14px] text-[#746c63]">
-                    SS
-                  </div>
-
-                  <div>
-                    <p className="text-[13px] font-medium text-[#171512]">
-                      Made by Shilp Sahayak
-                    </p>
-
-                    <p className="text-[12px] leading-5 text-[#746c63]">
-                      Designed, printed and
-                      quality-checked with care.
-                    </p>
-                  </div>
-                </li>
-              </ul>
-
-              {/* Added confirmation */}
-              {added && (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  className="mt-5 border border-[#b9d8c2] bg-[#edf7f0] px-4 py-3 text-sm text-[#2f6b40]"
-                >
-                  {product.name} has been
-                  added to your cart.
                 </div>
-              )}
+
+                <div className="flex items-start gap-3">
+                  <ShieldCheck className="h-5 w-5 text-brand-500 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-xs font-bold text-charcoal">100% Quality Inspected</h4>
+                    <p className="text-[11px] text-charcoal-lighter">
+                      Every piece is dimensionally measured and hand-checked before shipping.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
         </div>
       </main>
 
-      {/* =====================================================
-          RELATED PRODUCTS
-      ====================================================== */}
-
+      {/* Related Products Section */}
       {relatedProducts.length > 0 && (
-        <section className="border-t border-[#ded8ce] bg-white py-14">
+        <section className="border-t border-zinc-200 bg-white py-16">
           <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-
             <div className="flex items-end justify-between gap-5">
               <div>
-                <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-[#b4491e]">
-                  You might also need
-                </p>
-
-                <h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.035em]">
-                  Related prints
-                </h2>
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+                  Recommended For You
+                </span>
+                <h3 className="mt-1 font-serif text-2xl font-bold text-charcoal sm:text-3xl">
+                  Related Workshop Pieces
+                </h3>
               </div>
 
               <Link
                 to="/catalog"
-                className="hidden font-mono text-[9px] uppercase tracking-[0.1em] text-[#746c63] underline underline-offset-4 transition-colors hover:text-[#171512] sm:block"
+                className="text-xs font-bold text-brand-600 hover:text-brand-700"
               >
-                View all
+                View Full Catalog →
               </Link>
             </div>
 
-            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {relatedProducts.map(
-                (relatedProduct) => (
-                  <Link
-                    key={
-                      relatedProduct.id
-                    }
-                    to={`/product/${relatedProduct.id}`}
-                    className="group"
-                  >
-                    <Card className="h-full overflow-hidden rounded-none border-[#ded8ce] bg-[#f7f4ee] shadow-none transition-shadow duration-300 hover:shadow-[0_12px_35px_rgba(23,21,18,0.08)]">
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {relatedProducts.map((related) => (
+                <Link
+                  key={related.id}
+                  to={`/product/${related.id}`}
+                  className="group"
+                >
+                  <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg group-hover:border-brand-300">
+                    <div className="aspect-square overflow-hidden bg-zinc-100">
+                      <img
+                        src={related.image}
+                        alt={related.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    </div>
 
-                      <div className="aspect-square overflow-hidden bg-[#e8e2d8]">
-                        <img
-                          src={
-                            relatedProduct.image
-                          }
-                          alt={
-                            relatedProduct.name
-                          }
-                          loading="lazy"
-                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.035]"
-                        />
+                    <div className="p-5">
+                      <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-charcoal-lighter">
+                        {related.category}
+                      </span>
+                      <h4 className="mt-1 line-clamp-1 font-serif text-base font-bold text-charcoal group-hover:text-brand-600 transition-colors">
+                        {related.name}
+                      </h4>
+                      <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3">
+                        <span className="font-serif text-base font-bold text-charcoal">
+                          ₹{Number(related.price).toLocaleString('en-IN')}
+                        </span>
+                        <span className="text-xs font-bold text-brand-600">
+                          View Piece →
+                        </span>
                       </div>
-
-                      <div className="p-5">
-                        <p className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#958c81]">
-                          {
-                            relatedProduct.category
-                          }
-                        </p>
-
-                        <h3 className="mt-2 line-clamp-2 font-serif text-lg font-semibold leading-snug transition-colors group-hover:text-[#b4491e]">
-                          {
-                            relatedProduct.name
-                          }
-                        </h3>
-
-                        <div className="mt-4 flex items-center justify-between border-t border-[#ded8ce] pt-4">
-                          <span className="font-medium text-[#b4491e]">
-                            ₹
-                            {Number(
-                              relatedProduct.price
-                            ).toLocaleString(
-                              'en-IN'
-                            )}
-                          </span>
-
-                          <span className="text-xs text-[#746c63] transition-colors group-hover:text-[#b4491e]">
-                            View →
-                          </span>
-                        </div>
-                      </div>
-                    </Card>
-                  </Link>
-                )
-              )}
+                    </div>
+                  </Card>
+                </Link>
+              ))}
             </div>
           </div>
         </section>

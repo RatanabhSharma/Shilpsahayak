@@ -1,6 +1,7 @@
-import React, {
+import {
   useEffect,
-  useState
+  useState,
+  type FormEvent,
 } from 'react';
 
 import {
@@ -66,7 +67,7 @@ export function Settings() {
   };
 
   const handleSubmit = async (
-    e: React.FormEvent<HTMLFormElement>
+    e: FormEvent<HTMLFormElement>
   ) => {
     e.preventDefault();
 

@@ -82,24 +82,24 @@ function getMonthLabel(monthKey: string): string {
 function getOrderStatusClass(status: string): string {
   switch (status) {
     case 'Delivered':
-      return 'border-green-200 bg-green-50 text-green-700';
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
 
     case 'Printing':
     case 'Quality Check':
-      return 'border-amber-200 bg-amber-50 text-amber-700';
+      return 'border-brand-200 bg-brand-50 text-brand-700';
 
     case 'Shipped':
       return 'border-blue-200 bg-blue-50 text-blue-700';
 
     case 'Confirmed':
-      return 'border-slate-200 bg-slate-50 text-slate-700';
+      return 'border-zinc-200 bg-zinc-50 text-zinc-700';
 
     case 'Cancelled':
-      return 'border-red-200 bg-red-50 text-red-700';
+      return 'border-rose-200 bg-rose-50 text-rose-700';
 
     case 'Pending':
     default:
-      return 'border-orange-200 bg-orange-50 text-orange-700';
+      return 'border-amber-200 bg-amber-50 text-amber-700';
   }
 }
 
@@ -109,13 +109,11 @@ function getQuoteStatusClass(status: string): string {
       return 'border-blue-200 bg-blue-50 text-blue-700';
 
     case 'Accepted':
-      return 'border-green-200 bg-green-50 text-green-700';
-
     case 'Completed':
-      return 'border-green-200 bg-green-50 text-green-700';
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
 
     case 'Rejected':
-      return 'border-red-200 bg-red-50 text-red-700';
+      return 'border-rose-200 bg-rose-50 text-rose-700';
 
     case 'Pending':
     default:
@@ -134,7 +132,7 @@ function StatusPill({
 }) {
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.08em] ${getOrderStatusClass(
+      className={`inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${getOrderStatusClass(
         status
       )}`}
     >
@@ -150,7 +148,7 @@ function QuotePill({
 }) {
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.08em] ${getQuoteStatusClass(
+      className={`inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${getQuoteStatusClass(
         status
       )}`}
     >
@@ -173,34 +171,34 @@ function MetricCard({
   danger?: boolean;
 }) {
   return (
-    <section className="border border-line-strong bg-white p-4">
+    <section className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm hover:border-brand-300 transition-colors">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-500">
+          <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-charcoal-lighter">
             {label}
           </p>
 
           <p
-            className={`mt-2 font-display text-[25px] font-semibold tracking-[-0.02em] ${
-              danger ? 'text-red-700' : 'text-ink'
+            className={`mt-2 font-serif text-3xl font-bold tracking-tight ${
+              danger ? 'text-rose-600' : 'text-charcoal'
             }`}
           >
             {value}
           </p>
         </div>
 
-        <span
-          className={
+        <div
+          className={`flex h-10 w-10 items-center justify-center rounded-xl ${
             danger
-              ? 'text-red-600'
-              : 'text-orange-600'
-          }
+              ? 'bg-rose-50 text-rose-600'
+              : 'bg-brand-50 text-brand-500'
+          }`}
         >
           {icon}
-        </span>
+        </div>
       </div>
 
-      <p className="mt-3 text-[12px] text-ink-500">
+      <p className="mt-3 text-xs text-charcoal-light font-mono">
         {description}
       </p>
     </section>
@@ -486,771 +484,477 @@ export function Dashboard() {
       {/* Header                                                              */}
       {/* ------------------------------------------------------------------ */}
 
-      <header className="flex flex-col gap-4 border-b border-line pb-5 lg:flex-row lg:items-end lg:justify-between">
-
+      <header className="flex flex-col gap-4 border-b border-zinc-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-            Administration
-          </p>
-
-          <h1 className="mt-2 font-display text-[32px] font-semibold tracking-[-0.03em] text-ink">
-            Dashboard
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
+            Studio Overview
+          </span>
+          <h1 className="mt-1 font-serif text-3xl font-bold text-charcoal sm:text-4xl">
+            Workshop Dashboard
           </h1>
-
-          <p className="mt-2 text-[14px] text-ink-600">
-            Production and business overview
+          <p className="mt-1 text-xs text-charcoal-light">
+            Real-time telemetry, 3D printing queue, revenue analytics, and inventory health.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-
+        <div className="flex flex-wrap gap-2.5">
           <Link
             to="/admin/orders"
-            className="inline-flex h-9 items-center justify-center gap-2 border border-line-strong bg-white px-3 text-[12px] font-medium text-ink hover:bg-paper"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 font-mono text-xs font-bold text-charcoal shadow-sm hover:border-brand-300 hover:text-brand-600 transition-colors"
           >
-            Open orders
-            <ArrowUpRight
-              className="h-3.5 w-3.5"
-              aria-hidden="true"
-            />
+            <span>Live Orders</span>
+            <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
 
           <Link
-            to="/admin/custom-quotes"
-            className="inline-flex h-9 items-center justify-center gap-2 border border-ink bg-ink px-3 text-[12px] font-medium text-white hover:bg-black"
+            to="/admin/quotes"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 font-mono text-xs font-bold text-white shadow-md shadow-brand-500/20 hover:bg-brand-600 transition-colors"
           >
-            Review quotes
-
+            <span>Review Quotes</span>
             {pendingQuotes.length > 0 && (
-              <span>
-                ({pendingQuotes.length})
+              <span className="rounded-full bg-white/20 px-1.5 py-0.2 text-[10px]">
+                {pendingQuotes.length}
               </span>
             )}
           </Link>
-
         </div>
-
       </header>
 
       {/* ------------------------------------------------------------------ */}
       {/* KPI cards                                                           */}
       {/* ------------------------------------------------------------------ */}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
-          label="Total revenue"
-          value={formatCurrency(
-            totalRevenue
-          )}
-          description="Cancelled orders excluded"
-          icon={
-            <IndianRupee
-              className="h-4 w-4"
-              aria-hidden="true"
-            />
-          }
+          label="Total Revenue"
+          value={formatCurrency(totalRevenue)}
+          description="Excludes cancelled requests"
+          icon={<IndianRupee className="h-5 w-5" />}
         />
 
         <MetricCard
-          label="Total orders"
+          label="Total Orders"
           value={totalOrders}
-          description={`${currentMonthOrders.length} orders this month`}
-          icon={
-            <ShoppingBag
-              className="h-4 w-4"
-              aria-hidden="true"
-            />
-          }
+          description={`${currentMonthOrders.length} placed this month`}
+          icon={<ShoppingBag className="h-5 w-5" />}
         />
 
         <MetricCard
-          label="Active jobs"
+          label="Active Jobs"
           value={activeOrders.length}
-          description="Pending through shipped"
-          icon={
-            <Clock3
-              className="h-4 w-4"
-              aria-hidden="true"
-            />
-          }
+          description="In queue, slicing, printing & QC"
+          icon={<Clock3 className="h-5 w-5" />}
         />
 
         <MetricCard
-          label="Low stock"
+          label="Low Stock Filament"
           value={lowStockProducts.length}
-          description="Products with 5 or fewer units"
-          icon={
-            <TriangleAlert
-              className="h-4 w-4"
-              aria-hidden="true"
-            />
-          }
-          danger={
-            lowStockProducts.length > 0
-          }
+          description="Spools with ≤ 5 units left"
+          icon={<TriangleAlert className="h-5 w-5" />}
+          danger={lowStockProducts.length > 0}
         />
-
       </div>
 
       {/* ------------------------------------------------------------------ */}
       {/* Main grid                                                           */}
       {/* ------------------------------------------------------------------ */}
 
-      <div className="grid gap-4 xl:grid-cols-12">
-
+      <div className="grid gap-6 xl:grid-cols-12">
         {/* ================================================================ */}
         {/* Revenue                                                           */}
         {/* ================================================================ */}
 
-        <section className="border border-line-strong bg-white p-5 xl:col-span-7">
-
-          <div className="flex flex-col justify-between gap-4 sm:flex-row">
-
+        <section className="rounded-3xl border border-zinc-200/80 bg-white p-6 sm:p-8 shadow-sm xl:col-span-7">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-                Revenue
-              </p>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-charcoal-lighter block">
+                Monthly Turnover
+              </span>
 
-              <h2 className="mt-2 font-display text-[30px] font-semibold tracking-[-0.03em] text-ink">
-                {formatCurrency(
-                  currentMonthRevenue
-                )}
+              <h2 className="mt-1 font-serif text-3xl font-bold text-charcoal">
+                {formatCurrency(currentMonthRevenue)}
               </h2>
 
-              <p className="mt-1 text-[12px] text-ink-500">
+              <p className="mt-1 text-xs text-charcoal-light font-mono">
                 Current month
-
                 {revenueChange !== null && (
                   <>
                     {' · '}
-
                     <span
-                      className={
-                        revenueChange >= 0
-                          ? 'text-green-700'
-                          : 'text-red-700'
-                      }
+                      className={`font-bold ${
+                        revenueChange >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                      }`}
                     >
-                      {revenueChange >= 0
-                        ? '+'
-                        : ''}
-                      {revenueChange.toFixed(
-                        1
-                      )}
-                      %
+                      {revenueChange >= 0 ? '+' : ''}
+                      {revenueChange.toFixed(1)}% vs prev month
                     </span>
                   </>
                 )}
               </p>
             </div>
 
-            <div className="flex gap-5">
-
+            <div className="flex gap-4 sm:gap-6 bg-[#faf9f6] p-3 rounded-2xl border border-zinc-100">
               <div>
-                <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-500">
+                <p className="font-mono text-[9px] uppercase tracking-wider text-charcoal-lighter">
                   Orders
                 </p>
-
-                <p className="mt-1 font-display text-[18px] font-semibold text-ink">
+                <p className="mt-0.5 font-serif text-lg font-bold text-charcoal">
                   {currentMonthOrders.length}
                 </p>
               </div>
 
-              <div>
-                <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-500">
-                  Average
+              <div className="border-l border-zinc-200 pl-4 sm:pl-6">
+                <p className="font-mono text-[9px] uppercase tracking-wider text-charcoal-lighter">
+                  Avg Order
                 </p>
-
-                <p className="mt-1 font-display text-[18px] font-semibold text-ink">
-                  {formatCompactCurrency(
-                    averageOrderValue
-                  )}
+                <p className="mt-0.5 font-serif text-lg font-bold text-charcoal">
+                  {formatCompactCurrency(averageOrderValue)}
                 </p>
               </div>
-
             </div>
-
           </div>
 
           {/* Chart */}
+          <div className="mt-8 flex h-48 items-end gap-3 pt-6 border-t border-zinc-100">
+            {revenueSeries.map((item) => {
+              const height = (item.value / maximumRevenue) * 100;
+              const isCurrent = item.key === currentMonth.key;
 
-          <div className="mt-8 flex h-40 items-end gap-3">
+              return (
+                <div
+                  key={item.key}
+                  className="flex h-full flex-1 flex-col items-center justify-end gap-2"
+                >
+                  <span className="font-mono text-[10px] font-bold text-charcoal-light">
+                    {formatCompactCurrency(item.value)}
+                  </span>
 
-            {revenueSeries.map(
-              (item) => {
-                const height =
-                  (item.value /
-                    maximumRevenue) *
-                  100;
-
-                const isCurrent =
-                  item.key ===
-                  currentMonth.key;
-
-                return (
-                  <div
-                    key={item.key}
-                    className="flex h-full flex-1 flex-col items-center justify-end gap-2"
-                  >
-
-                    <span className="font-mono text-[9px] text-ink-500">
-                      {formatCompactCurrency(
-                        item.value
-                      )}
-                    </span>
-
-                    <div className="flex h-28 w-full items-end">
-
-                      <div
-                        className={
-                          isCurrent
-                            ? 'w-full bg-orange-500'
-                            : 'w-full bg-slate-300'
-                        }
-                        style={{
-                          height: `${Math.max(
-                            height,
-                            2
-                          )}%`,
-                        }}
-                        title={`${item.label}: ${formatCurrency(
-                          item.value
-                        )}`}
-                      />
-
-                    </div>
-
-                    <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-ink-500">
-                      {item.label}
-                    </span>
-
+                  <div className="flex h-32 w-full items-end justify-center rounded-xl bg-zinc-50 p-1">
+                    <div
+                      className={`w-full rounded-lg transition-all ${
+                        isCurrent
+                          ? 'bg-brand-500 shadow-md shadow-brand-500/20'
+                          : 'bg-zinc-200 hover:bg-zinc-300'
+                      }`}
+                      style={{
+                        height: `${Math.max(height, 6)}%`,
+                      }}
+                      title={`${item.label}: ${formatCurrency(item.value)}`}
+                    />
                   </div>
-                );
-              }
-            )}
 
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-charcoal-light">
+                    {item.label}
+                  </span>
+                </div>
+              );
+            })}
           </div>
-
         </section>
 
         {/* ================================================================ */}
         {/* Production snapshot                                               */}
         {/* ================================================================ */}
 
-        <section className="border border-line-strong bg-white xl:col-span-5">
-
-          <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
-
-            <h2 className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-              Production snapshot
+        <section className="rounded-3xl border border-zinc-200/80 bg-white p-6 sm:p-8 shadow-sm xl:col-span-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+            <h2 className="font-serif text-lg font-bold text-charcoal">
+              Production Snapshot
             </h2>
 
-            <span className="font-mono text-[10px] text-ink-500">
-              {activeProducts.length} active products
+            <span className="font-mono text-xs font-bold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-full">
+              {activeProducts.length} Catalogue Items
             </span>
-
           </div>
 
-          <div className="divide-y divide-line">
-
-            <div className="flex items-center gap-3 px-5 py-4">
-
-              <div className="flex h-8 w-8 items-center justify-center bg-orange-50 text-orange-600">
-                <Clock3
-                  className="h-4 w-4"
-                  aria-hidden="true"
-                />
+          <div className="divide-y divide-zinc-100">
+            <div className="flex items-center gap-3.5 py-3.5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-500">
+                <Clock3 className="h-5 w-5" />
               </div>
-
               <div className="min-w-0 flex-1">
-
-                <p className="text-[13px] font-medium text-ink">
-                  In production
+                <p className="text-xs font-bold text-charcoal">In Active Print</p>
+                <p className="text-[11px] text-charcoal-lighter">
+                  Printing & Quality Check stages
                 </p>
-
-                <p className="mt-0.5 text-[11px] text-ink-500">
-                  Printing and quality check
-                </p>
-
               </div>
-
-              <span className="font-mono text-[13px] text-ink">
-                {productionOrders.length}
+              <span className="font-mono text-sm font-bold text-charcoal">
+                {productionOrders.length} jobs
               </span>
-
             </div>
 
-            <div className="flex items-center gap-3 px-5 py-4">
-
-              <div className="flex h-8 w-8 items-center justify-center bg-amber-50 text-amber-700">
-                <FileText
-                  className="h-4 w-4"
-                  aria-hidden="true"
-                />
+            <div className="flex items-center gap-3.5 py-3.5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                <FileText className="h-5 w-5" />
               </div>
-
               <div className="min-w-0 flex-1">
-
-                <p className="text-[13px] font-medium text-ink">
-                  Pending quotes
+                <p className="text-xs font-bold text-charcoal">Pending CAD Quotes</p>
+                <p className="text-[11px] text-charcoal-lighter">
+                  Custom customer requests
                 </p>
-
-                <p className="mt-0.5 text-[11px] text-ink-500">
-                  Custom requests awaiting review
-                </p>
-
               </div>
-
-              <span className="font-mono text-[13px] text-ink">
-                {pendingQuotes.length}
+              <span className="font-mono text-sm font-bold text-charcoal">
+                {pendingQuotes.length} files
               </span>
-
             </div>
 
-            <div className="flex items-center gap-3 px-5 py-4">
-
-              <div className="flex h-8 w-8 items-center justify-center bg-slate-50 text-slate-600">
-                <Package
-                  className="h-4 w-4"
-                  aria-hidden="true"
-                />
+            <div className="flex items-center gap-3.5 py-3.5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <Package className="h-5 w-5" />
               </div>
-
               <div className="min-w-0 flex-1">
-
-                <p className="text-[13px] font-medium text-ink">
-                  Catalogue
+                <p className="text-xs font-bold text-charcoal">Studio Catalogue</p>
+                <p className="text-[11px] text-charcoal-lighter">
+                  Active ready-to-print designs
                 </p>
-
-                <p className="mt-0.5 text-[11px] text-ink-500">
-                  Active products available
-                </p>
-
               </div>
-
-              <span className="font-mono text-[13px] text-ink">
-                {activeProducts.length}
+              <span className="font-mono text-sm font-bold text-charcoal">
+                {activeProducts.length} pieces
               </span>
-
             </div>
 
-            <div className="flex items-center gap-3 px-5 py-4">
-
-              <div className="flex h-8 w-8 items-center justify-center bg-red-50 text-red-600">
-                <TriangleAlert
-                  className="h-4 w-4"
-                  aria-hidden="true"
-                />
+            <div className="flex items-center gap-3.5 py-3.5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+                <TriangleAlert className="h-5 w-5" />
               </div>
-
               <div className="min-w-0 flex-1">
-
-                <p className="text-[13px] font-medium text-ink">
-                  Stock alerts
+                <p className="text-xs font-bold text-charcoal">Stock Warnings</p>
+                <p className="text-[11px] text-charcoal-lighter">
+                  ≤ 5 units remaining
                 </p>
-
-                <p className="mt-0.5 text-[11px] text-ink-500">
-                  Five units or fewer
-                </p>
-
               </div>
-
-              <span className="font-mono text-[13px] text-red-700">
-                {lowStockProducts.length}
+              <span className="font-mono text-sm font-bold text-rose-600">
+                {lowStockProducts.length} alerts
               </span>
-
             </div>
-
           </div>
 
+          <div className="pt-4 border-t border-zinc-100">
+            <Link
+              to="/admin/inventory"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-[#faf9f6] py-2.5 font-mono text-xs font-bold text-charcoal hover:bg-zinc-100 transition-colors"
+            >
+              <span>Manage Filament Inventory</span>
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </section>
 
         {/* ================================================================ */}
         {/* Orders requiring action                                           */}
         {/* ================================================================ */}
 
-        <section className="border border-line-strong bg-white xl:col-span-8">
-
-          <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
-
-            <h2 className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-              Orders requiring action
-            </h2>
+        <section className="rounded-3xl border border-zinc-200/80 bg-white p-6 sm:p-8 shadow-sm xl:col-span-8">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+            <div>
+              <h2 className="font-serif text-lg font-bold text-charcoal">
+                Active Print Queue & Action Required
+              </h2>
+              <p className="text-xs text-charcoal-lighter mt-0.5">
+                Orders currently waiting for confirmation, slicing, or quality check
+              </p>
+            </div>
 
             <Link
               to="/admin/orders"
-              className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.1em] text-orange-600 hover:text-ink"
+              className="inline-flex items-center gap-1 font-mono text-xs font-bold text-brand-600 hover:text-brand-700"
             >
-              View all
-
-              <ArrowUpRight
-                className="h-3 w-3"
-                aria-hidden="true"
-              />
+              <span>View all</span>
+              <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
-
           </div>
 
           {actionOrders.length === 0 ? (
-            <div className="px-5 py-10 text-center">
-
-              <p className="text-[13px] text-ink-500">
-                No orders currently require action.
+            <div className="py-12 text-center">
+              <p className="font-mono text-xs font-semibold text-charcoal-lighter">
+                No orders currently require immediate action. All clear!
               </p>
-
             </div>
           ) : (
-            <div className="overflow-x-auto">
-
-              <table className="w-full min-w-[700px] border-collapse text-left">
-
+            <div className="overflow-x-auto mt-4">
+              <table className="w-full min-w-[650px] text-left">
                 <thead>
-                  <tr className="border-b border-line">
-
-                    <th className="px-5 py-2.5 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-500">
-                      Order
-                    </th>
-
-                    <th className="px-5 py-2.5 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-500">
-                      Customer
-                    </th>
-
-                    <th className="px-5 py-2.5 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-500">
-                      Items
-                    </th>
-
-                    <th className="px-5 py-2.5 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-500">
-                      Value
-                    </th>
-
-                    <th className="px-5 py-2.5 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-500">
-                      Status
-                    </th>
-
+                  <tr className="border-b border-zinc-100 text-[10px] font-mono font-bold uppercase tracking-wider text-charcoal-lighter">
+                    <th className="pb-3 pr-4">Order ID</th>
+                    <th className="pb-3 px-4">Customer</th>
+                    <th className="pb-3 px-4">Items</th>
+                    <th className="pb-3 px-4">Value</th>
+                    <th className="pb-3 pl-4 text-right">Status</th>
                   </tr>
                 </thead>
 
-                <tbody>
-
-                  {actionOrders
-                    .slice(0, 8)
-                    .map((order) => {
-
-                      const itemCount =
-                        Array.isArray(
-                          order.items
+                <tbody className="divide-y divide-zinc-50">
+                  {actionOrders.slice(0, 8).map((order) => {
+                    const itemCount = Array.isArray(order.items)
+                      ? order.items.reduce(
+                          (total, item) => total + (Number(item.quantity) || 0),
+                          0
                         )
-                          ? order.items.reduce(
-                              (
-                                total,
-                                item
-                              ) =>
-                                total +
-                                (Number(
-                                  item.quantity
-                                ) || 0),
-                              0
-                            )
-                          : 0;
+                      : 0;
 
-                      const firstItem =
-                        Array.isArray(
-                          order.items
-                        ) &&
-                        order.items.length > 0
-                          ? order.items[0]
-                              .productName
-                          : 'Order';
+                    const firstItem =
+                      Array.isArray(order.items) && order.items.length > 0
+                        ? order.items[0].productName
+                        : 'Custom Print';
 
-                      return (
-                        <tr
-                          key={order.id}
-                          className="border-b border-line last:border-0 hover:bg-slate-50"
-                        >
+                    return (
+                      <tr key={order.id} className="hover:bg-zinc-50/60 transition-colors">
+                        <td className="py-3.5 pr-4">
+                          <Link
+                            to={`/admin/orders/${order.id}`}
+                            className="font-mono text-xs font-bold text-brand-600 hover:text-brand-700 underline underline-offset-4"
+                          >
+                            #{order.id.slice(0, 8)}
+                          </Link>
+                          <span className="block font-mono text-[10px] text-charcoal-lighter mt-0.5">
+                            {formatDate(order.date)}
+                          </span>
+                        </td>
 
-                          <td className="px-5 py-3">
+                        <td className="py-3.5 px-4 max-w-[180px]">
+                          <p className="text-xs font-bold text-charcoal truncate">
+                            {order.customerName || 'Customer'}
+                          </p>
+                          <p className="text-[10px] font-mono text-charcoal-lighter truncate">
+                            {order.customerEmail || 'No email'}
+                          </p>
+                        </td>
 
-                            <Link
-                              to={`/admin/orders/${order.id}`}
-                              className="font-mono text-[12px] text-orange-600 hover:text-ink"
-                            >
-                              #
-                              {order.id.slice(
-                                0,
-                                8
-                              )}
-                            </Link>
+                        <td className="py-3.5 px-4">
+                          <p className="text-xs font-semibold text-charcoal">
+                            {itemCount} pcs
+                          </p>
+                          <p className="text-[10px] font-mono text-charcoal-lighter truncate max-w-[140px]">
+                            {firstItem}
+                          </p>
+                        </td>
 
-                            <span className="mt-1 block font-mono text-[9px] text-ink-500">
-                              {formatDate(
-                                order.date
-                              )}
-                            </span>
+                        <td className="py-3.5 px-4 font-mono text-xs font-bold text-charcoal">
+                          {formatCurrency(Number(order.total) || 0)}
+                        </td>
 
-                          </td>
-
-                          <td className="max-w-[190px] px-5 py-3">
-
-                            <p className="truncate text-[13px] text-ink-700">
-                              {order.customerName ||
-                                'Unknown customer'}
-                            </p>
-
-                            <p className="mt-1 truncate font-mono text-[9px] text-ink-500">
-                              {order.customerEmail ||
-                                'No email'}
-                            </p>
-
-                          </td>
-
-                          <td className="px-5 py-3">
-
-                            <p className="text-[13px] text-ink-700">
-                              {itemCount} pcs
-                            </p>
-
-                            <p className="mt-1 max-w-[170px] truncate font-mono text-[9px] text-ink-500">
-                              {firstItem}
-                            </p>
-
-                          </td>
-
-                          <td className="px-5 py-3 font-mono text-[12px] text-ink">
-                            {formatCurrency(
-                              Number(
-                                order.total
-                              ) || 0
-                            )}
-                          </td>
-
-                          <td className="px-5 py-3">
-                            <StatusPill
-                              status={
-                                order.status
-                              }
-                            />
-                          </td>
-
-                        </tr>
-                      );
-                    })}
-
+                        <td className="py-3.5 pl-4 text-right">
+                          <StatusPill status={order.status} />
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
-
               </table>
-
             </div>
           )}
-
         </section>
 
         {/* ================================================================ */}
-        {/* Right column                                                       */}
+        {/* Right column: Quotes + Low Stock                                  */}
         {/* ================================================================ */}
 
-        <div className="grid gap-4 xl:col-span-4">
-
-          {/* -------------------------------------------------------------- */}
-          {/* Recent quotes                                                   */}
-          {/* -------------------------------------------------------------- */}
-
-          <section className="border border-line-strong bg-white">
-
-            <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
-
-              <h2 className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-                Recent custom quotes
+        <div className="grid gap-6 xl:col-span-4">
+          {/* Recent quotes */}
+          <section className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3.5">
+              <h2 className="font-serif text-base font-bold text-charcoal">
+                Recent CAD Quotes
               </h2>
-
               <Link
-                to="/admin/custom-quotes"
-                className="font-mono text-[10px] uppercase tracking-[0.1em] text-orange-600 hover:text-ink"
+                to="/admin/quotes"
+                className="font-mono text-[11px] font-bold text-brand-600 hover:text-brand-700"
               >
                 View all
               </Link>
-
             </div>
 
             {quotes.length === 0 ? (
-              <div className="px-5 py-8 text-center">
-
-                <p className="text-[13px] text-ink-500">
-                  No custom quotes yet.
-                </p>
-
+              <div className="py-8 text-center text-xs font-mono text-charcoal-lighter">
+                No custom quote requests yet.
               </div>
             ) : (
-              <ul className="divide-y divide-line">
+              <ul className="divide-y divide-zinc-50 mt-2">
+                {quotes.slice(0, 4).map((quote) => {
+                  const price =
+                    quote.adminPrice != null
+                      ? Number(quote.adminPrice)
+                      : quote.estimatedPrice != null
+                      ? Number(quote.estimatedPrice)
+                      : null;
 
-                {quotes
-                  .slice(0, 4)
-                  .map((quote) => {
+                  return (
+                    <li key={quote.id} className="py-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-xs font-bold text-charcoal">
+                          #{quote.id.slice(0, 8)}
+                        </span>
+                        <QuotePill status={quote.status} />
+                      </div>
 
-                    const price =
-                      quote.adminPrice !=
-                      null
-                        ? Number(
-                            quote.adminPrice
-                          )
-                        : quote.estimatedPrice !=
-                            null
-                          ? Number(
-                              quote.estimatedPrice
-                            )
-                          : null;
+                      <p className="mt-1 text-xs font-bold text-charcoal truncate">
+                        {quote.fileName || quote.productName || quote.requestType}
+                      </p>
 
-                    return (
-                      <li
-                        key={quote.id}
-                        className="px-5 py-3"
-                      >
+                      <p className="mt-0.5 text-[10px] font-mono text-charcoal-lighter">
+                        {quote.customerName || 'Client'} · {quote.material || 'PLA'} · Qty {quote.quantity}
+                      </p>
 
-                        <div className="flex items-center justify-between gap-3">
-
-                          <span className="font-mono text-[11px] text-ink">
-                            #
-                            {quote.id.slice(
-                              0,
-                              8
-                            )}
-                          </span>
-
-                          <QuotePill
-                            status={
-                              quote.status
-                            }
-                          />
-
-                        </div>
-
-                        <p className="mt-1.5 truncate text-[13px] text-ink-700">
-                          {quote.fileName ||
-                            quote.productName ||
-                            quote.requestType}
-                        </p>
-
-                        <p className="mt-1 truncate font-mono text-[9px] text-ink-500">
-                          {quote.customerName ||
-                            'Customer'}
-                          {' · '}
-                          {quote.material ||
-                            'Material pending'}
-                          {' · '}
-                          Qty {quote.quantity}
-                        </p>
-
-                        <p className="mt-1 font-mono text-[10px] text-ink-600">
-                          {price !== null
-                            ? formatCurrency(
-                                price
-                              )
-                            : 'Not priced'}
-                        </p>
-
-                      </li>
-                    );
-                  })}
-
+                      <p className="mt-1 font-mono text-xs font-bold text-brand-600">
+                        {price !== null ? formatCurrency(price) : 'Awaiting Pricing'}
+                      </p>
+                    </li>
+                  );
+                })}
               </ul>
             )}
-
           </section>
 
-          {/* -------------------------------------------------------------- */}
-          {/* Low stock                                                       */}
-          {/* -------------------------------------------------------------- */}
-
-          <section className="border border-line-strong bg-white">
-
-            <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
-
-              <TriangleAlert
-                className="h-3.5 w-3.5 text-amber-600"
-                aria-hidden="true"
-              />
-
-              <h2 className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-                Low stock products
+          {/* Low Stock Alerts */}
+          <section className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-2 border-b border-zinc-100 pb-3.5">
+              <TriangleAlert className="h-4 w-4 text-amber-500" />
+              <h2 className="font-serif text-base font-bold text-charcoal">
+                Low Filament Inventory
               </h2>
-
             </div>
 
             {lowStockProducts.length === 0 ? (
-              <div className="px-5 py-8 text-center">
-
-                <p className="text-[13px] text-ink-500">
-                  No low-stock products.
-                </p>
-
+              <div className="py-8 text-center text-xs font-mono text-charcoal-lighter">
+                All filament & stock levels healthy.
               </div>
             ) : (
-              <ul className="divide-y divide-line">
-
-                {lowStockProducts
-                  .slice(0, 5)
-                  .map((product) => (
-                    <li
-                      key={product.id}
-                      className="flex items-center gap-3 px-5 py-3"
+              <ul className="divide-y divide-zinc-50 mt-2">
+                {lowStockProducts.slice(0, 4).map((product) => (
+                  <li key={product.id} className="flex items-center gap-3 py-3">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="h-9 w-9 rounded-xl object-cover bg-zinc-100 shrink-0"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          'https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&q=80&w=100';
+                      }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-charcoal truncate">
+                        {product.name}
+                      </p>
+                      <p className="text-[10px] font-mono text-charcoal-lighter">
+                        {product.material || product.category || 'Filament'}
+                      </p>
+                    </div>
+                    <span
+                      className={`font-mono text-xs font-bold ${
+                        Number(product.stock) <= 2
+                          ? 'text-rose-600'
+                          : 'text-amber-600'
+                      }`}
                     >
-
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center border border-line bg-slate-50">
-                        <Package
-                          className="h-4 w-4 text-ink-500"
-                          aria-hidden="true"
-                        />
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-
-                        <p className="truncate text-[13px] text-ink-700">
-                          {product.name}
-                        </p>
-
-                        <p className="mt-0.5 truncate font-mono text-[9px] text-ink-500">
-                          {product.material ||
-                            product.category ||
-                            'Product'}
-                        </p>
-
-                      </div>
-
-                      <span
-                        className={
-                          Number(
-                            product.stock
-                          ) <= 2
-                            ? 'font-mono text-[10px] text-red-700'
-                            : 'font-mono text-[10px] text-amber-700'
-                        }
-                      >
-                        {product.stock} left
-                      </span>
-
-                    </li>
-                  ))}
-
+                      {product.stock} left
+                    </span>
+                  </li>
+                ))}
               </ul>
             )}
-
-            <div className="border-t border-line px-5 py-3">
-
-              <Link
-                to="/admin/inventory"
-                className="inline-flex h-9 items-center justify-center border border-line-strong bg-white px-3 text-[12px] font-medium text-ink hover:bg-slate-50"
-              >
-                Manage inventory
-              </Link>
-
-            </div>
-
           </section>
-
         </div>
-
       </div>
-
     </div>
   );
 }

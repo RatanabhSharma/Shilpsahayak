@@ -1,82 +1,70 @@
-import React, { useState } from 'react';
+import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Mail,
-  Phone,
   MapPin,
   MessageCircle,
   ArrowRight,
   CheckCircle2,
+  Clock,
+  Sparkles,
 } from 'lucide-react';
 
 import {
   Button,
   Input,
   Textarea,
-  Card,
+  Badge,
 } from '../../components/ui';
 
 export function Contact() {
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     setSubmitted(true);
   };
 
   return (
-    <div className="bg-[#f7f4ee] text-[#14120f]">
-      {/* ============================================================
-          HERO
-          ============================================================ */}
-
-      <section className="border-b border-[#d9d2c7] bg-white">
-        <div className="mx-auto max-w-[1280px] px-5 py-12 sm:px-8 lg:px-12 lg:py-16">
-          <div className="grid gap-10 lg:grid-cols-12 lg:items-end lg:gap-14">
+    <div className="min-h-screen bg-[#faf9f6] text-charcoal">
+      {/* Hero Header */}
+      <section className="border-b border-zinc-200/80 bg-white">
+        <div className="mx-auto max-w-[1440px] px-5 py-12 sm:px-8 lg:px-10 lg:py-16">
+          <div className="grid gap-8 lg:grid-cols-12 lg:items-end">
             <div className="lg:col-span-8">
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#b4491e]">
-                Contact Shilp Sahayak
-              </p>
-
-              <h1 className="mt-3 max-w-3xl font-display text-[34px] font-semibold leading-[1.04] tracking-[-0.035em] text-[#14120f] sm:text-[46px] lg:text-[52px]">
-                Have a question?
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
+                Connect With Shilp Sahayak
+              </span>
+              <h1 className="mt-2 font-serif text-3xl font-bold tracking-tight text-charcoal sm:text-5xl">
+                Have a 3D Print Idea?
                 <br />
-                Let&apos;s talk.
+                <span className="text-brand-500">Let&apos;s Build It Together.</span>
               </h1>
-
-              <p className="mt-6 max-w-2xl text-[15.5px] leading-relaxed text-[#6b6156]">
-                Have a question about an order, a custom
-                project, or just want to say hello? We&apos;d
-                love to hear from you.
+              <p className="mt-4 max-w-2xl text-sm text-charcoal-light sm:text-base leading-relaxed">
+                Whether you need rapid prototyping, architectural models, custom lithophanes, or mass production, our engineering team in Patiala is ready to assist.
               </p>
             </div>
 
-            <div className="lg:col-span-4 lg:border-l lg:border-[#d9d2c7] lg:pl-8">
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#8e8275]">
-                Best for
-              </p>
-
-              <ul className="mt-3 space-y-2 text-[13.5px] text-[#6b6156]">
+            <div className="lg:col-span-4 lg:border-l lg:border-zinc-200 lg:pl-8">
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter block mb-3">
+                How We Can Help
+              </span>
+              <ul className="space-y-2 text-xs text-charcoal-light">
                 <li className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 bg-[#b4491e]" />
-                  Order questions
+                  <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+                  <span>CAD file design & slicing feasibility</span>
                 </li>
-
                 <li className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 bg-[#b4491e]" />
-                  Custom printing
+                  <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+                  <span>Material selection (PLA, PETG, ABS, Resin)</span>
                 </li>
-
                 <li className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 bg-[#b4491e]" />
-                  Prototypes and special projects
+                  <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+                  <span>Bulk batch production discounts</span>
                 </li>
-
                 <li className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 bg-[#b4491e]" />
-                  General enquiries
+                  <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+                  <span>Pan-India tracked courier delivery</span>
                 </li>
               </ul>
             </div>
@@ -84,304 +72,231 @@ export function Contact() {
         </div>
       </section>
 
-      {/* ============================================================
-          MAIN CONTACT AREA
-          ============================================================ */}
-
-      <section className="py-12 lg:py-16">
-        <div className="mx-auto max-w-[1280px] px-5 sm:px-8 lg:px-12">
-          <div className="grid gap-10 lg:grid-cols-12 lg:gap-14">
-            {/* ======================================================
-                CONTACT INFORMATION
-                ====================================================== */}
-
-            <div className="lg:col-span-5">
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8e8275]">
-                Get in touch
-              </p>
-
-              <h2 className="mt-3 font-display text-[27px] font-semibold tracking-[-0.025em] text-[#14120f] sm:text-[32px]">
-                Contact information
+      {/* Main Content Grid */}
+      <section className="mx-auto max-w-[1440px] px-5 py-12 sm:px-8 lg:px-10 lg:py-16">
+        <div className="grid gap-10 lg:grid-cols-12 lg:gap-14">
+          {/* Left Column: Direct Channels */}
+          <div className="lg:col-span-5 space-y-6">
+            <div>
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
+                Studio Channels
+              </span>
+              <h2 className="mt-1 font-serif text-2xl font-bold text-charcoal sm:text-3xl">
+                Get in Touch
               </h2>
-
-              <p className="mt-3 max-w-md text-[14px] leading-relaxed text-[#6b6156]">
-                Choose the channel that works best for
-                your question. For a project or custom
-                print, include as much detail as you can.
+              <p className="mt-2 text-xs text-charcoal-light leading-relaxed">
+                Connect directly with our workshop engineers or schedule a studio visit in Patiala.
               </p>
+            </div>
 
-              <div className="mt-8 border-t border-[#d9d2c7]">
-                {/* WhatsApp */}
-
-                <div className="flex gap-4 border-b border-[#d9d2c7] py-5">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#ebe6dc] text-[#b4491e]">
-                    <MessageCircle
-                      className="h-4 w-4"
-                      aria-hidden="true"
-                    />
+            <div className="space-y-3">
+              {/* WhatsApp Card */}
+              <a
+                href="https://wa.me/919988000000?text=Hi%20Shilp%20Sahayak%2C%20I%20have%20an%20inquiry%20regarding%203D%20printing"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-4 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm transition-all hover:border-emerald-300 hover:shadow-md group"
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 group-hover:scale-105 transition-transform">
+                  <MessageCircle className="h-6 w-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-serif text-base font-bold text-charcoal">WhatsApp Direct</h3>
+                    <Badge variant="success">Instant Response</Badge>
                   </div>
+                  <p className="font-mono text-xs text-emerald-700 font-bold mt-1">
+                    +91 99880 00000
+                  </p>
+                  <p className="text-xs text-charcoal-lighter mt-1">
+                    Quick file reviews, slicing advice, and live status.
+                  </p>
+                </div>
+              </a>
 
-                  <div>
-                    <p className="font-display text-[16px] font-semibold text-[#14120f]">
-                      WhatsApp
-                    </p>
+              {/* Email Card */}
+              <a
+                href="mailto:hello@shilpsahayak.in"
+                className="flex items-start gap-4 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm transition-all hover:border-brand-300 hover:shadow-md group"
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 group-hover:scale-105 transition-transform">
+                  <Mail className="h-6 w-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-serif text-base font-bold text-charcoal">Email Studio</h3>
+                  <p className="font-mono text-xs text-brand-600 font-bold mt-1">
+                    hello@shilpsahayak.in
+                  </p>
+                  <p className="text-xs text-charcoal-lighter mt-1">
+                    For enterprise quotes, CAD attachments, and invoices.
+                  </p>
+                </div>
+              </a>
 
-                    <p className="mt-1 text-[13.5px] text-[#6b6156]">
-                      +91 xxxxx xxxxx
-                    </p>
-
-                    <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-[#8e8275]">
-                      Quick project and order enquiries
-                    </p>
+              {/* Studio Address Card */}
+              <div className="flex items-start gap-4 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-zinc-100 text-charcoal">
+                  <MapPin className="h-6 w-6 text-brand-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-serif text-base font-bold text-charcoal">Patiala Studio</h3>
+                  <p className="text-xs text-charcoal-light mt-1 leading-relaxed">
+                    Model Town / Urban Estate, Patiala, Punjab — 147001
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-2 font-mono text-[11px] text-charcoal-lighter">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>Mon - Sat: 9:00 AM – 7:00 PM IST</span>
                   </div>
                 </div>
-
-                {/* Phone */}
-
-                <div className="flex gap-4 border-b border-[#d9d2c7] py-5">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#ebe6dc] text-[#b4491e]">
-                    <Phone
-                      className="h-4 w-4"
-                      aria-hidden="true"
-                    />
-                  </div>
-
-                  <div>
-                    <p className="font-display text-[16px] font-semibold text-[#14120f]">
-                      Phone
-                    </p>
-
-                    <p className="mt-1 text-[13.5px] text-[#6b6156]">
-                      +91 xxxxx xxxxx
-                    </p>
-
-                    <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-[#8e8275]">
-                      Mon-Sat · 10am - 6pm
-                    </p>
-                  </div>
-                </div>
-
-                {/* Email */}
-
-                <div className="flex gap-4 border-b border-[#d9d2c7] py-5">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#ebe6dc] text-[#b4491e]">
-                    <Mail
-                      className="h-4 w-4"
-                      aria-hidden="true"
-                    />
-                  </div>
-
-                  <div>
-                    <p className="font-display text-[16px] font-semibold text-[#14120f]">
-                      Email
-                    </p>
-
-                    <a
-                      href="mailto:hello@shilpsahayak.in"
-                      className="mt-1 block text-[13.5px] text-[#6b6156] transition-colors hover:text-[#b4491e]"
-                    >
-                      hello@shilpsahayak.in
-                    </a>
-
-                    <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-[#8e8275]">
-                      General and project enquiries
-                    </p>
-                  </div>
-                </div>
-
-                {/* Studio */}
-
-                <div className="flex gap-4 py-5">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#ebe6dc] text-[#b4491e]">
-                    <MapPin
-                      className="h-4 w-4"
-                      aria-hidden="true"
-                    />
-                  </div>
-
-                  <div>
-                    <p className="font-display text-[16px] font-semibold text-[#14120f]">
-                      Studio
-                    </p>
-
-                    <p className="mt-1 text-[13.5px] leading-relaxed text-[#6b6156]">
-                      PATIALA, PUNJAB 147001
-                    </p>
-
-                    <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-[#8e8275]">
-                      By appointment only
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Practical note */}
-
-              <div className="mt-7 border-l-2 border-[#b4491e] bg-[#ebe6dc]/60 px-4 py-3.5">
-                <p className="text-[12.5px] leading-relaxed text-[#6b6156]">
-                  For custom printing, you can also
-                  upload your model directly through our
-                  custom printing service.
-                </p>
               </div>
             </div>
 
-            {/* ======================================================
-                MESSAGE FORM
-                ====================================================== */}
+            {/* Custom Print Quick Box */}
+            <div className="rounded-3xl border border-brand-200 bg-brand-50/50 p-6 space-y-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-brand-500" />
+                <h4 className="font-serif text-sm font-bold text-charcoal">Have a 3D File Ready?</h4>
+              </div>
+              <p className="text-xs text-charcoal-light leading-relaxed">
+                Skip the contact form and upload your STL directly to our automated slicing calculator for instant pricing at ₹4.5/g.
+              </p>
+              <Link to="/custom-service" className="inline-block">
+                <Button size="sm" className="font-bold text-xs">
+                  Launch 3D File Uploader
+                  <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </div>
+          </div>
 
-            <div className="lg:col-span-7">
-              <Card className="border-[#d9d2c7] bg-white p-6 shadow-[0_8px_30px_rgba(20,18,15,0.04)] sm:p-8">
-                {submitted ? (
-                  <div className="flex min-h-[430px] flex-col items-center justify-center text-center">
-                    <div className="flex h-12 w-12 items-center justify-center bg-[#edf5eb] text-[#4c7a45]">
-                      <CheckCircle2
-                        className="h-6 w-6"
-                        aria-hidden="true"
-                      />
-                    </div>
-
-                    <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-[#b4491e]">
-                      Message received
-                    </p>
-
-                    <h2 className="mt-3 font-display text-[28px] font-semibold tracking-[-0.025em] text-[#14120f]">
-                      Thanks for reaching out.
-                    </h2>
-
-                    <p className="mt-3 max-w-md text-[14px] leading-relaxed text-[#6b6156]">
-                      Your message has been prepared for
-                      our team. We&apos;ll get back to you as
-                      soon as possible.
-                    </p>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSubmitted(false)
-                      }
-                      className="mt-7 font-mono text-[10px] uppercase tracking-[0.1em] text-[#b4491e] underline underline-offset-4 transition-colors hover:text-[#7b2f11]"
-                    >
-                      Send another message
-                    </button>
+          {/* Right Column: Inquiry Form */}
+          <div className="lg:col-span-7">
+            <div className="rounded-3xl border border-zinc-200 bg-white p-7 sm:p-9 shadow-sm">
+              {submitted ? (
+                <div className="flex min-h-[400px] flex-col items-center justify-center text-center p-6">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                    <CheckCircle2 className="h-10 w-10" />
                   </div>
-                ) : (
-                  <>
-                    <div className="flex items-start justify-between gap-5 border-b border-[#ebe6dc] pb-6">
-                      <div>
-                        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#b4491e]">
-                          Enquiry
-                        </p>
 
-                        <h2 className="mt-2 font-display text-[25px] font-semibold tracking-[-0.02em] text-[#14120f]">
-                          Send a message
-                        </h2>
+                  <span className="mt-5 font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
+                    Message Dispatched
+                  </span>
 
-                        <p className="mt-2 max-w-lg text-[13.5px] leading-relaxed text-[#6b6156]">
-                          Tell us what you need and we&apos;ll
-                          help you figure out the next step.
-                        </p>
-                      </div>
+                  <h2 className="mt-2 font-serif text-3xl font-bold text-charcoal">
+                    Thank you for reaching out!
+                  </h2>
 
-                      <ArrowRight
-                        className="mt-1 hidden h-5 w-5 shrink-0 text-[#b4491e] sm:block"
-                        aria-hidden="true"
+                  <p className="mt-2 max-w-md text-xs text-charcoal-light leading-relaxed">
+                    Your inquiry has been received by our engineering team. We will review your requirements and respond via email/WhatsApp within 2-4 business hours.
+                  </p>
+
+                  <Button
+                    onClick={() => setSubmitted(false)}
+                    variant="outline"
+                    className="mt-6 font-bold text-xs"
+                  >
+                    Send Another Message
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="border-b border-zinc-100 pb-5 mb-6">
+                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
+                      Direct Message
+                    </span>
+                    <h2 className="mt-1 font-serif text-2xl font-bold text-charcoal">
+                      Send Us an Inquiry
+                    </h2>
+                    <p className="mt-1 text-xs text-charcoal-light">
+                      Tell us about your print concept, required strength, timeline, and delivery pin code.
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleSubmit} className="space-y-5">
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      <Input
+                        name="name"
+                        label="Your Full Name *"
+                        placeholder="e.g. Gurpreet Singh"
+                        autoComplete="name"
+                        required
+                      />
+
+                      <Input
+                        name="email"
+                        label="Email Address *"
+                        type="email"
+                        placeholder="you@example.com"
+                        autoComplete="email"
+                        required
                       />
                     </div>
 
-                    <form
-                      className="mt-7 space-y-5"
-                      onSubmit={handleSubmit}
-                    >
-                      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                        <Input
-                          name="name"
-                          label="Your Name"
-                          placeholder="Your full name"
-                          autoComplete="name"
-                          required
-                        />
-
-                        <Input
-                          name="email"
-                          label="Email Address"
-                          type="email"
-                          placeholder="you@example.com"
-                          autoComplete="email"
-                          required
-                        />
-                      </div>
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      <Input
+                        name="phone"
+                        label="Mobile / WhatsApp Number *"
+                        type="tel"
+                        placeholder="10-digit mobile number"
+                        required
+                      />
 
                       <Input
                         name="subject"
-                        label="Subject"
-                        placeholder="Order Inquiry"
+                        label="Inquiry Subject *"
+                        placeholder="e.g. Custom Lithophane Lamp / CAD Prototyping"
                         required
                       />
+                    </div>
 
-                      <Textarea
-                        name="message"
-                        label="Message"
-                        placeholder="How can we help you?"
-                        className="min-h-[170px]"
-                        required
-                      />
+                    <Textarea
+                      name="message"
+                      label="Project Description *"
+                      placeholder="Share dimensions, preferred material (PLA/PETG/ABS/Resin), intended application, or any deadline constraints..."
+                      rows={5}
+                      required
+                    />
 
-                      <div className="flex flex-col gap-3 border-t border-[#ebe6dc] pt-5 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="max-w-sm text-[11.5px] leading-relaxed text-[#8e8275]">
-                          Please do not include passwords,
-                          payment credentials or other
-                          sensitive information.
-                        </p>
+                    <div className="flex flex-col gap-4 border-t border-zinc-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-[11px] text-charcoal-lighter leading-relaxed max-w-sm">
+                        🔒 Shilp Sahayak respects your IP. All CAD concepts and designs remain 100% confidential.
+                      </p>
 
-                        <Button
-                          type="submit"
-                          size="lg"
-                        >
-                          Send Message
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </form>
-                  </>
-                )}
-              </Card>
+                      <Button type="submit" size="lg" className="font-bold shadow-md shadow-brand-500/20">
+                        Send Inquiry
+                        <ArrowRight className="ml-1.5 h-4 w-4" />
+                      </Button>
+                    </div>
+                  </form>
+                </>
+              )}
             </div>
           </div>
         </div>
       </section>
 
-      {/* ============================================================
-          CUSTOM PROJECT CTA
-          ============================================================ */}
-
-      <section className="border-t border-[#d9d2c7] bg-[#14120f]">
-        <div className="mx-auto max-w-[1280px] px-5 py-12 sm:px-8 lg:px-12 lg:py-14">
+      {/* Dark Theme Banner Footer */}
+      <section className="border-t border-zinc-800 bg-[#0b0f17] text-white">
+        <div className="mx-auto max-w-[1440px] px-5 py-12 sm:px-8 lg:px-10">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#d9784b]">
-                Have a model ready?
-              </p>
-
-              <h2 className="mt-2 font-display text-[24px] font-semibold tracking-[-0.02em] text-[#f7f4ee] sm:text-[28px]">
-                Skip the enquiry and request a custom print.
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
+                Maker Studio in Patiala
+              </span>
+              <h2 className="mt-2 font-serif text-2xl font-bold sm:text-3xl text-white">
+                If you can imagine it, we can print it.
               </h2>
-
-              <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-[#f7f4ee]/55">
-                Upload your STL or share your requirements
-                and get an estimate or manual quotation.
+              <p className="mt-1 text-xs text-zinc-400 max-w-xl">
+                High-precision FDM and SLA additive manufacturing powered by premium filaments, tested layer by layer.
               </p>
             </div>
 
-            <a href="/custom-service">
-              <Button
-                size="lg"
-                className="border-[#f7f4ee] bg-[#f7f4ee] text-[#14120f] hover:bg-white"
-              >
-                Start a custom print
-                <ArrowRight className="h-4 w-4" />
+            <Link to="/custom-service">
+              <Button size="lg" className="font-bold bg-brand-500 hover:bg-brand-600 text-white shadow-lg shadow-brand-500/20">
+                Explore Custom Studio
+                <ArrowRight className="ml-1.5 h-4 w-4" />
               </Button>
-            </a>
+            </Link>
           </div>
         </div>
       </section>

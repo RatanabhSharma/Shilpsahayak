@@ -6,6 +6,9 @@ import {
   Plus,
   ShoppingBag,
   Trash2,
+  Truck,
+  ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
 
 import {
@@ -14,313 +17,187 @@ import {
 } from '../../store';
 import {
   Button,
+  Badge,
 } from '../../components/ui';
 import { useSettings } from '../../hooks/useSettings';
 
 export function Cart() {
-  const cart = useStore(
-    (state) => state.cart
-  );
-
-  const updateQuantity = useStore(
-    (state) => state.updateCartQuantity
-  );
-
-  const removeFromCart = useStore(
-    (state) => state.removeFromCart
-  );
-
+  const cart = useStore((state) => state.cart);
+  const updateQuantity = useStore((state) => state.updateCartQuantity);
+  const removeFromCart = useStore((state) => state.removeFromCart);
   const navigate = useNavigate();
+  const { data: settings } = useSettings();
 
-  const { data: settings } =
-    useSettings();
-
-  /*
-   * =========================================================
-   * PRICING
-   * =========================================================
-   */
-
-  const getItemPrice = (
-    item: (typeof cart)[number]
-  ) =>
-    item.customPrint?.customPrice ??
-    item.product.price;
+  const getItemPrice = (item: (typeof cart)[number]) =>
+    item.customPrint?.customPrice ?? item.product.price;
 
   const subtotal = cart.reduce(
-    (sum, item) =>
-      sum +
-      getItemPrice(item) *
-        item.quantity,
+    (sum, item) => sum + getItemPrice(item) * item.quantity,
     0
   );
 
-  /*
-   * Keep the existing application settings.
-   * Do not hardcode Magic Patterns' shipping values.
-   */
-
-  const shippingRate =
-    settings?.shippingFlatRate ?? 150;
-
-  const freeShippingThreshold =
-    settings?.freeShippingThreshold ?? 499;
+  const shippingRate = settings?.shippingFlatRate ?? 150;
+  const freeShippingThreshold = settings?.freeShippingThreshold ?? 499;
 
   const shipping =
-    subtotal >=
-      freeShippingThreshold ||
-    subtotal === 0
-      ? 0
-      : shippingRate;
+    subtotal >= freeShippingThreshold || subtotal === 0 ? 0 : shippingRate;
 
-  const total =
-    subtotal + shipping;
-
-  const amountForFreeShipping =
-    Math.max(
-      0,
-      freeShippingThreshold -
-        subtotal
-    );
-
-  /*
-   * =========================================================
-   * EMPTY CART
-   * =========================================================
-   */
+  const total = subtotal + shipping;
+  const amountForFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
+  const freeShippingProgress = Math.min(
+    100,
+    Math.round((subtotal / freeShippingThreshold) * 100)
+  );
 
   if (cart.length === 0) {
     return (
-      <div className="min-h-[70vh] bg-[#f7f4ee]">
-        <div className="mx-auto max-w-[1440px] px-5 py-12 sm:px-8 lg:px-10 lg:py-16">
-
-          <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[#ded8ce] pb-6">
-            <div>
-              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#b4491e]">
-                Your cart
-              </p>
-
-              <h1 className="mt-2 font-serif text-3xl font-semibold leading-tight tracking-[-0.035em] text-[#171512] sm:text-4xl">
-                Nothing in the cart yet
-              </h1>
-            </div>
-
-            <Link
-              to="/catalog"
-              className="border-b border-[#171512] pb-0.5 text-sm font-medium text-[#171512] transition-colors hover:border-[#b4491e] hover:text-[#b4491e]"
-            >
-              Continue shopping
-            </Link>
+      <div className="min-h-[75vh] bg-[#faf9f6] flex items-center justify-center px-5 py-16">
+        <div className="mx-auto max-w-lg rounded-3xl border border-zinc-200 bg-white p-8 sm:p-10 text-center shadow-lg">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+            <ShoppingBag className="h-8 w-8" />
           </div>
 
-          <div className="mt-10 flex min-h-[420px] items-center justify-center">
-            <div className="w-full max-w-xl border border-[#ded8ce] bg-white px-6 py-14 text-center sm:px-10">
+          <span className="mt-5 font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
+            Your Cart is Empty
+          </span>
 
-              <div className="mx-auto flex h-14 w-14 items-center justify-center border border-[#d4cdc2] bg-[#f7f4ee] text-[#b4491e]">
-                <ShoppingBag
-                  className="h-6 w-6"
-                  aria-hidden="true"
-                />
-              </div>
+          <h1 className="mt-2 font-serif text-3xl font-bold text-charcoal">
+            No prints added yet.
+          </h1>
 
-              <h2 className="mt-6 font-serif text-2xl font-semibold tracking-[-0.025em] text-[#171512]">
-                Your cart is empty
-              </h2>
+          <p className="mt-3 text-sm text-charcoal-light leading-relaxed">
+            Browse our catalogue of finished functional prints, or upload your own 3D CAD model for a custom studio quote.
+          </p>
 
-              <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#746c63]">
-                Browse finished prints from
-                the collection, or upload your
-                own model and request a custom
-                quote.
-              </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row justify-center">
+            <Link to="/catalog" className="w-full sm:w-auto">
+              <Button className="w-full font-bold">
+                Browse 3D Catalogue
+              </Button>
+            </Link>
 
-              <div className="mt-7 flex flex-wrap justify-center gap-2.5">
-                <Link to="/catalog">
-                  <Button
-                    size="lg"
-                    className="bg-[#171512] hover:bg-[#2b2824]"
-                  >
-                    Shop 3D prints
-                  </Button>
-                </Link>
-
-                <Link to="/custom-service">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="border-[#bdb5aa] bg-white"
-                  >
-                    Custom print your model
-                  </Button>
-                </Link>
-              </div>
-            </div>
+            <Link to="/custom-service" className="w-full sm:w-auto">
+              <Button variant="outline" className="w-full font-semibold">
+                Upload Custom 3D Model
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
     );
   }
 
-  /*
-   * =========================================================
-   * CART
-   * =========================================================
-   */
-
   return (
-    <div className="min-h-screen bg-[#f7f4ee] text-[#171512]">
-
-      {/* =====================================================
-          HEADER
-      ====================================================== */}
-
-      <section className="border-b border-[#ded8ce] bg-white">
-        <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
-
+    <div className="min-h-screen bg-[#faf9f6] text-charcoal">
+      {/* Header */}
+      <section className="border-b border-zinc-200/80 bg-white">
+        <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10">
           <div className="flex flex-wrap items-end justify-between gap-4">
-
             <div>
-              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#b4491e]">
-                Your cart
-              </p>
-
-              <h1 className="mt-2 font-serif text-3xl font-semibold leading-tight tracking-[-0.035em] text-[#171512] sm:text-4xl">
-                {cart.length}{' '}
-                {cart.length === 1
-                  ? 'item'
-                  : 'items'}{' '}
-                ready
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+                Shopping Cart
+              </span>
+              <h1 className="mt-1 font-serif text-3xl font-bold text-charcoal sm:text-4xl">
+                {cart.length} {cart.length === 1 ? 'Piece' : 'Pieces'} Ready for Fabrication
               </h1>
             </div>
 
             <Link
               to="/catalog"
-              className="border-b border-[#171512] pb-0.5 text-sm font-medium text-[#171512] transition-colors hover:border-[#b4491e] hover:text-[#b4491e]"
+              className="font-mono text-xs font-bold text-brand-600 hover:text-brand-700 underline"
             >
-              Continue shopping
+              ← Continue Browsing
             </Link>
           </div>
         </div>
       </section>
 
-      {/* =====================================================
-          MAIN
-      ====================================================== */}
-
-      <main className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
-
+      {/* Main Content */}
+      <main className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8 lg:px-10">
         <div className="grid gap-10 lg:grid-cols-12 lg:gap-14">
+          {/* Cart Items List */}
+          <section className="lg:col-span-8 space-y-4">
+            {/* Free shipping progress bar */}
+            <div className="rounded-2xl border border-brand-200 bg-brand-50/50 p-4 sm:p-5">
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="flex items-center gap-1.5 text-charcoal">
+                  <Truck className="h-4 w-4 text-brand-500" />
+                  {amountForFreeShipping > 0
+                    ? `Add ₹${amountForFreeShipping.toLocaleString('en-IN')} more for FREE Pan-India Shipping!`
+                    : '🎉 You have qualified for FREE Pan-India Shipping!'}
+                </span>
+                <span className="font-mono text-brand-600">
+                  {freeShippingProgress}%
+                </span>
+              </div>
 
-          {/* =================================================
-              CART ITEMS
-          ================================================== */}
-
-          <section className="lg:col-span-8">
-
-            {/* Desktop table heading */}
-            <div className="hidden grid-cols-[1fr_120px_120px_40px] gap-4 border-b border-[#171512] pb-2 font-mono text-[9px] uppercase tracking-[0.12em] text-[#8d847a] sm:grid">
-              <span>Item</span>
-
-              <span>Quantity</span>
-
-              <span className="text-right">
-                Line total
-              </span>
-
-              <span
-                className="sr-only"
-                aria-hidden="true"
-              >
-                Remove
-              </span>
+              <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-zinc-200">
+                <div
+                  className="h-full bg-brand-500 transition-all duration-500"
+                  style={{ width: `${freeShippingProgress}%` }}
+                />
+              </div>
             </div>
 
-            <div>
+            {/* Items */}
+            <div className="space-y-4">
               {cart.map((item) => {
-                const cartItemId =
-                  getCartItemId(item);
-
-                const selectedVariant =
-                  item.variantId
-                    ? item.product.variants?.find(
-                        (variant) =>
-                          variant.id ===
-                          item.variantId
-                      )
-                    : undefined;
-
-                const availableStock =
-                  selectedVariant?.stock ??
-                  item.product.stock;
-
-                const isCustomPrint =
-                  Boolean(
-                    item.customPrint
-                  );
-
-                const itemPrice =
-                  getItemPrice(item);
-
-                /*
-                 * Existing behavior:
-                 * If stock is unavailable, preserve
-                 * the current 999 fallback for cart
-                 * quantity controls.
-                 */
-                const maxQuantity =
-                  availableStock > 0
-                    ? availableStock
-                    : 999;
-
-                const lineTotal =
-                  itemPrice *
-                  item.quantity;
+                const cartItemId = getCartItemId(item);
+                const selectedVariant = item.variantId
+                  ? item.product.variants?.find((v) => v.id === item.variantId)
+                  : undefined;
+                const availableStock = selectedVariant?.stock ?? item.product.stock;
+                const isCustomPrint = Boolean(item.customPrint);
+                const itemPrice = getItemPrice(item);
+                const maxQuantity = availableStock > 0 ? availableStock : 999;
+                const lineTotal = itemPrice * item.quantity;
 
                 return (
-                  <article
+                  <div
                     key={cartItemId}
-                    className="grid grid-cols-[88px_1fr] items-start gap-4 border-b border-[#ded8ce] py-5 sm:grid-cols-[1fr_120px_120px_40px] sm:items-center"
+                    className="rounded-3xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-sm transition-all hover:shadow-md"
                   >
-
-                    {/* =================================================
-                        PRODUCT
-                    ================================================== */}
-
-                    <div className="col-span-2 flex min-w-0 gap-4 sm:col-span-1">
-
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+                      {/* Image / Icon */}
                       <Link
                         to={
                           isCustomPrint
                             ? '/custom-service'
                             : `/product/${item.product.id}`
                         }
-                        className="h-20 w-20 shrink-0 overflow-hidden border border-[#ded8ce] bg-[#e8e2d8]"
+                        className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-zinc-100 bg-zinc-100"
                       >
                         {isCustomPrint ? (
-                          <div className="flex h-full w-full flex-col items-center justify-center bg-[#f7e5dd] text-[#b4491e]">
-                            <FileBox
-                              className="h-7 w-7"
-                              aria-hidden="true"
-                            />
-
-                            <span className="mt-1 font-mono text-[7px] uppercase tracking-[0.08em]">
-                              Custom
+                          <div className="flex h-full w-full flex-col items-center justify-center bg-brand-50 text-brand-600">
+                            <FileBox className="h-8 w-8" />
+                            <span className="font-mono text-[9px] font-bold uppercase mt-1">
+                              3D STL
                             </span>
                           </div>
                         ) : (
                           <img
-                            src={
-                              item.product.image
-                            }
-                            alt={
-                              item.product.name
-                            }
+                            src={item.product.image}
+                            alt={item.product.name}
                             className="h-full w-full object-cover"
                           />
                         )}
                       </Link>
 
-                      <div className="min-w-0">
+                      {/* Details */}
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {isCustomPrint ? (
+                            <Badge variant="brand">Custom 3D Print</Badge>
+                          ) : item.product.category ? (
+                            <Badge variant="default">{item.product.category}</Badge>
+                          ) : null}
+
+                          {item.variantLabel && (
+                            <span className="font-mono text-xs font-bold text-charcoal-lighter">
+                              • {item.variantLabel}
+                            </span>
+                          )}
+                        </div>
 
                         <Link
                           to={
@@ -328,430 +205,166 @@ export function Cart() {
                               ? '/custom-service'
                               : `/product/${item.product.id}`
                           }
-                          className="font-serif text-base font-semibold leading-snug text-[#171512] transition-colors hover:text-[#b4491e]"
+                          className="font-serif text-lg font-bold text-charcoal hover:text-brand-600 transition-colors block line-clamp-1"
                         >
-                          {
-                            item.product.name
-                          }
+                          {item.product.name}
                         </Link>
 
-                        {item.variantLabel && (
-                          <p className="mt-1 font-mono text-[8px] uppercase tracking-[0.08em] text-[#8d847a]">
-                            Option:{' '}
-                            {
-                              item.variantLabel
-                            }
+                        <p className="font-serif text-sm font-bold text-brand-600">
+                          ₹{itemPrice.toLocaleString('en-IN')}{' '}
+                          <span className="text-xs font-normal text-charcoal-lighter font-sans">
+                            each
+                          </span>
+                        </p>
+
+                        {/* Custom print metadata breakdown */}
+                        {isCustomPrint && item.customPrint && (
+                          <div className="mt-2 rounded-xl bg-zinc-50 border border-zinc-100 p-2.5 text-xs text-charcoal-light">
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px]">
+                              <span>File: <strong>{item.customPrint.fileName}</strong></span>
+                              <span>Mat: <strong>{item.customPrint.material}</strong></span>
+                              <span>Infill: <strong>{item.customPrint.infill}%</strong></span>
+                              {item.customPrint.volume && (
+                                <span>Vol: <strong>{item.customPrint.volume.toFixed(1)} cm³</strong></span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Custom Inscription Note */}
+                        {item.customNotes && (
+                          <p className="mt-1 text-xs italic text-charcoal-lighter">
+                            “{item.customNotes}”
                           </p>
                         )}
-
-                        <p className="mt-1.5 text-[13px] text-[#746c63]">
-                          ₹
-                          {itemPrice.toLocaleString(
-                            'en-IN'
-                          )}{' '}
-                          each
-
-                          {isCustomPrint && (
-                            <span className="ml-1 font-mono text-[8px] uppercase tracking-[0.05em] text-[#9a8e82]">
-                              estimated
-                            </span>
-                          )}
-                        </p>
-
-                        {/* =================================================
-                            CUSTOM PRINT DETAILS
-                        ================================================== */}
-
-                        {isCustomPrint && (
-                          <div className="mt-3 border-l-2 border-[#b4491e] bg-[#f7f1e9] px-3 py-2.5">
-
-                            <div className="flex items-center gap-2">
-                              <FileBox
-                                className="h-3.5 w-3.5 shrink-0 text-[#b4491e]"
-                                aria-hidden="true"
-                              />
-
-                              <span className="font-mono text-[8px] uppercase tracking-[0.1em] text-[#625b53]">
-                                Custom print
-                              </span>
-                            </div>
-
-                            {item.customPrint
-                              ?.fileName && (
-                              <p className="mt-1.5 break-all text-[12px] text-[#746c63]">
-                                Model:{' '}
-                                <span className="font-medium text-[#171512]">
-                                  {
-                                    item.customPrint
-                                      .fileName
-                                  }
-                                </span>
-                              </p>
-                            )}
-
-                            <div className="mt-2 grid gap-x-4 gap-y-1 text-[11px] text-[#746c63] sm:grid-cols-2">
-
-                              {item
-                                .customPrint
-                                ?.material && (
-                                <p>
-                                  Material:{' '}
-                                  <span className="text-[#171512]">
-                                    {
-                                      item
-                                        .customPrint
-                                        .material
-                                    }
-                                  </span>
-                                </p>
-                              )}
-
-                              {item
-                                .customPrint
-                                ?.color && (
-                                <p>
-                                  Color:{' '}
-                                  <span className="text-[#171512]">
-                                    {
-                                      item
-                                        .customPrint
-                                        .color
-                                    }
-                                  </span>
-                                </p>
-                              )}
-
-                              {item
-                                .customPrint
-                                ?.infill !==
-                                undefined && (
-                                <p>
-                                  Infill:{' '}
-                                  <span className="text-[#171512]">
-                                    {
-                                      item
-                                        .customPrint
-                                        .infill
-                                    }
-                                    %
-                                  </span>
-                                </p>
-                              )}
-
-                              {item
-                                .customPrint
-                                ?.layerHeight !==
-                                undefined && (
-                                <p>
-                                  Layer:{' '}
-                                  <span className="text-[#171512]">
-                                    {
-                                      item
-                                        .customPrint
-                                        .layerHeight
-                                    }{' '}
-                                    mm
-                                  </span>
-                                </p>
-                              )}
-
-                              {item
-                                .customPrint
-                                ?.estimatedWeight !==
-                                undefined && (
-                                <p>
-                                  Weight:{' '}
-                                  <span className="text-[#171512]">
-                                    {
-                                      item
-                                        .customPrint
-                                        .estimatedWeight
-                                    }{' '}
-                                    g
-                                  </span>
-                                </p>
-                              )}
-
-                              {item
-                                .customPrint
-                                ?.volume !==
-                                undefined && (
-                                <p>
-                                  Volume:{' '}
-                                  <span className="text-[#171512]">
-                                    {item.customPrint.volume.toFixed(
-                                      2
-                                    )}{' '}
-                                    cm³
-                                  </span>
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* =================================================
-                            PERSONALISATION
-                        ================================================== */}
-
-                        {item.customNotes && (
-                          <div className="mt-3 border-l border-[#bdb5aa] pl-3">
-                            <p className="font-mono text-[8px] uppercase tracking-[0.08em] text-[#8d847a]">
-                              Personalisation
-                            </p>
-
-                            <p className="mt-1 text-[12px] italic leading-5 text-[#746c63]">
-                              "{item.customNotes}"
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* =================================================
-                        QUANTITY
-                    ================================================== */}
-
-                    <div className="col-start-2 sm:col-start-auto">
-
-                      <div className="flex h-9 items-center border border-[#d4cdc2] bg-white">
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateQuantity(
-                              cartItemId,
-                              item.quantity -
-                                1
-                            )
-                          }
-                          disabled={
-                            item.quantity <=
-                            1
-                          }
-                          aria-label={`Decrease quantity of ${item.product.name}`}
-                          className="flex h-full w-9 items-center justify-center text-[#746c63] transition-colors hover:bg-[#f7f4ee] disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          <Minus
-                            className="h-3.5 w-3.5"
-                            aria-hidden="true"
-                          />
-                        </button>
-
-                        <span
-                          aria-live="polite"
-                          className="flex min-w-9 justify-center text-xs font-medium text-[#171512]"
-                        >
-                          {item.quantity}
-                        </span>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateQuantity(
-                              cartItemId,
-                              Math.min(
-                                item.quantity +
-                                  1,
-                                maxQuantity
-                              )
-                            )
-                          }
-                          disabled={
-                            item.quantity >=
-                            maxQuantity
-                          }
-                          aria-label={`Increase quantity of ${item.product.name}`}
-                          className="flex h-full w-9 items-center justify-center text-[#746c63] transition-colors hover:bg-[#f7f4ee] disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          <Plus
-                            className="h-3.5 w-3.5"
-                            aria-hidden="true"
-                          />
-                        </button>
                       </div>
 
-                      {availableStock >
-                        0 && (
-                        <p className="mt-1.5 font-mono text-[7px] uppercase tracking-[0.06em] text-[#9a8e82]">
-                          {availableStock}{' '}
-                          available
-                        </p>
-                      )}
+                      {/* Quantity & Controls */}
+                      <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-4 pt-3 sm:pt-0 border-t sm:border-t-0 border-zinc-100">
+                        <div className="flex h-9 items-center rounded-xl border border-zinc-200 bg-zinc-50 p-1">
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(cartItemId, item.quantity - 1)}
+                            disabled={item.quantity <= 1}
+                            className="flex h-7 w-7 items-center justify-center rounded-lg text-charcoal hover:bg-white disabled:opacity-30 transition-colors"
+                            aria-label="Decrease quantity"
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </button>
+
+                          <span className="flex w-8 justify-center font-mono text-xs font-bold">
+                            {item.quantity}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateQuantity(cartItemId, Math.min(item.quantity + 1, maxQuantity))
+                            }
+                            disabled={item.quantity >= maxQuantity}
+                            className="flex h-7 w-7 items-center justify-center rounded-lg text-charcoal hover:bg-white disabled:opacity-30 transition-colors"
+                            aria-label="Increase quantity"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                          <span className="font-serif text-base font-bold text-charcoal">
+                            ₹{lineTotal.toLocaleString('en-IN')}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => removeFromCart(cartItemId)}
+                            className="rounded-lg p-1.5 text-zinc-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                            aria-label="Remove item"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-
-                    {/* =================================================
-                        LINE TOTAL
-                    ================================================== */}
-
-                    <p className="col-start-2 font-mono text-[14px] text-[#171512] sm:col-start-auto sm:text-right">
-                      ₹
-                      {lineTotal.toLocaleString(
-                        'en-IN'
-                      )}
-                    </p>
-
-                    {/* =================================================
-                        REMOVE
-                    ================================================== */}
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        removeFromCart(
-                          cartItemId
-                        )
-                      }
-                      aria-label={`Remove ${item.product.name} from cart`}
-                      className="col-start-2 flex h-8 w-8 items-center justify-center text-[#8d847a] transition-colors hover:bg-[#eee6df] hover:text-[#a23c20] sm:col-start-auto sm:justify-self-end"
-                    >
-                      <Trash2
-                        className="h-4 w-4"
-                        aria-hidden="true"
-                      />
-                    </button>
-                  </article>
+                  </div>
                 );
               })}
             </div>
 
-            {/* =================================================
-                CUSTOM PRINT CTA
-            ================================================== */}
-
-            <p className="mt-5 text-[13px] leading-6 text-[#746c63]">
-              Need a variation of one of
-              these — a different size,
-              colour or material?{' '}
-
-              <Link
-                to="/custom-service"
-                className="border-b border-[#8d847a] text-[#171512] transition-colors hover:border-[#b4491e] hover:text-[#b4491e]"
-              >
-                Send us the change
-              </Link>{' '}
-              and we can print it to
-              your requirements.
-            </p>
-          </section>
-
-          {/* =================================================
-              ORDER SUMMARY
-          ================================================== */}
-
-          <aside className="lg:col-span-4">
-            <div className="border border-[#d4cdc2] bg-white p-5 lg:sticky lg:top-28">
-
-              <h2 className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8d847a]">
-                Order summary
-              </h2>
-
-              <dl className="mt-4 space-y-3 border-b border-[#ded8ce] pb-5 text-sm">
-
-                <div className="flex justify-between gap-4">
-                  <dt className="text-[#746c63]">
-                    Subtotal
-                  </dt>
-
-                  <dd className="font-mono text-[#171512]">
-                    ₹
-                    {subtotal.toLocaleString(
-                      'en-IN'
-                    )}
-                  </dd>
-                </div>
-
-                <div className="flex justify-between gap-4">
-                  <dt className="text-[#746c63]">
-                    Shipping
-                  </dt>
-
-                  <dd className="font-mono text-[#171512]">
-                    {shipping === 0
-                      ? 'Free'
-                      : `₹${shipping.toLocaleString(
-                          'en-IN'
-                        )}`}
-                  </dd>
-                </div>
-
-                <div className="flex justify-between gap-4">
-                  <dt className="text-[#746c63]">
-                    GST
-                  </dt>
-
-                  <dd className="font-mono text-[12px] text-[#8d847a]">
-                    Included where applicable
-                  </dd>
-                </div>
-              </dl>
-
-              {/* =================================================
-                  FREE SHIPPING MESSAGE
-              ================================================== */}
-
-              {shipping > 0 &&
-                amountForFreeShipping >
-                  0 && (
-                  <p className="mt-4 border-l-2 border-[#b4491e] bg-[#f7f1e9] px-3 py-2.5 text-[12px] leading-5 text-[#625b53]">
-                    Add{' '}
-                    <span className="font-medium text-[#171512]">
-                      ₹
-                      {amountForFreeShipping.toLocaleString(
-                        'en-IN'
-                      )}
-                    </span>{' '}
-                    more for free
-                    shipping.
-                  </p>
-                )}
-
-              {/* =================================================
-                  TOTAL
-              ================================================== */}
-
-              <div className="flex items-baseline justify-between py-5">
-                <span className="text-sm font-medium text-[#171512]">
-                  Total
-                </span>
-
-                <span className="font-serif text-2xl font-semibold tracking-[-0.02em] text-[#171512]">
-                  ₹
-                  {total.toLocaleString(
-                    'en-IN'
-                  )}
+            {/* Custom fabrication note */}
+            <div className="rounded-2xl border border-zinc-200 bg-white p-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-5 w-5 text-brand-500" />
+                <span className="text-xs text-charcoal-light">
+                  Need a custom variant with specific engineering tolerances or brass inserts?
                 </span>
               </div>
+              <Link
+                to="/custom-service"
+                className="text-xs font-bold text-brand-600 hover:text-brand-700 whitespace-nowrap ml-4"
+              >
+                Open Studio →
+              </Link>
+            </div>
+          </section>
 
-              {/* =================================================
-                  CHECKOUT
-              ================================================== */}
+          {/* Order Summary Sidebar */}
+          <aside className="lg:col-span-4">
+            <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-md lg:sticky lg:top-28 space-y-6">
+              <h2 className="font-serif text-xl font-bold text-charcoal">
+                Order Summary
+              </h2>
+
+              <div className="divide-y divide-zinc-100 text-xs">
+                <div className="flex justify-between py-2.5">
+                  <span className="text-charcoal-lighter">Subtotal</span>
+                  <span className="font-mono font-bold text-charcoal">
+                    ₹{subtotal.toLocaleString('en-IN')}
+                  </span>
+                </div>
+
+                <div className="flex justify-between py-2.5">
+                  <span className="text-charcoal-lighter">Pan-India Shipping</span>
+                  <span className="font-mono font-bold text-charcoal">
+                    {shipping === 0 ? (
+                      <span className="text-emerald-600">FREE</span>
+                    ) : (
+                      `₹${shipping.toLocaleString('en-IN')}`
+                    )}
+                  </span>
+                </div>
+
+                <div className="flex justify-between py-2.5">
+                  <span className="text-charcoal-lighter">Taxes (GST)</span>
+                  <span className="text-charcoal-lighter">Included</span>
+                </div>
+
+                <div className="flex items-baseline justify-between pt-4">
+                  <span className="font-serif text-base font-bold text-charcoal">Total Amount</span>
+                  <span className="font-serif text-3xl font-bold text-charcoal">
+                    ₹{total.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
 
               <Button
                 size="lg"
-                className="w-full bg-[#171512] hover:bg-[#2b2824]"
-                onClick={() =>
-                  navigate('/checkout')
-                }
+                onClick={() => navigate('/checkout')}
+                className="w-full font-bold shadow-lg shadow-brand-500/20"
               >
-                Proceed to checkout
-
-                <ArrowRight
-                  className="ml-2 h-4 w-4"
-                  aria-hidden="true"
-                />
+                <span>Proceed to Checkout</span>
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
 
-              <p className="mt-3 text-center font-mono text-[8px] uppercase tracking-[0.08em] text-[#8d847a]">
-                Secure checkout · UPI · Cards
-              </p>
+              <div className="space-y-3 pt-2 text-center">
+                <p className="font-mono text-[10px] uppercase tracking-wider text-charcoal-lighter">
+                  Secure Pan-India Checkout · UPI / Cards / NetBanking
+                </p>
 
-              <Link
-                to="/catalog"
-                className="mt-4 block text-center text-sm text-[#746c63] transition-colors hover:text-[#b4491e]"
-              >
-                Continue shopping
-              </Link>
+                <div className="flex items-center justify-center gap-1.5 text-xs text-charcoal-light">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                  <span>Quality Inspected before dispatch</span>
+                </div>
+              </div>
             </div>
           </aside>
         </div>

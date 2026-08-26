@@ -91,19 +91,22 @@ export function App() {
         <Route
           path="*"
           element={
-            <div className="flex min-h-screen items-center justify-center bg-[#f7f4ee] px-6">
-              <div className="text-center">
-                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#8e8275]">
-                  404 · Page not found
-                </p>
-                <h1 className="mt-3 font-display text-4xl font-semibold text-[#14120f]">
-                  This page does not exist.
+            <div className="flex min-h-screen items-center justify-center bg-[#faf9f6] px-6 text-charcoal">
+              <div className="text-center max-w-md">
+                <span className="font-mono text-xs font-bold uppercase tracking-widest text-brand-500 block mb-2">
+                  404 · Dimension Missing
+                </span>
+                <h1 className="font-serif text-4xl font-bold text-charcoal sm:text-5xl">
+                  Lost in the Slicer.
                 </h1>
+                <p className="mt-3 text-xs text-charcoal-light leading-relaxed">
+                  The page or 3D model path you were looking for doesn't exist or may have been relocated.
+                </p>
                 <a
                   href="/"
-                  className="mt-6 inline-flex items-center justify-center bg-[#14120f] px-5 py-3 text-sm font-medium text-[#f7f4ee] transition-colors hover:bg-[#b4491e]"
+                  className="mt-6 inline-flex items-center justify-center rounded-xl bg-brand-500 px-6 py-3 font-mono text-xs font-bold text-white shadow-md shadow-brand-500/20 hover:bg-brand-600 transition-colors"
                 >
-                  Back to home
+                  Return to Storefront
                 </a>
               </div>
             </div>

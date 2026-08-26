@@ -4,7 +4,7 @@ import React, {
   useRef,
   useState
 } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, Layers } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -17,10 +17,90 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /* =========================================================
+   Brand Logo & Icon Mark
+   ========================================================= */
+
+interface BrandLogoProps {
+  className?: string;
+  theme?: 'light' | 'dark';
+  size?: 'sm' | 'md' | 'lg';
+  showTagline?: boolean;
+  taglineText?: string;
+}
+
+export function BrandLogo({
+  className,
+  theme = 'light',
+  size = 'md',
+  showTagline = false,
+  taglineText = 'If you can imagine it, we can print it.'
+}: BrandLogoProps) {
+  const isDark = theme === 'dark';
+
+  const markSizes = {
+    sm: 'h-8 w-8 text-xs',
+    md: 'h-10 w-10 text-sm',
+    lg: 'h-12 w-12 text-base'
+  };
+
+  const titleSizes = {
+    sm: 'text-base',
+    md: 'text-lg',
+    lg: 'text-xl'
+  };
+
+  return (
+    <div className={cn('flex items-center gap-3 select-none', className)}>
+      {/* Geometric Stacked Cube Mark */}
+      <div
+        className={cn(
+          'relative flex items-center justify-center rounded-xl font-display font-bold transition-transform duration-300 group-hover:scale-105 shadow-sm',
+          markSizes[size],
+          'bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-brand-500/25'
+        )}
+        aria-hidden="true"
+      >
+        <span className="tracking-[-0.05em] font-extrabold flex items-center gap-0.5">
+          <Layers className="w-4 h-4 text-white" />
+        </span>
+        {/* Glowing corner accent */}
+        <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-300"></span>
+        </span>
+      </div>
+
+      <div className="flex flex-col">
+        <span
+          className={cn(
+            'font-display font-bold tracking-tight leading-none',
+            titleSizes[size],
+            isDark ? 'text-white' : 'text-charcoal'
+          )}
+        >
+          SHILP <span className="text-brand-500">SAHAYAK</span>
+        </span>
+
+        {showTagline && (
+          <span
+            className={cn(
+              'font-sans text-[11px] font-medium tracking-wide mt-1 leading-tight',
+              isDark ? 'text-slate-400' : 'text-charcoal-lighter'
+            )}
+          >
+            {taglineText}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
    Button
    ========================================================= */
 
-interface ButtonProps
+export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'whatsapp';
   size?: 'sm' | 'md' | 'lg';
@@ -44,43 +124,39 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const baseStyles =
       'inline-flex items-center justify-center gap-2 ' +
       'font-medium tracking-[-0.01em] ' +
-      'border transition-all duration-200 ease-out ' +
+      'rounded-xl border transition-all duration-200 ease-out ' +
       'focus-visible:outline-none focus-visible:ring-2 ' +
-      'focus-visible:ring-[#b4491e]/30 focus-visible:ring-offset-2 ' +
-      'disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50';
+      'focus-visible:ring-brand-500/40 focus-visible:ring-offset-2 ' +
+      'disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]';
 
     const variants = {
       primary:
-        'border-[#14120f] bg-[#14120f] text-[#f7f4ee] ' +
-        'hover:-translate-y-0.5 hover:bg-[#2b2724] hover:shadow-md ' +
-        'active:translate-y-0 active:shadow-sm',
+        'border-brand-500 bg-brand-500 text-white shadow-sm ' +
+        'hover:bg-brand-600 hover:border-brand-600 hover:shadow-brand-500/25 hover:shadow-md',
 
       secondary:
-        'border-[#b4491e] bg-[#b4491e] text-white ' +
-        'hover:-translate-y-0.5 hover:bg-[#963d18] hover:shadow-md ' +
-        'active:translate-y-0 active:shadow-sm',
+        'border-charcoal bg-charcoal text-white ' +
+        'hover:bg-zinc-800 hover:border-zinc-800 hover:shadow-md',
 
       outline:
-        'border-[#b8aea0] bg-transparent text-[#14120f] ' +
-        'hover:-translate-y-0.5 hover:border-[#b4491e] ' +
-        'hover:bg-[#f4dccf]/40 hover:text-[#7b2f11] ' +
-        'active:translate-y-0',
+        'border-zinc-300 bg-white text-charcoal ' +
+        'hover:border-brand-500 hover:bg-brand-50/60 hover:text-brand-700 ' +
+        'dark:border-slate-700 dark:bg-dark-card dark:text-slate-200 dark:hover:border-brand-500',
 
       ghost:
-        'border-transparent bg-transparent text-[#6b6156] ' +
-        'hover:bg-[#ebe6dc] hover:text-[#14120f] ' +
-        'active:bg-[#d9d2c7]',
+        'border-transparent bg-transparent text-charcoal-light ' +
+        'hover:bg-brand-50 hover:text-brand-600 ' +
+        'dark:text-slate-300 dark:hover:bg-dark-card dark:hover:text-brand-400',
 
       whatsapp:
-        'border-[#25d366] bg-[#25d366] text-white ' +
-        'hover:-translate-y-0.5 hover:bg-[#128c7e] hover:shadow-md ' +
-        'active:translate-y-0'
+        'border-[#25D366] bg-[#25D366] text-white shadow-sm ' +
+        'hover:bg-[#1EBE5D] hover:border-[#1EBE5D] hover:shadow-emerald-500/25 hover:shadow-md'
     };
 
     const sizes = {
-      sm: 'min-h-9 px-3.5 text-xs rounded-sm',
-      md: 'min-h-11 px-5 text-sm rounded-sm',
-      lg: 'min-h-13 px-7 text-base rounded-sm'
+      sm: 'h-9 px-3.5 text-xs font-semibold',
+      md: 'h-11 px-5 text-sm font-semibold',
+      lg: 'h-13 px-7 text-base font-semibold'
     };
 
     return (
@@ -133,7 +209,7 @@ Button.displayName = 'Button';
    Input
    ========================================================= */
 
-interface InputProps
+export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
@@ -150,7 +226,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="mb-2 block text-xs font-medium uppercase tracking-[0.08em] text-[#6b6156]"
+            className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-charcoal-light"
           >
             {label}
           </label>
@@ -162,15 +238,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           aria-invalid={!!error}
           aria-describedby={error ? errorId : undefined}
           className={cn(
-            'flex h-11 w-full rounded-sm border bg-white px-3.5 py-2.5',
-            'text-sm text-[#14120f] shadow-none',
-            'placeholder:text-[#8e8275]',
+            'flex h-11 w-full rounded-xl border bg-white px-3.5 py-2.5',
+            'text-sm text-charcoal shadow-sm',
+            'placeholder:text-charcoal-lighter/80',
             'transition-all duration-150 ease-out',
-            'border-[#cfc7bb]',
-            'hover:border-[#8e8275]',
-            'focus:border-[#b4491e] focus:outline-none',
-            'focus:ring-2 focus:ring-[#b4491e]/15',
-            'disabled:cursor-not-allowed disabled:bg-[#ebe6dc] disabled:opacity-60',
+            'border-zinc-200',
+            'hover:border-zinc-300',
+            'focus:border-brand-500 focus:outline-none',
+            'focus:ring-2 focus:ring-brand-500/15',
+            'disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:opacity-60',
             'file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium',
             error &&
               'border-red-500 focus:border-red-500 focus:ring-red-500/15',
@@ -182,7 +258,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {error && (
           <p
             id={errorId}
-            className="mt-1.5 text-xs leading-relaxed text-red-600"
+            className="mt-1.5 text-xs leading-relaxed text-red-600 font-medium"
           >
             {error}
           </p>
@@ -198,7 +274,7 @@ Input.displayName = 'Input';
    Textarea
    ========================================================= */
 
-interface TextareaProps
+export interface TextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
@@ -217,7 +293,7 @@ export const Textarea = forwardRef<
       {label && (
         <label
           htmlFor={textareaId}
-          className="mb-2 block text-xs font-medium uppercase tracking-[0.08em] text-[#6b6156]"
+          className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-charcoal-light"
         >
           {label}
         </label>
@@ -229,15 +305,15 @@ export const Textarea = forwardRef<
         aria-invalid={!!error}
         aria-describedby={error ? errorId : undefined}
         className={cn(
-          'flex min-h-[100px] w-full resize-y rounded-sm border bg-white px-3.5 py-2.5',
-          'text-sm leading-relaxed text-[#14120f]',
-          'placeholder:text-[#8e8275]',
+          'flex min-h-[100px] w-full resize-y rounded-xl border bg-white px-3.5 py-2.5',
+          'text-sm leading-relaxed text-charcoal shadow-sm',
+          'placeholder:text-charcoal-lighter/80',
           'transition-all duration-150 ease-out',
-          'border-[#cfc7bb]',
-          'hover:border-[#8e8275]',
-          'focus:border-[#b4491e] focus:outline-none',
-          'focus:ring-2 focus:ring-[#b4491e]/15',
-          'disabled:cursor-not-allowed disabled:bg-[#ebe6dc] disabled:opacity-60',
+          'border-zinc-200',
+          'hover:border-zinc-300',
+          'focus:border-brand-500 focus:outline-none',
+          'focus:ring-2 focus:ring-brand-500/15',
+          'disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:opacity-60',
           error &&
             'border-red-500 focus:border-red-500 focus:ring-red-500/15',
           className
@@ -248,7 +324,7 @@ export const Textarea = forwardRef<
       {error && (
         <p
           id={errorId}
-          className="mt-1.5 text-xs leading-relaxed text-red-600"
+          className="mt-1.5 text-xs leading-relaxed text-red-600 font-medium"
         >
           {error}
         </p>
@@ -271,9 +347,9 @@ export function Card({
   return (
     <div
       className={cn(
-        'overflow-hidden border border-[#d9d2c7] bg-white',
-        'shadow-[0_1px_2px_rgba(20,18,15,0.04)]',
-        'transition-shadow duration-200',
+        'rounded-2xl border border-zinc-200/80 bg-white',
+        'shadow-[0_4px_20px_-2px_rgba(24,24,27,0.04)]',
+        'transition-all duration-200',
         className
       )}
       {...props}
@@ -293,25 +369,27 @@ export function Badge({
   children
 }: {
   className?: string;
-  variant?: 'default' | 'success' | 'warning' | 'danger';
+  variant?: 'default' | 'brand' | 'success' | 'warning' | 'danger';
   children: React.ReactNode;
 }) {
   const variants = {
     default:
-      'border-[#d9d2c7] bg-[#ebe6dc] text-[#514a42]',
+      'border-zinc-200 bg-zinc-100 text-charcoal-light',
+    brand:
+      'border-brand-200 bg-brand-50 text-brand-700',
     success:
       'border-emerald-200 bg-emerald-50 text-emerald-700',
     warning:
       'border-amber-200 bg-amber-50 text-amber-700',
     danger:
-      'border-red-200 bg-red-50 text-red-700'
+      'border-rose-200 bg-rose-50 text-rose-700'
   };
 
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-sm border px-2.5 py-1',
-        'text-[11px] font-medium uppercase tracking-[0.06em]',
+        'inline-flex items-center rounded-full border px-2.5 py-0.5',
+        'text-[11px] font-semibold uppercase tracking-wider',
         variants[variant],
         className
       )}
@@ -330,7 +408,7 @@ export interface SelectOption {
   label: string;
 }
 
-interface SelectProps {
+export interface SelectProps {
   value: string;
   onChange: (value: string) => void;
   options: SelectOption[];
@@ -438,88 +516,49 @@ export function Select({
       updateDropdownPosition();
     };
 
-    window.addEventListener(
-      'resize',
-      handleResize
-    );
-
-    window.addEventListener(
-      'scroll',
-      handleScroll,
-      true
-    );
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleScroll, true);
 
     return () => {
-      window.removeEventListener(
-        'resize',
-        handleResize
-      );
-
-      window.removeEventListener(
-        'scroll',
-        handleScroll,
-        true
-      );
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll, true);
     };
   }, [isOpen, options.length]);
 
   useEffect(() => {
-    const handleClickOutside = (
-      event: MouseEvent
-    ) => {
+    const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
 
       if (
         selectRef.current &&
         !selectRef.current.contains(target)
       ) {
-        const element =
-          event.target as HTMLElement;
+        const element = event.target as HTMLElement;
 
         if (
-          !element.closest(
-            '[data-select-dropdown="true"]'
-          )
+          !element.closest('[data-select-dropdown="true"]')
         ) {
           setIsOpen(false);
         }
       }
     };
 
-    const handleEscape = (
-      event: KeyboardEvent
-    ) => {
+    const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsOpen(false);
       }
     };
 
-    document.addEventListener(
-      'mousedown',
-      handleClickOutside
-    );
-
-    document.addEventListener(
-      'keydown',
-      handleEscape
-    );
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
 
     return () => {
-      document.removeEventListener(
-        'mousedown',
-        handleClickOutside
-      );
-
-      document.removeEventListener(
-        'keydown',
-        handleEscape
-      );
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
     };
   }, []);
 
-  const handleSelect = (
-    optionValue: string
-  ) => {
+  const handleSelect = (optionValue: string) => {
     onChange(optionValue);
     setIsOpen(false);
   };
@@ -527,38 +566,33 @@ export function Select({
   return (
     <div
       ref={selectRef}
-      className={cn(
-        'relative w-full',
-        className
-      )}
+      className={cn('relative w-full', className)}
     >
       <button
         type="button"
         disabled={disabled}
         onClick={() => {
           if (disabled) return;
-
           setIsOpen((previous) => !previous);
         }}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         className={cn(
           'group flex h-11 w-full items-center justify-between',
-          'rounded-sm border border-[#cfc7bb] bg-white',
-          'px-3.5 text-left text-sm font-medium text-[#14120f]',
+          'rounded-xl border border-zinc-200 bg-white shadow-sm',
+          'px-3.5 text-left text-sm font-medium text-charcoal',
           'transition-all duration-150 ease-out',
-          'hover:border-[#8e8275]',
-          'focus:outline-none focus:ring-2 focus:ring-[#b4491e]/15',
-          'disabled:cursor-not-allowed disabled:bg-[#ebe6dc] disabled:opacity-60',
+          'hover:border-zinc-300',
+          'focus:outline-none focus:ring-2 focus:ring-brand-500/15',
+          'disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:opacity-60',
           isOpen &&
-            'border-[#b4491e] ring-2 ring-[#b4491e]/15'
+            'border-brand-500 ring-2 ring-brand-500/15'
         )}
       >
         <span
           className={cn(
             'truncate leading-5',
-            !selectedOption &&
-              'text-[#8e8275]'
+            !selectedOption && 'text-charcoal-lighter'
           )}
         >
           {selectedOption?.label || placeholder}
@@ -567,11 +601,10 @@ export function Select({
         <ChevronDown
           aria-hidden="true"
           className={cn(
-            'ml-3 h-4 w-4 shrink-0 text-[#6b6156]',
+            'ml-3 h-4 w-4 shrink-0 text-charcoal-lighter',
             'transition-transform duration-150',
-            'group-hover:text-[#b4491e]',
-            isOpen &&
-              'rotate-180 text-[#b4491e]'
+            'group-hover:text-brand-500',
+            isOpen && 'rotate-180 text-brand-500'
           )}
         />
       </button>
@@ -586,13 +619,12 @@ export function Select({
             top: dropdownPosition.top,
             left: dropdownPosition.left,
             width: dropdownPosition.width,
-            maxHeight:
-              dropdownPosition.maxHeight
+            maxHeight: dropdownPosition.maxHeight
           }}
           className={cn(
-            'z-[9999] overflow-y-auto',
-            'border border-[#d9d2c7] bg-white',
-            'p-1.5 shadow-[0_12px_32px_rgba(20,18,15,0.14)]',
+            'z-[9999] overflow-y-auto rounded-xl',
+            'border border-zinc-200 bg-white',
+            'p-1.5 shadow-[0_12px_32px_rgba(24,24,27,0.12)]',
             dropdownPosition.openUpward
               ? 'origin-bottom'
               : 'origin-top'
@@ -600,8 +632,7 @@ export function Select({
         >
           <div className="space-y-0.5">
             {options.map((option) => {
-              const isSelected =
-                option.value === value;
+              const isSelected = option.value === value;
 
               return (
                 <button
@@ -609,20 +640,16 @@ export function Select({
                   type="button"
                   role="option"
                   aria-selected={isSelected}
-                  onClick={() =>
-                    handleSelect(
-                      option.value
-                    )
-                  }
+                  onClick={() => handleSelect(option.value)}
                   className={cn(
                     'flex w-full items-center justify-between',
-                    'rounded-sm px-3 py-2.5',
-                    'text-left text-sm',
+                    'rounded-lg px-3 py-2.5',
+                    'text-left text-sm font-medium',
                     'transition-colors duration-100',
-                    'text-[#514a42]',
-                    'hover:bg-[#f7f4ee] hover:text-[#14120f]',
+                    'text-charcoal-light',
+                    'hover:bg-brand-50 hover:text-brand-700',
                     isSelected &&
-                      'bg-[#f4dccf] text-[#7b2f11]'
+                      'bg-brand-50 text-brand-700 font-semibold'
                   )}
                 >
                   <span className="leading-5">
@@ -634,7 +661,7 @@ export function Select({
                       className={cn(
                         'ml-3 flex h-5 w-5 shrink-0',
                         'items-center justify-center',
-                        'rounded-full bg-[#b4491e]'
+                        'rounded-full bg-brand-500'
                       )}
                     >
                       <Check

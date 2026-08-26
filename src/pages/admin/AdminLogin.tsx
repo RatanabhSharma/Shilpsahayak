@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   AlertCircle,
   ArrowLeft,
-  LockKeyhole,
   ShieldCheck,
 } from 'lucide-react';
-import { Button, Input, Card } from '../../components/ui';
+import { Button, Input, BrandLogo } from '../../components/ui';
 import { auth } from '../../lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
@@ -16,114 +15,46 @@ export function AdminLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLogin = async (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    if (isLoading) {
-      return;
-    }
+    if (isLoading) return;
 
     setError('');
     setIsLoading(true);
 
-    const formData = new FormData(
-      event.currentTarget
-    );
-
-    const email = String(
-      formData.get('email') || ''
-    ).trim();
-
-    const password = String(
-      formData.get('password') || ''
-    );
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get('email') || '').trim();
+    const password = String(formData.get('password') || '');
 
     if (!email || !password) {
-      setError(
-        'Please enter your email address and password.'
-      );
+      setError('Please enter your administrator email and password.');
       setIsLoading(false);
       return;
     }
 
     try {
-      /*
-       * Keep the existing Firebase authentication.
-       * This page does not use the Magic Patterns
-       * mock authentication system.
-       */
-      await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-
-      /*
-       * Firebase authentication succeeded.
-       *
-       * ProtectedRoute will handle the subsequent
-       * authorization/role check for the admin area.
-       */
-      navigate('/admin/dashboard', {
-        replace: true,
-      });
+      await signInWithEmailAndPassword(auth, email, password);
+      navigate('/admin/dashboard', { replace: true });
     } catch (err: unknown) {
-      const firebaseError = err as {
-        code?: string;
-        message?: string;
-      };
+      const firebaseError = err as { code?: string; message?: string };
 
       switch (firebaseError.code) {
         case 'auth/invalid-credential':
         case 'auth/wrong-password':
         case 'auth/user-not-found':
-          setError(
-            'Invalid email or password.'
-          );
+          setError('Invalid administrator email or password.');
           break;
-
         case 'auth/invalid-email':
-          setError(
-            'Please enter a valid email address.'
-          );
+          setError('Please enter a valid email address.');
           break;
-
         case 'auth/user-disabled':
-          setError(
-            'This account has been disabled. Please contact the administrator.'
-          );
+          setError('This account has been disabled.');
           break;
-
         case 'auth/too-many-requests':
-          setError(
-            'Too many login attempts. Please wait a moment and try again.'
-          );
+          setError('Too many attempts. Please wait a moment.');
           break;
-
-        case 'auth/network-request-failed':
-          setError(
-            'Network error. Please check your internet connection and try again.'
-          );
-          break;
-
-        case 'auth/operation-not-allowed':
-          setError(
-            'Email/password authentication is not enabled for this Firebase project.'
-          );
-          break;
-
         default:
-          console.error(
-            'Admin authentication failed:',
-            firebaseError.code,
-            firebaseError.message
-          );
-
-          setError(
-            'Login failed. Please try again.'
-          );
+          setError('Authentication failed. Please verify credentials.');
       }
     } finally {
       setIsLoading(false);
@@ -131,224 +62,122 @@ export function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f4ee] text-[#14120f]">
-      <div className="mx-auto grid min-h-screen max-w-[1440px] lg:grid-cols-[1fr_1fr]">
-        {/* =================================================
-            Left visual panel
-            ================================================= */}
+    <div className="grid min-h-screen w-full lg:grid-cols-12 bg-[#faf9f6] text-charcoal">
+      {/* Left Dark Showcase Column */}
+      <div className="relative hidden overflow-hidden bg-[#0b0f17] text-white lg:col-span-5 lg:flex lg:flex-col lg:justify-between p-12 xl:p-16 border-r border-zinc-800">
+        <div className="absolute inset-0 opacity-20 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(#ff6b1a_1px,transparent_1px)] [background-size:24px_24px]" />
+          <div className="absolute right-0 top-1/3 h-80 w-80 rounded-full bg-brand-500/20 blur-3xl" />
+        </div>
 
-        <div className="relative hidden overflow-hidden bg-[#14120f] lg:flex">
-          {/* Technical background */}
-          <div
-            className="absolute inset-0 opacity-30"
-            aria-hidden="true"
-          >
-            <div className="absolute inset-0 bg-[linear-gradient(rgba(247,244,238,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(247,244,238,0.05)_1px,transparent_1px)] bg-[size:48px_48px]" />
-
-            <div className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#f7f4ee]/10" />
-
-            <div className="absolute left-1/2 top-1/2 h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#f7f4ee]/10" />
-
-            <div className="absolute left-1/2 top-1/2 h-[200px] w-[200px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#b4491e]/30" />
-          </div>
-
-          <div className="relative flex w-full flex-col justify-between p-12 xl:p-16">
+        <div className="relative z-10">
+          <div className="flex items-center gap-3">
+            <BrandLogo size="md" />
             <div>
-              <div className="flex items-center gap-3">
-                <div
-                  className="relative flex h-10 w-10 items-center justify-center border border-[#f7f4ee]/30 bg-[#f7f4ee] text-[#14120f]"
-                  aria-hidden="true"
-                >
-                  <span className="font-display text-sm font-bold tracking-[-0.08em]">
-                    SS
-                  </span>
-
-                  <span className="absolute -bottom-px -right-px h-2 w-2 bg-[#b4491e]" />
-                </div>
-
-                <div>
-                  <p className="font-display text-lg font-semibold tracking-[-0.02em] text-[#f7f4ee]">
-                    Shilp Sahayak
-                  </p>
-
-                  <p className="font-mono text-[8px] uppercase tracking-[0.16em] text-[#f7f4ee]/35">
-                    Admin workspace
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-20 max-w-xl">
-                <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#d9784b]">
-                  Restricted access / 01
-                </p>
-
-                <h1 className="mt-5 font-display text-5xl font-semibold leading-[0.98] tracking-[-0.045em] text-[#f7f4ee] xl:text-6xl">
-                  Build.
-                  <br />
-                  Manage.
-                  <br />
-                  Deliver.
-                </h1>
-
-                <p className="mt-7 max-w-md text-[15px] leading-7 text-[#f7f4ee]/50">
-                  Manage products, orders, customers,
-                  inventory and custom printing requests
-                  from the Shilp Sahayak workspace.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span
-                className="h-1.5 w-1.5 rounded-full bg-[#b4491e]"
-                aria-hidden="true"
-              />
-
-              <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#f7f4ee]/35">
-                Authorized administrators only
+              <span className="font-serif text-xl font-bold tracking-tight text-white block">
+                Shilp Sahayak
+              </span>
+              <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-brand-400">
+                Workshop Operations
               </span>
             </div>
           </div>
         </div>
 
-        {/* =================================================
-            Right login panel
-            ================================================= */}
+        <div className="relative z-10 max-w-sm space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-3 py-1 text-xs font-bold text-brand-400">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            <span>Restricted Engineer Access</span>
+          </div>
 
-        <div className="flex min-h-screen items-center justify-center px-5 py-12 sm:px-8 lg:px-12 xl:px-20">
-          <div className="w-full max-w-[480px]">
-            {/* Back to storefront */}
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="mb-10 inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[#6b6156] transition-colors hover:text-[#14120f]"
-            >
-              <ArrowLeft
-                className="h-3.5 w-3.5"
-                aria-hidden="true"
+          <h1 className="font-serif text-4xl font-bold text-white leading-tight">
+            Build. Manage. Deliver.
+          </h1>
+
+          <p className="text-xs text-zinc-400 leading-relaxed">
+            Manage live 3D print queue, review customer CAD uploads, adjust filament stock, and control storefront catalog pieces.
+          </p>
+
+          <div className="pt-4 border-t border-zinc-800 flex items-center gap-4 text-xs font-mono text-zinc-400">
+            <span>🔒 Multi-Role RBAC Protected</span>
+          </div>
+        </div>
+
+        <div className="relative z-10 text-[11px] font-mono text-zinc-500">
+          Patiala Workshop Control Console · Shilp Sahayak
+        </div>
+      </div>
+
+      {/* Right Login Form Column */}
+      <div className="flex min-h-screen items-center justify-center px-5 py-12 sm:px-8 lg:col-span-7 lg:px-12">
+        <div className="w-full max-w-[440px]">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-charcoal-light hover:text-brand-600 transition-colors mb-6"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Back to Storefront</span>
+          </Link>
+
+          <div className="mb-6">
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
+              Studio Access
+            </span>
+            <h2 className="mt-1 font-serif text-3xl font-bold text-charcoal sm:text-4xl">
+              Engineer Sign In
+            </h2>
+            <p className="mt-2 text-xs text-charcoal-light leading-relaxed">
+              Sign in with your authorized administrator credentials to enter the production control console.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-zinc-200 bg-white p-7 sm:p-8 shadow-sm">
+            <form onSubmit={handleLogin} noValidate className="space-y-4">
+              <Input
+                name="email"
+                type="email"
+                label="Admin Email *"
+                placeholder="admin@shilpsahayak.in"
+                autoComplete="username"
+                required
               />
 
-              Back to store
-            </button>
+              <Input
+                name="password"
+                type="password"
+                label="Security Key / Password *"
+                placeholder="••••••••••••"
+                autoComplete="current-password"
+                required
+              />
 
-            {/* Heading */}
-            <div className="mb-8">
-              <div className="mb-5 flex h-11 w-11 items-center justify-center border border-[#d9d2c7] bg-white text-[#b4491e]">
-                <ShieldCheck
-                  className="h-5 w-5"
-                  aria-hidden="true"
-                />
-              </div>
-
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#b4491e]">
-                Administrator sign in
-              </p>
-
-              <h2 className="mt-3 font-display text-4xl font-semibold tracking-[-0.04em] text-[#14120f] sm:text-5xl">
-                Welcome back.
-              </h2>
-
-              <p className="mt-4 max-w-md text-sm leading-6 text-[#6b6156]">
-                Sign in with your authorized
-                administrator account to access the
-                Shilp Sahayak control panel.
-              </p>
-            </div>
-
-            {/* Login card */}
-            <Card className="border-[#d9d2c7] bg-white p-6 shadow-[0_8px_30px_rgba(20,18,15,0.06)] sm:p-8">
-              <div className="mb-7 flex items-center gap-3 border-b border-[#ebe6dc] pb-5">
-                <div className="flex h-9 w-9 items-center justify-center bg-[#f7f4ee] text-[#b4491e]">
-                  <LockKeyhole
-                    className="h-4 w-4"
-                    aria-hidden="true"
-                  />
+              {error && (
+                <div className="flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-semibold text-rose-700">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>{error}</span>
                 </div>
+              )}
 
-                <div>
-                  <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8e8275]">
-                    Secure authentication
-                  </p>
-
-                  <p className="mt-1 text-sm font-medium text-[#14120f]">
-                    Admin credentials
-                  </p>
-                </div>
-              </div>
-
-              <form
-                onSubmit={handleLogin}
-                noValidate
-                className="space-y-5"
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full font-bold shadow-md shadow-brand-500/20"
+                isLoading={isLoading}
               >
-                <Input
-                  name="email"
-                  type="email"
-                  label="Email Address"
-                  placeholder="admin@example.com"
-                  autoComplete="username"
-                  inputMode="email"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  required
-                />
+                Access Control Panel
+              </Button>
+            </form>
 
-                <Input
-                  name="password"
-                  type="password"
-                  label="Password"
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
-                  required
-                />
-
-                {error && (
-                  <div
-                    role="alert"
-                    className="flex items-start gap-3 border border-red-200 bg-red-50 p-3.5 text-sm text-red-700"
-                  >
-                    <AlertCircle
-                      className="mt-0.5 h-4 w-4 shrink-0"
-                      aria-hidden="true"
-                    />
-
-                    <span className="leading-5">
-                      {error}
-                    </span>
-                  </div>
-                )}
-
-                <Button
-                  type="submit"
-                  className="w-full"
-                  size="lg"
-                  isLoading={isLoading}
-                >
-                  Sign In
-                </Button>
-              </form>
-
-              <div className="mt-7 border-t border-[#ebe6dc] pt-5">
-                <div className="flex items-start gap-2.5">
-                  <ShieldCheck
-                    className="mt-0.5 h-4 w-4 shrink-0 text-[#b4491e]"
-                    aria-hidden="true"
-                  />
-
-                  <p className="text-xs leading-5 text-[#8e8275]">
-                    Administrator permissions are verified
-                    separately after Firebase authentication.
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            <p className="mt-6 text-center font-mono text-[9px] uppercase tracking-[0.1em] text-[#9c9184]">
-              Shilp Sahayak · Admin workspace
-            </p>
+            <div className="mt-6 border-t border-zinc-100 pt-5 text-xs text-charcoal-lighter flex items-start gap-2">
+              <ShieldCheck className="h-4 w-4 text-brand-500 shrink-0 mt-0.5" />
+              <span>
+                Role-based access permissions are enforced via Firebase Firestore security rules.
+              </span>
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
