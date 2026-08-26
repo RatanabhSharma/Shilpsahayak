@@ -75,7 +75,7 @@ export function BrandLogo({
           className={cn(
             'font-display font-bold tracking-tight leading-none',
             titleSizes[size],
-            isDark ? 'text-white' : 'text-charcoal'
+            isDark ? 'text-white' : 'text-charcoal dark:text-white'
           )}
         >
           SHILP <span className="text-brand-500">SAHAYAK</span>
@@ -85,7 +85,7 @@ export function BrandLogo({
           <span
             className={cn(
               'font-sans text-[11px] font-medium tracking-wide mt-1 leading-tight',
-              isDark ? 'text-slate-400' : 'text-charcoal-lighter'
+              isDark ? 'text-slate-400' : 'text-charcoal-lighter dark:text-slate-400'
             )}
           >
             {taglineText}
@@ -242,11 +242,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             'text-sm text-charcoal shadow-sm',
             'placeholder:text-charcoal-lighter/80',
             'transition-all duration-150 ease-out',
-            'border-zinc-200',
-            'hover:border-zinc-300',
+            'border-zinc-200 hover:border-zinc-300',
+            'dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-100 dark:placeholder:text-slate-500 dark:hover:border-slate-600',
             'focus:border-brand-500 focus:outline-none',
             'focus:ring-2 focus:ring-brand-500/15',
-            'disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:opacity-60',
+            'disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:opacity-60 dark:disabled:bg-slate-900',
             'file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium',
             error &&
               'border-red-500 focus:border-red-500 focus:ring-red-500/15',
@@ -258,7 +258,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {error && (
           <p
             id={errorId}
-            className="mt-1.5 text-xs leading-relaxed text-red-600 font-medium"
+            className="mt-1.5 text-xs leading-relaxed text-red-600 dark:text-red-400 font-medium"
           >
             {error}
           </p>
@@ -293,7 +293,7 @@ export const Textarea = forwardRef<
       {label && (
         <label
           htmlFor={textareaId}
-          className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-charcoal-light"
+          className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-charcoal-light dark:text-slate-400"
         >
           {label}
         </label>
@@ -309,11 +309,11 @@ export const Textarea = forwardRef<
           'text-sm leading-relaxed text-charcoal shadow-sm',
           'placeholder:text-charcoal-lighter/80',
           'transition-all duration-150 ease-out',
-          'border-zinc-200',
-          'hover:border-zinc-300',
+          'border-zinc-200 hover:border-zinc-300',
+          'dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-100 dark:placeholder:text-slate-500 dark:hover:border-slate-600',
           'focus:border-brand-500 focus:outline-none',
           'focus:ring-2 focus:ring-brand-500/15',
-          'disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:opacity-60',
+          'disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:opacity-60 dark:disabled:bg-slate-900',
           error &&
             'border-red-500 focus:border-red-500 focus:ring-red-500/15',
           className
@@ -324,7 +324,7 @@ export const Textarea = forwardRef<
       {error && (
         <p
           id={errorId}
-          className="mt-1.5 text-xs leading-relaxed text-red-600 font-medium"
+          className="mt-1.5 text-xs leading-relaxed text-red-600 dark:text-red-400 font-medium"
         >
           {error}
         </p>
@@ -348,7 +348,8 @@ export function Card({
     <div
       className={cn(
         'rounded-2xl border border-zinc-200/80 bg-white',
-        'shadow-[0_4px_20px_-2px_rgba(24,24,27,0.04)]',
+        'dark:border-slate-800 dark:bg-slate-800/90 dark:text-slate-100',
+        'shadow-[0_4px_20px_-2px_rgba(24,24,27,0.04)] dark:shadow-[0_4px_20px_-2px_rgba(0,0,0,0.3)]',
         'transition-all duration-200',
         className
       )}
@@ -374,15 +375,15 @@ export function Badge({
 }) {
   const variants = {
     default:
-      'border-zinc-200 bg-zinc-100 text-charcoal-light',
+      'border-zinc-200 bg-zinc-100 text-charcoal-light dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300',
     brand:
-      'border-brand-200 bg-brand-50 text-brand-700',
+      'border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-400',
     success:
-      'border-emerald-200 bg-emerald-50 text-emerald-700',
+      'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400',
     warning:
-      'border-amber-200 bg-amber-50 text-amber-700',
+      'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400',
     danger:
-      'border-rose-200 bg-rose-50 text-rose-700'
+      'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-400'
   };
 
   return (
@@ -580,11 +581,12 @@ export function Select({
         className={cn(
           'group flex h-11 w-full items-center justify-between',
           'rounded-xl border border-zinc-200 bg-white shadow-sm',
+          'dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-100',
           'px-3.5 text-left text-sm font-medium text-charcoal',
           'transition-all duration-150 ease-out',
-          'hover:border-zinc-300',
+          'hover:border-zinc-300 dark:hover:border-slate-600',
           'focus:outline-none focus:ring-2 focus:ring-brand-500/15',
-          'disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:opacity-60',
+          'disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:opacity-60 dark:disabled:bg-slate-900',
           isOpen &&
             'border-brand-500 ring-2 ring-brand-500/15'
         )}
@@ -592,7 +594,7 @@ export function Select({
         <span
           className={cn(
             'truncate leading-5',
-            !selectedOption && 'text-charcoal-lighter'
+            !selectedOption && 'text-charcoal-lighter dark:text-slate-400'
           )}
         >
           {selectedOption?.label || placeholder}
@@ -601,7 +603,7 @@ export function Select({
         <ChevronDown
           aria-hidden="true"
           className={cn(
-            'ml-3 h-4 w-4 shrink-0 text-charcoal-lighter',
+            'ml-3 h-4 w-4 shrink-0 text-charcoal-lighter dark:text-slate-400',
             'transition-transform duration-150',
             'group-hover:text-brand-500',
             isOpen && 'rotate-180 text-brand-500'
@@ -624,7 +626,8 @@ export function Select({
           className={cn(
             'z-[9999] overflow-y-auto rounded-xl',
             'border border-zinc-200 bg-white',
-            'p-1.5 shadow-[0_12px_32px_rgba(24,24,27,0.12)]',
+            'dark:border-slate-700 dark:bg-slate-800',
+            'p-1.5 shadow-[0_12px_32px_rgba(24,24,27,0.12)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.5)]',
             dropdownPosition.openUpward
               ? 'origin-bottom'
               : 'origin-top'
@@ -646,10 +649,10 @@ export function Select({
                     'rounded-lg px-3 py-2.5',
                     'text-left text-sm font-medium',
                     'transition-colors duration-100',
-                    'text-charcoal-light',
-                    'hover:bg-brand-50 hover:text-brand-700',
+                    'text-charcoal-light dark:text-slate-300',
+                    'hover:bg-brand-50 hover:text-brand-700 dark:hover:bg-slate-700 dark:hover:text-brand-300',
                     isSelected &&
-                      'bg-brand-50 text-brand-700 font-semibold'
+                      'bg-brand-50 text-brand-700 font-semibold dark:bg-brand-500/20 dark:text-brand-300'
                   )}
                 >
                   <span className="leading-5">

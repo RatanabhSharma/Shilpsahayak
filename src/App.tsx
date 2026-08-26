@@ -91,15 +91,15 @@ export function App() {
         <Route
           path="*"
           element={
-            <div className="flex min-h-screen items-center justify-center bg-[#f4f2ef] px-6 text-charcoal">
+            <div className="flex min-h-screen items-center justify-center bg-[#f4f2ef] dark:bg-[#0f172a] px-6 text-charcoal dark:text-slate-100 transition-colors duration-200">
               <div className="text-center max-w-md">
                 <span className="font-mono text-xs font-bold uppercase tracking-widest text-brand-500 block mb-2">
                   404 · Dimension Missing
                 </span>
-                <h1 className="font-serif text-4xl font-bold text-charcoal sm:text-5xl">
+                <h1 className="font-serif text-4xl font-bold text-charcoal dark:text-slate-100 sm:text-5xl">
                   Lost in the Slicer.
                 </h1>
-                <p className="mt-3 text-xs text-charcoal-light leading-relaxed">
+                <p className="mt-3 text-xs text-charcoal-light dark:text-slate-400 leading-relaxed">
                   The page or 3D model path you were looking for doesn't exist or may have been relocated.
                 </p>
                 <a

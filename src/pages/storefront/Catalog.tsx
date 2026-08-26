@@ -364,12 +364,12 @@ export function Catalog() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#f4f2ef]">
+      <div className="min-h-screen bg-[#f4f2ef] dark:bg-[#0f172a] transition-colors duration-200">
         <div className="mx-auto max-w-[1440px] px-5 py-12 sm:px-8 lg:px-10">
           <div className="max-w-2xl space-y-3">
-            <div className="h-4 w-24 rounded-full bg-zinc-200 animate-pulse" />
-            <div className="h-10 w-72 rounded-xl bg-zinc-200 animate-pulse" />
-            <div className="h-4 w-full max-w-lg rounded-md bg-zinc-200 animate-pulse" />
+            <div className="h-4 w-24 rounded-full bg-zinc-200 dark:bg-slate-800 animate-pulse" />
+            <div className="h-10 w-72 rounded-xl bg-zinc-200 dark:bg-slate-800 animate-pulse" />
+            <div className="h-4 w-full max-w-lg rounded-md bg-zinc-200 dark:bg-slate-800 animate-pulse" />
           </div>
 
           <div className="mt-12">
@@ -382,15 +382,15 @@ export function Catalog() {
 
   if (isError) {
     return (
-      <div className="min-h-[60vh] bg-[#f4f2ef] flex items-center justify-center px-5">
+      <div className="min-h-[60vh] bg-[#f4f2ef] dark:bg-[#0f172a] text-charcoal dark:text-slate-100 flex items-center justify-center px-5 transition-colors duration-200">
         <div className="max-w-md text-center">
           <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
             Catalog Error
           </span>
-          <h1 className="mt-3 font-serif text-3xl font-bold text-charcoal">
+          <h1 className="mt-3 font-serif text-3xl font-bold text-charcoal dark:text-slate-100">
             Unable to load products.
           </h1>
-          <p className="mt-3 text-sm text-charcoal-light">
+          <p className="mt-3 text-sm text-charcoal-light dark:text-slate-400">
             Please check your connection and refresh the page.
           </p>
           <Button
@@ -502,7 +502,7 @@ export function Catalog() {
   );
 
   return (
-    <div className="min-h-screen bg-[#f4f2ef] text-charcoal">
+    <div className="min-h-screen bg-[#f4f2ef] dark:bg-[#0f172a] text-charcoal dark:text-slate-100 transition-colors duration-200">
       {/* Slider Styles */}
       <style>
         {`
@@ -538,35 +538,35 @@ export function Catalog() {
       </style>
 
       {/* Page Header */}
-      <section className="border-b border-zinc-200/80 bg-white">
+      <section className="border-b border-zinc-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
         <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8 lg:px-10 lg:py-12">
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
             <div>
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-bold text-brand-600">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 dark:bg-brand-500/10 px-3 py-1 text-xs font-bold text-brand-600 dark:text-brand-400">
                 <Sparkles className="h-3.5 w-3.5" />
                 <span>Shop Collection</span>
               </div>
 
-              <h1 className="mt-3 font-serif text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl text-charcoal">
+              <h1 className="mt-3 font-serif text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl text-charcoal dark:text-slate-100">
                 3D Printed Catalog & Creations
               </h1>
 
-              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-charcoal-light sm:text-base">
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-charcoal-light dark:text-slate-400 sm:text-base">
                 Explore our curated catalog of precision-printed pieces. Have a custom STL or CAD model you want us to produce instead?{' '}
                 <Link
                   to="/custom-service"
-                  className="font-bold text-brand-600 underline underline-offset-4 hover:text-brand-700 transition-colors"
+                  className="font-bold text-brand-600 dark:text-brand-400 underline underline-offset-4 hover:text-brand-700 dark:hover:text-brand-300 transition-colors"
                 >
                   Upload for Instant Quote →
                 </Link>
               </p>
             </div>
 
-            <div className="shrink-0 rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4">
-              <span className="font-mono text-xs font-semibold uppercase tracking-wider text-charcoal-lighter block">
+            <div className="shrink-0 rounded-2xl border border-zinc-200 dark:border-slate-800 bg-zinc-50/70 dark:bg-slate-800/80 p-4">
+              <span className="font-mono text-xs font-semibold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 block">
                 Total Stock
               </span>
-              <span className="font-serif text-2xl font-bold text-charcoal">
+              <span className="font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
                 {activeProducts.length} {activeProducts.length === 1 ? 'Piece' : 'Pieces'}
               </span>
             </div>
@@ -579,11 +579,11 @@ export function Catalog() {
         <div className="grid gap-10 lg:grid-cols-[260px_minmax(0,1fr)]">
           {/* Desktop Filter Sidebar */}
           <aside className="hidden lg:block" aria-label="Product filters">
-            <div className="sticky top-28 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-              <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+            <div className="sticky top-28 rounded-2xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
+              <div className="flex items-center justify-between border-b border-zinc-100 dark:border-slate-800 pb-4">
                 <div className="flex items-center gap-2">
                   <SlidersHorizontal className="h-4 w-4 text-brand-500" />
-                  <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal">
+                  <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal dark:text-slate-100">
                     Filters
                   </h2>
                 </div>
@@ -668,16 +668,16 @@ export function Catalog() {
 
             {/* Mobile Filter Drawer / Modal */}
             {isFilterOpen && (
-              <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-6 shadow-lg lg:hidden">
-                <div className="mb-6 flex items-center justify-between border-b border-zinc-100 pb-4">
-                  <h3 className="font-serif text-lg font-bold text-charcoal">
+              <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-lg lg:hidden">
+                <div className="mb-6 flex items-center justify-between border-b border-zinc-100 dark:border-slate-800 pb-4">
+                  <h3 className="font-serif text-lg font-bold text-charcoal dark:text-slate-100">
                     Filter Products
                   </h3>
                   <button
                     type="button"
                     aria-label="Close filters"
                     onClick={() => setIsFilterOpen(false)}
-                    className="rounded-lg p-1 text-charcoal-lighter hover:text-charcoal"
+                    className="rounded-lg p-1 text-charcoal-lighter dark:text-slate-400 hover:text-charcoal dark:hover:text-white"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -685,7 +685,7 @@ export function Catalog() {
 
                 {filterPanel}
 
-                <div className="mt-8 flex gap-3 border-t border-zinc-100 pt-5">
+                <div className="mt-8 flex gap-3 border-t border-zinc-100 dark:border-slate-800 pt-5">
                   <Button
                     type="button"
                     variant="outline"
@@ -706,8 +706,8 @@ export function Catalog() {
             )}
 
             {/* Active Filters Bar */}
-            <div className="mt-5 flex flex-wrap items-center gap-2 border-b border-zinc-200 pb-4">
-              <span className="mr-1 font-mono text-xs font-semibold text-charcoal-light">
+            <div className="mt-5 flex flex-wrap items-center gap-2 border-b border-zinc-200 dark:border-slate-800 pb-4">
+              <span className="mr-1 font-mono text-xs font-semibold text-charcoal-light dark:text-slate-400">
                 {filteredProducts.length} {filteredProducts.length === 1 ? 'result' : 'results'}
               </span>
 
@@ -716,10 +716,10 @@ export function Catalog() {
                   key={`${chip.label}-${index}`}
                   type="button"
                   onClick={chip.remove}
-                  className="group inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 font-mono text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors"
+                  className="group inline-flex items-center gap-1.5 rounded-full border border-brand-200 dark:border-brand-500/30 bg-brand-50 dark:bg-brand-500/10 px-3 py-1 font-mono text-xs font-semibold text-brand-700 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-500/20 transition-colors"
                 >
                   <span>{chip.label}</span>
-                  <X className="h-3 w-3 text-brand-500 group-hover:text-brand-800" />
+                  <X className="h-3 w-3 text-brand-500 group-hover:text-brand-800 dark:group-hover:text-brand-200" />
                 </button>
               ))}
 
@@ -727,7 +727,7 @@ export function Catalog() {
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="ml-auto font-mono text-xs font-bold text-brand-600 hover:text-brand-700 underline"
+                  className="ml-auto font-mono text-xs font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 underline"
                 >
                   Clear All
                 </button>
@@ -736,16 +736,16 @@ export function Catalog() {
 
             {/* Product Cards Grid */}
             {filteredProducts.length === 0 ? (
-              <div className="mt-8 rounded-2xl border border-dashed border-zinc-300 bg-white px-6 py-20 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-500">
+              <div className="mt-8 rounded-2xl border border-dashed border-zinc-300 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 py-20 text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 dark:bg-brand-500/10 text-brand-500">
                   <PackageSearch className="h-7 w-7" />
                 </div>
 
-                <h3 className="mt-5 font-serif text-2xl font-bold text-charcoal">
+                <h3 className="mt-5 font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
                   No products matched your filters
                 </h3>
 
-                <p className="mx-auto mt-2 max-w-md text-sm text-charcoal-light">
+                <p className="mx-auto mt-2 max-w-md text-sm text-charcoal-light dark:text-slate-400">
                   Try clearing some filter tags, or request a custom 3D print using your own 3D CAD design.
                 </p>
 
@@ -776,7 +776,7 @@ export function Catalog() {
                     className="group min-w-0 w-full"
                   >
                     <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-xl group-hover:border-brand-300">
-                      <div className="relative overflow-hidden bg-zinc-100">
+                      <div className="relative overflow-hidden bg-zinc-100 dark:bg-slate-800">
                         <img
                           src={product.image}
                           alt={product.name}
@@ -800,30 +800,30 @@ export function Catalog() {
 
                       <div className="flex flex-1 flex-col justify-between p-5">
                         <div>
-                          <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-charcoal-lighter">
+                          <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-charcoal-lighter dark:text-slate-400">
                             {product.category || 'Workshop Item'}
                           </span>
 
-                          <h2 className="mt-1.5 line-clamp-2 min-h-[3rem] font-serif text-lg font-bold text-charcoal group-hover:text-brand-600 transition-colors">
+                          <h2 className="mt-1.5 line-clamp-2 min-h-[3rem] font-serif text-lg font-bold text-charcoal dark:text-slate-100 group-hover:text-brand-600 transition-colors">
                             {product.name}
                           </h2>
 
                           {product.description && (
-                            <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-charcoal-lighter">
+                            <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-charcoal-lighter dark:text-slate-400">
                               {product.description}
                             </p>
                           )}
                         </div>
 
-                        <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-3.5">
+                        <div className="mt-5 flex items-center justify-between border-t border-zinc-100 dark:border-slate-700/60 pt-3.5">
                           <div>
-                            <span className="text-[11px] text-charcoal-lighter block">Price</span>
-                            <span className="font-serif text-lg font-bold text-charcoal">
+                            <span className="text-[11px] text-charcoal-lighter dark:text-slate-400 block">Price</span>
+                            <span className="font-serif text-lg font-bold text-charcoal dark:text-slate-100">
                               {formatPrice(Number(product.price) || 0)}
                             </span>
                           </div>
 
-                          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600 group-hover:bg-brand-500 group-hover:text-white transition-colors">
+                          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 group-hover:bg-brand-500 group-hover:text-white transition-colors">
                             <ArrowRight className="h-4 w-4" />
                           </span>
                         </div>
@@ -836,16 +836,16 @@ export function Catalog() {
 
             {/* Custom Print Service Promo Banner */}
             {filteredProducts.length > 0 && (
-              <div className="mt-14 rounded-2xl border border-brand-500/30 bg-gradient-to-r from-brand-50 via-orange-50/50 to-white p-6 sm:p-8 shadow-sm">
+              <div className="mt-14 rounded-2xl border border-brand-500/30 bg-gradient-to-r from-brand-50 via-orange-50/50 to-white dark:from-slate-900 dark:via-brand-950/30 dark:to-slate-900 p-6 sm:p-8 shadow-sm">
                 <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
                   <div className="space-y-1">
-                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-600">
+                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">
                       Looking for custom dimensions or prototypes?
                     </span>
-                    <h2 className="font-serif text-2xl font-bold text-charcoal">
+                    <h2 className="font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
                       Send us your 3D CAD file for a instant estimate.
                     </h2>
-                    <p className="max-w-xl text-xs text-charcoal-light sm:text-sm">
+                    <p className="max-w-xl text-xs text-charcoal-light dark:text-slate-400 sm:text-sm">
                       Upload STL/OBJ files, calculate precise weight and material volume, and get rapid fabrication within 48 hours.
                     </p>
                   </div>
@@ -879,7 +879,7 @@ function FilterGroup({
 }) {
   return (
     <div>
-      <h3 className="mb-3 font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter">
+      <h3 className="mb-3 font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400">
         {title}
       </h3>
       <div className="space-y-2.5">{children}</div>
@@ -901,7 +901,7 @@ function CheckboxFilter({
   onChange: () => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-start justify-between gap-2 text-sm text-charcoal-light hover:text-charcoal transition-colors">
+    <label className="flex cursor-pointer items-start justify-between gap-2 text-sm text-charcoal-light dark:text-slate-300 hover:text-charcoal dark:hover:text-white transition-colors">
       <div className="flex items-start gap-2.5">
         <input
           type="checkbox"
@@ -910,11 +910,11 @@ function CheckboxFilter({
           className="mt-0.5 h-4 w-4 shrink-0 rounded cursor-pointer accent-brand-500"
         />
         <div className="leading-tight">
-          <span className={checked ? 'font-bold text-charcoal' : 'font-medium'}>
+          <span className={checked ? 'font-bold text-charcoal dark:text-slate-100' : 'font-medium'}>
             {label}
           </span>
           {description && (
-            <span className="block text-[11px] text-charcoal-lighter mt-0.5">
+            <span className="block text-[11px] text-charcoal-lighter dark:text-slate-400 mt-0.5">
               {description}
             </span>
           )}
@@ -922,7 +922,7 @@ function CheckboxFilter({
       </div>
 
       {typeof badgeCount === 'number' && (
-        <span className="font-mono text-xs text-charcoal-lighter">
+        <span className="font-mono text-xs text-charcoal-lighter dark:text-slate-500">
           {badgeCount}
         </span>
       )}

@@ -15,6 +15,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { BrandLogo, Badge } from './ui';
+import { ThemeToggle } from './ThemeToggle';
 
 export function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -69,7 +70,7 @@ export function AdminLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f2ef] flex text-charcoal">
+    <div className="min-h-screen bg-[#f4f2ef] dark:bg-[#0f172a] flex text-charcoal dark:text-slate-100 transition-colors duration-200">
       {/* Mobile sidebar overlay */}
       {isSidebarOpen && (
         <div
@@ -80,16 +81,16 @@ export function AdminLayout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-72 bg-white border-r border-zinc-200/80 transform transition-transform duration-200 ease-in-out ${
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-72 bg-white dark:bg-slate-900 border-r border-zinc-200/80 dark:border-slate-800 transform transition-transform duration-200 ease-in-out ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         } flex flex-col`}
       >
         {/* Sidebar Header */}
-        <div className="h-20 flex items-center justify-between px-6 border-b border-zinc-100">
+        <div className="h-20 flex items-center justify-between px-6 border-b border-zinc-100 dark:border-slate-800">
           <Link to="/admin/dashboard" className="flex items-center gap-3">
             <BrandLogo size="sm" />
             <div>
-              <span className="font-serif text-lg font-bold text-charcoal block leading-tight">
+              <span className="font-serif text-lg font-bold text-charcoal dark:text-white block leading-tight">
                 Shilp Sahayak
               </span>
               <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-brand-500">
@@ -98,7 +99,7 @@ export function AdminLayout() {
             </div>
           </Link>
           <button
-            className="lg:hidden text-charcoal-light hover:text-charcoal p-1"
+            className="lg:hidden text-charcoal-light dark:text-slate-400 hover:text-charcoal dark:hover:text-white p-1"
             onClick={() => setIsSidebarOpen(false)}
           >
             <X className="w-5 h-5" />
@@ -118,12 +119,12 @@ export function AdminLayout() {
                 className={`flex items-center px-3.5 py-2.5 rounded-xl font-mono text-xs font-bold transition-all ${
                   isActive
                     ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
-                    : 'text-charcoal-light hover:bg-zinc-100 hover:text-charcoal'
+                    : 'text-charcoal-light dark:text-slate-400 hover:bg-zinc-100 dark:hover:bg-slate-800 hover:text-charcoal dark:hover:text-white'
                 }`}
               >
                 <Icon
                   className={`w-4 h-4 mr-3 ${
-                    isActive ? 'text-white' : 'text-charcoal-lighter'
+                    isActive ? 'text-white' : 'text-charcoal-lighter dark:text-slate-400'
                   }`}
                 />
                 <span>{item.name}</span>
@@ -133,23 +134,23 @@ export function AdminLayout() {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="p-4 border-t border-zinc-100 space-y-2">
+        <div className="p-4 border-t border-zinc-100 dark:border-slate-800 space-y-2">
           <Link
             to="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl font-mono text-xs font-bold text-charcoal-light hover:bg-zinc-100 hover:text-charcoal transition-colors"
+            className="flex items-center justify-between w-full px-3.5 py-2.5 rounded-xl font-mono text-xs font-bold text-charcoal-light dark:text-slate-400 hover:bg-zinc-100 dark:hover:bg-slate-800 hover:text-charcoal dark:hover:text-white transition-colors"
           >
             <div className="flex items-center gap-2">
-              <Home className="w-4 h-4 text-charcoal-lighter" />
+              <Home className="w-4 h-4 text-charcoal-lighter dark:text-slate-400" />
               <span>Live Storefront</span>
             </div>
-            <ExternalLink className="w-3.5 h-3.5 text-charcoal-lighter" />
+            <ExternalLink className="w-3.5 h-3.5 text-charcoal-lighter dark:text-slate-400" />
           </Link>
 
           <button
             onClick={handleLogout}
-            className="flex items-center w-full px-3.5 py-2.5 rounded-xl font-mono text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors"
+            className="flex items-center w-full px-3.5 py-2.5 rounded-xl font-mono text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
           >
             <LogOut className="w-4 h-4 mr-3 text-rose-500" />
             Sign Out
@@ -160,25 +161,27 @@ export function AdminLayout() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Topbar */}
-        <header className="h-20 bg-white/90 backdrop-blur-md border-b border-zinc-200/80 flex items-center justify-between px-5 sm:px-8 sticky top-0 z-30">
+        <header className="h-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-zinc-200/80 dark:border-slate-800 flex items-center justify-between px-5 sm:px-8 sticky top-0 z-30">
           <div className="flex items-center gap-3">
             <button
-              className="lg:hidden p-2 text-charcoal-light hover:bg-zinc-100 rounded-xl"
+              className="lg:hidden p-2 text-charcoal-light dark:text-slate-400 hover:bg-zinc-100 dark:hover:bg-slate-800 rounded-xl"
               onClick={() => setIsSidebarOpen(true)}
             >
               <Menu className="w-5 h-5" />
             </button>
             <div className="hidden sm:flex items-center gap-2">
-              <span className="font-mono text-xs font-bold text-charcoal-lighter uppercase">Studio Control</span>
-              <span className="text-zinc-300">•</span>
+              <span className="font-mono text-xs font-bold text-charcoal-lighter dark:text-slate-400 uppercase">Studio Control</span>
+              <span className="text-zinc-300 dark:text-slate-700">•</span>
               <Badge variant="brand">Patiala Farm Active</Badge>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <ThemeToggle size="sm" />
+
             <div className="text-right hidden sm:block">
-              <p className="text-xs font-bold text-charcoal">Studio Engineer</p>
-              <p className="font-mono text-[10px] text-charcoal-lighter uppercase">
+              <p className="text-xs font-bold text-charcoal dark:text-slate-100">Studio Engineer</p>
+              <p className="font-mono text-[10px] text-charcoal-lighter dark:text-slate-400 uppercase">
                 Admin Privileges
               </p>
             </div>

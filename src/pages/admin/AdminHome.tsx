@@ -35,15 +35,42 @@ function createHeroSlide(): HomepageHeroSlide {
   return {
     id: `hero-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     enabled: true,
-    eyebrow: 'NEW ARRIVAL',
-    title: '',
-    description: '',
-    image: '',
-    buttonText: 'Explore now',
+    eyebrow: 'STUDIO CRAFTSMANSHIP',
+    title: 'Custom 3D Fabrication & Prototyping',
+    description: 'Precision layered engineering and personalized creations delivered directly to your doorstep.',
+    image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80',
+    buttonText: 'Explore Collection',
     buttonLink: '/catalog',
   };
 }
 
+const CURATED_HERO_PRESETS = [
+  {
+    label: '3D Lamp & Lithophane',
+    tag: 'Bespoke Art',
+    url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    label: 'Robotics & Hardware Enclosure',
+    tag: 'Engineering',
+    url: 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    label: 'Architectural Scale Model',
+    tag: 'Architecture',
+    url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    label: 'Desktop Organizer & Station',
+    tag: 'Home Decor',
+    url: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    label: 'High-Detail SLA Resin Part',
+    tag: 'SLA Resin',
+    url: 'https://images.unsplash.com/photo-1563770660941-20978e870e26?auto=format&fit=crop&w=1200&q=80',
+  },
+];
 
 export function AdminHome() {
   const { data: products = [], isLoading: productsLoading } = useProducts();
@@ -192,19 +219,21 @@ export function AdminHome() {
     return (
       <div
         key={`${field}-${product.id}`}
-        className={`flex items-center gap-3 border px-3 py-3 ${
-          selected ? 'border-brand-200 bg-brand-50/60' : 'border-brand-100 bg-white'
+        className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 transition-colors ${
+          selected
+            ? 'border-brand-300 dark:border-brand-500/40 bg-brand-50/70 dark:bg-brand-500/10'
+            : 'border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-800/80'
         }`}
       >
         <img
           src={product.image}
           alt=""
-          className="h-12 w-12 shrink-0 rounded-lg bg-surface object-cover"
+          className="h-12 w-12 shrink-0 rounded-lg bg-surface dark:bg-slate-900 object-cover"
         />
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-charcoal">{product.name}</p>
-          <p className="mt-0.5 text-xs text-charcoal-lighter">
+          <p className="truncate text-sm font-medium text-charcoal dark:text-slate-100">{product.name}</p>
+          <p className="mt-0.5 text-xs text-charcoal-lighter dark:text-slate-400">
             {product.category || 'Uncategorized'} · ₹{product.price.toLocaleString('en-IN')}
           </p>
         </div>
@@ -215,7 +244,7 @@ export function AdminHome() {
           className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-medium transition-colors ${
             selected
               ? 'border-brand-500 bg-brand-500 text-white hover:bg-brand-600'
-              : 'border-brand-200 text-charcoal-light hover:bg-brand-50'
+              : 'border-zinc-200 dark:border-slate-700 text-charcoal-light dark:text-slate-300 hover:bg-brand-50 dark:hover:bg-slate-700'
           }`}
         >
           {selected ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
@@ -233,7 +262,7 @@ export function AdminHome() {
                   [field]: moveItem(current[field], index, -1),
                 }))
               }
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-brand-100 text-charcoal-light disabled:cursor-not-allowed disabled:opacity-30"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 dark:border-slate-700 text-charcoal-light dark:text-slate-300 disabled:cursor-not-allowed disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-slate-700"
               aria-label={`Move ${product.name} up`}
             >
               <ArrowUp className="h-3.5 w-3.5" />
@@ -247,7 +276,7 @@ export function AdminHome() {
                   [field]: moveItem(current[field], index, 1),
                 }))
               }
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-brand-100 text-charcoal-light disabled:cursor-not-allowed disabled:opacity-30"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 dark:border-slate-700 text-charcoal-light dark:text-slate-300 disabled:cursor-not-allowed disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-slate-700"
               aria-label={`Move ${product.name} down`}
             >
               <ArrowDown className="h-3.5 w-3.5" />
@@ -280,15 +309,15 @@ export function AdminHome() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.15em] text-brand-500">Storefront</p>
-          <h1 className="mt-1 text-2xl font-serif font-bold text-charcoal">Home Page</h1>
-          <p className="mt-1 text-sm text-charcoal-light">
+          <h1 className="mt-1 text-2xl font-serif font-bold text-charcoal dark:text-slate-100">Home Page</h1>
+          <p className="mt-1 text-sm text-charcoal-light dark:text-slate-400">
             Control homepage promotions, products, categories and the announcement bar.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {showSuccess && (
-            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-600">
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-600 dark:text-green-400">
               <CheckCircle2 className="h-4 w-4" /> Saved
             </span>
           )}
@@ -296,7 +325,7 @@ export function AdminHome() {
             to="/"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-white px-4 py-2.5 text-sm font-medium text-charcoal hover:bg-brand-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-charcoal dark:text-slate-100 hover:bg-zinc-100 dark:hover:bg-slate-700 transition-colors shadow-sm"
           >
             <Eye className="h-4 w-4" /> Preview storefront
           </Link>
@@ -307,11 +336,11 @@ export function AdminHome() {
         </div>
       </div>
 
-      <Card className="border-none p-6 shadow-sm">
+      <Card className="border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="font-serif text-lg font-semibold text-charcoal">Announcement Bar</h2>
-            <p className="mt-1 max-w-2xl text-sm text-charcoal-light">
+            <h2 className="font-serif text-lg font-semibold text-charcoal dark:text-slate-100">Announcement Bar</h2>
+            <p className="mt-1 max-w-2xl text-sm text-charcoal-light dark:text-slate-400">
               Add one or more messages. Each message travels from right to left on its own, then the next message starts.
             </p>
           </div>
@@ -319,7 +348,7 @@ export function AdminHome() {
             type="button"
             onClick={() => setForm((current) => ({ ...current, announcementEnabled: !current.announcementEnabled }))}
             className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-              form.announcementEnabled ? 'bg-green-50 text-green-700' : 'bg-surface text-charcoal-light'
+              form.announcementEnabled ? 'bg-green-50 dark:bg-green-500/15 text-green-700 dark:text-green-400' : 'bg-surface dark:bg-slate-800 text-charcoal-light dark:text-slate-400'
             }`}
           >
             {form.announcementEnabled ? 'Enabled' : 'Disabled'}
@@ -330,13 +359,13 @@ export function AdminHome() {
           <div>
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-semibold text-charcoal">Messages</h3>
-                <p className="mt-0.5 text-xs text-charcoal-light">Add multiple messages only when you need a sequence.</p>
+                <h3 className="text-sm font-semibold text-charcoal dark:text-slate-100">Messages</h3>
+                <p className="mt-0.5 text-xs text-charcoal-light dark:text-slate-400">Add multiple messages only when you need a sequence.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setForm((current) => ({ ...current, announcementMessages: [...current.announcementMessages, ''] }))}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 px-3 py-2 text-xs font-semibold text-charcoal hover:bg-brand-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-charcoal dark:text-slate-100 hover:bg-zinc-100 dark:hover:bg-slate-700"
               >
                 <Plus className="h-3.5 w-3.5" /> Add message
               </button>
@@ -345,7 +374,7 @@ export function AdminHome() {
             <div className="mt-3 space-y-2">
               {form.announcementMessages.map((message, index) => (
                 <div key={`announcement-${index}`} className="flex items-start gap-2">
-                  <div className="flex h-10 w-8 shrink-0 items-center justify-center font-mono text-[10px] text-charcoal-lighter">
+                  <div className="flex h-10 w-8 shrink-0 items-center justify-center font-mono text-[10px] text-charcoal-lighter dark:text-slate-400">
                     {index + 1}
                   </div>
                   <Input
@@ -363,17 +392,17 @@ export function AdminHome() {
                   <div className="mt-1 flex shrink-0 items-center gap-1">
                     <button type="button" disabled={index === 0}
                       onClick={() => setForm((current) => ({ ...current, announcementMessages: moveItem(current.announcementMessages, index, -1) }))}
-                      className="flex h-9 w-9 items-center justify-center rounded-md border border-brand-100 text-charcoal-light disabled:opacity-30" aria-label="Move announcement up">
+                      className="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 dark:border-slate-700 text-charcoal-light dark:text-slate-300 disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-slate-700" aria-label="Move announcement up">
                       <ArrowUp className="h-3.5 w-3.5" />
                     </button>
                     <button type="button" disabled={index === form.announcementMessages.length - 1}
                       onClick={() => setForm((current) => ({ ...current, announcementMessages: moveItem(current.announcementMessages, index, 1) }))}
-                      className="flex h-9 w-9 items-center justify-center rounded-md border border-brand-100 text-charcoal-light disabled:opacity-30" aria-label="Move announcement down">
+                      className="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 dark:border-slate-700 text-charcoal-light dark:text-slate-300 disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-slate-700" aria-label="Move announcement down">
                       <ArrowDown className="h-3.5 w-3.5" />
                     </button>
                     <button type="button" disabled={form.announcementMessages.length === 1}
                       onClick={() => setForm((current) => ({ ...current, announcementMessages: current.announcementMessages.filter((_, itemIndex) => itemIndex !== index) }))}
-                      className="flex h-9 w-9 items-center justify-center rounded-md border border-red-200 text-red-600 disabled:opacity-30" aria-label="Remove announcement">
+                      className="flex h-9 w-9 items-center justify-center rounded-md border border-red-200 dark:border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 disabled:opacity-30" aria-label="Remove announcement">
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
@@ -382,24 +411,24 @@ export function AdminHome() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-brand-100 bg-surface px-4 py-4">
-            <label className="block text-sm font-medium text-charcoal" htmlFor="announcement-duration">Scroll duration</label>
-            <p className="mt-1 text-xs leading-relaxed text-charcoal-light">Higher duration means slower movement. The next message starts only after the current one finishes.</p>
+          <div className="rounded-2xl border border-zinc-200 dark:border-slate-800 bg-surface dark:bg-slate-800/60 px-4 py-4">
+            <label className="block text-sm font-medium text-charcoal dark:text-slate-100" htmlFor="announcement-duration">Scroll duration</label>
+            <p className="mt-1 text-xs leading-relaxed text-charcoal-light dark:text-slate-400">Higher duration means slower movement. The next message starts only after the current one finishes.</p>
             <div className="mt-4 flex items-center gap-3">
               <input id="announcement-duration" type="range" min={12} max={40} step={1} value={form.announcementDuration}
                 onChange={(event) => setForm((current) => ({ ...current, announcementDuration: Number(event.target.value) }))}
-                className="w-full accent-[#b4491e]" />
-              <span className="w-16 text-right text-sm font-medium text-charcoal">{form.announcementDuration}s</span>
+                className="w-full accent-[#ff6b1a]" />
+              <span className="w-16 text-right text-sm font-medium text-charcoal dark:text-slate-200">{form.announcementDuration}s</span>
             </div>
           </div>
         </div>
       </Card>
 
-      <Card className="border-none p-6 shadow-sm">
+      <Card className="border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="font-serif text-lg font-semibold text-charcoal">Hero Promotions</h2>
-            <p className="mt-1 max-w-3xl text-sm text-charcoal-light">
+            <h2 className="font-serif text-lg font-semibold text-charcoal dark:text-slate-100">Hero Promotions</h2>
+            <p className="mt-1 max-w-3xl text-sm text-charcoal-light dark:text-slate-400">
               Create promotional slides for new launches, sales, announcements and campaigns. These are independent of products in the catalog.
             </p>
           </div>
@@ -409,10 +438,10 @@ export function AdminHome() {
         </div>
 
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
-          <div className="flex items-center justify-between rounded-lg border border-brand-100 bg-surface px-4 py-3">
+          <div className="flex items-center justify-between rounded-xl border border-zinc-200 dark:border-slate-800 bg-surface dark:bg-slate-800/60 px-4 py-3">
             <div>
-              <p className="text-sm font-medium text-charcoal">Automatic slideshow</p>
-              <p className="mt-0.5 text-xs text-charcoal-light">Automatically move through enabled slides.</p>
+              <p className="text-sm font-medium text-charcoal dark:text-slate-100">Automatic slideshow</p>
+              <p className="mt-0.5 text-xs text-charcoal-light dark:text-slate-400">Automatically move through enabled slides.</p>
             </div>
             <button
               type="button"
@@ -420,15 +449,15 @@ export function AdminHome() {
                 setForm((current) => ({ ...current, heroAutoplay: !current.heroAutoplay }))
               }
               className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                form.heroAutoplay ? 'bg-green-50 text-green-700' : 'bg-surface text-charcoal-light'
+                form.heroAutoplay ? 'bg-green-50 dark:bg-green-500/15 text-green-700 dark:text-green-400' : 'bg-surface dark:bg-slate-800 text-charcoal-light dark:text-slate-400'
               }`}
             >
               {form.heroAutoplay ? 'Enabled' : 'Disabled'}
             </button>
           </div>
 
-          <div className="rounded-lg border border-brand-100 bg-surface px-4 py-3">
-            <label className="block text-sm font-medium text-charcoal" htmlFor="hero-interval">
+          <div className="rounded-xl border border-zinc-200 dark:border-slate-800 bg-surface dark:bg-slate-800/60 px-4 py-3">
+            <label className="block text-sm font-medium text-charcoal dark:text-slate-100" htmlFor="hero-interval">
               Slide duration
             </label>
             <div className="mt-2 flex items-center gap-3">
@@ -445,9 +474,9 @@ export function AdminHome() {
                     heroInterval: Number(event.target.value),
                   }))
                 }
-                className="w-full accent-[#b4491e]"
+                className="w-full accent-[#ff6b1a]"
               />
-              <span className="w-20 text-right text-sm font-medium text-charcoal">
+              <span className="w-20 text-right text-sm font-medium text-charcoal dark:text-slate-200">
                 {(form.heroInterval / 1000).toFixed(1)}s
               </span>
             </div>
@@ -533,20 +562,45 @@ export function AdminHome() {
                   </div>
 
                   <div className="space-y-4">
-                    <Input
-                      label="Hero image URL"
-                      value={slide.image}
-                      onChange={(event) => updateHeroSlide(slide.id, 'image', event.target.value)}
-                      placeholder="https://..."
-                      type="url"
-                    />
+                    <div>
+                      <Input
+                        label="Hero image URL"
+                        value={slide.image}
+                        onChange={(event) => updateHeroSlide(slide.id, 'image', event.target.value)}
+                        placeholder="https://..."
+                        type="url"
+                      />
+                      {/* Curated quick preset image picker */}
+                      <div className="mt-2.5 space-y-1.5">
+                        <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">
+                          Curated Workshop Presets:
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {CURATED_HERO_PRESETS.map((preset) => (
+                            <button
+                              key={preset.label}
+                              type="button"
+                              onClick={() => updateHeroSlide(slide.id, 'image', preset.url)}
+                              className={`rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                                slide.image === preset.url
+                                  ? 'border-brand-500 bg-brand-500/15 text-brand-600 dark:text-brand-400 font-bold'
+                                  : 'border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-charcoal-light dark:text-slate-300 hover:border-brand-400 dark:hover:border-brand-500'
+                              }`}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
                     {slide.image ? (
-                      <div className="overflow-hidden border border-brand-100 bg-surface">
+                      <div className="overflow-hidden rounded-xl border border-brand-100 dark:border-slate-800 bg-surface dark:bg-slate-950">
                         <img src={slide.image} alt="" className="aspect-[16/9] w-full object-cover" />
                       </div>
                     ) : (
-                      <div className="flex aspect-[16/9] items-center justify-center border border-dashed border-brand-200 bg-surface text-xs text-charcoal-light">
-                        Add an image URL to preview the banner.
+                      <div className="flex aspect-[16/9] items-center justify-center rounded-xl border border-dashed border-brand-200 dark:border-slate-700 bg-surface dark:bg-slate-800/60 text-xs text-charcoal-light dark:text-slate-400">
+                        Add an image URL or choose a preset to preview.
                       </div>
                     )}
                     <div className="grid gap-4 sm:grid-cols-2">
@@ -567,7 +621,7 @@ export function AdminHome() {
                       type="button"
                       onClick={() => updateHeroSlide(slide.id, 'enabled', !slide.enabled)}
                       className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
-                        slide.enabled ? 'bg-green-50 text-green-700' : 'bg-surface text-charcoal-light'
+                        slide.enabled ? 'bg-green-50 dark:bg-green-500/15 text-green-700 dark:text-green-400' : 'bg-surface dark:bg-slate-800 text-charcoal-light dark:text-slate-400'
                       }`}
                     >
                       {slide.enabled ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
@@ -582,41 +636,41 @@ export function AdminHome() {
       </Card>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card className="border-none p-6 shadow-sm">
+        <Card className="border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
           <div className="mb-5">
-            <h2 className="font-serif text-lg font-semibold text-charcoal">Homepage Product Sections</h2>
-            <p className="mt-1 text-sm text-charcoal-light">
+            <h2 className="font-serif text-lg font-semibold text-charcoal dark:text-slate-100">Homepage Product Sections</h2>
+            <p className="mt-1 text-sm text-charcoal-light dark:text-slate-400">
               Control the products shown in the stocked-products section and the lower workshop grid independently.
             </p>
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-charcoal">Pieces We Keep Stocked</h3>
-            <p className="mt-1 text-xs text-charcoal-light">Select and order the products for the main featured section.</p>
+            <h3 className="text-sm font-semibold text-charcoal dark:text-slate-100">Pieces We Keep Stocked</h3>
+            <p className="mt-1 text-xs text-charcoal-light dark:text-slate-400">Select and order the products for the main featured section.</p>
             <div className="mt-3 space-y-2">
               {activeProducts.map((product) => renderProductRow(product, 'featuredProductIds'))}
             </div>
           </div>
 
-          <div className="mt-8 border-t border-brand-100 pt-6">
-            <h3 className="text-sm font-semibold text-charcoal">More From the Workshop</h3>
-            <p className="mt-1 text-xs text-charcoal-light">Select and order the products for the lower homepage grid.</p>
+          <div className="mt-8 border-t border-zinc-200 dark:border-slate-800 pt-6">
+            <h3 className="text-sm font-semibold text-charcoal dark:text-slate-100">More From the Workshop</h3>
+            <p className="mt-1 text-xs text-charcoal-light dark:text-slate-400">Select and order the products for the lower homepage grid.</p>
             <div className="mt-3 space-y-2">
               {activeProducts.map((product) => renderProductRow(product, 'selectedProductIds'))}
             </div>
           </div>
         </Card>
 
-        <Card className="border-none p-6 shadow-sm">
+        <Card className="border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
           <div className="mb-5">
-            <h2 className="font-serif text-lg font-semibold text-charcoal">Shop by Category</h2>
-            <p className="mt-1 text-sm text-charcoal-light">
+            <h2 className="font-serif text-lg font-semibold text-charcoal dark:text-slate-100">Shop by Category</h2>
+            <p className="mt-1 text-sm text-charcoal-light dark:text-slate-400">
               Select the categories and their order on the homepage. Category images continue to come from the product catalog.
             </p>
           </div>
 
           {availableCategories.length === 0 ? (
-            <p className="py-8 text-center text-sm text-charcoal-light">Create products with categories first.</p>
+            <p className="py-8 text-center text-sm text-charcoal-light dark:text-slate-400">Create products with categories first.</p>
           ) : (
             <div className="grid gap-2">
               {availableCategories.map((category) => {
@@ -625,21 +679,23 @@ export function AdminHome() {
                 return (
                   <div
                     key={category}
-                    className={`flex items-center gap-3 border p-3 ${
-                      selected ? 'border-brand-200 bg-brand-50/60' : 'border-brand-100 bg-white'
+                    className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${
+                      selected
+                        ? 'border-brand-300 dark:border-brand-500/40 bg-brand-50/70 dark:bg-brand-500/10'
+                        : 'border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-800/80'
                     }`}
                   >
                     <button
                       type="button"
                       onClick={() => toggleCategory(category)}
                       className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${
-                        selected ? 'border-brand-500 bg-brand-500 text-white' : 'border-brand-200 text-transparent'
+                        selected ? 'border-brand-500 bg-brand-500 text-white' : 'border-zinc-200 dark:border-slate-700 text-transparent'
                       }`}
                       aria-label={`${selected ? 'Remove' : 'Add'} ${category}`}
                     >
                       <span className="text-sm">✓</span>
                     </button>
-                    <span className="flex-1 text-sm font-medium text-charcoal">{category}</span>
+                    <span className="flex-1 text-sm font-medium text-charcoal dark:text-slate-100">{category}</span>
                     {selected && (
                       <div className="flex gap-1">
                         <button
@@ -651,7 +707,7 @@ export function AdminHome() {
                               categoryNames: moveItem(current.categoryNames, index, -1),
                             }))
                           }
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-brand-100 text-charcoal-light disabled:opacity-30"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 dark:border-slate-700 text-charcoal-light dark:text-slate-300 disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-slate-700"
                         >
                           <ArrowUp className="h-3 w-3" />
                         </button>
@@ -664,7 +720,7 @@ export function AdminHome() {
                               categoryNames: moveItem(current.categoryNames, index, 1),
                             }))
                           }
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-brand-100 text-charcoal-light disabled:opacity-30"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 dark:border-slate-700 text-charcoal-light dark:text-slate-300 disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-slate-700"
                         >
                           <ArrowDown className="h-3 w-3" />
                         </button>

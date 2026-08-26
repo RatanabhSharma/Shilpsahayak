@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Cpu,
@@ -23,7 +22,6 @@ import { Button, Card, Badge } from '../../components/ui';
 import {
   CategoryGridSkeleton,
   FeaturedProductSkeleton,
-  WorkshopProductSkeleton,
 } from '../../components/loading/ProductSkeleton';
 
 export function Home() {
@@ -51,45 +49,36 @@ export function Home() {
       .filter(Boolean) as typeof activeProducts;
   }, [activeProducts, homepageSettings?.featuredProductIds]);
 
-  const selectedProducts = useMemo(() => {
-    const configuredIds = homepageSettings?.selectedProductIds ?? [];
-
-    if (configuredIds.length > 0) {
-      return configuredIds
-        .map((id) => activeProducts.find((product) => product.id === id))
-        .filter(Boolean) as typeof activeProducts;
-    }
-
-    const featuredIds = new Set(featuredProducts.map((p) => p.id));
-    const nonFeatured = activeProducts.filter((p) => !featuredIds.has(p.id));
-
-    return (nonFeatured.length >= 4 ? nonFeatured : activeProducts).slice(0, 4);
-  }, [activeProducts, featuredProducts, homepageSettings?.selectedProductIds]);
-
   const categories = useMemo(() => {
-    const categoryMap = new Map<string, string>();
+    const categoryMap = new Map<string, { image: string; count: number }>();
 
     for (const product of activeProducts) {
-      if (product.category && !categoryMap.has(product.category)) {
-        categoryMap.set(product.category, product.image);
+      if (product.category) {
+        const existing = categoryMap.get(product.category);
+        if (!existing) {
+          categoryMap.set(product.category, { image: product.image, count: 1 });
+        } else {
+          existing.count += 1;
+        }
       }
     }
 
     const configuredNames = homepageSettings?.categoryNames ?? [];
 
     if (configuredNames.length === 0) {
-      return Array.from(categoryMap.entries()).map(([name, image]) => ({
+      return Array.from(categoryMap.entries()).map(([name, data]) => ({
         name,
-        image,
+        image: data.image,
+        productCount: data.count,
       }));
     }
 
     return configuredNames
       .map((name) => {
-        const image = categoryMap.get(name);
-        return image ? { name, image } : null;
+        const data = categoryMap.get(name);
+        return data ? { name, image: data.image, productCount: data.count } : null;
       })
-      .filter(Boolean) as { name: string; image: string }[];
+      .filter(Boolean) as { name: string; image: string; productCount: number }[];
   }, [activeProducts, homepageSettings?.categoryNames]);
 
   const heroSlides = useMemo(
@@ -178,7 +167,7 @@ export function Home() {
   };
 
   return (
-    <div className="bg-[#f4f2ef] text-charcoal">
+    <div className="bg-[#f4f2ef] dark:bg-[#0f172a] text-charcoal dark:text-slate-100 transition-colors duration-200">
       {/* =====================================================
           1. DARK HERO SECTION
       ====================================================== */}
@@ -276,125 +265,143 @@ export function Home() {
               </AnimatePresence>
 
               <div className="order-1 lg:order-2">
-                <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/80 p-2 shadow-2xl">
-                  {currentSlide.image ? (
-                    <img
-                      src={currentSlide.image}
-                      alt={currentSlide.title}
-                      className="aspect-[4/3] w-full rounded-2xl object-cover"
-                    />
-                  ) : (
-                    <div className="flex aspect-[4/3] w-full items-center justify-center rounded-2xl bg-slate-800/50 p-8 text-center">
-                      <Layers className="h-16 w-16 text-brand-500/60" />
-                    </div>
-                  )}
+                <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-[#121824] shadow-2xl p-3 sm:p-4 group">
+                  <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-slate-950">
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={currentSlide.id}
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 1.04 }}
+                        transition={{ duration: 0.45, ease: 'easeOut' }}
+                        className="relative h-full w-full"
+                      >
+                        <img
+                          src={
+                            currentSlide.image ||
+                            'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80'
+                          }
+                          alt={currentSlide.title}
+                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0b0f17] via-[#0b0f17]/30 to-transparent" />
+
+                        {/* Top glassmorphic badge */}
+                        <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none">
+                          <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/40 bg-black/60 px-3 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-brand-300 backdrop-blur-md">
+                            <span className="h-2 w-2 rounded-full bg-brand-500 animate-ping" />
+                            <span>Live Workshop Fab</span>
+                          </div>
+
+                          <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-black/50 px-3 py-1 text-[10px] font-mono text-slate-300 backdrop-blur-md">
+                            <span>50µm Precision</span>
+                          </div>
+                        </div>
+
+                        {/* Bottom Slide Info Overlay */}
+                        <div className="absolute bottom-4 left-4 right-4 space-y-2 pointer-events-none">
+                          <p className="font-serif text-lg sm:text-xl font-bold text-white drop-shadow-md">
+                            {currentSlide.title}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-lg bg-white/10 px-2.5 py-0.5 text-[10px] font-mono text-slate-200 backdrop-blur-md">
+                              FDM & SLA
+                            </span>
+                            <span className="rounded-lg bg-white/10 px-2.5 py-0.5 text-[10px] font-mono text-slate-200 backdrop-blur-md">
+                              PLA · PETG · Resin
+                            </span>
+                            <span className="rounded-lg bg-brand-500/20 border border-brand-500/30 px-2.5 py-0.5 text-[10px] font-mono font-bold text-brand-300 backdrop-blur-md">
+                              From ₹4.5/g
+                            </span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
                 </div>
               </div>
             </div>
           ) : (
-            /* Default Hero View */
+            /* Default Studio Hero */
             <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
-              <div>
-                {/* Free Delivery Badge */}
-                <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-4 py-1.5 backdrop-blur-sm">
-                  <Truck className="h-4 w-4 text-brand-400" />
-                  <span className="font-mono text-xs font-semibold tracking-wide text-brand-300">
-                    Free Pan-India Delivery on orders above ₹499
-                  </span>
+              <div className="space-y-6">
+                <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-3.5 py-1 text-xs font-bold text-brand-400">
+                  <Sparkles className="h-3.5 w-3.5 text-brand-400" />
+                  <span>Precision FDM & SLA Fabrication</span>
                 </div>
 
-                <h1 className="font-serif text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl text-white">
+                <h1 className="font-serif text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl leading-[1.1]">
                   If you can imagine it,{' '}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 via-brand-500 to-amber-300">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 via-orange-400 to-amber-300">
                     we can print it.
                   </span>
                 </h1>
 
-                <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
-                  Welcome to <strong className="text-white">Shilp Sahayak</strong>. We are a friendly custom 3D printing studio based in India helping creators, students, hobbyists, and startups bring their ideas to physical reality.
+                <p className="max-w-xl text-base text-slate-300 sm:text-lg leading-relaxed">
+                  Turn bespoke 3D CAD files, concept photos, and custom product ideas into tangible, production-grade physical objects. Crafted with care in Patiala, Punjab.
                 </p>
 
-                <div className="mt-9 flex flex-col gap-3.5 sm:flex-row">
-                  <Link to="/custom-service" className="inline-flex">
+                <div className="flex flex-wrap items-center gap-3.5 pt-2">
+                  <Link to="/custom-service">
                     <Button
                       size="lg"
-                      className="w-full gap-2 px-8 font-bold sm:w-auto shadow-lg shadow-brand-500/25"
+                      className="bg-brand-500 hover:bg-brand-600 text-white font-bold shadow-lg shadow-brand-500/25 gap-2 h-12 px-6"
                     >
-                      <Sparkles className="h-4 w-4" />
-                      Get a Custom Quote
-                      <ArrowRight className="h-4 w-4" />
+                      <Sparkles className="w-4 h-4" />
+                      <span>Start Custom Print</span>
+                      <ArrowRight className="w-4 h-4" />
                     </Button>
                   </Link>
 
-                  <Link to="/catalog" className="inline-flex">
+                  <Link to="/catalog">
                     <Button
-                      variant="outline"
                       size="lg"
-                      className="w-full border-slate-700 bg-slate-900/60 text-white hover:border-brand-500 hover:bg-slate-800 sm:w-auto font-semibold"
+                      variant="outline"
+                      className="border-zinc-700 bg-zinc-900/80 text-white hover:bg-zinc-800 hover:border-zinc-600 font-semibold h-12 px-6"
                     >
-                      Browse Products
+                      <span>Explore Catalog</span>
                     </Button>
                   </Link>
                 </div>
 
                 {/* Micro trust indicators */}
-                <div className="mt-10 flex flex-wrap items-center gap-6 text-xs text-slate-400">
-                  <span className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-brand-400" />
-                    No Minimum Order Quantity
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-brand-400" />
-                    24–48h Rapid Dispatch
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-brand-400" />
-                    Precision Quality Check
-                  </span>
+                <div className="grid grid-cols-3 gap-4 pt-6 border-t border-zinc-800 text-slate-300">
+                  <div>
+                    <p className="font-mono text-xl font-bold text-white">50µm</p>
+                    <p className="text-xs text-slate-400">Layer Precision</p>
+                  </div>
+                  <div>
+                    <p className="font-mono text-xl font-bold text-white">100%</p>
+                    <p className="text-xs text-slate-400">Quality Checked</p>
+                  </div>
+                  <div>
+                    <p className="font-mono text-xl font-bold text-white">₹4.5/g</p>
+                    <p className="text-xs text-slate-400">Transparent Rates</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Hero Visual Card */}
+              {/* Right Hero Visual Showcase */}
               <div className="relative">
-                <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/90 to-slate-950 p-6 shadow-2xl">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex h-3 w-3 rounded-full bg-rose-500/80" />
-                      <div className="flex h-3 w-3 rounded-full bg-amber-500/80" />
-                      <div className="flex h-3 w-3 rounded-full bg-emerald-500/80" />
-                    </div>
-                    <span className="font-mono text-[11px] uppercase tracking-wider text-slate-400">
-                      Live Studio Fab
-                    </span>
-                  </div>
+                <div className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-[#121824] shadow-2xl p-6 sm:p-8">
+                  <div className="aspect-square w-full rounded-2xl bg-gradient-to-b from-zinc-800/60 to-zinc-900/60 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden group">
+                    <img
+                      src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80"
+                      alt="3D Printing in action"
+                      className="absolute inset-0 h-full w-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0b0f17] via-[#0b0f17]/40 to-transparent" />
 
-                  <div className="mt-5 space-y-4">
-                    <div className="group relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
-                      <img
-                        src="https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&q=80&w=800"
-                        alt="3D Printing in action"
-                        className="aspect-[16/10] w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                      <div className="absolute bottom-4 left-4 right-4">
-                        <Badge variant="brand" className="mb-1.5">
-                          High Precision FDM & SLA
-                        </Badge>
-                        <p className="font-serif text-lg font-bold text-white">
-                          From CAD Model to Finished Part in 48 Hours
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
-                        <p className="font-mono text-[10px] uppercase text-brand-400">Materials</p>
-                        <p className="mt-1 text-sm font-semibold text-white">PLA · PETG · ABS · Resin</p>
-                      </div>
-                      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
-                        <p className="font-mono text-[10px] uppercase text-brand-400">Pricing</p>
-                        <p className="mt-1 text-sm font-semibold text-white">From ₹4.5 / gram</p>
-                      </div>
+                    <div className="relative z-10 mt-auto text-left w-full space-y-2">
+                      <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-brand-400 bg-brand-500/20 px-2.5 py-1 rounded-full border border-brand-500/30">
+                        Live Studio
+                      </span>
+                      <h3 className="font-serif text-xl font-bold text-white">
+                        Precision Layer-by-Layer Fabrication
+                      </h3>
+                      <p className="text-xs text-slate-300">
+                        High-grade PLA, PETG & Resin with calibrated dimensional tolerances.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -405,15 +412,15 @@ export function Home() {
       </section>
 
       {/* =====================================================
-          2. TRUST STRIP
+          2. VALUE PROPOSITIONS STRIP
       ====================================================== */}
-      <section className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto grid max-w-[1440px] grid-cols-2 divide-x divide-zinc-200 lg:grid-cols-4">
+      <section className="border-b border-zinc-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
+        <div className="mx-auto max-w-[1440px] grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-zinc-200/80 dark:divide-slate-800">
           {[
             {
               icon: Sparkles,
-              title: 'Bespoke 3D Printing',
-              description: 'Custom figurines, gifts, & decor',
+              title: 'Personalized Gifts',
+              description: 'Lithophanes & custom decor',
             },
             {
               icon: Cpu,
@@ -438,15 +445,15 @@ export function Home() {
                 key={item.title}
                 className="flex items-center gap-3.5 px-5 py-6 sm:px-8"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400">
                   <Icon className="h-5 w-5" aria-hidden="true" />
                 </div>
 
                 <div>
-                  <p className="font-serif text-sm font-bold text-charcoal">
+                  <p className="font-serif text-sm font-bold text-charcoal dark:text-slate-100">
                     {item.title}
                   </p>
-                  <p className="mt-0.5 text-xs text-charcoal-lighter">
+                  <p className="mt-0.5 text-xs text-charcoal-lighter dark:text-slate-400">
                     {item.description}
                   </p>
                 </div>
@@ -459,16 +466,16 @@ export function Home() {
       {/* =====================================================
           3. ABOUT SHILP SAHAYAK (3 CORE PILLARS)
       ====================================================== */}
-      <section className="py-20 lg:py-24 bg-[#f4f2ef]">
+      <section className="py-20 lg:py-24 bg-[#f4f2ef] dark:bg-[#0f172a] transition-colors">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
           <div className="mx-auto max-w-3xl text-center">
             <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
               Meet Your Makers
             </span>
-            <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl text-charcoal">
+            <h2 className="mt-3 font-serif text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl text-charcoal dark:text-slate-100">
               A studio built around your creativity.
             </h2>
-            <p className="mt-4 text-base leading-relaxed text-charcoal-light">
+            <p className="mt-4 text-base leading-relaxed text-charcoal-light dark:text-slate-400">
               We aren't a generic factory — we are a passionate team of 3D printing enthusiasts and engineers based in Patiala. We help you choose the right material, optimize your tolerances, and deliver high-finish physical objects.
             </p>
           </div>
@@ -476,53 +483,50 @@ export function Home() {
           {/* 3 Core Focus Pillars */}
           <div className="mt-14 grid gap-6 md:grid-cols-3">
             {/* Pillar 1 */}
-            <Card className="p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-brand-300">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100/70 text-brand-600">
+            <Card className="p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-brand-300 dark:hover:border-brand-500/50">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100/70 dark:bg-orange-500/15 text-brand-600 dark:text-brand-400">
                 <Sparkles className="h-6 w-6" />
               </div>
-              <h3 className="mt-5 font-serif text-xl font-bold text-charcoal">
+              <h3 className="mt-5 font-serif text-xl font-bold text-charcoal dark:text-slate-100">
                 1. Personalization & Bespoke Creations
               </h3>
-              <p className="mt-2.5 text-sm leading-relaxed text-charcoal-light">
+              <p className="mt-2.5 text-sm leading-relaxed text-charcoal-light dark:text-slate-400">
                 Turn memories into tangible art. Customized lithophane lamps, anniversary trophies, custom nameplates, personalized phone holders, and decorative collectibles.
               </p>
-              <div className="mt-5 pt-4 border-t border-zinc-100 flex items-center justify-between">
-                <span className="text-xs font-semibold text-brand-600">Great for gifts & decor</span>
-                <ArrowRight className="h-4 w-4 text-brand-500" />
+              <div className="mt-5 pt-4 border-t border-zinc-100 dark:border-slate-700/60 flex items-center justify-between">
+                <span className="text-xs font-semibold text-brand-600 dark:text-brand-400">Great for gifts & decor</span>
               </div>
             </Card>
 
             {/* Pillar 2 */}
-            <Card className="p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-brand-300">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100/70 text-amber-600">
+            <Card className="p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-brand-300 dark:hover:border-brand-500/50">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100/70 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400">
                 <Cpu className="h-6 w-6" />
               </div>
-              <h3 className="mt-5 font-serif text-xl font-bold text-charcoal">
+              <h3 className="mt-5 font-serif text-xl font-bold text-charcoal dark:text-slate-100">
                 2. Startup & Maker Branding
               </h3>
-              <p className="mt-2.5 text-sm leading-relaxed text-charcoal-light">
+              <p className="mt-2.5 text-sm leading-relaxed text-charcoal-light dark:text-slate-400">
                 Short-run hardware manufacturing without expensive injection molds. Custom IoT enclosures, drone arm mounts, action camera brackets, and branded event badges.
               </p>
-              <div className="mt-5 pt-4 border-t border-zinc-100 flex items-center justify-between">
-                <span className="text-xs font-semibold text-amber-700">Small batch production</span>
-                <ArrowRight className="h-4 w-4 text-amber-600" />
+              <div className="mt-5 pt-4 border-t border-zinc-100 dark:border-slate-700/60 flex items-center justify-between">
+                <span className="text-xs font-semibold text-amber-700 dark:text-amber-400">Small batch production</span>
               </div>
             </Card>
 
             {/* Pillar 3 */}
-            <Card className="p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-brand-300">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100/70 text-rose-600">
+            <Card className="p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-brand-300 dark:hover:border-brand-500/50">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100/70 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400">
                 <Wrench className="h-6 w-6" />
               </div>
-              <h3 className="mt-5 font-serif text-xl font-bold text-charcoal">
+              <h3 className="mt-5 font-serif text-xl font-bold text-charcoal dark:text-slate-100">
                 3. Prototyping & Engineering
               </h3>
-              <p className="mt-2.5 text-sm leading-relaxed text-charcoal-light">
+              <p className="mt-2.5 text-sm leading-relaxed text-charcoal-light dark:text-slate-400">
                 Rapid turnaround for college projects, robotics clubs, and mechanical R&D. High-strength PETG and heat-resistant ABS fabricated with tight mechanical clearances.
               </p>
-              <div className="mt-5 pt-4 border-t border-zinc-100 flex items-center justify-between">
-                <span className="text-xs font-semibold text-rose-700">Functional test prototypes</span>
-                <ArrowRight className="h-4 w-4 text-rose-600" />
+              <div className="mt-5 pt-4 border-t border-zinc-100 dark:border-slate-700/60 flex items-center justify-between">
+                <span className="text-xs font-semibold text-rose-700 dark:text-rose-400">Functional test prototypes</span>
               </div>
             </Card>
           </div>
@@ -621,17 +625,17 @@ export function Home() {
       {/* =====================================================
           5. FEATURED PRODUCTS ("PIECES WE KEEP STOCKED")
       ====================================================== */}
-      <section className="py-20 lg:py-24 bg-white border-b border-zinc-200">
+      <section className="py-20 lg:py-24 bg-[#f4f2ef] dark:bg-[#0f172a] border-b border-zinc-200 dark:border-slate-800 transition-colors">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
               <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
                 Workshop Stock
               </span>
-              <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight sm:text-4xl text-charcoal">
+              <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight sm:text-4xl text-charcoal dark:text-slate-100">
                 Pieces we keep stocked.
               </h2>
-              <p className="mt-2 max-w-xl text-sm text-charcoal-light">
+              <p className="mt-2 max-w-xl text-sm text-charcoal-light dark:text-slate-400">
                 Ready-to-dispatch 3D printed items, crafted with care and ready for your home or desk.
               </p>
             </div>
@@ -650,7 +654,7 @@ export function Home() {
               <FeaturedProductSkeleton />
             </div>
           ) : featuredProducts.length === 0 ? (
-            <div className="mt-10 rounded-2xl border border-dashed border-zinc-200 p-12 text-center text-charcoal-lighter">
+            <div className="mt-10 rounded-2xl border border-dashed border-zinc-200 dark:border-slate-800 p-12 text-center text-charcoal-lighter dark:text-slate-400">
               No featured products yet. Add products from the Admin catalog.
             </div>
           ) : (
@@ -662,7 +666,7 @@ export function Home() {
                   className="group flex flex-col"
                 >
                   <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-xl group-hover:border-brand-300">
-                    <div className="relative overflow-hidden bg-zinc-100">
+                    <div className="relative overflow-hidden bg-zinc-100 dark:bg-slate-800">
                       <img
                         src={product.image}
                         alt={product.name}
@@ -678,23 +682,20 @@ export function Home() {
 
                     <div className="flex flex-1 flex-col justify-between p-5">
                       <div>
-                        <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-charcoal-lighter">
+                        <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-charcoal-lighter dark:text-slate-400">
                           {product.category || 'Workshop Piece'}
                         </span>
-                        <h3 className="mt-1.5 line-clamp-2 font-serif text-lg font-bold text-charcoal group-hover:text-brand-600 transition-colors">
+                        <h3 className="mt-1.5 line-clamp-2 font-serif text-lg font-bold text-charcoal dark:text-slate-100 group-hover:text-brand-600 transition-colors">
                           {product.name}
                         </h3>
                       </div>
 
-                      <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-3.5">
-                        <div>
-                          <span className="text-xs text-charcoal-lighter block">Price</span>
-                          <span className="font-serif text-lg font-bold text-charcoal">
-                            ₹{product.price.toLocaleString('en-IN')}
-                          </span>
-                        </div>
+                      <div className="mt-5 flex items-center justify-between border-t border-zinc-100 dark:border-slate-700/60 pt-3.5">
+                        <span className="text-xs font-semibold text-charcoal-light dark:text-slate-400 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                          View details
+                        </span>
 
-                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600 group-hover:bg-brand-500 group-hover:text-white transition-colors">
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 group-hover:bg-brand-500 group-hover:text-white transition-colors">
                           <ArrowRight className="h-4 w-4" />
                         </span>
                       </div>
@@ -710,14 +711,14 @@ export function Home() {
       {/* =====================================================
           6. SHOP BY CATEGORY CAROUSEL
       ====================================================== */}
-      <section className="py-20 lg:py-24 bg-[#f4f2ef]">
+      <section className="py-20 lg:py-24 bg-[#f4f2ef] dark:bg-[#0f172a] transition-colors">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
               <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
                 Browse Styles
               </span>
-              <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight sm:text-4xl text-charcoal">
+              <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight sm:text-4xl text-charcoal dark:text-slate-100">
                 Shop by category.
               </h2>
             </div>
@@ -728,7 +729,7 @@ export function Home() {
                   type="button"
                   onClick={() => scrollCategories('left')}
                   aria-label="Scroll categories left"
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-charcoal hover:border-brand-500 hover:text-brand-600 transition-colors shadow-sm"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-charcoal dark:text-slate-200 hover:border-brand-500 hover:text-brand-600 transition-colors shadow-sm"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
@@ -736,7 +737,7 @@ export function Home() {
                   type="button"
                   onClick={() => scrollCategories('right')}
                   aria-label="Scroll categories right"
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-charcoal hover:border-brand-500 hover:text-brand-600 transition-colors shadow-sm"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-charcoal dark:text-slate-200 hover:border-brand-500 hover:text-brand-600 transition-colors shadow-sm"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -749,7 +750,7 @@ export function Home() {
               <CategoryGridSkeleton />
             </div>
           ) : categories.length === 0 ? (
-            <div className="mt-9 rounded-2xl border border-dashed border-zinc-200 p-10 text-center text-charcoal-lighter">
+            <div className="mt-9 rounded-2xl border border-dashed border-zinc-200 dark:border-slate-800 p-10 text-center text-charcoal-lighter dark:text-slate-400">
               No categories found.
             </div>
           ) : (
@@ -763,21 +764,20 @@ export function Home() {
                   to={`/catalog?category=${encodeURIComponent(cat.name)}`}
                   className="group w-[60%] shrink-0 snap-start sm:w-[36%] lg:w-[23%]"
                 >
-                  <div className="relative overflow-hidden rounded-2xl bg-zinc-200 shadow-md">
+                  <div className="relative overflow-hidden rounded-2xl bg-zinc-200 dark:bg-slate-800 shadow-md">
                     <img
                       src={cat.image}
                       alt={cat.name}
                       className="aspect-[4/5] w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-5">
-                      <h3 className="font-serif text-xl font-bold text-white">
+                    <div className="absolute inset-x-0 bottom-0 p-5">
+                      <h3 className="font-serif text-lg font-bold text-white group-hover:text-brand-400 transition-colors">
                         {cat.name}
                       </h3>
-                      <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-brand-300 group-hover:text-white transition-colors">
-                        Explore Category
-                        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-                      </span>
+                      <p className="font-mono text-[11px] uppercase tracking-wider text-slate-300">
+                        {cat.productCount} {cat.productCount === 1 ? 'Design' : 'Designs'}
+                      </p>
                     </div>
                   </div>
                 </Link>
@@ -852,93 +852,7 @@ export function Home() {
       </section>
 
       {/* =====================================================
-          8. MORE FROM THE WORKSHOP (SELECTED PRODUCTS)
-      ====================================================== */}
-      <section className="py-20 lg:py-24 bg-white border-b border-zinc-200">
-        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-          <div className="flex items-end justify-between gap-5">
-            <div>
-              <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
-                Curated Picks
-              </span>
-              <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight sm:text-4xl text-charcoal">
-                More from the workshop.
-              </h2>
-            </div>
-
-            <Link
-              to="/catalog"
-              className="hidden sm:inline-flex items-center gap-1.5 text-sm font-bold text-brand-600 hover:text-brand-700 transition-colors"
-            >
-              <span>Explore All Products</span>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-
-          {isLoading ? (
-            <div className="mt-10">
-              <WorkshopProductSkeleton />
-            </div>
-          ) : selectedProducts.length === 0 ? (
-            <div className="mt-10 rounded-2xl border border-dashed border-zinc-200 p-10 text-center text-charcoal-lighter">
-              No products available.
-            </div>
-          ) : (
-            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {selectedProducts.map((product) => (
-                <Link
-                  key={product.id}
-                  to={`/product/${product.id}`}
-                  className="group flex flex-col"
-                >
-                  <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-xl group-hover:border-brand-300">
-                    <div className="relative overflow-hidden bg-zinc-100">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      {product.isCustomizable && (
-                        <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-charcoal/85 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-                          <Sparkles className="h-3 w-3 text-brand-400" />
-                          Personalize
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex flex-1 flex-col justify-between p-5">
-                      <div>
-                        <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-charcoal-lighter">
-                          {product.category || 'Workshop Piece'}
-                        </span>
-                        <h3 className="mt-1.5 line-clamp-2 font-serif text-lg font-bold text-charcoal group-hover:text-brand-600 transition-colors">
-                          {product.name}
-                        </h3>
-                      </div>
-
-                      <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-3.5">
-                        <div>
-                          <span className="text-xs text-charcoal-lighter block">Price</span>
-                          <span className="font-serif text-lg font-bold text-charcoal">
-                            ₹{product.price.toLocaleString('en-IN')}
-                          </span>
-                        </div>
-
-                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600 group-hover:bg-brand-500 group-hover:text-white transition-colors">
-                          <ArrowRight className="h-4 w-4" />
-                        </span>
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* =====================================================
-          9. FINAL CTA SECTION (Dark Theme)
+          8. FINAL CTA SECTION (Dark Theme)
       ====================================================== */}
       <section className="relative overflow-hidden bg-[#0b0f17] px-5 py-24 text-center text-white sm:px-8 sm:py-28">
         <div className="absolute inset-0 grid-plate opacity-20 pointer-events-none" />

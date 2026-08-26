@@ -47,21 +47,21 @@ import {
 /* -------------------------------------------------------------------------- */
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; border: string }> = {
-  Pending: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
-  Quoted: { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
-  Accepted: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
-  Rejected: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
-  Completed: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
-  Confirmed: { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
-  Printing: { bg: 'bg-brand-50', text: 'text-brand-700', border: 'border-brand-200' },
-  'Quality Check': { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
-  Shipped: { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200' },
-  Delivered: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
-  Cancelled: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+  Pending: { bg: 'bg-amber-50 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800' },
+  Quoted: { bg: 'bg-sky-50 dark:bg-sky-950/40', text: 'text-sky-700 dark:text-sky-300', border: 'border-sky-200 dark:border-sky-800' },
+  Accepted: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800' },
+  Rejected: { bg: 'bg-rose-50 dark:bg-rose-950/40', text: 'text-rose-700 dark:text-rose-300', border: 'border-rose-200 dark:border-rose-800' },
+  Completed: { bg: 'bg-purple-50 dark:bg-purple-950/40', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-200 dark:border-purple-800' },
+  Confirmed: { bg: 'bg-sky-50 dark:bg-sky-950/40', text: 'text-sky-700 dark:text-sky-300', border: 'border-sky-200 dark:border-sky-800' },
+  Printing: { bg: 'bg-brand-50 dark:bg-brand-950/40', text: 'text-brand-700 dark:text-brand-300', border: 'border-brand-200 dark:border-brand-800' },
+  'Quality Check': { bg: 'bg-indigo-50 dark:bg-indigo-950/40', text: 'text-indigo-700 dark:text-indigo-300', border: 'border-indigo-200 dark:border-indigo-800' },
+  Shipped: { bg: 'bg-cyan-50 dark:bg-cyan-950/40', text: 'text-cyan-700 dark:text-cyan-300', border: 'border-cyan-200 dark:border-cyan-800' },
+  Delivered: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800' },
+  Cancelled: { bg: 'bg-rose-50 dark:bg-rose-950/40', text: 'text-rose-700 dark:text-rose-300', border: 'border-rose-200 dark:border-rose-800' },
 };
 
 function getStatusBadge(status: string) {
-  const style = STATUS_STYLES[status] || { bg: 'bg-zinc-50', text: 'text-zinc-700', border: 'border-zinc-200' };
+  const style = STATUS_STYLES[status] || { bg: 'bg-zinc-50 dark:bg-slate-800', text: 'text-zinc-700 dark:text-slate-300', border: 'border-zinc-200 dark:border-slate-700' };
   return (
     <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${style.bg} ${style.text} ${style.border}`}>
       {status}
@@ -360,10 +360,10 @@ export function Account() {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-[#f4f2ef]">
+      <div className="flex min-h-[70vh] items-center justify-center bg-[#f4f2ef] dark:bg-[#0f172a] transition-colors duration-200">
         <div className="text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
-          <p className="mt-4 font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter">
+          <p className="mt-4 font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400">
             Authenticating account...
           </p>
         </div>
@@ -373,17 +373,17 @@ export function Account() {
 
   if (!user) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-[#f4f2ef] px-5 py-20">
-        <div className="max-w-md rounded-3xl border border-zinc-200 bg-white p-8 text-center shadow-lg">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+      <div className="flex min-h-[70vh] items-center justify-center bg-[#f4f2ef] dark:bg-[#0f172a] px-5 py-20 transition-colors duration-200">
+        <div className="max-w-md rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center shadow-lg">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400">
             <User className="h-7 w-7" />
           </div>
 
-          <h1 className="mt-5 font-serif text-2xl font-bold text-charcoal">
+          <h1 className="mt-5 font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
             You are signed out
           </h1>
 
-          <p className="mt-2 text-sm text-charcoal-light leading-relaxed">
+          <p className="mt-2 text-sm text-charcoal-light dark:text-slate-400 leading-relaxed">
             Sign in to track orders, review 3D print quotes, and manage your delivery address.
           </p>
 
@@ -405,9 +405,9 @@ export function Account() {
   );
 
   return (
-    <div className="min-h-screen bg-[#f4f2ef] text-charcoal">
+    <div className="min-h-screen bg-[#f4f2ef] dark:bg-[#0f172a] text-charcoal dark:text-slate-100 transition-colors duration-200">
       {/* Account Hero Header */}
-      <section className="border-b border-zinc-200/80 bg-white">
+      <section className="border-b border-zinc-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
         <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10">
           <div className="flex flex-wrap items-center justify-between gap-6">
             <div className="flex items-center gap-4">
@@ -419,10 +419,10 @@ export function Account() {
                 <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
                   Studio Member Account
                 </span>
-                <h1 className="mt-1 font-serif text-2xl font-bold text-charcoal sm:text-3xl">
+                <h1 className="mt-1 font-serif text-2xl font-bold text-charcoal dark:text-slate-100 sm:text-3xl">
                   {user?.displayName || 'My Account'}
                 </h1>
-                <p className="text-xs text-charcoal-light">{user?.email}</p>
+                <p className="text-xs text-charcoal-light dark:text-slate-400">{user?.email}</p>
               </div>
             </div>
 
@@ -439,7 +439,7 @@ export function Account() {
                 size="sm"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="font-semibold text-rose-600 hover:bg-rose-50"
+                className="font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40"
               >
                 <LogOut className="mr-1.5 h-3.5 w-3.5" />
                 {isLoggingOut ? 'Signing out...' : 'Sign out'}
@@ -449,23 +449,23 @@ export function Account() {
 
           {/* Active Order Alert Bar */}
           {activeOrder && (
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-brand-200 bg-brand-50/60 p-4">
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-brand-200 dark:border-brand-500/30 bg-brand-50/60 dark:bg-brand-500/10 p-4">
               <div className="flex items-center gap-3">
                 <span className="relative flex h-3 w-3">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
                   <span className="relative inline-flex h-3 w-3 rounded-full bg-brand-500" />
                 </span>
-                <p className="text-xs text-charcoal">
+                <p className="text-xs text-charcoal dark:text-slate-100">
                   <span className="font-bold">Active Order #{activeOrder.id.slice(0, 8).toUpperCase()}</span>
                   {' is currently '}
-                  <span className="font-bold text-brand-600 uppercase">{activeOrder.status}</span>
+                  <span className="font-bold text-brand-600 dark:text-brand-400 uppercase">{activeOrder.status}</span>
                 </p>
               </div>
 
               <button
                 type="button"
                 onClick={() => setSelectedOrder(activeOrder)}
-                className="inline-flex items-center gap-1 font-mono text-xs font-bold text-brand-600 hover:text-brand-700"
+                className="inline-flex items-center gap-1 font-mono text-xs font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700"
               >
                 <span>Track Progress</span>
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -478,7 +478,7 @@ export function Account() {
       {/* Main Tabs Container */}
       <main className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10">
         {/* Navigation Tabs */}
-        <div className="flex overflow-x-auto border-b border-zinc-200 gap-2 pb-px">
+        <div className="flex overflow-x-auto border-b border-zinc-200 dark:border-slate-800 gap-2 pb-px">
           {[
             { id: 'orders', label: 'Orders', count: myOrders.length, icon: Package },
             { id: 'quotes', label: 'CAD Quotes', count: myQuotes.length, icon: FileText },
@@ -494,14 +494,14 @@ export function Account() {
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`flex items-center gap-2 rounded-t-2xl px-5 py-3 font-mono text-xs font-bold uppercase tracking-wider transition-all ${
                   active
-                    ? 'border-b-2 border-brand-500 bg-white text-brand-600 shadow-sm'
-                    : 'text-charcoal-light hover:text-charcoal hover:bg-zinc-100/60'
+                    ? 'border-b-2 border-brand-500 bg-white dark:bg-slate-900 text-brand-600 dark:text-brand-400 shadow-sm'
+                    : 'text-charcoal-light dark:text-slate-400 hover:text-charcoal dark:hover:text-slate-100 hover:bg-zinc-100/60 dark:hover:bg-slate-800/60'
                 }`}
               >
                 <Icon className="h-4 w-4" />
                 <span>{tab.label}</span>
                 {tab.count !== undefined && (
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] ${active ? 'bg-brand-100 text-brand-700' : 'bg-zinc-200/60 text-charcoal-lighter'}`}>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] ${active ? 'bg-brand-100 dark:bg-brand-500/20 text-brand-700 dark:text-brand-300' : 'bg-zinc-200/60 dark:bg-slate-800 text-charcoal-lighter dark:text-slate-400'}`}>
                     {tab.count}
                   </span>
                 )}
@@ -517,10 +517,10 @@ export function Account() {
           <div className="mt-8 space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="font-serif text-2xl font-bold text-charcoal">
+                <h2 className="font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
                   Your Orders
                 </h2>
-                <p className="text-xs text-charcoal-light">
+                <p className="text-xs text-charcoal-light dark:text-slate-400">
                   Track fabrication stages and pan-India courier dispatch.
                 </p>
               </div>
@@ -540,13 +540,13 @@ export function Account() {
             {ordersLoading ? (
               <div className="py-20 text-center">
                 <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
-                <p className="mt-4 text-xs font-semibold text-charcoal-light">Loading orders...</p>
+                <p className="mt-4 text-xs font-semibold text-charcoal-light dark:text-slate-400">Loading orders...</p>
               </div>
             ) : myOrders.length === 0 ? (
-              <div className="rounded-3xl border border-zinc-200 bg-white p-12 text-center shadow-sm">
-                <Package className="mx-auto h-12 w-12 text-zinc-300" />
-                <h3 className="mt-4 font-serif text-xl font-bold text-charcoal">No orders yet</h3>
-                <p className="mt-1 text-xs text-charcoal-light">
+              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center shadow-sm">
+                <Package className="mx-auto h-12 w-12 text-zinc-300 dark:text-slate-600" />
+                <h3 className="mt-4 font-serif text-xl font-bold text-charcoal dark:text-slate-100">No orders yet</h3>
+                <p className="mt-1 text-xs text-charcoal-light dark:text-slate-400">
                   Browse our catalog or submit custom 3D files to start your first order.
                 </p>
                 <Link to="/catalog" className="mt-5 inline-block">
@@ -558,17 +558,17 @@ export function Account() {
                 {myOrders.map((order) => (
                   <div
                     key={order.id}
-                    className="flex flex-col gap-5 rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-5 rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-3">
-                        <span className="font-mono text-sm font-bold text-charcoal">
+                        <span className="font-mono text-sm font-bold text-charcoal dark:text-slate-100">
                           #{order.id.slice(0, 8).toUpperCase()}
                         </span>
                         {getStatusBadge(order.status)}
                       </div>
 
-                      <p className="text-xs text-charcoal-light">
+                      <p className="text-xs text-charcoal-light dark:text-slate-400">
                         {order.items.length} {order.items.length === 1 ? 'item' : 'items'} •{' '}
                         {new Date(order.date).toLocaleDateString('en-IN', {
                           day: 'numeric',
@@ -580,8 +580,8 @@ export function Account() {
 
                     <div className="flex flex-wrap items-center gap-4">
                       <div className="sm:text-right">
-                        <span className="font-mono text-[10px] text-charcoal-lighter uppercase block">Total</span>
-                        <span className="font-mono text-base font-bold text-charcoal">
+                        <span className="font-mono text-[10px] text-charcoal-lighter dark:text-slate-400 uppercase block">Total</span>
+                        <span className="font-mono text-base font-bold text-charcoal dark:text-slate-100">
                           ₹{order.total.toLocaleString('en-IN')}
                         </span>
                       </div>
@@ -619,10 +619,10 @@ export function Account() {
           <div className="mt-8 space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="font-serif text-2xl font-bold text-charcoal">
+                <h2 className="font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
                   Custom Print Quotes
                 </h2>
-                <p className="text-xs text-charcoal-light">
+                <p className="text-xs text-charcoal-light dark:text-slate-400">
                   Engineer reviews, slicing feasibility, and price confirmations for your CAD uploads.
                 </p>
               </div>
@@ -637,13 +637,13 @@ export function Account() {
             {quotesLoading ? (
               <div className="py-20 text-center">
                 <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
-                <p className="mt-4 text-xs font-semibold text-charcoal-light">Loading quotes...</p>
+                <p className="mt-4 text-xs font-semibold text-charcoal-light dark:text-slate-400">Loading quotes...</p>
               </div>
             ) : myQuotes.length === 0 ? (
-              <div className="rounded-3xl border border-zinc-200 bg-white p-12 text-center shadow-sm">
-                <FileText className="mx-auto h-12 w-12 text-zinc-300" />
-                <h3 className="mt-4 font-serif text-xl font-bold text-charcoal">No quotes requested</h3>
-                <p className="mt-1 text-xs text-charcoal-light">
+              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center shadow-sm">
+                <FileText className="mx-auto h-12 w-12 text-zinc-300 dark:text-slate-600" />
+                <h3 className="mt-4 font-serif text-xl font-bold text-charcoal dark:text-slate-100">No quotes requested</h3>
+                <p className="mt-1 text-xs text-charcoal-light dark:text-slate-400">
                   Upload an STL/OBJ model or share reference images for an instant or engineer-verified quote.
                 </p>
                 <Link to="/custom-service" className="mt-5 inline-block">
@@ -651,10 +651,10 @@ export function Account() {
                 </Link>
               </div>
             ) : (
-              <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
+              <div className="overflow-hidden rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-zinc-50 border-b border-zinc-200 font-mono text-[10px] uppercase text-charcoal-lighter">
+                    <thead className="bg-zinc-50 dark:bg-slate-800 border-b border-zinc-200 dark:border-slate-700 font-mono text-[10px] uppercase text-charcoal-lighter dark:text-slate-400">
                       <tr>
                         <th className="px-6 py-4">Quote ID</th>
                         <th className="px-6 py-4">File Name</th>
@@ -664,17 +664,17 @@ export function Account() {
                         <th className="px-6 py-4 text-right">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-100">
+                    <tbody className="divide-y divide-zinc-100 dark:divide-slate-800">
                       {myQuotes.map((quote) => (
-                        <tr key={quote.id} className="hover:bg-zinc-50/50">
-                          <td className="px-6 py-4 font-mono font-bold text-charcoal">
+                        <tr key={quote.id} className="hover:bg-zinc-50/50 dark:hover:bg-slate-800/50">
+                          <td className="px-6 py-4 font-mono font-bold text-charcoal dark:text-slate-100">
                             #{quote.id.slice(0, 8).toUpperCase()}
                           </td>
                           <td className="px-6 py-4">
-                            <p className="max-w-[200px] truncate font-bold text-charcoal">
+                            <p className="max-w-[200px] truncate font-bold text-charcoal dark:text-slate-100">
                               {quote.fileName}
                             </p>
-                            <span className="font-mono text-[10px] text-charcoal-lighter">
+                            <span className="font-mono text-[10px] text-charcoal-lighter dark:text-slate-400">
                               {new Date(quote.date).toLocaleDateString('en-IN', {
                                 day: 'numeric',
                                 month: 'short',
@@ -682,22 +682,22 @@ export function Account() {
                             </span>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="font-semibold text-charcoal">{quote.material}</span> • {quote.color}
-                            <p className="font-mono text-[10px] text-charcoal-lighter">{quote.infill}% Infill</p>
+                            <span className="font-semibold text-charcoal dark:text-slate-100">{quote.material}</span> • {quote.color}
+                            <p className="font-mono text-[10px] text-charcoal-lighter dark:text-slate-400">{quote.infill}% Infill</p>
                           </td>
                           <td className="px-6 py-4">
                             {getStatusBadge(quote.status)}
                           </td>
-                          <td className="px-6 py-4 font-mono font-bold text-charcoal">
+                          <td className="px-6 py-4 font-mono font-bold text-charcoal dark:text-slate-100">
                             {quote.adminPrice ? (
                               <div>
                                 <span>₹{quote.adminPrice.toLocaleString('en-IN')}</span>
-                                <span className="block text-[10px] font-bold text-emerald-600">Final Price</span>
+                                <span className="block text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Final Price</span>
                               </div>
                             ) : (
                               <div>
                                 <span>₹{(quote.estimatedPrice ?? 0).toLocaleString('en-IN')}</span>
-                                <span className="block text-[10px] text-charcoal-lighter">Estimate</span>
+                                <span className="block text-[10px] text-charcoal-lighter dark:text-slate-400">Estimate</span>
                               </div>
                             )}
                           </td>
@@ -748,17 +748,17 @@ export function Account() {
         {activeTab === 'addresses' && (
           <div className="mt-8 grid gap-8 lg:grid-cols-12">
             <div className="lg:col-span-7">
-              <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm">
-                <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm">
+                <div className="flex items-center justify-between border-b border-zinc-100 dark:border-slate-800 pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400">
                       <MapPin className="h-5 w-5" />
                     </div>
                     <div>
-                      <h2 className="font-serif text-xl font-bold text-charcoal">
+                      <h2 className="font-serif text-xl font-bold text-charcoal dark:text-slate-100">
                         Primary Delivery Address
                       </h2>
-                      <span className="text-xs text-charcoal-light">Used to auto-populate checkout.</span>
+                      <span className="text-xs text-charcoal-light dark:text-slate-400">Used to auto-populate checkout.</span>
                     </div>
                   </div>
                   <Badge variant="brand">Active</Badge>
@@ -771,7 +771,7 @@ export function Account() {
                 ) : (
                   <div className="mt-5 space-y-4">
                     {profile?.address && Object.values(profile.address).some(Boolean) ? (
-                      <p className="text-sm text-charcoal-light leading-relaxed">
+                      <p className="text-sm text-charcoal-light dark:text-slate-300 leading-relaxed">
                         {profile.address.line1}
                         {profile.address.line2 ? `, ${profile.address.line2}` : ''}
                         <br />
@@ -780,7 +780,7 @@ export function Account() {
                         {profile.address.pincode ? ` - ${profile.address.pincode}` : ''}
                       </p>
                     ) : (
-                      <p className="text-xs text-charcoal-lighter">
+                      <p className="text-xs text-charcoal-lighter dark:text-slate-400">
                         No saved delivery address yet. Add your address for faster 1-click checkout.
                       </p>
                     )}
@@ -794,7 +794,7 @@ export function Account() {
                         </Button>
                       </div>
                     ) : (
-                      <form onSubmit={handleSaveAddress} className="border-t border-zinc-100 pt-5 space-y-4">
+                      <form onSubmit={handleSaveAddress} className="border-t border-zinc-100 dark:border-slate-800 pt-5 space-y-4">
                         <Input
                           name="addressLine1"
                           label="Flat / House / Building *"
@@ -850,11 +850,11 @@ export function Account() {
                           {profileAddress.pincode.length === 6 && (
                             <p className="mt-1 text-[11px]">
                               {isPincodeLookingUp ? (
-                                <span className="text-charcoal-lighter">Auto-detecting postal circle...</span>
+                                <span className="text-charcoal-lighter dark:text-slate-400">Auto-detecting postal circle...</span>
                               ) : pincodeLookupError ? (
-                                <span className="text-rose-600">{pincodeLookupError}</span>
+                                <span className="text-rose-600 dark:text-rose-400">{pincodeLookupError}</span>
                               ) : pincodeLocation ? (
-                                <span className="text-emerald-700 font-bold">
+                                <span className="text-emerald-700 dark:text-emerald-400 font-bold">
                                   ✓ {pincodeLocation.city}, {pincodeLocation.state}
                                 </span>
                               ) : null}
@@ -863,13 +863,13 @@ export function Account() {
                         </div>
 
                         {addressError && (
-                          <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">
+                          <div className="rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 p-3 text-xs font-semibold text-rose-700 dark:text-rose-300">
                             {addressError}
                           </div>
                         )}
 
                         {addressMessage && (
-                          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-700">
+                          <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 p-3 text-xs font-bold text-emerald-700 dark:text-emerald-300">
                             {addressMessage}
                           </div>
                         )}
@@ -894,23 +894,23 @@ export function Account() {
               </div>
 
               {/* Address Change History */}
-              <div className="mt-8 rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm">
-                <h3 className="font-serif text-lg font-bold text-charcoal">
+              <div className="mt-8 rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm">
+                <h3 className="font-serif text-lg font-bold text-charcoal dark:text-slate-100">
                   Address History
                 </h3>
-                <p className="text-xs text-charcoal-lighter">
+                <p className="text-xs text-charcoal-lighter dark:text-slate-400">
                   Previous delivery destinations logged for your account.
                 </p>
 
                 {profile?.addressHistory && profile.addressHistory.length > 0 ? (
-                  <div className="mt-4 divide-y divide-zinc-100">
+                  <div className="mt-4 divide-y divide-zinc-100 dark:divide-slate-800">
                     {profile.addressHistory.map((item, idx) => (
                       <div key={item.id || idx} className="flex items-center justify-between py-3 text-xs">
                         <div>
-                          <p className="font-medium text-charcoal">
+                          <p className="font-medium text-charcoal dark:text-slate-200">
                             {item.address.line1}, {item.address.city}, {item.address.state} - {item.address.pincode}
                           </p>
-                          <span className="font-mono text-[10px] text-charcoal-lighter">
+                          <span className="font-mono text-[10px] text-charcoal-lighter dark:text-slate-400">
                             {new Date(item.updatedAt).toLocaleDateString('en-IN')}
                           </span>
                         </div>
@@ -929,18 +929,18 @@ export function Account() {
                     ))}
                   </div>
                 ) : (
-                  <p className="mt-3 text-xs text-charcoal-lighter">No prior addresses recorded.</p>
+                  <p className="mt-3 text-xs text-charcoal-lighter dark:text-slate-400">No prior addresses recorded.</p>
                 )}
               </div>
             </div>
 
             <aside className="lg:col-span-5">
-              <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 text-charcoal font-bold text-sm">
+              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 text-charcoal dark:text-slate-100 font-bold text-sm">
                   <ShieldCheck className="h-4 w-4 text-brand-500" />
                   <span>Pan-India Delivery Guarantee</span>
                 </div>
-                <p className="text-xs text-charcoal-light leading-relaxed">
+                <p className="text-xs text-charcoal-light dark:text-slate-400 leading-relaxed">
                   We verify pin codes directly with Indian Postal & courier databases to prevent dispatch errors and transit delays.
                 </p>
               </div>
@@ -954,11 +954,11 @@ export function Account() {
         {activeTab === 'profile' && (
           <div className="mt-8 grid gap-8 lg:grid-cols-12">
             <div className="lg:col-span-7">
-              <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm">
-                <h2 className="font-serif text-xl font-bold text-charcoal">
+              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm">
+                <h2 className="font-serif text-xl font-bold text-charcoal dark:text-slate-100">
                   Account Details
                 </h2>
-                <p className="text-xs text-charcoal-light">
+                <p className="text-xs text-charcoal-light dark:text-slate-400">
                   Update your contact details for order notifications and invoices.
                 </p>
 
@@ -999,13 +999,13 @@ export function Account() {
                     />
 
                     {profileError && (
-                      <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">
+                      <div className="rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 p-3 text-xs font-semibold text-rose-700 dark:text-rose-300">
                         {profileError}
                       </div>
                     )}
 
                     {profileMessage && (
-                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-700">
+                      <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 p-3 text-xs font-bold text-emerald-700 dark:text-emerald-300">
                         {profileMessage}
                       </div>
                     )}
@@ -1037,22 +1037,22 @@ export function Account() {
             </div>
 
             <aside className="lg:col-span-5">
-              <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm space-y-4">
-                <h3 className="font-serif text-lg font-bold text-charcoal">
+              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm space-y-4">
+                <h3 className="font-serif text-lg font-bold text-charcoal dark:text-slate-100">
                   Account Overview
                 </h3>
-                <dl className="divide-y divide-zinc-100 text-xs">
+                <dl className="divide-y divide-zinc-100 dark:divide-slate-800 text-xs">
                   <div className="flex justify-between py-2.5">
-                    <span className="text-charcoal-lighter">Total Orders</span>
-                    <span className="font-mono font-bold text-charcoal">{myOrders.length}</span>
+                    <span className="text-charcoal-lighter dark:text-slate-400">Total Orders</span>
+                    <span className="font-mono font-bold text-charcoal dark:text-slate-100">{myOrders.length}</span>
                   </div>
                   <div className="flex justify-between py-2.5">
-                    <span className="text-charcoal-lighter">CAD Quotes</span>
-                    <span className="font-mono font-bold text-charcoal">{myQuotes.length}</span>
+                    <span className="text-charcoal-lighter dark:text-slate-400">CAD Quotes</span>
+                    <span className="font-mono font-bold text-charcoal dark:text-slate-100">{myQuotes.length}</span>
                   </div>
                   <div className="flex justify-between py-2.5">
-                    <span className="text-charcoal-lighter">Account Email</span>
-                    <span className="font-mono font-medium text-charcoal truncate max-w-[160px]">{user.email}</span>
+                    <span className="text-charcoal-lighter dark:text-slate-400">Account Email</span>
+                    <span className="font-mono font-medium text-charcoal dark:text-slate-100 truncate max-w-[160px]">{user.email}</span>
                   </div>
                 </dl>
               </div>
@@ -1072,19 +1072,19 @@ export function Account() {
           onClick={() => setSelectedOrder(null)}
         >
           <div
-            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-zinc-200 bg-white shadow-2xl"
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-zinc-100 p-6">
+            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-slate-800 p-6">
               <div>
                 <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-brand-500 block">
                   Order Details
                 </span>
-                <h2 className="font-serif text-2xl font-bold text-charcoal">
+                <h2 className="font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
                   #{selectedOrder.id.slice(0, 8).toUpperCase()}
                 </h2>
-                <p className="text-xs text-charcoal-lighter">
+                <p className="text-xs text-charcoal-lighter dark:text-slate-400">
                   {new Date(selectedOrder.date).toLocaleDateString('en-IN', {
                     day: 'numeric',
                     month: 'long',
@@ -1096,7 +1096,7 @@ export function Account() {
               <button
                 type="button"
                 onClick={() => setSelectedOrder(null)}
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 text-charcoal-light hover:bg-zinc-200"
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 dark:bg-slate-800 text-charcoal-light dark:text-slate-400 hover:bg-zinc-200 dark:hover:bg-slate-700"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1104,27 +1104,27 @@ export function Account() {
 
             {/* Modal Body */}
             <div className="p-6 space-y-6">
-              <div className="flex items-center justify-between rounded-2xl bg-zinc-50 p-4">
-                <span className="font-mono text-xs font-bold text-charcoal-lighter uppercase">Fabrication Status</span>
+              <div className="flex items-center justify-between rounded-2xl bg-zinc-50 dark:bg-slate-800/80 p-4">
+                <span className="font-mono text-xs font-bold text-charcoal-lighter dark:text-slate-400 uppercase">Fabrication Status</span>
                 {getStatusBadge(selectedOrder.status)}
               </div>
 
               {/* Items List */}
-              <div className="divide-y divide-zinc-100 border-y border-zinc-100">
+              <div className="divide-y divide-zinc-100 dark:divide-slate-800 border-y border-zinc-100 dark:border-slate-800">
                 {selectedOrder.items.map((item, index) => (
                   <div key={`${item.productId}-${index}`} className="flex items-center gap-4 py-3">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400">
                       <Package className="h-5 w-5" />
                     </div>
 
                     <div className="min-w-0 flex-1 text-xs">
-                      <p className="font-bold text-charcoal">{item.productName}</p>
-                      <p className="font-mono text-[11px] text-charcoal-lighter">
+                      <p className="font-bold text-charcoal dark:text-slate-100">{item.productName}</p>
+                      <p className="font-mono text-[11px] text-charcoal-lighter dark:text-slate-400">
                         Qty {item.quantity} {item.variantLabel && `• ${item.variantLabel}`}
                       </p>
                     </div>
 
-                    <span className="font-mono text-xs font-bold text-charcoal">
+                    <span className="font-mono text-xs font-bold text-charcoal dark:text-slate-100">
                       ₹{(item.price * item.quantity).toLocaleString('en-IN')}
                     </span>
                   </div>
@@ -1132,14 +1132,14 @@ export function Account() {
               </div>
 
               {/* Price Breakdown */}
-              <div className="space-y-2 text-xs divide-y divide-zinc-100">
+              <div className="space-y-2 text-xs divide-y divide-zinc-100 dark:divide-slate-800">
                 <div className="flex justify-between pt-2">
-                  <span className="text-charcoal-lighter">Delivery</span>
-                  <span className="font-mono font-bold text-emerald-600">Pan-India Tracked</span>
+                  <span className="text-charcoal-lighter dark:text-slate-400">Delivery</span>
+                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">Pan-India Tracked</span>
                 </div>
                 <div className="flex items-baseline justify-between pt-3">
-                  <span className="font-serif text-base font-bold text-charcoal">Total Amount</span>
-                  <span className="font-serif text-2xl font-bold text-charcoal">
+                  <span className="font-serif text-base font-bold text-charcoal dark:text-slate-100">Total Amount</span>
+                  <span className="font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
                     ₹{selectedOrder.total.toLocaleString('en-IN')}
                   </span>
                 </div>
@@ -1147,7 +1147,7 @@ export function Account() {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex justify-end gap-3 border-t border-zinc-100 bg-zinc-50/60 p-4 rounded-b-3xl">
+            <div className="flex justify-end gap-3 border-t border-zinc-100 dark:border-slate-800 bg-zinc-50/60 dark:bg-slate-800/60 p-4 rounded-b-3xl">
               <Button variant="ghost" onClick={() => setSelectedOrder(null)} className="font-semibold text-xs">
                 Close
               </Button>

@@ -26,8 +26,47 @@ export type HomepageSettings = {
   announcementDuration: number;
 };
 
+export const DEFAULT_HERO_SLIDES: HomepageHeroSlide[] = [
+  {
+    id: 'hero-1',
+    enabled: true,
+    eyebrow: 'Bespoke Craftsmanship',
+    title: 'Luminous Memories & Custom Lithophane Lamps',
+    description:
+      'Transform cherished photos and personal moments into glowing 3D-fabricated art pieces, personalized anniversary trophies, and desk decor.',
+    image:
+      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80',
+    buttonText: 'Explore Workshop Pieces',
+    buttonLink: '/catalog',
+  },
+  {
+    id: 'hero-2',
+    enabled: true,
+    eyebrow: 'Precision Engineering',
+    title: 'Rapid Prototypes & Robotics Enclosures',
+    description:
+      'Industrial-grade PETG, ABS, and high-detail SLA resin fabrication with 50µm dimensional tolerances for makers, IoT startups, and engineering teams.',
+    image:
+      'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?auto=format&fit=crop&w=1200&q=80',
+    buttonText: 'Upload CAD for Quote',
+    buttonLink: '/custom-service',
+  },
+  {
+    id: 'hero-3',
+    enabled: true,
+    eyebrow: 'Zero Setup Delays',
+    title: 'If You Can Imagine It, We Can Print It.',
+    description:
+      'Turn concept sketches, CAD models, or replacement part ideas into finished, production-grade physical objects in 24–48 hours.',
+    image:
+      'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=1200&q=80',
+    buttonText: 'Get Instant 3D Quote',
+    buttonLink: '/custom-service',
+  },
+];
+
 export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
-  heroSlides: [],
+  heroSlides: DEFAULT_HERO_SLIDES,
   heroAutoplay: true,
   heroInterval: 6000,
 
@@ -45,9 +84,9 @@ const HOMEPAGE_DOCUMENT_ID = 'homepage';
 const homepageKey = ['settings', HOMEPAGE_DOCUMENT_ID] as const;
 
 function normaliseHeroSlides(value: unknown): HomepageHeroSlide[] {
-  if (!Array.isArray(value)) return [];
+  if (!Array.isArray(value)) return DEFAULT_HERO_SLIDES;
 
-  return value
+  const slides = value
     .filter(
       (slide): slide is Record<string, unknown> =>
         !!slide && typeof slide === 'object'
@@ -90,6 +129,8 @@ function normaliseHeroSlides(value: unknown): HomepageHeroSlide[] {
           ? slide.buttonLink
           : '',
     }));
+
+  return slides.length > 0 ? slides : DEFAULT_HERO_SLIDES;
 }
 
 function normaliseStringArray(value: unknown): string[] {

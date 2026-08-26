@@ -62,9 +62,9 @@ export function AdminLogin() {
   };
 
   return (
-    <div className="grid min-h-screen w-full lg:grid-cols-12 bg-[#f4f2ef] text-charcoal">
+    <div className="grid min-h-screen w-full lg:grid-cols-12 bg-[#f4f2ef] dark:bg-[#0f172a] text-charcoal dark:text-slate-100 transition-colors duration-200">
       {/* Left Dark Showcase Column */}
-      <div className="relative hidden overflow-hidden bg-[#0b0f17] text-white lg:col-span-5 lg:flex lg:flex-col lg:justify-between p-12 xl:p-16 border-r border-zinc-800">
+      <div className="relative hidden overflow-hidden bg-[#0b0f17] dark:bg-slate-950 text-white lg:col-span-5 lg:flex lg:flex-col lg:justify-between p-12 xl:p-16 border-r border-zinc-800 dark:border-slate-800">
         <div className="absolute inset-0 opacity-20 pointer-events-none">
           <div className="absolute inset-0 bg-[radial-gradient(#ff6b1a_1px,transparent_1px)] [background-size:24px_24px]" />
           <div className="absolute right-0 top-1/3 h-80 w-80 rounded-full bg-brand-500/20 blur-3xl" />
@@ -98,7 +98,7 @@ export function AdminLogin() {
             Manage live 3D print queue, review customer CAD uploads, adjust filament stock, and control storefront catalog pieces.
           </p>
 
-          <div className="pt-4 border-t border-zinc-800 flex items-center gap-4 text-xs font-mono text-zinc-400">
+          <div className="pt-4 border-t border-zinc-800 dark:border-slate-800 flex items-center gap-4 text-xs font-mono text-zinc-400">
             <span>🔒 Multi-Role RBAC Protected</span>
           </div>
         </div>
@@ -113,7 +113,7 @@ export function AdminLogin() {
         <div className="w-full max-w-[440px]">
           <Link
             to="/"
-            className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-charcoal-light hover:text-brand-600 transition-colors mb-6"
+            className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-charcoal-light dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors mb-6"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             <span>Back to Storefront</span>
@@ -123,15 +123,15 @@ export function AdminLogin() {
             <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
               Studio Access
             </span>
-            <h2 className="mt-1 font-serif text-3xl font-bold text-charcoal sm:text-4xl">
+            <h2 className="mt-1 font-serif text-3xl font-bold text-charcoal dark:text-slate-100 sm:text-4xl">
               Engineer Sign In
             </h2>
-            <p className="mt-2 text-xs text-charcoal-light leading-relaxed">
+            <p className="mt-2 text-xs text-charcoal-light dark:text-slate-400 leading-relaxed">
               Sign in with your authorized administrator credentials to enter the production control console.
             </p>
           </div>
 
-          <div className="rounded-3xl border border-zinc-200 bg-white p-7 sm:p-8 shadow-sm">
+          <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 sm:p-8 shadow-sm">
             <form onSubmit={handleLogin} noValidate className="space-y-4">
               <Input
                 name="email"
@@ -152,7 +152,7 @@ export function AdminLogin() {
               />
 
               {error && (
-                <div className="flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-semibold text-rose-700">
+                <div className="flex items-start gap-2.5 rounded-2xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 p-3.5 text-xs font-semibold text-rose-700 dark:text-rose-300">
                   <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                   <span>{error}</span>
                 </div>
@@ -168,7 +168,7 @@ export function AdminLogin() {
               </Button>
             </form>
 
-            <div className="mt-6 border-t border-zinc-100 pt-5 text-xs text-charcoal-lighter flex items-start gap-2">
+            <div className="mt-6 border-t border-zinc-100 dark:border-slate-800 pt-5 text-xs text-charcoal-lighter dark:text-slate-400 flex items-start gap-2">
               <ShieldCheck className="h-4 w-4 text-brand-500 shrink-0 mt-0.5" />
               <span>
                 Role-based access permissions are enforced via Firebase Firestore security rules.

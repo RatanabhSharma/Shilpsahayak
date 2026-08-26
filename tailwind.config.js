@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: [
     './index.html',
     './src/**/*.{js,ts,jsx,tsx}'
@@ -21,11 +22,11 @@ export default {
           950: '#431407',
         },
         dark: {
-          DEFAULT: '#0b0f17',
-          bg: '#0b0f17',
-          card: '#121824',
-          elevated: '#182234',
-          border: '#232e42',
+          DEFAULT: '#0f172a',
+          bg: '#0f172a', // Slate 900 primary dark background
+          card: '#1e293b', // Slate 800 elevated cards
+          elevated: '#334155',
+          border: '#334155',
           muted: '#94a3b8',
         },
         surface: {
@@ -34,7 +35,8 @@ export default {
           stone: '#ede9e3',
           muted: '#eae6df',
           border: '#e2ddd5',
-          dark: '#0b0f17',
+          dark: '#0f172a',
+          darkCard: '#1e293b',
           lavender: '#f6f4f2',
         },
         charcoal: {

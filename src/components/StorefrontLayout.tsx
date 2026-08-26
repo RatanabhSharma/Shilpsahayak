@@ -32,6 +32,7 @@ import { useSettings } from '../hooks/useSettings';
 import { useHomepage } from '../hooks/useHomepage';
 import { useUserRole } from '../hooks/useUserRole';
 import { BrandLogo } from './ui';
+import { ThemeToggle } from './ThemeToggle';
 
 type NavItem = {
   name: string;
@@ -210,7 +211,7 @@ export function StorefrontLayout() {
   const showAdmin = !authLoading && !roleLoading && isAuthenticated && isAdmin;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f4f2ef] text-charcoal">
+    <div className="min-h-screen flex flex-col bg-[#f4f2ef] dark:bg-[#0f172a] text-charcoal dark:text-slate-100 transition-colors duration-200">
       {/* Accessibility Skip Link */}
       <a
         href="#main-content"
@@ -229,7 +230,7 @@ export function StorefrontLayout() {
         )}
 
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-zinc-200/80 bg-[#f4f2ef]/95 backdrop-blur-md transition-shadow">
+      <header className="sticky top-0 z-50 border-b border-zinc-200/80 bg-[#f4f2ef]/95 dark:border-slate-800 dark:bg-[#0f172a]/95 backdrop-blur-md transition-shadow">
         <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-4 sm:px-6 lg:h-20 lg:px-10">
           {/* Logo */}
           <Link
@@ -254,8 +255,8 @@ export function StorefrontLayout() {
                   [
                     'relative px-3.5 py-2 text-[13.5px] font-semibold tracking-[-0.01em] transition-colors rounded-xl',
                     isActive
-                      ? 'text-brand-500 bg-brand-50/80'
-                      : 'text-charcoal-light hover:text-charcoal hover:bg-zinc-100/60',
+                      ? 'text-brand-500 bg-brand-50/80 dark:bg-brand-500/15 dark:text-brand-400'
+                      : 'text-charcoal-light dark:text-slate-300 hover:text-charcoal dark:hover:text-white hover:bg-zinc-100/60 dark:hover:bg-slate-800/60',
                   ].join(' ')
                 }
               >
@@ -281,7 +282,7 @@ export function StorefrontLayout() {
                     'transition-all duration-150',
                     isActive
                       ? 'border-brand-500 bg-brand-500 text-white shadow-sm'
-                      : 'border-zinc-300 text-charcoal hover:border-brand-500 hover:text-brand-600',
+                      : 'border-zinc-300 dark:border-slate-700 text-charcoal dark:text-slate-300 hover:border-brand-500 hover:text-brand-600',
                   ].join(' ')
                 }
               >
@@ -296,31 +297,34 @@ export function StorefrontLayout() {
             {/* Custom Print Quick Action (Desktop) */}
             <Link
               to="/custom-service"
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-brand-500/30 bg-brand-50 px-3.5 py-2 text-xs font-bold text-brand-700 hover:bg-brand-100 transition-colors shadow-sm"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-brand-500/30 bg-brand-50 dark:bg-brand-500/10 px-3.5 py-2 text-xs font-bold text-brand-700 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-500/20 transition-colors shadow-sm"
             >
               <Sparkles className="w-3.5 h-3.5 text-brand-500" />
               <span>Instant Quote</span>
             </Link>
 
+            {/* Theme Toggle Button */}
+            <ThemeToggle size="sm" />
+
             {/* User Auth / Account */}
             {authLoading ? (
-              <div className="h-10 w-10 animate-pulse rounded-xl bg-zinc-200" />
+              <div className="h-10 w-10 animate-pulse rounded-xl bg-zinc-200 dark:bg-slate-800" />
             ) : isAuthenticated ? (
               <Link
                 to="/account"
-                className="inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium text-charcoal hover:bg-zinc-100 transition-colors"
+                className="inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium text-charcoal dark:text-slate-200 hover:bg-zinc-100 dark:hover:bg-slate-800 transition-colors"
                 aria-label="My account"
               >
-                <User className="h-4 w-4 text-charcoal-light" />
+                <User className="h-4 w-4 text-charcoal-light dark:text-slate-400" />
                 <span className="hidden md:inline font-semibold text-xs">Account</span>
               </Link>
             ) : (
               <Link
                 to="/login"
-                className="inline-flex h-10 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-charcoal hover:bg-zinc-100 transition-colors"
+                className="inline-flex h-10 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-charcoal dark:text-slate-200 hover:bg-zinc-100 dark:hover:bg-slate-800 transition-colors"
                 aria-label="Sign in"
               >
-                <User className="h-4 w-4 text-charcoal-light" />
+                <User className="h-4 w-4 text-charcoal-light dark:text-slate-400" />
                 <span>Sign In</span>
               </Link>
             )}
@@ -328,7 +332,7 @@ export function StorefrontLayout() {
             {/* Shopping Cart Button */}
             <Link
               to="/cart"
-              className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-charcoal hover:bg-zinc-100 transition-colors"
+              className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-charcoal dark:text-slate-200 hover:bg-zinc-100 dark:hover:bg-slate-800 transition-colors"
               aria-label={`Shopping cart with ${cartItemCount} items`}
             >
               <ShoppingBag className="h-5 w-5" aria-hidden="true" />
@@ -343,7 +347,7 @@ export function StorefrontLayout() {
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-charcoal hover:bg-zinc-100 transition-colors lg:hidden"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-charcoal dark:text-slate-200 hover:bg-zinc-100 dark:hover:bg-slate-800 transition-colors lg:hidden"
               aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={isMobileMenuOpen}
               aria-controls="mobile-navigation"
@@ -366,7 +370,7 @@ export function StorefrontLayout() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="overflow-hidden border-t border-zinc-200 bg-[#f4f2ef] lg:hidden"
+              className="overflow-hidden border-t border-zinc-200 dark:border-slate-800 bg-[#f4f2ef] dark:bg-[#0f172a] lg:hidden"
             >
               <nav
                 aria-label="Mobile navigation"
@@ -381,8 +385,8 @@ export function StorefrontLayout() {
                       [
                         'flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition-colors',
                         isActive
-                          ? 'bg-brand-50 text-brand-600'
-                          : 'text-charcoal hover:bg-zinc-100',
+                          ? 'bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400'
+                          : 'text-charcoal dark:text-slate-200 hover:bg-zinc-100 dark:hover:bg-slate-800',
                       ].join(' ')
                     }
                   >
@@ -392,12 +396,20 @@ export function StorefrontLayout() {
                         {isActive ? (
                           <span className="h-2 w-2 rounded-full bg-brand-500" />
                         ) : (
-                          <ArrowRight className="h-4 w-4 text-charcoal-lighter" />
+                          <ArrowRight className="h-4 w-4 text-charcoal-lighter dark:text-slate-500" />
                         )}
                       </>
                     )}
                   </NavLink>
                 ))}
+
+                {/* Mobile Theme Toggle Row */}
+                <div className="flex items-center justify-between rounded-xl px-4 py-2.5 border border-zinc-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-800/60">
+                  <span className="text-xs font-semibold text-charcoal dark:text-slate-200">
+                    Theme Appearance
+                  </span>
+                  <ThemeToggle size="sm" showLabel={true} />
+                </div>
 
                 {showAdmin && (
                   <NavLink
@@ -407,7 +419,7 @@ export function StorefrontLayout() {
                         'flex items-center justify-between rounded-xl border px-4 py-3 text-xs font-mono uppercase tracking-wider',
                         isActive
                           ? 'border-brand-500 bg-brand-500 text-white'
-                          : 'border-zinc-300 text-charcoal hover:border-charcoal',
+                          : 'border-zinc-300 dark:border-slate-700 text-charcoal dark:text-slate-200 hover:border-brand-500 hover:text-brand-500',
                       ].join(' ')
                     }
                   >
@@ -451,10 +463,6 @@ export function StorefrontLayout() {
               <Link to="/" className="inline-block">
                 <BrandLogo theme="dark" size="lg" showTagline taglineText="If you can imagine it, we can print it." />
               </Link>
-
-              <p className="text-sm leading-relaxed text-slate-400">
-                A custom 3D printing & rapid prototyping studio. From one-off personalized gifts to production batches for startups and engineering teams.
-              </p>
 
               <div className="flex items-center gap-3 pt-2">
                 <a

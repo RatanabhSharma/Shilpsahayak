@@ -221,10 +221,10 @@ export function Login() {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-[#f4f2ef]">
+      <div className="flex min-h-screen w-full items-center justify-center bg-[#f4f2ef] dark:bg-[#0f172a] transition-colors duration-200">
         <div className="text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
-          <p className="mt-4 font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter">
+          <p className="mt-4 font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400">
             Verifying session...
           </p>
         </div>
@@ -238,9 +238,9 @@ export function Login() {
   const isForgot = mode === 'forgot';
 
   return (
-    <div className="grid min-h-screen w-full lg:grid-cols-12 bg-[#f4f2ef]">
+    <div className="grid min-h-screen w-full lg:grid-cols-12 bg-[#f4f2ef] dark:bg-[#0f172a] text-charcoal dark:text-slate-100 transition-colors duration-200">
       {/* Left Dark Showcase Column */}
-      <div className="relative hidden overflow-hidden bg-[#0b0f17] text-white lg:col-span-5 lg:flex lg:flex-col lg:justify-between p-12 xl:p-16 border-r border-zinc-800">
+      <div className="relative hidden overflow-hidden bg-[#0b0f17] dark:bg-slate-950 text-white lg:col-span-5 lg:flex lg:flex-col lg:justify-between p-12 xl:p-16 border-r border-zinc-800 dark:border-slate-800">
         <div className="absolute inset-0 opacity-20 pointer-events-none">
           <div className="absolute inset-0 bg-[radial-gradient(#ff6b1a_1px,transparent_1px)] [background-size:24px_24px]" />
           <div className="absolute right-0 top-1/4 h-80 w-80 rounded-full bg-brand-500/20 blur-3xl" />
@@ -272,7 +272,7 @@ export function Login() {
             Log in to manage custom CAD slicing quotes, review real-time fabrication stages, and track pan-India courier shipments.
           </p>
 
-          <div className="pt-4 border-t border-zinc-800 flex items-center gap-4 text-xs font-mono text-zinc-400">
+          <div className="pt-4 border-t border-zinc-800 dark:border-slate-800 flex items-center gap-4 text-xs font-mono text-zinc-400">
             <span>⚡ ₹4.5/g Custom 3D Printing</span>
             <span>•</span>
             <span>🛡️ 256-Bit SSL Auth</span>
@@ -289,7 +289,7 @@ export function Login() {
         <div className="w-full max-w-[440px]">
           <Link
             to="/"
-            className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-charcoal-light hover:text-brand-600 transition-colors mb-6"
+            className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-charcoal-light dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors mb-6"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             <span>Back to Storefront</span>
@@ -305,7 +305,7 @@ export function Login() {
                 : 'Customer Authentication'}
             </span>
 
-            <h1 className="mt-1 font-serif text-3xl font-bold text-charcoal sm:text-4xl">
+            <h1 className="mt-1 font-serif text-3xl font-bold text-charcoal dark:text-slate-100 sm:text-4xl">
               {isForgot
                 ? 'Reset your password.'
                 : isSignup
@@ -313,7 +313,7 @@ export function Login() {
                 : 'Welcome back.'}
             </h1>
 
-            <p className="mt-2 text-xs text-charcoal-light leading-relaxed">
+            <p className="mt-2 text-xs text-charcoal-light dark:text-slate-400 leading-relaxed">
               {isForgot
                 ? "Enter your registered email and we'll send you a password reset link."
                 : isSignup
@@ -323,7 +323,7 @@ export function Login() {
           </div>
 
           {/* Form Card */}
-          <div className="rounded-3xl border border-zinc-200 bg-white p-7 sm:p-8 shadow-sm">
+          <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 sm:p-8 shadow-sm">
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
               {isSignup && (
                 <Input
@@ -376,7 +376,7 @@ export function Login() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-[38px] p-1 text-charcoal-lighter hover:text-charcoal transition-colors"
+                    className="absolute right-3.5 top-[38px] p-1 text-charcoal-lighter dark:text-slate-400 hover:text-charcoal dark:hover:text-slate-100 transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -386,15 +386,15 @@ export function Login() {
               {isSignup && passwordValue && (
                 <div className="space-y-1.5 pt-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-mono text-[10px] text-charcoal-lighter uppercase">Password Strength</span>
-                    <span className="font-bold text-charcoal">{passwordStrength.label}</span>
+                    <span className="font-mono text-[10px] text-charcoal-lighter dark:text-slate-400 uppercase">Password Strength</span>
+                    <span className="font-bold text-charcoal dark:text-slate-100">{passwordStrength.label}</span>
                   </div>
                   <div className="flex gap-1">
                     {[1, 2, 3, 4, 5].map((seg) => (
                       <div
                         key={seg}
                         className={`h-1.5 flex-1 rounded-full transition-colors ${
-                          seg <= passwordStrength.score ? 'bg-brand-500' : 'bg-zinc-100'
+                          seg <= passwordStrength.score ? 'bg-brand-500' : 'bg-zinc-100 dark:bg-slate-800'
                         }`}
                       />
                     ))}
@@ -418,7 +418,7 @@ export function Login() {
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3.5 top-[38px] p-1 text-charcoal-lighter hover:text-charcoal transition-colors"
+                    className="absolute right-3.5 top-[38px] p-1 text-charcoal-lighter dark:text-slate-400 hover:text-charcoal dark:hover:text-slate-100 transition-colors"
                   >
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -430,7 +430,7 @@ export function Login() {
                   <button
                     type="button"
                     onClick={() => switchMode('forgot')}
-                    className="font-mono text-xs font-semibold text-brand-600 hover:text-brand-700 underline underline-offset-4"
+                    className="font-mono text-xs font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-700 underline underline-offset-4"
                   >
                     Forgot password?
                   </button>
@@ -438,14 +438,14 @@ export function Login() {
               )}
 
               {error && (
-                <div className="flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-semibold text-rose-700">
+                <div className="flex items-start gap-2.5 rounded-2xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 p-3.5 text-xs font-semibold text-rose-700 dark:text-rose-300">
                   <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                   <span>{error}</span>
                 </div>
               )}
 
               {success && (
-                <div className="flex items-start gap-2.5 rounded-2xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs font-bold text-emerald-700">
+                <div className="flex items-start gap-2.5 rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 p-3.5 text-xs font-bold text-emerald-700 dark:text-emerald-300">
                   <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
                   <span>{success}</span>
                 </div>
@@ -467,14 +467,14 @@ export function Login() {
           </div>
 
           {/* Mode Switch Footnote */}
-          <p className="mt-6 text-center text-xs text-charcoal-light">
+          <p className="mt-6 text-center text-xs text-charcoal-light dark:text-slate-400">
             {isForgot ? (
               <>
                 Remembered your password?{' '}
                 <button
                   type="button"
                   onClick={() => switchMode('login')}
-                  className="font-bold text-brand-600 hover:text-brand-700 underline underline-offset-4"
+                  className="font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 underline underline-offset-4"
                 >
                   Sign in instead
                 </button>
@@ -485,7 +485,7 @@ export function Login() {
                 <button
                   type="button"
                   onClick={() => switchMode('login')}
-                  className="font-bold text-brand-600 hover:text-brand-700 underline underline-offset-4"
+                  className="font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 underline underline-offset-4"
                 >
                   Sign in
                 </button>
@@ -496,7 +496,7 @@ export function Login() {
                 <button
                   type="button"
                   onClick={() => switchMode('signup')}
-                  className="font-bold text-brand-600 hover:text-brand-700 underline underline-offset-4"
+                  className="font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 underline underline-offset-4"
                 >
                   Create an account
                 </button>

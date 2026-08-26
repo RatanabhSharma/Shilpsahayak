@@ -82,42 +82,42 @@ function getMonthLabel(monthKey: string): string {
 function getOrderStatusClass(status: string): string {
   switch (status) {
     case 'Delivered':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      return 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300';
 
     case 'Printing':
     case 'Quality Check':
-      return 'border-brand-200 bg-brand-50 text-brand-700';
+      return 'border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300';
 
     case 'Shipped':
-      return 'border-blue-200 bg-blue-50 text-blue-700';
+      return 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300';
 
     case 'Confirmed':
-      return 'border-zinc-200 bg-zinc-50 text-zinc-700';
+      return 'border-zinc-200 dark:border-slate-700 bg-zinc-50 dark:bg-slate-800 text-zinc-700 dark:text-slate-300';
 
     case 'Cancelled':
-      return 'border-rose-200 bg-rose-50 text-rose-700';
+      return 'border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300';
 
     case 'Pending':
     default:
-      return 'border-amber-200 bg-amber-50 text-amber-700';
+      return 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300';
   }
 }
 
 function getQuoteStatusClass(status: string): string {
   switch (status) {
     case 'Quoted':
-      return 'border-blue-200 bg-blue-50 text-blue-700';
+      return 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300';
 
     case 'Accepted':
     case 'Completed':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      return 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300';
 
     case 'Rejected':
-      return 'border-rose-200 bg-rose-50 text-rose-700';
+      return 'border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300';
 
     case 'Pending':
     default:
-      return 'border-amber-200 bg-amber-50 text-amber-700';
+      return 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300';
   }
 }
 
@@ -171,16 +171,16 @@ function MetricCard({
   danger?: boolean;
 }) {
   return (
-    <section className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm hover:border-brand-300 transition-colors">
+    <section className="rounded-2xl border border-zinc-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm hover:border-brand-300 dark:hover:border-brand-500/50 transition-colors">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-charcoal-lighter">
+          <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-charcoal-lighter dark:text-slate-400">
             {label}
           </p>
 
           <p
             className={`mt-2 font-serif text-3xl font-bold tracking-tight ${
-              danger ? 'text-rose-600' : 'text-charcoal'
+              danger ? 'text-rose-600 dark:text-rose-400' : 'text-charcoal dark:text-slate-100'
             }`}
           >
             {value}
@@ -190,15 +190,15 @@ function MetricCard({
         <div
           className={`flex h-10 w-10 items-center justify-center rounded-xl ${
             danger
-              ? 'bg-rose-50 text-rose-600'
-              : 'bg-brand-50 text-brand-500'
+              ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400'
+              : 'bg-brand-50 dark:bg-brand-500/15 text-brand-500 dark:text-brand-400'
           }`}
         >
           {icon}
         </div>
       </div>
 
-      <p className="mt-3 text-xs text-charcoal-light font-mono">
+      <p className="mt-3 text-xs text-charcoal-light dark:text-slate-400 font-mono">
         {description}
       </p>
     </section>
@@ -500,7 +500,7 @@ export function Dashboard() {
         <div className="flex flex-wrap gap-2.5">
           <Link
             to="/admin/orders"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 font-mono text-xs font-bold text-charcoal shadow-sm hover:border-brand-300 hover:text-brand-600 transition-colors"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 font-mono text-xs font-bold text-charcoal dark:text-slate-100 shadow-sm hover:border-brand-300 dark:hover:border-brand-500/50 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
           >
             <span>Live Orders</span>
             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -564,25 +564,25 @@ export function Dashboard() {
         {/* Revenue                                                           */}
         {/* ================================================================ */}
 
-        <section className="rounded-3xl border border-zinc-200/80 bg-white p-6 sm:p-8 shadow-sm xl:col-span-7">
+        <section className="rounded-3xl border border-zinc-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-sm xl:col-span-7">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div>
-              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-charcoal-lighter block">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 block">
                 Monthly Turnover
               </span>
 
-              <h2 className="mt-1 font-serif text-3xl font-bold text-charcoal">
+              <h2 className="mt-1 font-serif text-3xl font-bold text-charcoal dark:text-slate-100">
                 {formatCurrency(currentMonthRevenue)}
               </h2>
 
-              <p className="mt-1 text-xs text-charcoal-light font-mono">
+              <p className="mt-1 text-xs text-charcoal-light dark:text-slate-400 font-mono">
                 Current month
                 {revenueChange !== null && (
                   <>
                     {' · '}
                     <span
                       className={`font-bold ${
-                        revenueChange >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                        revenueChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                       }`}
                     >
                       {revenueChange >= 0 ? '+' : ''}
@@ -593,21 +593,21 @@ export function Dashboard() {
               </p>
             </div>
 
-            <div className="flex gap-4 sm:gap-6 bg-[#f4f2ef] p-3 rounded-2xl border border-zinc-100">
+            <div className="flex gap-4 sm:gap-6 bg-[#f4f2ef] dark:bg-slate-800 p-3 rounded-2xl border border-zinc-100 dark:border-slate-700">
               <div>
-                <p className="font-mono text-[9px] uppercase tracking-wider text-charcoal-lighter">
+                <p className="font-mono text-[9px] uppercase tracking-wider text-charcoal-lighter dark:text-slate-400">
                   Orders
                 </p>
-                <p className="mt-0.5 font-serif text-lg font-bold text-charcoal">
+                <p className="mt-0.5 font-serif text-lg font-bold text-charcoal dark:text-slate-100">
                   {currentMonthOrders.length}
                 </p>
               </div>
 
-              <div className="border-l border-zinc-200 pl-4 sm:pl-6">
-                <p className="font-mono text-[9px] uppercase tracking-wider text-charcoal-lighter">
+              <div className="border-l border-zinc-200 dark:border-slate-700 pl-4 sm:pl-6">
+                <p className="font-mono text-[9px] uppercase tracking-wider text-charcoal-lighter dark:text-slate-400">
                   Avg Order
                 </p>
-                <p className="mt-0.5 font-serif text-lg font-bold text-charcoal">
+                <p className="mt-0.5 font-serif text-lg font-bold text-charcoal dark:text-slate-100">
                   {formatCompactCurrency(averageOrderValue)}
                 </p>
               </div>
@@ -615,7 +615,7 @@ export function Dashboard() {
           </div>
 
           {/* Chart */}
-          <div className="mt-8 flex h-48 items-end gap-3 pt-6 border-t border-zinc-100">
+          <div className="mt-8 flex h-48 items-end gap-3 pt-6 border-t border-zinc-100 dark:border-slate-800">
             {revenueSeries.map((item) => {
               const height = (item.value / maximumRevenue) * 100;
               const isCurrent = item.key === currentMonth.key;
@@ -625,16 +625,16 @@ export function Dashboard() {
                   key={item.key}
                   className="flex h-full flex-1 flex-col items-center justify-end gap-2"
                 >
-                  <span className="font-mono text-[10px] font-bold text-charcoal-light">
+                  <span className="font-mono text-[10px] font-bold text-charcoal-light dark:text-slate-400">
                     {formatCompactCurrency(item.value)}
                   </span>
 
-                  <div className="flex h-32 w-full items-end justify-center rounded-xl bg-zinc-50 p-1">
+                  <div className="flex h-32 w-full items-end justify-center rounded-xl bg-zinc-50 dark:bg-slate-800/60 p-1">
                     <div
                       className={`w-full rounded-lg transition-all ${
                         isCurrent
                           ? 'bg-brand-500 shadow-md shadow-brand-500/20'
-                          : 'bg-zinc-200 hover:bg-zinc-300'
+                          : 'bg-zinc-200 dark:bg-slate-700 hover:bg-zinc-300 dark:hover:bg-slate-600'
                       }`}
                       style={{
                         height: `${Math.max(height, 6)}%`,
@@ -643,7 +643,7 @@ export function Dashboard() {
                     />
                   </div>
 
-                  <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-charcoal-light">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-charcoal-light dark:text-slate-400">
                     {item.label}
                   </span>
                 </div>
@@ -656,83 +656,83 @@ export function Dashboard() {
         {/* Production snapshot                                               */}
         {/* ================================================================ */}
 
-        <section className="rounded-3xl border border-zinc-200/80 bg-white p-6 sm:p-8 shadow-sm xl:col-span-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
-            <h2 className="font-serif text-lg font-bold text-charcoal">
+        <section className="rounded-3xl border border-zinc-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-sm xl:col-span-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between border-b border-zinc-100 dark:border-slate-800 pb-4">
+            <h2 className="font-serif text-lg font-bold text-charcoal dark:text-slate-100">
               Production Snapshot
             </h2>
 
-            <span className="font-mono text-xs font-bold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-full">
+            <span className="font-mono text-xs font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-500/15 px-2.5 py-1 rounded-full">
               {activeProducts.length} Catalogue Items
             </span>
           </div>
 
-          <div className="divide-y divide-zinc-100">
+          <div className="divide-y divide-zinc-100 dark:divide-slate-800">
             <div className="flex items-center gap-3.5 py-3.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-500">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/15 text-brand-500 dark:text-brand-400">
                 <Clock3 className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-charcoal">In Active Print</p>
-                <p className="text-[11px] text-charcoal-lighter">
+                <p className="text-xs font-bold text-charcoal dark:text-slate-100">In Active Print</p>
+                <p className="text-[11px] text-charcoal-lighter dark:text-slate-400">
                   Printing & Quality Check stages
                 </p>
               </div>
-              <span className="font-mono text-sm font-bold text-charcoal">
+              <span className="font-mono text-sm font-bold text-charcoal dark:text-slate-100">
                 {productionOrders.length} jobs
               </span>
             </div>
 
             <div className="flex items-center gap-3.5 py-3.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
                 <FileText className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-charcoal">Pending CAD Quotes</p>
-                <p className="text-[11px] text-charcoal-lighter">
+                <p className="text-xs font-bold text-charcoal dark:text-slate-100">Pending CAD Quotes</p>
+                <p className="text-[11px] text-charcoal-lighter dark:text-slate-400">
                   Custom customer requests
                 </p>
               </div>
-              <span className="font-mono text-sm font-bold text-charcoal">
+              <span className="font-mono text-sm font-bold text-charcoal dark:text-slate-100">
                 {pendingQuotes.length} files
               </span>
             </div>
 
             <div className="flex items-center gap-3.5 py-3.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
                 <Package className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-charcoal">Studio Catalogue</p>
-                <p className="text-[11px] text-charcoal-lighter">
+                <p className="text-xs font-bold text-charcoal dark:text-slate-100">Studio Catalogue</p>
+                <p className="text-[11px] text-charcoal-lighter dark:text-slate-400">
                   Active ready-to-print designs
                 </p>
               </div>
-              <span className="font-mono text-sm font-bold text-charcoal">
+              <span className="font-mono text-sm font-bold text-charcoal dark:text-slate-100">
                 {activeProducts.length} pieces
               </span>
             </div>
 
             <div className="flex items-center gap-3.5 py-3.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400">
                 <TriangleAlert className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-charcoal">Stock Warnings</p>
-                <p className="text-[11px] text-charcoal-lighter">
+                <p className="text-xs font-bold text-charcoal dark:text-slate-100">Stock Warnings</p>
+                <p className="text-[11px] text-charcoal-lighter dark:text-slate-400">
                   ≤ 5 units remaining
                 </p>
               </div>
-              <span className="font-mono text-sm font-bold text-rose-600">
+              <span className="font-mono text-sm font-bold text-rose-600 dark:text-rose-400">
                 {lowStockProducts.length} alerts
               </span>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-zinc-100">
+          <div className="pt-4 border-t border-zinc-100 dark:border-slate-800">
             <Link
               to="/admin/inventory"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-[#f4f2ef] py-2.5 font-mono text-xs font-bold text-charcoal hover:bg-zinc-100 transition-colors"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 dark:border-slate-800 bg-[#f4f2ef] dark:bg-slate-800 py-2.5 font-mono text-xs font-bold text-charcoal dark:text-slate-100 hover:bg-zinc-100 dark:hover:bg-slate-700 transition-colors"
             >
               <span>Manage Filament Inventory</span>
               <ArrowUpRight className="h-3.5 w-3.5" />
@@ -744,20 +744,20 @@ export function Dashboard() {
         {/* Orders requiring action                                           */}
         {/* ================================================================ */}
 
-        <section className="rounded-3xl border border-zinc-200/80 bg-white p-6 sm:p-8 shadow-sm xl:col-span-8">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+        <section className="rounded-3xl border border-zinc-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-sm xl:col-span-8">
+          <div className="flex items-center justify-between border-b border-zinc-100 dark:border-slate-800 pb-4">
             <div>
-              <h2 className="font-serif text-lg font-bold text-charcoal">
+              <h2 className="font-serif text-lg font-bold text-charcoal dark:text-slate-100">
                 Active Print Queue & Action Required
               </h2>
-              <p className="text-xs text-charcoal-lighter mt-0.5">
+              <p className="text-xs text-charcoal-lighter dark:text-slate-400 mt-0.5">
                 Orders currently waiting for confirmation, slicing, or quality check
               </p>
             </div>
 
             <Link
               to="/admin/orders"
-              className="inline-flex items-center gap-1 font-mono text-xs font-bold text-brand-600 hover:text-brand-700"
+              className="inline-flex items-center gap-1 font-mono text-xs font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700"
             >
               <span>View all</span>
               <ArrowUpRight className="h-3.5 w-3.5" />
@@ -766,7 +766,7 @@ export function Dashboard() {
 
           {actionOrders.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="font-mono text-xs font-semibold text-charcoal-lighter">
+              <p className="font-mono text-xs font-semibold text-charcoal-lighter dark:text-slate-400">
                 No orders currently require immediate action. All clear!
               </p>
             </div>
@@ -774,7 +774,7 @@ export function Dashboard() {
             <div className="overflow-x-auto mt-4">
               <table className="w-full min-w-[650px] text-left">
                 <thead>
-                  <tr className="border-b border-zinc-100 text-[10px] font-mono font-bold uppercase tracking-wider text-charcoal-lighter">
+                  <tr className="border-b border-zinc-100 dark:border-slate-800 text-[10px] font-mono font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400">
                     <th className="pb-3 pr-4">Order ID</th>
                     <th className="pb-3 px-4">Customer</th>
                     <th className="pb-3 px-4">Items</th>
@@ -783,7 +783,7 @@ export function Dashboard() {
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-zinc-50">
+                <tbody className="divide-y divide-zinc-50 dark:divide-slate-800/60">
                   {actionOrders.slice(0, 8).map((order) => {
                     const itemCount = Array.isArray(order.items)
                       ? order.items.reduce(
@@ -798,38 +798,38 @@ export function Dashboard() {
                         : 'Custom Print';
 
                     return (
-                      <tr key={order.id} className="hover:bg-zinc-50/60 transition-colors">
+                      <tr key={order.id} className="hover:bg-zinc-50/60 dark:hover:bg-slate-800/50 transition-colors">
                         <td className="py-3.5 pr-4">
                           <Link
                             to={`/admin/orders/${order.id}`}
-                            className="font-mono text-xs font-bold text-brand-600 hover:text-brand-700 underline underline-offset-4"
+                            className="font-mono text-xs font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 underline underline-offset-4"
                           >
                             #{order.id.slice(0, 8)}
                           </Link>
-                          <span className="block font-mono text-[10px] text-charcoal-lighter mt-0.5">
+                          <span className="block font-mono text-[10px] text-charcoal-lighter dark:text-slate-400 mt-0.5">
                             {formatDate(order.date)}
                           </span>
                         </td>
 
                         <td className="py-3.5 px-4 max-w-[180px]">
-                          <p className="text-xs font-bold text-charcoal truncate">
+                          <p className="text-xs font-bold text-charcoal dark:text-slate-100 truncate">
                             {order.customerName || 'Customer'}
                           </p>
-                          <p className="text-[10px] font-mono text-charcoal-lighter truncate">
+                          <p className="text-[10px] font-mono text-charcoal-lighter dark:text-slate-400 truncate">
                             {order.customerEmail || 'No email'}
                           </p>
                         </td>
 
                         <td className="py-3.5 px-4">
-                          <p className="text-xs font-semibold text-charcoal">
+                          <p className="text-xs font-semibold text-charcoal dark:text-slate-200">
                             {itemCount} pcs
                           </p>
-                          <p className="text-[10px] font-mono text-charcoal-lighter truncate max-w-[140px]">
+                          <p className="text-[10px] font-mono text-charcoal-lighter dark:text-slate-400 truncate max-w-[140px]">
                             {firstItem}
                           </p>
                         </td>
 
-                        <td className="py-3.5 px-4 font-mono text-xs font-bold text-charcoal">
+                        <td className="py-3.5 px-4 font-mono text-xs font-bold text-charcoal dark:text-slate-100">
                           {formatCurrency(Number(order.total) || 0)}
                         </td>
 
@@ -851,25 +851,25 @@ export function Dashboard() {
 
         <div className="grid gap-6 xl:col-span-4">
           {/* Recent quotes */}
-          <section className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between border-b border-zinc-100 pb-3.5">
-              <h2 className="font-serif text-base font-bold text-charcoal">
+          <section className="rounded-3xl border border-zinc-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
+            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-slate-800 pb-3.5">
+              <h2 className="font-serif text-base font-bold text-charcoal dark:text-slate-100">
                 Recent CAD Quotes
               </h2>
               <Link
                 to="/admin/quotes"
-                className="font-mono text-[11px] font-bold text-brand-600 hover:text-brand-700"
+                className="font-mono text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700"
               >
                 View all
               </Link>
             </div>
 
             {quotes.length === 0 ? (
-              <div className="py-8 text-center text-xs font-mono text-charcoal-lighter">
+              <div className="py-8 text-center text-xs font-mono text-charcoal-lighter dark:text-slate-400">
                 No custom quote requests yet.
               </div>
             ) : (
-              <ul className="divide-y divide-zinc-50 mt-2">
+              <ul className="divide-y divide-zinc-50 dark:divide-slate-800/60 mt-2">
                 {quotes.slice(0, 4).map((quote) => {
                   const price =
                     quote.adminPrice != null
@@ -881,21 +881,21 @@ export function Dashboard() {
                   return (
                     <li key={quote.id} className="py-3">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono text-xs font-bold text-charcoal">
+                        <span className="font-mono text-xs font-bold text-charcoal dark:text-slate-100">
                           #{quote.id.slice(0, 8)}
                         </span>
                         <QuotePill status={quote.status} />
                       </div>
 
-                      <p className="mt-1 text-xs font-bold text-charcoal truncate">
+                      <p className="mt-1 text-xs font-bold text-charcoal dark:text-slate-100 truncate">
                         {quote.fileName || quote.productName || quote.requestType}
                       </p>
 
-                      <p className="mt-0.5 text-[10px] font-mono text-charcoal-lighter">
+                      <p className="mt-0.5 text-[10px] font-mono text-charcoal-lighter dark:text-slate-400">
                         {quote.customerName || 'Client'} · {quote.material || 'PLA'} · Qty {quote.quantity}
                       </p>
 
-                      <p className="mt-1 font-mono text-xs font-bold text-brand-600">
+                      <p className="mt-1 font-mono text-xs font-bold text-brand-600 dark:text-brand-400">
                         {price !== null ? formatCurrency(price) : 'Awaiting Pricing'}
                       </p>
                     </li>
@@ -906,44 +906,44 @@ export function Dashboard() {
           </section>
 
           {/* Low Stock Alerts */}
-          <section className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-2 border-b border-zinc-100 pb-3.5">
+          <section className="rounded-3xl border border-zinc-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
+            <div className="flex items-center gap-2 border-b border-zinc-100 dark:border-slate-800 pb-3.5">
               <TriangleAlert className="h-4 w-4 text-amber-500" />
-              <h2 className="font-serif text-base font-bold text-charcoal">
+              <h2 className="font-serif text-base font-bold text-charcoal dark:text-slate-100">
                 Low Filament Inventory
               </h2>
             </div>
 
             {lowStockProducts.length === 0 ? (
-              <div className="py-8 text-center text-xs font-mono text-charcoal-lighter">
+              <div className="py-8 text-center text-xs font-mono text-charcoal-lighter dark:text-slate-400">
                 All filament & stock levels healthy.
               </div>
             ) : (
-              <ul className="divide-y divide-zinc-50 mt-2">
+              <ul className="divide-y divide-zinc-50 dark:divide-slate-800/60 mt-2">
                 {lowStockProducts.slice(0, 4).map((product) => (
                   <li key={product.id} className="flex items-center gap-3 py-3">
                     <img
                       src={product.image}
                       alt={product.name}
-                      className="h-9 w-9 rounded-xl object-cover bg-zinc-100 shrink-0"
+                      className="h-9 w-9 rounded-xl object-cover bg-zinc-100 dark:bg-slate-800 shrink-0"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src =
                           'https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&q=80&w=100';
                       }}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-charcoal truncate">
+                      <p className="text-xs font-bold text-charcoal dark:text-slate-100 truncate">
                         {product.name}
                       </p>
-                      <p className="text-[10px] font-mono text-charcoal-lighter">
+                      <p className="text-[10px] font-mono text-charcoal-lighter dark:text-slate-400">
                         {product.material || product.category || 'Filament'}
                       </p>
                     </div>
                     <span
                       className={`font-mono text-xs font-bold ${
                         Number(product.stock) <= 2
-                          ? 'text-rose-600'
-                          : 'text-amber-600'
+                          ? 'text-rose-600 dark:text-rose-400'
+                          : 'text-amber-600 dark:text-amber-400'
                       }`}
                     >
                       {product.stock} left

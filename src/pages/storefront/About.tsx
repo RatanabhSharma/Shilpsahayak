@@ -45,24 +45,24 @@ const PRINCIPLES = [
 
 export function About() {
   return (
-    <div className="min-h-screen bg-[#f4f2ef] text-charcoal">
+    <div className="min-h-screen bg-[#f4f2ef] dark:bg-[#0f172a] text-charcoal dark:text-slate-100 transition-colors duration-200">
       {/* Hero Header */}
-      <section className="border-b border-zinc-200/80 bg-white">
+      <section className="border-b border-zinc-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
         <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10 lg:py-20">
           <div className="grid gap-12 lg:grid-cols-12 lg:items-center">
             <div className="lg:col-span-7 space-y-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3.5 py-1 text-xs font-bold text-brand-700">
+              <div className="inline-flex items-center gap-2 rounded-full border border-brand-200 dark:border-brand-500/30 bg-brand-50 dark:bg-brand-500/10 px-3.5 py-1 text-xs font-bold text-brand-700 dark:text-brand-400">
                 <Sparkles className="h-3.5 w-3.5 text-brand-500" />
                 <span>Patiala Engineering Studio</span>
               </div>
 
-              <h1 className="font-serif text-3xl font-bold tracking-tight text-charcoal sm:text-5xl lg:text-6xl leading-[1.1]">
+              <h1 className="font-serif text-3xl font-bold tracking-tight text-charcoal dark:text-slate-100 sm:text-5xl lg:text-6xl leading-[1.1]">
                 Turning Digital Imaginations Into{' '}
                 <span className="text-brand-500">Precision Reality.</span>
               </h1>
 
-              <p className="text-sm text-charcoal-light sm:text-base leading-relaxed max-w-2xl">
-                Shilp Sahayak is a custom 3D printing and digital fabrication studio founded in Patiala, Punjab. We bridge the gap between abstract computer models and physical reality with one simple promise: <strong className="text-charcoal font-semibold">&ldquo;If you can imagine it, we can print it.&rdquo;</strong>
+              <p className="text-sm text-charcoal-light dark:text-slate-400 sm:text-base leading-relaxed max-w-2xl">
+                Shilp Sahayak is a custom 3D printing and digital fabrication studio founded in Patiala, Punjab. We bridge the gap between abstract computer models and physical reality with one simple promise: <strong className="text-charcoal dark:text-slate-200 font-semibold">&ldquo;If you can imagine it, we can print it.&rdquo;</strong>
               </p>
 
               <div className="flex flex-wrap gap-3 pt-2">
@@ -81,7 +81,7 @@ export function About() {
             </div>
 
             <div className="lg:col-span-5">
-              <div className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-[#0b0f17] p-8 text-white shadow-xl">
+              <div className="relative overflow-hidden rounded-3xl border border-zinc-200 dark:border-slate-800 bg-[#0b0f17] p-8 text-white shadow-xl">
                 <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-brand-500/20 blur-3xl" />
                 
                 <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-400 block mb-2">
@@ -119,12 +119,12 @@ export function About() {
             <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
               Our Journey & Roots
             </span>
-            <h2 className="mt-2 font-serif text-2xl font-bold text-charcoal sm:text-3xl">
+            <h2 className="mt-2 font-serif text-2xl font-bold text-charcoal dark:text-slate-100 sm:text-3xl">
               Engineered in Patiala, Serving Creators Nationwide.
             </h2>
           </div>
 
-          <div className="lg:col-span-8 space-y-4 text-xs sm:text-sm text-charcoal-light leading-relaxed">
+          <div className="lg:col-span-8 space-y-4 text-xs sm:text-sm text-charcoal-light dark:text-slate-400 leading-relaxed">
             <p>
               A 3D printer is only as good as the engineering discipline behind it. Orientation, infill patterns, cooling curves, nozzle temperatures, and mechanical calibration dictate whether a printed gear can withstand high torque or if an architectural scale model will display crisp facade details.
             </p>
@@ -139,16 +139,16 @@ export function About() {
       </section>
 
       {/* Workshop Capabilities */}
-      <section className="border-y border-zinc-200/80 bg-white">
+      <section className="border-y border-zinc-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
         <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10 lg:py-20">
           <div className="max-w-2xl">
             <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
               Core Studio Pillars
             </span>
-            <h2 className="mt-1 font-serif text-2xl font-bold text-charcoal sm:text-4xl">
+            <h2 className="mt-1 font-serif text-2xl font-bold text-charcoal dark:text-slate-100 sm:text-4xl">
               Comprehensive Additive Solutions
             </h2>
-            <p className="mt-2 text-xs sm:text-sm text-charcoal-light">
+            <p className="mt-2 text-xs sm:text-sm text-charcoal-light dark:text-slate-400">
               From one-off mechanical prototypes to full product manufacturing batches.
             </p>
           </div>
@@ -159,15 +159,15 @@ export function About() {
               return (
                 <div
                   key={cap.title}
-                  className="rounded-3xl border border-zinc-200 bg-[#f4f2ef] p-7 transition-all hover:border-brand-300 hover:shadow-md"
+                  className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-[#f4f2ef] dark:bg-slate-800/80 p-7 transition-all hover:border-brand-300 dark:hover:border-brand-500/50 hover:shadow-md"
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 mb-5">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 mb-5">
                     <Icon className="h-6 w-6" />
                   </div>
-                  <h3 className="font-serif text-lg font-bold text-charcoal mb-2">
+                  <h3 className="font-serif text-lg font-bold text-charcoal dark:text-slate-100 mb-2">
                     {cap.title}
                   </h3>
-                  <p className="text-xs text-charcoal-light leading-relaxed">
+                  <p className="text-xs text-charcoal-light dark:text-slate-400 leading-relaxed">
                     {cap.body}
                   </p>
                 </div>
@@ -213,17 +213,17 @@ export function About() {
       </section>
 
       {/* Call to Action Banner */}
-      <section className="bg-white">
+      <section className="bg-white dark:bg-slate-900 transition-colors">
         <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10">
-          <div className="rounded-3xl border border-zinc-200 bg-[#f4f2ef] p-8 sm:p-12 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+          <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-[#f4f2ef] dark:bg-slate-800 p-8 sm:p-12 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
             <div className="max-w-2xl">
               <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
                 Ready to Fabricate?
               </span>
-              <h2 className="mt-2 font-serif text-2xl font-bold text-charcoal sm:text-3xl">
+              <h2 className="mt-2 font-serif text-2xl font-bold text-charcoal dark:text-slate-100 sm:text-3xl">
                 Have a 3D File Ready to Print?
               </h2>
-              <p className="mt-2 text-xs sm:text-sm text-charcoal-light leading-relaxed">
+              <p className="mt-2 text-xs sm:text-sm text-charcoal-light dark:text-slate-400 leading-relaxed">
                 Upload your STL file to calculate exact volume, weight, and price in seconds, or speak with our engineers for custom projects.
               </p>
             </div>

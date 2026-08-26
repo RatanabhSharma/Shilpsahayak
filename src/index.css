@@ -120,6 +120,12 @@ body {
     'Segoe UI', sans-serif;
   font-weight: 400;
   line-height: 1.6;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.dark body {
+  background-color: #0f172a;
+  color: #f8fafc;
 }
 
 button,
@@ -172,6 +178,15 @@ h6 {
   color: #18181b;
 }
 
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6 {
+  color: #f8fafc;
+}
+
 p {
   margin: 0;
 }
@@ -213,6 +228,11 @@ p {
   color: #c2410c;
 }
 
+.dark ::selection {
+  background-color: rgba(255, 107, 26, 0.35);
+  color: #ffedd5;
+}
+
 :focus-visible {
   outline: 2px solid #ff6b1a;
   outline-offset: 2px;
@@ -241,11 +261,28 @@ p {
   background: #b5ac9d;
 }
 
+.dark ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
 /* Firefox */
 
 html {
   scrollbar-width: thin;
   scrollbar-color: #d0c9bd #ede9e3;
+}
+
+.dark html {
+  scrollbar-color: #334155 #0f172a;
 }
 
 /* =========================================================
@@ -328,12 +365,24 @@ html {
   background-color: #f4f2ef;
 }
 
+.dark .surface-paper {
+  background-color: #0f172a;
+}
+
 .surface-stone {
   background-color: #ede9e3;
 }
 
+.dark .surface-stone {
+  background-color: #1e293b;
+}
+
 .surface-white {
   background-color: #ffffff;
+}
+
+.dark .surface-white {
+  background-color: #1e293b;
 }
 
 .surface-dark {
@@ -341,8 +390,16 @@ html {
   color: #f8fafc;
 }
 
+.dark .surface-dark {
+  background-color: #0b0f17;
+}
+
 .surface-muted {
   background-color: #eae6df;
+}
+
+.dark .surface-muted {
+  background-color: #1e293b;
 }
 
 /* =========================================================
