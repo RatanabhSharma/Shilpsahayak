@@ -36,6 +36,7 @@ import { useUserRole } from '../hooks/useUserRole';
 import { useProducts } from '../hooks/useProducts';
 import { BrandLogo } from './ui';
 import { CartDrawer } from './CartDrawer';
+import whatsappLogo from '../assets/pictures/whatsapp.png';
 
 type NavItem = {
   name: string;
@@ -665,26 +666,23 @@ export function StorefrontLayout() {
         </div>
       </footer>
 
-      {/* Floating WhatsApp Support Button */}
-      <aside className="fixed bottom-5 right-5 z-40">
+      {/* Floating WhatsApp Support Button (Compact Circular Logo Only) */}
+      <aside className="fixed bottom-5 right-5 z-40 sm:bottom-6 sm:right-6">
         <a
           href={whatsappLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex items-center gap-2.5 rounded-full bg-[#25D366] py-2.5 pl-3 pr-4 text-white shadow-xl shadow-emerald-500/25 transition-all duration-300 hover:scale-105 hover:bg-[#1EBE5D]"
-          aria-label="Chat with 3D Printing Maker on WhatsApp"
+          className="group flex h-[52px] w-[52px] sm:h-[58px] sm:w-[58px] items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg shadow-emerald-600/30 transition-all duration-200 ease-out hover:scale-105 hover:bg-[#1EBE5D] hover:shadow-xl hover:shadow-emerald-600/40 active:scale-95 touch-manipulation"
+          aria-label="Chat with Shilp Sahayak on WhatsApp"
+          title="Chat with Shilp Sahayak on WhatsApp"
         >
-          <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-white/20">
-            <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-100"></span>
-            </span>
-            <Phone className="h-3.5 w-3.5 fill-white text-white" />
-          </div>
-          <div className="flex flex-col text-left">
-            <span className="text-xs font-bold leading-tight font-sans">Chat with Maker</span>
-            <span className="text-[10px] text-emerald-100 font-medium leading-none font-mono">Instant Help</span>
-          </div>
+          <img
+            src={whatsappLogo}
+            alt=""
+            aria-hidden="true"
+            className="h-7 w-7 sm:h-8 sm:w-8 object-contain transition-transform duration-200 group-hover:scale-105"
+          />
+          <span className="sr-only">Chat with Shilp Sahayak on WhatsApp</span>
         </a>
       </aside>
 
