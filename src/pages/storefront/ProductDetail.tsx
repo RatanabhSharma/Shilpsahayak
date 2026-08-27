@@ -109,8 +109,13 @@ export function ProductDetail() {
 
   /* Current State */
   const currentPrice = selectedVariant?.price ?? product?.price ?? 0;
+  const currentOriginalPrice = Number(selectedVariant?.originalPrice ?? product?.originalPrice ?? 0);
   const currentStock = selectedVariant?.stock ?? product?.stock ?? 0;
   const outOfStock = currentStock <= 0;
+  const discountPercent =
+    currentOriginalPrice > currentPrice && currentOriginalPrice > 0
+      ? Math.round(((currentOriginalPrice - currentPrice) / currentOriginalPrice) * 100)
+      : 0;
 
   const whatsappInquiryLink = useMemo(() => {
     if (!whatsappNumber) return '#';
@@ -422,12 +427,16 @@ export function ProductDetail() {
                         <span className="font-mono text-3xl font-bold text-ink">
                           ₹{currentPrice.toLocaleString('en-IN')}
                         </span>
-                        <span className="font-mono text-sm text-muted line-through">
-                          ₹{Math.round(currentPrice * 1.35).toLocaleString('en-IN')}
-                        </span>
-                        <span className="rounded-full bg-emerald-600 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-white shadow-sm">
-                          Save 26%
-                        </span>
+                        {discountPercent > 0 && currentOriginalPrice > currentPrice && (
+                          <>
+                            <span className="font-mono text-sm text-muted line-through">
+                              ₹{currentOriginalPrice.toLocaleString('en-IN')}
+                            </span>
+                            <span className="rounded-full bg-emerald-600 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-white shadow-sm">
+                              Save {discountPercent}%
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
 

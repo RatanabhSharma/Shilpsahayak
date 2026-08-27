@@ -16,8 +16,11 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   const regularPrice = Number(product.price) || 0;
-  const compareAtPrice = Math.round(regularPrice * 1.35);
-  const discountPercent = regularPrice > 0 ? Math.round(((compareAtPrice - regularPrice) / compareAtPrice) * 100) : 0;
+  const compareAtPrice = Number(product.originalPrice) || 0;
+  const discountPercent =
+    compareAtPrice > regularPrice && compareAtPrice > 0
+      ? Math.round(((compareAtPrice - regularPrice) / compareAtPrice) * 100)
+      : 0;
 
   const primaryImage = product.image || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80';
   const secondaryImage = product.images && product.images.length > 0
@@ -87,58 +90,58 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
         </div>
 
         {/* Content Details */}
-        <div className="flex flex-1 flex-col justify-between p-4 sm:p-5">
+        <div className="flex flex-1 flex-col justify-between p-3 sm:p-5">
           <div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-muted truncate">
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="font-mono text-[10px] sm:text-[11px] font-medium uppercase tracking-wider text-muted truncate">
                 {product.category || 'Workshop Item'}
               </span>
-              <div className="flex items-center gap-1 shrink-0 text-amber-500 font-mono text-xs font-semibold">
-                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+              <div className="flex items-center gap-0.5 shrink-0 text-amber-500 font-mono text-[10px] sm:text-xs font-semibold">
+                <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                 <span>4.9</span>
               </div>
             </div>
 
-            <h3 className="mt-1.5 line-clamp-2 font-display text-base font-bold text-ink group-hover:text-accent transition-colors leading-snug">
+            <h3 className="mt-1 line-clamp-2 font-display text-sm sm:text-base font-bold text-ink group-hover:text-accent transition-colors leading-snug">
               {product.name}
             </h3>
           </div>
 
           {/* Price & Action Strip */}
-          <div className="mt-4 border-t border-line pt-3">
-            <div className="flex items-baseline justify-between mb-3">
-              <div className="flex items-baseline gap-2">
-                <span className="font-mono text-base font-bold text-ink">
+          <div className="mt-3 sm:mt-4 border-t border-line pt-2.5 sm:pt-3">
+            <div className="flex items-baseline justify-between mb-2 sm:mb-3">
+              <div className="flex items-baseline gap-1.5 sm:gap-2">
+                <span className="font-mono text-sm sm:text-base font-bold text-ink">
                   ₹{regularPrice.toLocaleString('en-IN')}
                 </span>
                 {compareAtPrice > regularPrice && (
-                  <span className="font-mono text-xs text-muted line-through">
+                  <span className="font-mono text-[10px] sm:text-xs text-muted line-through">
                     ₹{compareAtPrice.toLocaleString('en-IN')}
                   </span>
                 )}
               </div>
-              <span className="font-mono text-[10px] text-accent font-semibold">
+              <span className="font-mono text-[9px] sm:text-[10px] text-accent font-semibold">
                 In Stock
               </span>
             </div>
 
             {/* Dual action buttons */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
               <button
                 type="button"
                 onClick={handleQuickAdd}
-                className="py-2 px-2.5 rounded-xl border border-line bg-shell hover:bg-white hover:border-ink text-ink font-sans text-xs font-semibold transition-all flex items-center justify-center gap-1.5 shadow-2xs"
+                className="py-1.5 sm:py-2 px-1.5 sm:px-2.5 rounded-xl border border-line bg-shell hover:bg-white hover:border-ink text-ink font-sans text-[11px] sm:text-xs font-semibold transition-all flex items-center justify-center gap-1 shadow-2xs"
               >
-                <ShoppingBag className="w-3.5 h-3.5" />
+                <ShoppingBag className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 <span>Add</span>
               </button>
               <button
                 type="button"
                 onClick={handleBuyNow}
-                className="py-2 px-2.5 rounded-xl bg-accent hover:bg-accent-dark text-white font-sans text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-sm shadow-accent/20"
+                className="py-1.5 sm:py-2 px-1.5 sm:px-2.5 rounded-xl bg-accent hover:bg-accent-dark text-white font-sans text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-sm shadow-accent/20"
               >
-                <Zap className="w-3.5 h-3.5 fill-white text-white" />
-                <span>Buy Now</span>
+                <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-white text-white" />
+                <span>Buy</span>
               </button>
             </div>
           </div>

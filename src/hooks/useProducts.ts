@@ -13,6 +13,7 @@ export type ProductVariant = {
   id: string;
   label: string;
   price: number;
+  originalPrice?: number;
   stock: number;
   image?: string;
   theme?: string;
@@ -25,6 +26,7 @@ export type Product = {
   name: string;
   description: string;
   price: number;
+  originalPrice?: number;
   category: string;
   image: string;
   images?: string[];

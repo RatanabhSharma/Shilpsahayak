@@ -17,6 +17,7 @@ const emptyVariant = (): ProductVariant => ({
   id: crypto.randomUUID(),
   label: '',
   price: 0,
+  originalPrice: 0,
   stock: 0,
   image: '',
   theme: '',
@@ -28,6 +29,7 @@ const emptyForm = {
   name: '',
   description: '',
   price: 0,
+  originalPrice: 0,
   category: '',
   image: '',
   stock: 0,
@@ -70,6 +72,7 @@ export function Catalog() {
       name: product.name || '',
       description: product.description || '',
       price: product.price || 0,
+      originalPrice: product.originalPrice || 0,
       category: product.category || '',
       image: product.image || '',
       stock: product.stock || 0,
@@ -79,7 +82,7 @@ export function Catalog() {
       featured: !!product.featured,
       active: product.active !== false,
       hasVariants: !!product.hasVariants,
-      variants: product.variants ? [...product.variants] : [],
+      variants: product.variants ? product.variants.map((v) => ({ ...v, originalPrice: v.originalPrice || 0 })) : [],
     });
     setIsOpen(true);
   };
@@ -133,6 +136,7 @@ export function Catalog() {
               id: v.id || crypto.randomUUID(),
               label: v.label.trim(),
               price: Number(v.price) || 0,
+              originalPrice: Number(v.originalPrice) || 0,
               stock: Number(v.stock) || 0,
               image: v.image?.trim() || '',
               theme: v.theme || '',
@@ -145,6 +149,7 @@ export function Catalog() {
         name: form.name.trim(),
         description: form.description.trim(),
         price: Number(form.price) || 0,
+        originalPrice: Number(form.originalPrice) || 0,
         category: form.category,
         image: form.image.trim(),
         stock: form.hasVariants
@@ -460,18 +465,37 @@ export function Catalog() {
 
               {/* Price/Stock or Variants Rows */}
               {!form.hasVariants ? (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
-                      Price (₹) *
+                      Selling Price (₹) *
                     </label>
                     <input
                       type="number"
                       value={form.price}
                       onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
                       required
+                      min={0}
                       className="w-full px-3 py-2 text-xs font-mono font-bold text-ink bg-white border border-line rounded-lg outline-none focus:border-accent"
                     />
+                  </div>
+                  <div>
+                    <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
+                      Original / MRP (₹)
+                    </label>
+                    <input
+                      type="number"
+                      value={form.originalPrice || ''}
+                      onChange={(e) => setForm({ ...form, originalPrice: Number(e.target.value) })}
+                      placeholder="e.g. 4049"
+                      min={0}
+                      className="w-full px-3 py-2 text-xs font-mono text-ink bg-white border border-line rounded-lg outline-none focus:border-accent"
+                    />
+                    {Number(form.originalPrice) > Number(form.price) && Number(form.price) > 0 && (
+                      <span className="block mt-1 text-[10px] font-mono font-semibold text-emerald-600">
+                        ⚡ Save {Math.round(((Number(form.originalPrice) - Number(form.price)) / Number(form.originalPrice)) * 100)}% Badge Active
+                      </span>
+                    )}
                   </div>
                   <div>
                     <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
@@ -482,6 +506,7 @@ export function Catalog() {
                       value={form.stock}
                       onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
                       required
+                      min={0}
                       className="w-full px-3 py-2 text-xs font-mono font-bold text-ink bg-white border border-line rounded-lg outline-none focus:border-accent"
                     />
                   </div>
@@ -526,12 +551,24 @@ export function Catalog() {
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-mono text-muted">Price (₹) *</label>
+                          <label className="block text-[10px] font-mono text-muted">Selling Price (₹) *</label>
                           <input
                             type="number"
                             value={variant.price}
                             onChange={(e) => updateVariant(index, 'price', Number(e.target.value))}
                             required
+                            min={0}
+                            className="w-full px-2.5 py-1.5 text-xs font-mono text-ink bg-white border border-line rounded outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-mono text-muted">Original / MRP (₹)</label>
+                          <input
+                            type="number"
+                            value={variant.originalPrice || ''}
+                            onChange={(e) => updateVariant(index, 'originalPrice', Number(e.target.value))}
+                            placeholder="Optional MRP"
+                            min={0}
                             className="w-full px-2.5 py-1.5 text-xs font-mono text-ink bg-white border border-line rounded outline-none"
                           />
                         </div>
@@ -542,6 +579,7 @@ export function Catalog() {
                             value={variant.stock}
                             onChange={(e) => updateVariant(index, 'stock', Number(e.target.value))}
                             required
+                            min={0}
                             className="w-full px-2.5 py-1.5 text-xs font-mono text-ink bg-white border border-line rounded outline-none"
                           />
                         </div>

@@ -265,6 +265,28 @@ export function Home() {
     setReviewSubmitted(true);
   };
 
+  /* Touch Swipe Handling for Hero Slides */
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null || heroSlides.length <= 1) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX - touchEndX;
+
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) {
+        setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length);
+      } else {
+        setCurrentSlideIndex((prev) => (prev === 0 ? heroSlides.length - 1 : prev - 1));
+      }
+    }
+    setTouchStartX(null);
+  };
+
   /* Animation variants */
   const staggerContainer = {
     hidden: {},
@@ -282,11 +304,13 @@ export function Home() {
           1. HERO SECTION (STATIC-FIRST WITH CONTROLLED SLIDESHOW)
       ====================================================== */}
       <section
-        className="relative overflow-hidden bg-[#121212] min-h-[580px] sm:min-h-[660px] lg:min-h-[720px] flex flex-col justify-between text-white"
+        className="relative overflow-hidden bg-[#121212] min-h-[540px] sm:min-h-[640px] lg:min-h-[700px] flex flex-col justify-between text-white touch-pan-y select-none"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
         onFocus={() => setIsPaused(true)}
         onBlur={() => setIsPaused(false)}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         {/* Dynamic Background Image with Smooth Crossfade */}
         <AnimatePresence mode="wait">
@@ -309,15 +333,15 @@ export function Home() {
         </AnimatePresence>
 
         {/* Hero Copy Content */}
-        <div className="relative z-10 mx-auto max-w-[1440px] px-6 sm:px-10 lg:px-16 pt-24 sm:pt-32 pb-12 w-full flex-1 flex flex-col justify-center">
-          <div className="max-w-2xl space-y-5">
+        <div className="relative z-10 mx-auto max-w-[1440px] px-5 sm:px-10 lg:px-16 pt-20 sm:pt-32 pb-12 w-full flex-1 flex flex-col justify-center">
+          <div className="max-w-2xl space-y-4 sm:space-y-5">
             {/* Verified Trust Badges Strip */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-md px-3 py-1 font-mono text-[11px] font-semibold text-zinc-200 border border-white/15">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-md px-3 py-1 font-mono text-[10px] sm:text-[11px] font-semibold text-zinc-200 border border-white/15">
                 <span className="h-1.5 w-1.5 rounded-full bg-accent" />
                 Modern 3D Fabrication Studio
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/20 backdrop-blur-md px-3 py-1 font-mono text-[11px] font-semibold text-accent-light border border-accent/30">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/20 backdrop-blur-md px-3 py-1 font-mono text-[10px] sm:text-[11px] font-semibold text-accent-light border border-accent/30">
                 Pan-India Delivery
               </span>
             </div>
@@ -329,17 +353,17 @@ export function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -16 }}
                 transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-                className="space-y-4"
+                className="space-y-3 sm:space-y-4"
               >
                 {currentSlide.eyebrow && (
-                  <span className="font-mono text-xs font-semibold tracking-wider text-accent uppercase block">
+                  <span className="font-mono text-[11px] sm:text-xs font-semibold tracking-wider text-accent uppercase block">
                     {currentSlide.eyebrow}
                   </span>
                 )}
-                <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white leading-[1.08]">
+                <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white leading-[1.1]">
                   {currentSlide.title || 'Turn Ideas Into Something Real.'}
                 </h1>
-                <p className="font-sans text-sm sm:text-base text-zinc-300 max-w-lg leading-relaxed">
+                <p className="font-sans text-xs sm:text-base text-zinc-300 max-w-lg leading-relaxed">
                   {currentSlide.description ||
                     'Precision custom 3D printing, bespoke interior lighting, and made-to-order physical goods crafted in our dedicated Indian makerspace.'}
                 </p>
@@ -347,17 +371,17 @@ export function Home() {
             </AnimatePresence>
 
             {/* Dual CTA Buttons */}
-            <div className="flex flex-wrap items-center gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 pt-2 w-full sm:w-auto">
               <Link
                 to={currentSlide.buttonLink || '/catalog'}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-7 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-accent/25 transition-all hover:bg-accent-dark hover:scale-[1.02]"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-6 sm:px-7 py-3 sm:py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-accent/25 transition-all hover:bg-accent-dark hover:scale-[1.02] text-center"
               >
                 <span>{currentSlide.buttonText || 'Explore Products'}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 to="/custom-service"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 px-7 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white transition-all hover:bg-white hover:text-black"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 px-6 sm:px-7 py-3 sm:py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white transition-all hover:bg-white hover:text-black text-center"
               >
                 <span>Get Custom Print</span>
               </Link>
@@ -504,7 +528,7 @@ export function Home() {
               initial="hidden"
               whileInView="show"
               viewport={{ once: true, margin: '-60px' }}
-              className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
+              className="grid gap-3.5 sm:gap-6 grid-cols-2 lg:grid-cols-4"
             >
               {bestSellers.map((product) => (
                 <motion.div key={product.id} variants={fadeInUp}>
@@ -519,21 +543,21 @@ export function Home() {
       {/* =====================================================
           4. SHOP BY COLLECTION (CAROUSEL WITH ROTATION EFFECT & BUTTONS)
       ====================================================== */}
-      <section className="bg-[#FAF9F6] py-14 border-t border-line">
+      <section className="bg-[#FAF9F6] py-12 sm:py-14 border-t border-line">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end mb-8">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end mb-6 sm:mb-8">
             <div>
               <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
                 Curated Collections
               </span>
-              <h2 className="mt-1 font-display text-3xl font-bold tracking-tight sm:text-4xl text-ink">
+              <h2 className="mt-1 font-display text-2xl sm:text-4xl font-bold tracking-tight text-ink">
                 Shop by Category
               </h2>
             </div>
 
             {/* Navigation Buttons & View All */}
-            <div className="flex items-center gap-4">
-              <Link to="/catalog" className="font-display text-sm font-bold text-accent hover:underline hidden sm:inline-block">
+            <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
+              <Link to="/catalog" className="font-display text-xs sm:text-sm font-bold text-accent hover:underline">
                 View All Categories →
               </Link>
 
@@ -543,19 +567,19 @@ export function Home() {
                     type="button"
                     onClick={() => scrollCategories(-1)}
                     disabled={!canScrollLeft}
-                    className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-soft transition-all hover:bg-accent hover:text-white hover:border-accent disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-ink disabled:hover:border-line cursor-pointer disabled:cursor-not-allowed"
+                    className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-soft transition-all hover:bg-accent hover:text-white hover:border-accent disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-ink disabled:hover:border-line cursor-pointer disabled:cursor-not-allowed"
                     aria-label="Previous categories"
                   >
-                    <ChevronLeft className="h-5 w-5" />
+                    <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                   </button>
                   <button
                     type="button"
                     onClick={() => scrollCategories(1)}
                     disabled={!canScrollRight}
-                    className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-soft transition-all hover:bg-accent hover:text-white hover:border-accent disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-ink disabled:hover:border-line cursor-pointer disabled:cursor-not-allowed"
+                    className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-soft transition-all hover:bg-accent hover:text-white hover:border-accent disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-ink disabled:hover:border-line cursor-pointer disabled:cursor-not-allowed"
                     aria-label="Next categories"
                   >
-                    <ChevronRight className="h-5 w-5" />
+                    <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   </button>
                 </div>
               )}
@@ -565,13 +589,13 @@ export function Home() {
           <div
             ref={categoryScrollRef}
             onScroll={checkScrollButtons}
-            className="flex gap-6 overflow-x-auto pb-4 scrollbar-none snap-x snap-mandatory scroll-smooth"
+            className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-none snap-x snap-mandatory scroll-smooth"
           >
             {categories.map((cat) => (
               <Link
                 key={cat.name}
                 to={`/catalog?category=${encodeURIComponent(cat.name)}`}
-                className="group relative block w-[260px] sm:w-[300px] lg:w-[320px] shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-white shadow-soft transition-all duration-300 hover:shadow-card hover:-translate-y-1.5 hover:rotate-[0.8deg] hover:border-accent/40"
+                className="group relative block w-[230px] sm:w-[280px] lg:w-[320px] shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-white shadow-soft transition-all duration-300 hover:shadow-card hover:-translate-y-1.5 hover:rotate-[0.8deg] hover:border-accent/40"
               >
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-shell">
                   <img
