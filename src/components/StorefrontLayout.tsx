@@ -96,23 +96,23 @@ function AnnouncementBar({
 
   return (
     <div
-      className="relative z-40 h-9 bg-dark text-white flex items-center justify-center px-4 border-b border-white/10"
+      className="relative z-10 h-7 sm:h-8 bg-dark text-white flex items-center justify-center px-4 border-t border-white/10"
       role="region"
       aria-label="Store announcements"
     >
       <div className="flex items-center gap-2 max-w-full">
-        <span className="flex h-2 w-2 relative shrink-0">
+        <span className="flex h-1.5 w-1.5 relative shrink-0">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent"></span>
         </span>
         <AnimatePresence mode="wait">
           <motion.p
             key={currentIndex}
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
+            exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="text-center font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-300 truncate"
+            className="text-center text-[10px] sm:text-xs font-medium uppercase tracking-wider text-zinc-300 truncate"
           >
             {cleanMessages[currentIndex]}
           </motion.p>
@@ -270,21 +270,12 @@ export function StorefrontLayout() {
         Skip to content
       </a>
 
-      {/* Announcement Bar */}
-      {homepageSettings?.announcementEnabled &&
-        homepageSettings.announcementMessages.length > 0 && (
-          <AnnouncementBar
-            messages={homepageSettings.announcementMessages}
-            duration={homepageSettings.announcementDuration}
-          />
-        )}
-
-      {/* Sticky Header with transparent to solid background transition */}
+      {/* Persistent Single Stacked Header: Navbar on Top + Announcement Bar Directly Below */}
       <header
-        className={`sticky top-0 z-40 transition-all duration-300 ${
+        className={`sticky top-0 z-50 transition-all duration-300 ${
           isScrolled
             ? 'bg-paper/95 border-b border-line shadow-soft backdrop-blur-md'
-            : 'bg-paper/70 border-b border-transparent backdrop-blur-sm'
+            : 'bg-paper/85 border-b border-line/60 backdrop-blur-md'
         }`}
       >
         <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-4 sm:px-6 lg:h-20 lg:px-10">
@@ -496,6 +487,15 @@ export function StorefrontLayout() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Announcement Bar (Directly below Navbar in the persistent stacked header) */}
+        {homepageSettings?.announcementEnabled &&
+          homepageSettings.announcementMessages.length > 0 && (
+            <AnnouncementBar
+              messages={homepageSettings.announcementMessages}
+              duration={homepageSettings.announcementDuration}
+            />
+          )}
       </header>
 
       {/* Main Content Area */}

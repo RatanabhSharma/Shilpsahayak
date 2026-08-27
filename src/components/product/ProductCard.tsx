@@ -76,20 +76,20 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
           {/* Top Badges */}
           <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 flex flex-col gap-1 z-10">
             {product.isCustomizable && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-dark/85 backdrop-blur-sm px-2 py-0.5 font-mono text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white shadow-xs">
+              <span className="inline-flex items-center gap-1 rounded-full bg-dark/85 backdrop-blur-sm px-2 py-0.5 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-white shadow-xs">
                 <Sparkles className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-accent" />
                 Custom
               </span>
             )}
             {product.featured && (
-              <span className="inline-flex items-center rounded-full bg-accent px-2 py-0.5 font-mono text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white shadow-xs">
+              <span className="inline-flex items-center rounded-full bg-accent px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white shadow-xs">
                 Featured
               </span>
             )}
           </div>
 
           {discountPercent > 0 && (
-            <span className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 rounded-full bg-emerald-600 px-2 py-0.5 font-mono text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white shadow-xs z-10">
+            <span className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white shadow-xs z-10">
               Save {discountPercent}%
             </span>
           )}
@@ -99,16 +99,16 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
         <div className="flex flex-1 flex-col justify-between p-3 sm:p-4">
           <div>
             <div className="flex items-center justify-between gap-1.5 mb-1">
-              <span className="font-mono text-[10px] sm:text-[11px] font-medium uppercase tracking-wider text-muted truncate">
+              <span className="text-[10px] sm:text-[11px] font-medium uppercase tracking-wider text-muted truncate">
                 {product.category || 'Workshop Item'}
               </span>
-              <div className="flex items-center gap-0.5 shrink-0 text-amber-500 font-mono text-[10px] sm:text-xs font-semibold">
+              <div className="flex items-center gap-0.5 shrink-0 text-amber-500 text-[10px] sm:text-xs font-semibold">
                 <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                 <span>4.9</span>
               </div>
             </div>
 
-            <h3 className="line-clamp-2 font-display text-xs sm:text-sm font-bold text-ink group-hover:text-accent transition-colors leading-snug min-h-[2.4em]">
+            <h3 className="line-clamp-2 text-xs sm:text-sm font-semibold text-ink group-hover:text-accent transition-colors leading-snug min-h-[2.4em]">
               {product.name}
             </h3>
           </div>
@@ -117,16 +117,16 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
           <div className="mt-2.5 sm:mt-3 border-t border-line pt-2.5 sm:pt-3">
             <div className="flex items-baseline justify-between mb-2">
               <div className="flex items-baseline gap-1.5">
-                <span className="font-mono text-xs sm:text-sm md:text-base font-bold text-ink">
+                <span className="text-xs sm:text-sm md:text-base font-bold text-ink">
                   ₹{regularPrice.toLocaleString('en-IN')}
                 </span>
                 {compareAtPrice > regularPrice && (
-                  <span className="font-mono text-[10px] sm:text-xs text-muted line-through">
+                  <span className="text-[10px] sm:text-xs text-muted line-through">
                     ₹{compareAtPrice.toLocaleString('en-IN')}
                   </span>
                 )}
               </div>
-              <span className="font-mono text-[9px] sm:text-[10px] text-accent font-semibold hidden xs:inline">
+              <span className="text-[9px] sm:text-[10px] text-accent font-semibold hidden xs:inline">
                 In Stock
               </span>
             </div>
