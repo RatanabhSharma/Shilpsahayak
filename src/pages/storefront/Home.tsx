@@ -125,27 +125,84 @@ export function Home() {
     [products]
   );
 
-  /* Curated Hero Content with Safe Fallbacks */
-  const heroContent = useMemo(() => {
-    const configuredSlide = (homepageSettings?.heroSlides || []).find((s) => s.enabled);
-    if (configuredSlide) {
-      return configuredSlide;
+  /* Hero Slides with Dynamic Admin Slides or Product Fallbacks */
+  const heroSlides = useMemo(() => {
+    const configuredSlides = (homepageSettings?.heroSlides || []).filter((s) => s.enabled);
+    if (configuredSlides.length > 0) {
+      return configuredSlides;
     }
-    const firstProduct = activeProducts[0];
-    return {
-      id: 'default-hero',
-      eyebrow: 'BESPOKE 3D FABRICATION & STUDIO GOODS',
-      title: firstProduct?.name || 'Turn Ideas Into Something Real.',
-      description:
-        firstProduct?.description ||
-        'Precision custom 3D printing, bespoke interior lighting, and made-to-order physical goods crafted in our Indian makerspace.',
-      image:
-        firstProduct?.image ||
-        'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&w=2000&q=80',
-      buttonText: 'Explore Catalog',
-      buttonLink: '/catalog',
-    };
+    if (activeProducts.length > 0) {
+      return activeProducts.slice(0, 4).map((product, idx) => ({
+        id: product.id || `slide-${idx}`,
+        eyebrow: idx === 0 ? 'BESPOKE 3D FABRICATION & STUDIO GOODS' : 'PRECISION ADDITIVE MANUFACTURING',
+        title: product.name,
+        description:
+          product.description ||
+          'Precision custom 3D printing, bespoke interior lighting, and made-to-order physical goods crafted in our Indian makerspace.',
+        image: product.image,
+        buttonText: 'Explore Catalog',
+        buttonLink: `/product/${product.id}`,
+      }));
+    }
+    return [
+      {
+        id: 'default-hero',
+        eyebrow: 'BESPOKE 3D FABRICATION & STUDIO GOODS',
+        title: 'Turn Ideas Into Something Real.',
+        description:
+          'Precision custom 3D printing, bespoke interior lighting, and made-to-order physical goods crafted in our Indian makerspace.',
+        image:
+          'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&w=2000&q=80',
+        buttonText: 'Explore Catalog',
+        buttonLink: '/catalog',
+      },
+    ];
   }, [homepageSettings?.heroSlides, activeProducts]);
+
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [isHeroPaused, setIsHeroPaused] = useState(false);
+
+  /* Touch Swipe Handling for Mobile Hero Slides */
+  const [heroTouchStartX, setHeroTouchStartX] = useState<number | null>(null);
+
+  const handleHeroTouchStart = (e: React.TouchEvent) => {
+    setHeroTouchStartX(e.touches[0].clientX);
+    setIsHeroPaused(true);
+  };
+
+  const handleHeroTouchEnd = (e: React.TouchEvent) => {
+    if (heroTouchStartX !== null && heroSlides.length > 1) {
+      const diff = heroTouchStartX - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 45) {
+        if (diff > 0) {
+          setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length);
+        } else {
+          setCurrentSlideIndex((prev) => (prev === 0 ? heroSlides.length - 1 : prev - 1));
+        }
+      }
+    }
+    setHeroTouchStartX(null);
+    setTimeout(() => setIsHeroPaused(false), 3000);
+  };
+
+  /* Equal Time Interval for Each Slide */
+  useEffect(() => {
+    if (heroSlides.length <= 1 || isHeroPaused) return;
+
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return;
+    }
+
+    const intervalTime = Math.max(4500, homepageSettings?.heroInterval || 5500);
+    const interval = setInterval(() => {
+      setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length);
+    }, intervalTime);
+
+    return () => clearInterval(interval);
+  }, [heroSlides.length, homepageSettings?.heroInterval, isHeroPaused]);
 
   const featuredProducts = useMemo(() => {
     const configuredIds = homepageSettings?.featuredProductIds ?? [];
@@ -300,85 +357,87 @@ export function Home() {
   return (
     <div className="bg-[#FAF9F6] text-ink selection:bg-accent-soft selection:text-accent overflow-x-hidden">
       {/* =====================================================
-          1. RESPONSIVE HERO SECTION (SINGLE VISUAL PRIORITY)
+          1. RESPONSIVE HERO SLIDESHOW (VISUAL SHOWCASE)
       ====================================================== */}
-      <section className="relative overflow-hidden bg-[#121212] min-h-[520px] sm:min-h-[620px] lg:min-h-[700px] flex flex-col justify-end text-white select-none">
-        {/* Background Visual Scene */}
-        <div className="absolute inset-0 z-0">
-          <img
-            src={heroContent.image}
-            alt={heroContent.title}
-            className="w-full h-full object-cover object-center"
-          />
-          {/* Responsive Gradient Scrim: Bottom-up on mobile, left-to-right on desktop */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-[#121212]/60 to-transparent sm:bg-gradient-to-r sm:from-[#121212]/95 sm:via-[#121212]/50 sm:to-transparent" />
-          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#121212]/80 to-transparent" />
-        </div>
-
-        {/* Hero Copy Content */}
-        <div className="relative z-10 mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-12 pb-10 sm:pb-16 pt-24 sm:pt-32 w-full">
-          <div className="max-w-2xl space-y-3 sm:space-y-4">
-            {/* Verified Trust Badges */}
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-md px-2.5 py-0.5 sm:px-3 sm:py-1 font-mono text-[10px] sm:text-[11px] font-semibold text-zinc-200 border border-white/15">
-                <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
-                Modern 3D Fabrication Studio
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/20 backdrop-blur-md px-2.5 py-0.5 sm:px-3 sm:py-1 font-mono text-[10px] sm:text-[11px] font-semibold text-accent-light border border-accent/30">
-                Pan-India Delivery
-              </span>
-            </div>
-
-            <div className="space-y-2 sm:space-y-3">
-              {heroContent.eyebrow && (
-                <span className="font-mono text-[10px] sm:text-xs font-semibold tracking-wider text-accent uppercase block">
-                  {heroContent.eyebrow}
-                </span>
-              )}
-              <h1 className="font-display text-2xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight text-white leading-[1.15]">
-                {heroContent.title}
-              </h1>
-              <p className="font-sans text-xs sm:text-sm lg:text-base text-zinc-300 max-w-lg leading-relaxed line-clamp-2 sm:line-clamp-none">
-                {heroContent.description}
-              </p>
-            </div>
-
-            {/* Responsive Dual Action CTAs */}
-            <div className="flex items-center gap-2.5 sm:gap-3 pt-2">
+      <section
+        className="relative overflow-hidden bg-[#121212] aspect-[16/9] sm:aspect-[21/9] lg:aspect-[2.6/1] min-h-[300px] sm:min-h-[420px] lg:min-h-[520px] max-h-[680px] flex flex-col justify-end text-white select-none touch-pan-y"
+        onMouseEnter={() => setIsHeroPaused(true)}
+        onMouseLeave={() => setIsHeroPaused(false)}
+        onTouchStart={handleHeroTouchStart}
+        onTouchEnd={handleHeroTouchEnd}
+      >
+        {/* Background Visual Images with Edge-to-Edge Crossfade */}
+        {heroSlides.map((slide, idx) => {
+          const isCurrent = currentSlideIndex === idx;
+          return (
+            <div
+              key={slide.id || idx}
+              className={`absolute inset-0 z-0 transition-opacity duration-700 ease-in-out ${
+                isCurrent ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+            >
               <Link
-                to={heroContent.buttonLink || '/catalog'}
-                className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-full bg-accent px-5 sm:px-7 py-2.5 sm:py-3.5 font-display text-xs sm:text-sm font-bold uppercase tracking-wider text-white shadow-lg shadow-accent/25 hover:bg-accent-dark transition-all hover:scale-[1.02] touch-manipulation"
+                to={slide.buttonLink || '/catalog'}
+                className="block w-full h-full cursor-pointer"
+                tabIndex={isCurrent ? 0 : -1}
+                aria-label={slide.title || 'Featured 3D Showcase'}
               >
-                <span>{heroContent.buttonText || 'Explore Catalog'}</span>
-                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </Link>
-              <Link
-                to="/custom-service"
-                className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-full bg-white/10 hover:bg-white hover:text-black backdrop-blur-md border border-white/20 px-4 sm:px-6 py-2.5 sm:py-3.5 font-display text-xs sm:text-sm font-bold uppercase tracking-wider text-white transition-all touch-manipulation"
-              >
-                <span>Get Custom Print</span>
+                <img
+                  src={slide.image}
+                  alt={slide.title || 'Shilp Sahayak Hero'}
+                  className="w-full h-full object-cover object-center"
+                />
               </Link>
             </div>
-          </div>
-        </div>
+          );
+        })}
 
-        {/* Floating Specs Badges on Tablet/Desktop */}
-        <div className="hidden lg:flex absolute right-12 bottom-16 z-10 flex-col gap-3 pointer-events-none">
-          <div className="rounded-2xl border border-white/15 bg-black/40 backdrop-blur-md px-4 py-2.5 text-white shadow-xl flex items-center gap-3">
-            <div className="h-2 w-2 rounded-full bg-accent animate-ping" />
-            <div className="font-mono text-xs">
-              <span className="text-zinc-400 block text-[10px] uppercase">Layer Precision</span>
-              <strong className="text-white font-bold">±50µm Calibration</strong>
+        {/* Minimal Slide Progress Bars & Subtle Prev/Next Controls */}
+        {heroSlides.length > 1 && (
+          <div className="relative z-10 mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-12 w-full pb-4 sm:pb-6 flex items-center justify-between pointer-events-auto">
+            {/* Minimal line/pill indicators */}
+            <div className="flex items-center gap-2 bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+              {heroSlides.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentSlideIndex(idx)}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    currentSlideIndex === idx
+                      ? 'w-8 bg-accent'
+                      : 'w-2 bg-white/40 hover:bg-white/70'
+                  }`}
+                  aria-label={`Go to hero slide ${idx + 1}`}
+                />
+              ))}
+            </div>
+
+            {/* Clean, Non-Boxy Nav Chevrons */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setCurrentSlideIndex((prev) =>
+                    prev === 0 ? heroSlides.length - 1 : prev - 1
+                  )
+                }
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/40 hover:bg-accent border border-white/15 backdrop-blur-md flex items-center justify-center text-white transition-colors"
+                aria-label="Previous slide"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length)
+                }
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/40 hover:bg-accent border border-white/15 backdrop-blur-md flex items-center justify-center text-white transition-colors"
+                aria-label="Next slide"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
-          <div className="rounded-2xl border border-white/15 bg-black/40 backdrop-blur-md px-4 py-2.5 text-white shadow-xl flex items-center gap-3">
-            <Sparkles className="h-4 w-4 text-emerald-400" />
-            <div className="font-mono text-xs">
-              <span className="text-zinc-400 block text-[10px] uppercase">Material Origin</span>
-              <strong className="text-white font-bold">100% Plant PLA+ & Bio-Resin</strong>
-            </div>
-          </div>
-        </div>
+        )}
       </section>
 
       {/* =====================================================

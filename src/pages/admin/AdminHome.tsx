@@ -537,7 +537,7 @@ export function AdminHome() {
                       Slide #{index + 1}
                     </span>
                     <span className="text-xs font-semibold text-ink truncate max-w-[200px]">
-                      {slide.title || 'Untitled Banner'}
+                      {slide.title || `Banner Visual #${index + 1}`}
                     </span>
                   </div>
 
@@ -571,53 +571,55 @@ export function AdminHome() {
                   </div>
                 </div>
 
-                <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+                <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
                   <div className="space-y-3">
                     <div>
                       <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
-                        Eyebrow Label
-                      </label>
-                      <input
-                        type="text"
-                        value={slide.eyebrow}
-                        onChange={(event) => updateHeroSlide(slide.id, 'eyebrow', event.target.value)}
-                        placeholder="BESPOKE FABRICATION"
-                        className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs text-ink outline-none focus:border-accent"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
-                        Heading Title *
+                        Banner Name / Internal Label
                       </label>
                       <input
                         type="text"
                         value={slide.title}
                         onChange={(event) => updateHeroSlide(slide.id, 'title', event.target.value)}
-                        placeholder="Custom 3D Fabrication"
-                        required
+                        placeholder="e.g. Lithophane Lighting Banner"
                         className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-ink outline-none focus:border-accent"
                       />
                     </div>
 
                     <div>
                       <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
-                        Description
+                        Click Destination Link (Optional)
                       </label>
-                      <textarea
-                        value={slide.description}
-                        onChange={(event) => updateHeroSlide(slide.id, 'description', event.target.value)}
-                        placeholder="Precision layered engineering..."
-                        rows={3}
-                        className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs text-ink outline-none focus:border-accent"
+                      <input
+                        type="text"
+                        value={slide.buttonLink}
+                        onChange={(event) => updateHeroSlide(slide.id, 'buttonLink', event.target.value)}
+                        placeholder="/catalog or /custom-service"
+                        className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs font-mono text-ink outline-none focus:border-accent"
                       />
+                      <span className="text-[10px] text-muted font-sans mt-0.5 block">
+                        Users clicking anywhere on this banner slide will navigate to this link.
+                      </span>
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => updateHeroSlide(slide.id, 'enabled', !slide.enabled)}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-[10px] font-bold ${
+                          slide.enabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-shell text-muted border border-line'
+                        }`}
+                      >
+                        {slide.enabled ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                        {slide.enabled ? 'Visible on Storefront' : 'Hidden on Storefront'}
+                      </button>
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     <div>
                       <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
-                        Image URL
+                        Banner Image URL *
                       </label>
                       <input
                         type="url"
@@ -660,40 +662,6 @@ export function AdminHome() {
                         No image preview available
                       </div>
                     )}
-
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <div>
-                        <label className="block text-[10px] font-mono text-muted mb-1">Button Text</label>
-                        <input
-                          type="text"
-                          value={slide.buttonText}
-                          onChange={(event) => updateHeroSlide(slide.id, 'buttonText', event.target.value)}
-                          placeholder="Shop Now"
-                          className="w-full rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs text-ink outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-mono text-muted mb-1">Button Link</label>
-                        <input
-                          type="text"
-                          value={slide.buttonLink}
-                          onChange={(event) => updateHeroSlide(slide.id, 'buttonLink', event.target.value)}
-                          placeholder="/catalog"
-                          className="w-full rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs text-ink outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => updateHeroSlide(slide.id, 'enabled', !slide.enabled)}
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-[10px] font-bold ${
-                        slide.enabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-shell text-muted border border-line'
-                      }`}
-                    >
-                      {slide.enabled ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                      {slide.enabled ? 'Visible on Storefront' : 'Hidden on Storefront'}
-                    </button>
                   </div>
                 </div>
               </div>
@@ -834,7 +802,7 @@ export function AdminHome() {
                 type="text"
                 value={form.featuredTitle || ''}
                 onChange={(e) => setForm((current) => ({ ...current, featuredTitle: e.target.value }))}
-                placeholder="Featured 3D Creations"
+                placeholder="Featured Products"
                 className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-ink outline-none focus:border-accent"
               />
             </div>
