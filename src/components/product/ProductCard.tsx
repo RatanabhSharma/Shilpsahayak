@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from 'framer-motion';
 import { ShoppingBag, Sparkles, Star, Zap } from 'lucide-react';
 import { Product, useStore } from '../../store';
 import { Card } from '../ui';
@@ -14,6 +15,31 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
   const openCart = useStore((state) => state.openCart);
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
+
+  /* 3D Tilt Values */
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  const springConfig = { damping: 20, stiffness: 260 };
+  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [7, -7]), springConfig);
+  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-7, 7]), springConfig);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    if (prefersReducedMotion || !cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const xPct = (e.clientX - rect.left) / rect.width - 0.5;
+    const yPct = (e.clientY - rect.top) / rect.height - 0.5;
+    mouseX.set(xPct);
+    mouseY.set(yPct);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    mouseX.set(0);
+    mouseY.set(0);
+  };
 
   const regularPrice = Number(product.price) || 0;
   const compareAtPrice = Number(product.originalPrice) || 0;
@@ -51,110 +77,108 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
   return (
     <Link
       to={`/product/${product.id}`}
-      className={`group flex flex-col h-full touch-manipulation select-none ${className}`}
+      className={`group/card flex flex-col h-full touch-manipulation select-none perspective-1000 ${className}`}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
     >
-      <Card className="flex h-full flex-col justify-between overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-card group-hover:border-accent/40 border-line bg-white rounded-2xl">
-        {/* Image Container */}
-        <div className="relative aspect-square w-full overflow-hidden bg-shell">
-          <img
-            src={displayImage}
-            alt={product.name}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            onError={(e) => {
-              const target = e.currentTarget;
-              if (!target.dataset.fallback) {
-                target.dataset.fallback = 'true';
-                target.src =
-                  'https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&q=80&w=600';
-              }
-            }}
-          />
+      <motion.div
+        ref={cardRef}
+        style={{
+          rotateX: prefersReducedMotion ? 0 : rotateX,
+          rotateY: prefersReducedMotion ? 0 : rotateY,
+          transformStyle: 'preserve-3d',
+        }}
+        className="h-full"
+      >
+        <Card className="flex h-full flex-col justify-between overflow-hidden transition-all duration-300 group-hover/card:-translate-y-2 group-hover/card:shadow-2xl group-hover/card:border-accent/40 border-line bg-white rounded-2xl">
+          {/* Image Container with Shimmer Sweep */}
+          <div className="relative aspect-square w-full overflow-hidden bg-shell shine-sweep-container">
+            <img
+              src={displayImage}
+              alt={product.name}
+              loading="lazy"
+              className="h-full w-full object-cover transition-all duration-500 group-hover/card:scale-105"
+            />
 
-          {/* Top Badges */}
-          <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 flex flex-col gap-1 z-10">
-            {product.isCustomizable && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-dark/85 backdrop-blur-sm px-2 py-0.5 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-white shadow-xs">
-                <Sparkles className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-accent" />
-                Custom
-              </span>
-            )}
-            {product.featured && (
-              <span className="inline-flex items-center rounded-full bg-accent px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white shadow-xs">
-                Featured
-              </span>
-            )}
-          </div>
-
-          {discountPercent > 0 && (
-            <span className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white shadow-xs z-10">
-              Save {discountPercent}%
-            </span>
-          )}
-        </div>
-
-        {/* Content Details */}
-        <div className="flex flex-1 flex-col justify-between p-3 sm:p-4">
-          <div>
-            <div className="flex items-center justify-between gap-1.5 mb-1">
-              <span className="text-[10px] sm:text-[11px] font-medium uppercase tracking-wider text-muted truncate">
-                {product.category || 'Workshop Item'}
-              </span>
-              <div className="flex items-center gap-0.5 shrink-0 text-amber-500 text-[10px] sm:text-xs font-semibold">
-                <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                <span>4.9</span>
-              </div>
+            {/* Badges Overlay */}
+            <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start z-10">
+              {product.isCustomizable && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-black/80 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-sm shadow-xs border border-white/10">
+                  <Sparkles className="w-2.5 h-2.5 text-accent" />
+                  Custom
+                </span>
+              )}
+              {product.featured && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-white shadow-xs">
+                  Featured
+                </span>
+              )}
             </div>
 
-            <h3 className="line-clamp-2 text-xs sm:text-sm font-semibold text-ink group-hover:text-accent transition-colors leading-snug min-h-[2.4em]">
-              {product.name}
-            </h3>
+            {/* Discount Badge */}
+            {discountPercent > 0 && (
+              <span className="absolute top-2.5 right-2.5 rounded-full bg-emerald-600 px-2 py-0.5 font-mono text-[9px] font-bold text-white shadow-xs">
+                {discountPercent}% OFF
+              </span>
+            )}
           </div>
 
-          {/* Price & Action Strip */}
-          <div className="mt-2.5 sm:mt-3 border-t border-line pt-2.5 sm:pt-3">
-            <div className="flex items-baseline justify-between mb-2">
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-xs sm:text-sm md:text-base font-bold text-ink">
+          {/* Product Details Content */}
+          <div className="flex flex-1 flex-col justify-between p-3.5 sm:p-4 space-y-3">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-1">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-muted truncate">
+                  {product.category || 'Precision 3D'}
+                </span>
+                <div className="flex items-center gap-0.5 text-amber-500 shrink-0">
+                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                  <span className="font-mono text-[10px] font-bold">4.9</span>
+                </div>
+              </div>
+              <h3 className="font-display text-sm font-bold text-ink line-clamp-1 group-hover/card:text-accent transition-colors">
+                {product.name}
+              </h3>
+            </div>
+
+            {/* Price & Action Row */}
+            <div className="space-y-2.5 pt-1 border-t border-line/60">
+              <div className="flex items-baseline gap-1.5 font-mono">
+                <span className="text-sm sm:text-base font-bold text-ink">
                   ₹{regularPrice.toLocaleString('en-IN')}
                 </span>
                 {compareAtPrice > regularPrice && (
-                  <span className="text-[10px] sm:text-xs text-muted line-through">
+                  <span className="text-[11px] text-muted line-through">
                     ₹{compareAtPrice.toLocaleString('en-IN')}
                   </span>
                 )}
               </div>
-              <span className="text-[9px] sm:text-[10px] text-accent font-semibold hidden xs:inline">
-                In Stock
-              </span>
-            </div>
 
-            {/* Dual action buttons */}
-            <div className="grid grid-cols-2 gap-1 sm:gap-2">
-              <button
-                type="button"
-                onClick={handleQuickAdd}
-                className="py-1.5 sm:py-2 px-1 sm:px-2 rounded-xl border border-line bg-shell hover:bg-white hover:border-ink text-ink font-sans text-[10px] sm:text-xs font-semibold transition-all flex items-center justify-center gap-1 shadow-2xs"
-                title="Add to cart"
-              >
-                <ShoppingBag className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                <span>Add</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleBuyNow}
-                className="py-1.5 sm:py-2 px-1 sm:px-2 rounded-xl bg-accent hover:bg-accent-dark text-white font-sans text-[10px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-xs shadow-accent/20"
-                title="Buy now"
-              >
-                <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-white text-white shrink-0" />
-                <span>Buy</span>
-              </button>
+              {/* Action Buttons: Add & Buy */}
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleQuickAdd}
+                  className="flex items-center justify-center gap-1 h-8 rounded-lg border border-line bg-shell/80 font-sans text-xs font-semibold text-ink hover:bg-ink hover:text-white hover:border-ink active:scale-95 transition-all duration-150 cursor-pointer"
+                  title="Add to cart"
+                >
+                  <ShoppingBag className="w-3.5 h-3.5" />
+                  <span>Add</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBuyNow}
+                  className="flex items-center justify-center gap-1 h-8 rounded-lg bg-accent text-white font-sans text-xs font-semibold shadow-xs hover:bg-accent-hover active:scale-95 transition-all duration-150 cursor-pointer"
+                  title="Buy now"
+                >
+                  <Zap className="w-3.5 h-3.5 fill-white" />
+                  <span>Buy</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      </motion.div>
     </Link>
   );
 }

@@ -19,9 +19,9 @@ import {
   Sparkles,
   Phone,
   Mail,
-  MapPin,
   Search,
-  MessageSquare,
+  MessageCircle,
+  Instagram,
 } from 'lucide-react';
 import {
   AnimatePresence,
@@ -507,160 +507,165 @@ export function StorefrontLayout() {
       {/* Slide-in Cart Drawer */}
       <CartDrawer />
 
-      {/* Redesigned 4-Column Footer (Dark Background #0d0d0d) */}
-      <footer className="mt-20 border-t border-zinc-800 bg-dark text-zinc-300 relative overflow-hidden">
-        {/* Engineering grid texture */}
-        <div className="absolute inset-0 grid-plate opacity-20 pointer-events-none" />
-
-        <div className="relative mx-auto max-w-[1440px] px-5 py-16 sm:px-8 lg:px-10">
-          <div className="grid gap-12 lg:grid-cols-[1.6fr_repeat(3,1fr)]">
-            {/* Column 1: Brand Intro & Contact */}
-            <div className="space-y-5 max-w-sm">
+      {/* Minimal & Quiet Premium Footer */}
+      <footer className="mt-20 border-t border-zinc-800 bg-dark text-zinc-400">
+        <div className="mx-auto max-w-[1440px] px-5 py-12 sm:px-8 sm:py-16 lg:px-10">
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-12">
+            {/* Column 1: Brand & Social Icons Only */}
+            <div className="col-span-2 sm:col-span-1 space-y-4">
               <Link to="/" className="inline-block">
-                <BrandLogo isDarkTheme={true} size="lg" showTagline taglineText="If you can imagine it, we can print it." />
+                <BrandLogo isDarkTheme={true} size="md" />
               </Link>
-
-              <p className="text-xs text-zinc-400 leading-relaxed font-sans">
-                Shilp Sahayak is an Indian 3D printing and custom fabrication studio specializing in precision FDM & resin additive manufacturing, lithophanes, and bespoke physical objects.
+              <p className="text-xs text-zinc-500 font-sans leading-relaxed">
+                Bespoke 3D Fabrication Studio<br />
+                {businessAddress || 'Patiala, Punjab, India'}
               </p>
 
-              <div className="flex items-center gap-3 pt-2">
-                <a
-                  href={whatsappLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#1EBE5D] transition-colors"
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Chat on WhatsApp</span>
-                </a>
+              {/* Social Media = Icons Only */}
+              <div className="flex items-center gap-2 pt-1">
                 <a
                   href="https://instagram.com/shilpsahayak"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900 px-3.5 py-2 text-xs font-semibold text-zinc-300 hover:border-accent hover:text-white transition-colors"
+                  aria-label="Instagram"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-zinc-700 hover:text-white transition-colors"
                 >
-                  <span>@shilpsahayak</span>
+                  <Instagram className="h-4 w-4" />
                 </a>
+                <a
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="WhatsApp"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-emerald-500/50 hover:text-[#25D366] transition-colors"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                </a>
+                {businessEmail && (
+                  <a
+                    href={`mailto:${businessEmail}`}
+                    aria-label="Email studio"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-zinc-700 hover:text-white transition-colors"
+                  >
+                    <Mail className="h-4 w-4" />
+                  </a>
+                )}
+                {businessPhone && (
+                  <a
+                    href={`tel:${businessPhone.replace(/\s+/g, '')}`}
+                    aria-label="Call studio"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-zinc-700 hover:text-white transition-colors"
+                  >
+                    <Phone className="h-4 w-4" />
+                  </a>
+                )}
               </div>
             </div>
 
             {/* Column 2: Collections */}
-            <div className="space-y-4">
-              <h3 className="font-mono text-xs font-bold uppercase tracking-[0.16em] text-accent">
+            <div className="space-y-3">
+              <h3 className="font-mono text-xs font-bold uppercase tracking-[0.14em] text-zinc-300">
                 Collections
               </h3>
-              <ul className="space-y-2.5 text-sm font-sans">
+              <ul className="space-y-2 text-xs sm:text-sm font-sans text-zinc-400">
                 <li>
-                  <Link to="/catalog" className="text-zinc-400 hover:text-white transition-colors">
-                    All 3D Products
+                  <Link to="/catalog" className="hover:text-white transition-colors">
+                    All 3D Pieces
                   </Link>
                 </li>
                 <li>
-                  <Link to="/catalog?category=Lamps%20%26%20Lighting" className="text-zinc-400 hover:text-white transition-colors">
+                  <Link to="/catalog?category=Lamps%20%26%20Lighting" className="hover:text-white transition-colors">
                     Lamps & Lithophanes
                   </Link>
                 </li>
                 <li>
-                  <Link to="/catalog?category=Desk%20Decor" className="text-zinc-400 hover:text-white transition-colors">
-                    Desk & Workspace Decor
+                  <Link to="/catalog?category=Desk%20Decor" className="hover:text-white transition-colors">
+                    Desk & Workspace
                   </Link>
                 </li>
                 <li>
-                  <Link to="/catalog?category=Keychains" className="text-zinc-400 hover:text-white transition-colors">
-                    Keychains & Collectibles
+                  <Link to="/catalog?category=Keychains" className="hover:text-white transition-colors">
+                    Keychains & Gifts
                   </Link>
                 </li>
                 <li>
-                  <Link to="/custom-service" className="text-accent hover:text-accent-light transition-colors font-medium flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Custom 3D Print Quote
+                  <Link to="/custom-service" className="text-accent hover:text-accent-light transition-colors font-medium">
+                    Custom 3D Printing
                   </Link>
                 </li>
               </ul>
             </div>
 
-            {/* Column 3: Customer Care & Services */}
-            <div className="space-y-4">
-              <h3 className="font-mono text-xs font-bold uppercase tracking-[0.16em] text-accent">
-                Services & Support
+            {/* Column 3: Studio & Services */}
+            <div className="space-y-3">
+              <h3 className="font-mono text-xs font-bold uppercase tracking-[0.14em] text-zinc-300">
+                Studio
               </h3>
-              <ul className="space-y-2.5 text-sm font-sans text-zinc-400">
+              <ul className="space-y-2 text-xs sm:text-sm font-sans text-zinc-400">
                 <li>
-                  <Link to="/account" className="hover:text-white transition-colors">
-                    Track Orders & Account
+                  <Link to="/custom-service" className="hover:text-white transition-colors">
+                    Instant STL Slicer
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/contact?type=corporate" className="hover:text-white transition-colors">
+                    Corporate & Bulk
                   </Link>
                 </li>
                 <li>
                   <Link to="/about" className="hover:text-white transition-colors">
-                    About Our Workshop
+                    About Workshop
                   </Link>
                 </li>
                 <li>
                   <Link to="/contact" className="hover:text-white transition-colors">
-                    Shipping & Delivery Info
+                    Contact & Inquiries
                   </Link>
-                </li>
-                <li>
-                  <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors flex items-center gap-1.5">
-                    <span>Direct WhatsApp Concierge</span>
-                  </a>
                 </li>
               </ul>
             </div>
 
-            {/* Column 4: Workshop & Location */}
-            <div className="space-y-4">
-              <h3 className="font-mono text-xs font-bold uppercase tracking-[0.16em] text-accent">
-                Workshop & Studio
+            {/* Column 4: Account & Support */}
+            <div className="space-y-3">
+              <h3 className="font-mono text-xs font-bold uppercase tracking-[0.14em] text-zinc-300">
+                Support
               </h3>
-              <ul className="space-y-3 text-sm text-zinc-400 font-sans">
-                {businessAddress && (
-                  <li className="flex items-start gap-2.5">
-                    <MapPin className="h-4 w-4 shrink-0 text-accent mt-0.5" />
-                    <span>{businessAddress}</span>
-                  </li>
-                )}
+              <ul className="space-y-2 text-xs sm:text-sm font-sans text-zinc-400">
+                <li>
+                  <Link to="/account" className="hover:text-white transition-colors">
+                    Track Orders
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/account" className="hover:text-white transition-colors">
+                    CAD Quotes
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/contact" className="hover:text-white transition-colors">
+                    Shipping & Delivery
+                  </Link>
+                </li>
                 {businessEmail && (
-                  <li className="flex items-center gap-2.5">
-                    <Mail className="h-4 w-4 shrink-0 text-accent" />
+                  <li>
                     <a href={`mailto:${businessEmail}`} className="hover:text-white transition-colors font-mono text-xs">
                       {businessEmail}
                     </a>
-                  </li>
-                )}
-                {businessPhone && (
-                  <li className="flex items-center gap-2.5">
-                    <Phone className="h-4 w-4 shrink-0 text-accent" />
-                    <a href={`tel:${businessPhone.replace(/\s+/g, '')}`} className="hover:text-white transition-colors font-mono text-xs">
-                      {businessPhone}
-                    </a>
-                  </li>
-                )}
-                {!businessAddress && !businessEmail && !businessPhone && (
-                  <li className="flex items-center gap-2 text-zinc-500 text-xs">
-                    <span>Maker Studio · Patiala, Punjab</span>
                   </li>
                 )}
               </ul>
             </div>
           </div>
 
-          {/* Footer Copyright Strip */}
-          <div className="mt-16 flex flex-col gap-4 border-t border-zinc-800 pt-8 sm:flex-row sm:items-center sm:justify-between text-xs text-zinc-500 font-mono">
+          {/* Minimal Copyright Strip */}
+          <div className="mt-12 sm:mt-16 flex flex-col gap-3 border-t border-zinc-800/80 pt-6 sm:flex-row sm:items-center sm:justify-between text-xs text-zinc-500 font-mono">
             <p>
-              © {currentYear} {businessName}. Custom 3D Printing & Physical Fabrication.
+              © {currentYear} {businessName}. All rights reserved.
             </p>
-
-            <div className="flex flex-wrap items-center gap-4 text-[11px] uppercase tracking-wider">
-              <span className="inline-flex items-center gap-1.5 text-zinc-400">
-                <span className="h-2 w-2 rounded-full bg-accent" />
-                Pan-India Delivery
-              </span>
+            <div className="flex flex-wrap items-center gap-3 text-[11px] text-zinc-500">
+              <span>Pan-India Tracked Dispatch</span>
               <span className="text-zinc-700 hidden sm:inline">•</span>
-              <span className="text-zinc-400">Custom CAD Slicing</span>
-              <span className="text-zinc-700 hidden sm:inline">•</span>
-              <span className="text-zinc-400">Secure Payments</span>
+              <span>Patiala Workshop, India</span>
             </div>
           </div>
         </div>

@@ -192,3 +192,53 @@ img, svg, video, canvas {
 .surface-shell  { background-color: var(--shell); }
 .surface-dark   { background-color: var(--dark); color: #fafaf8; }
 .surface-accent { background-color: var(--accent); color: #fff; }
+
+/* =========================================================
+   Interactive Effects: Shine Sweep & 3D Depth
+   ========================================================= */
+
+.shine-sweep-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.shine-sweep-container::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(
+    60deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.25) 50%,
+    transparent 80%
+  );
+  transform: rotate(25deg);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.group:hover .shine-sweep-container::after {
+  opacity: 1;
+  animation: shine-sweep-anim 0.85s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes shine-sweep-anim {
+  0% {
+    left: -60%;
+  }
+  100% {
+    left: 140%;
+  }
+}
+
+.glow-accent {
+  box-shadow: 0 0 35px -5px rgba(255, 77, 0, 0.25);
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
