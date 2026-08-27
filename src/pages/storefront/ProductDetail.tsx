@@ -15,9 +15,11 @@ import {
   CheckCircle2,
   Layers,
   Box,
+  Zap,
 } from 'lucide-react';
 import {
   Link,
+  useNavigate,
   useParams,
 } from 'react-router-dom';
 
@@ -30,11 +32,11 @@ import { useSettings } from '../../hooks/useSettings';
 import { usePincodeLookup } from '../../hooks/usePincodeLookup';
 import {
   Button,
-  Card,
   Badge,
   Textarea,
   Input,
 } from '../../components/ui';
+import { ProductCard } from '../../components/product/ProductCard';
 import { ProductDetailSkeleton } from '../../components/loading/ProductSkeleton';
 
 export function ProductDetail() {
@@ -50,8 +52,10 @@ export function ProductDetail() {
 
   const { data: settings } = useSettings();
   const whatsappNumber = settings?.whatsappNumber || '919876543210';
+  const navigate = useNavigate();
 
   const addToCart = useStore((state) => state.addToCart);
+  const openCart = useStore((state) => state.openCart);
 
   const product = products.find((item) => item.id === id);
 
@@ -65,7 +69,6 @@ export function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState('');
   const [customNotes, setCustomNotes] = useState('');
-  const [customMode, setCustomMode] = useState<'text' | 'quote'>('text');
   const [added, setAdded] = useState(false);
   const [pincodeCheck, setPincodeCheck] = useState('');
 
@@ -75,10 +78,7 @@ export function ProductDetail() {
     error: pincodeError,
   } = usePincodeLookup(pincodeCheck, true);
 
-  /* ----------------------------------------------------------
-     Initialize Variant & Image
-     ---------------------------------------------------------- */
-
+  /* Initialize Variant & Image */
   useEffect(() => {
     if (!product) return;
 
@@ -95,10 +95,7 @@ export function ProductDetail() {
     setQuantity(1);
   }, [product, hasVariants]);
 
-  /* ----------------------------------------------------------
-     Gallery Images
-     ---------------------------------------------------------- */
-
+  /* Gallery Images */
   const galleryImages = useMemo(() => {
     if (!product) return [];
     const images = new Set<string>();
@@ -110,10 +107,7 @@ export function ProductDetail() {
     return Array.from(images);
   }, [product]);
 
-  /* ----------------------------------------------------------
-     Current State
-     ---------------------------------------------------------- */
-
+  /* Current State */
   const currentPrice = selectedVariant?.price ?? product?.price ?? 0;
   const currentStock = selectedVariant?.stock ?? product?.stock ?? 0;
   const outOfStock = currentStock <= 0;
@@ -125,10 +119,7 @@ export function ProductDetail() {
     return `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${text}`;
   }, [product?.name, currentPrice, whatsappNumber]);
 
-  /* ----------------------------------------------------------
-     Related Products
-     ---------------------------------------------------------- */
-
+  /* Related Products */
   const relatedProducts = useMemo(() => {
     if (!product) return [];
 
@@ -149,10 +140,7 @@ export function ProductDetail() {
     return [...sameCategory, ...otherProducts].slice(0, 3);
   }, [product, products]);
 
-  /* ----------------------------------------------------------
-     Handlers
-     ---------------------------------------------------------- */
-
+  /* Handlers */
   const handleVariantSelect = (variant: ProductVariant) => {
     if (variant.stock <= 0) return;
     setSelectedVariant(variant);
@@ -190,12 +178,32 @@ export function ProductDetail() {
     );
 
     setAdded(true);
+    openCart();
     window.setTimeout(() => setAdded(false), 3000);
+  };
+
+  const handleBuyNow = () => {
+    if (!product || outOfStock) return;
+
+    addToCart(
+      {
+        ...product,
+        price: currentPrice,
+        stock: currentStock,
+        image: activeImage || product.image,
+      },
+      quantity,
+      customNotes || undefined,
+      selectedVariant?.label,
+      selectedVariant?.id
+    );
+
+    navigate('/checkout');
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-[70vh] bg-[#f4f2ef] dark:bg-[#0f172a] transition-colors duration-200">
+      <div className="min-h-[70vh] bg-paper">
         <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10 lg:py-20">
           <ProductDetailSkeleton />
         </div>
@@ -205,19 +213,19 @@ export function ProductDetail() {
 
   if (isError || !product) {
     return (
-      <div className="min-h-[60vh] bg-[#f4f2ef] dark:bg-[#0f172a] text-charcoal dark:text-slate-100 flex items-center justify-center px-5 py-20 transition-colors duration-200">
+      <div className="min-h-[60vh] bg-paper text-ink flex items-center justify-center px-5 py-20">
         <div className="max-w-md text-center">
-          <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
             Product Not Found
           </span>
-          <h1 className="mt-3 font-serif text-3xl font-bold text-charcoal dark:text-slate-100">
+          <h1 className="mt-3 font-display text-3xl font-bold text-ink">
             Piece is unavailable.
           </h1>
-          <p className="mt-3 text-sm text-charcoal-light dark:text-slate-400">
+          <p className="mt-3 text-sm text-muted font-sans">
             This design might have been updated, archived, or moved.
           </p>
           <Link to="/catalog" className="mt-6 inline-block">
-            <Button className="font-bold">
+            <Button className="font-display font-bold">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Catalog
             </Button>
@@ -228,25 +236,25 @@ export function ProductDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f2ef] dark:bg-[#0f172a] text-charcoal dark:text-slate-100 transition-colors duration-200">
+    <div className="min-h-screen bg-paper text-ink">
       {/* Breadcrumbs */}
-      <div className="border-b border-zinc-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
+      <div className="border-b border-line bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-3.5 sm:px-8 lg:px-10">
           <nav aria-label="Breadcrumb">
-            <ol className="flex flex-wrap items-center gap-2 font-mono text-xs text-charcoal-lighter dark:text-slate-400">
+            <ol className="flex flex-wrap items-center gap-2 font-mono text-xs text-muted">
               <li>
-                <Link to="/" className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">
+                <Link to="/" className="hover:text-accent transition-colors">
                   Home
                 </Link>
               </li>
               <ChevronRight className="h-3 w-3" />
               <li>
-                <Link to="/catalog" className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">
+                <Link to="/catalog" className="hover:text-accent transition-colors">
                   Catalog
                 </Link>
               </li>
               <ChevronRight className="h-3 w-3" />
-              <li className="max-w-[200px] sm:max-w-none truncate font-bold text-charcoal dark:text-slate-100">
+              <li className="max-w-[200px] sm:max-w-none truncate font-bold text-ink">
                 {product.name}
               </li>
             </ol>
@@ -258,7 +266,7 @@ export function ProductDetail() {
       <main className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10 lg:py-12">
         <Link
           to="/catalog"
-          className="mb-8 inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-charcoal-light dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+          className="mb-8 inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-muted hover:text-accent transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           <span>Back to Catalog</span>
@@ -267,9 +275,9 @@ export function ProductDetail() {
         <div className="grid gap-12 lg:grid-cols-12 lg:gap-14">
           {/* Left Column: Gallery & Details */}
           <section className="lg:col-span-7 space-y-8">
-            {/* Main Featured Image Card */}
-            <div className="overflow-hidden rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-md">
-              <div className="relative aspect-square overflow-hidden rounded-2xl bg-zinc-100 dark:bg-slate-800">
+            {/* Main Featured Image */}
+            <div className="overflow-hidden rounded-3xl border border-line bg-white p-3 shadow-soft">
+              <div className="relative aspect-square overflow-hidden rounded-2xl bg-shell">
                 <img
                   src={activeImage || product.image}
                   alt={product.name}
@@ -284,9 +292,9 @@ export function ProductDetail() {
                 />
 
                 {product.isCustomizable && (
-                  <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-charcoal/90 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm shadow-md">
-                    <Sparkles className="h-3.5 w-3.5 text-brand-400" />
-                    Customizable Piece
+                  <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-dark/90 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm shadow-md">
+                    <Sparkles className="h-3.5 w-3.5 text-accent" />
+                    Personalizable Piece
                   </span>
                 )}
               </div>
@@ -294,7 +302,7 @@ export function ProductDetail() {
 
             {/* Gallery Thumbnails */}
             {galleryImages.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-2">
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
                 {galleryImages.map((img, index) => {
                   const isSelected = activeImage === img;
                   return (
@@ -304,8 +312,8 @@ export function ProductDetail() {
                       onClick={() => setActiveImage(img)}
                       className={`h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-2 transition-all shadow-sm ${
                         isSelected
-                          ? 'border-brand-500 ring-2 ring-brand-500/20'
-                          : 'border-zinc-200 dark:border-slate-700 hover:border-brand-300'
+                          ? 'border-accent ring-2 ring-accent/20'
+                          : 'border-line hover:border-accent/50'
                       }`}
                     >
                       <img src={img} alt="" className="h-full w-full object-cover" />
@@ -315,53 +323,53 @@ export function ProductDetail() {
               </div>
             )}
 
-            {/* Product Story & Specs Tabs */}
-            <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm space-y-6">
+            {/* Product Details & Specs */}
+            <div className="rounded-3xl border border-line bg-white p-7 shadow-soft space-y-6">
               <div>
-                <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
-                  Crafting & Design Notes
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
+                  Design & Crafting Notes
                 </span>
-                <h3 className="mt-1 font-serif text-xl font-bold text-charcoal dark:text-slate-100">
+                <h3 className="mt-1 font-display text-xl font-bold text-ink">
                   About this Piece
                 </h3>
-                <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-charcoal-light dark:text-slate-400">
+                <p className="mt-3 whitespace-pre-line font-sans text-sm leading-relaxed text-muted">
                   {product.description || 'No description available for this workshop piece.'}
                 </p>
               </div>
 
-              <div className="border-t border-zinc-100 dark:border-slate-800 pt-6">
-                <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+              <div className="border-t border-line pt-6">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
                   Engineering Specifications
                 </span>
 
                 <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-zinc-100 dark:border-slate-800 bg-zinc-50/60 dark:bg-slate-800/80 p-3.5">
-                    <div className="flex items-center gap-1.5 text-charcoal-lighter dark:text-slate-400">
-                      <Layers className="h-3.5 w-3.5 text-brand-500" />
+                  <div className="rounded-2xl border border-line bg-shell p-3.5">
+                    <div className="flex items-center gap-1.5 text-muted">
+                      <Layers className="h-3.5 w-3.5 text-accent" />
                       <span className="font-mono text-[11px] uppercase">Material</span>
                     </div>
-                    <p className="mt-1 text-xs font-bold text-charcoal dark:text-slate-100">
+                    <p className="mt-1 font-mono text-xs font-bold text-ink">
                       {product.material || 'PLA / PETG'}
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-zinc-100 dark:border-slate-800 bg-zinc-50/60 dark:bg-slate-800/80 p-3.5">
-                    <div className="flex items-center gap-1.5 text-charcoal-lighter dark:text-slate-400">
-                      <Box className="h-3.5 w-3.5 text-brand-500" />
+                  <div className="rounded-2xl border border-line bg-shell p-3.5">
+                    <div className="flex items-center gap-1.5 text-muted">
+                      <Box className="h-3.5 w-3.5 text-accent" />
                       <span className="font-mono text-[11px] uppercase">Category</span>
                     </div>
-                    <p className="mt-1 text-xs font-bold text-charcoal dark:text-slate-100">
+                    <p className="mt-1 font-mono text-xs font-bold text-ink">
                       {product.category || 'Standard Print'}
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-zinc-100 dark:border-slate-800 bg-zinc-50/60 dark:bg-slate-800/80 p-3.5">
-                    <div className="flex items-center gap-1.5 text-charcoal-lighter dark:text-slate-400">
-                      <ShieldCheck className="h-3.5 w-3.5 text-brand-500" />
+                  <div className="rounded-2xl border border-line bg-shell p-3.5">
+                    <div className="flex items-center gap-1.5 text-muted">
+                      <ShieldCheck className="h-3.5 w-3.5 text-accent" />
                       <span className="font-mono text-[11px] uppercase">Quality</span>
                     </div>
-                    <p className="mt-1 text-xs font-bold text-charcoal dark:text-slate-100">
-                      100% Inspected
+                    <p className="mt-1 font-mono text-xs font-bold text-ink">
+                      Precision Inspected
                     </p>
                   </div>
                 </div>
@@ -372,8 +380,7 @@ export function ProductDetail() {
           {/* Right Column: Pricing, Options & Cart Action */}
           <section className="lg:col-span-5">
             <div className="lg:sticky lg:top-28 space-y-6">
-              {/* Product Header Card */}
-              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm">
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
                 <div className="flex flex-wrap items-center gap-2">
                   {product.category && (
                     <Badge variant="default">
@@ -388,8 +395,8 @@ export function ProductDetail() {
                   <span
                     className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider ${
                       outOfStock
-                        ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
-                        : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                        ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                        : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     }`}
                   >
                     <span
@@ -401,20 +408,20 @@ export function ProductDetail() {
                   </span>
                 </div>
 
-                <h1 className="mt-4 font-serif text-3xl font-bold tracking-tight sm:text-4xl text-charcoal dark:text-slate-100">
+                <h1 className="mt-4 font-display text-3xl font-bold tracking-tight sm:text-4xl text-ink">
                   {product.name}
                 </h1>
 
                 {/* Price Display */}
-                <div className="mt-5 flex flex-col gap-2 border-y border-zinc-100 dark:border-slate-800 py-4">
+                <div className="mt-5 flex flex-col gap-2 border-y border-line py-4">
                   <div className="flex items-baseline justify-between">
                     <div>
-                      <span className="text-xs text-charcoal-lighter dark:text-slate-400 block font-mono uppercase">Price</span>
+                      <span className="font-mono text-xs text-muted block uppercase">Price</span>
                       <div className="flex items-baseline gap-2.5">
-                        <span className="font-serif text-3xl font-bold text-charcoal dark:text-slate-100">
+                        <span className="font-mono text-3xl font-bold text-ink">
                           ₹{currentPrice.toLocaleString('en-IN')}
                         </span>
-                        <span className="font-mono text-sm text-charcoal-lighter dark:text-slate-500 line-through">
+                        <span className="font-mono text-sm text-muted line-through">
                           ₹{Math.round(currentPrice * 1.35).toLocaleString('en-IN')}
                         </span>
                         <span className="rounded-full bg-emerald-600 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-white shadow-sm">
@@ -423,23 +430,22 @@ export function ProductDetail() {
                       </div>
                     </div>
 
-                    <span className="font-mono text-xs text-brand-600 dark:text-brand-400 font-semibold">
-                      Free shipping over ₹499
+                    <span className="font-mono text-xs text-accent font-semibold">
+                      {settings?.freeShippingThreshold ? `Free shipping > ₹${settings.freeShippingThreshold}` : 'Free shipping on qualified orders'}
                     </span>
                   </div>
 
-                  {/* Dispatch Urgency */}
-                  <div className="mt-1 flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 font-semibold">
+                  <div className="mt-1 flex items-center gap-1.5 text-xs text-emerald-700 font-semibold font-mono">
                     <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>In stock · Dispatched in 24–48h with live tracking</span>
+                    <span>Fabricated & carefully hand-inspected in Patiala workshop</span>
                   </div>
                 </div>
 
-                {/* Variant Options */}
+                {/* Variants */}
                 {hasVariants && product.variants && (
                   <div className="mt-6">
-                    <label className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 block mb-2.5">
-                      Select Variant
+                    <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block mb-2.5">
+                      Select Option / Variant
                     </label>
 
                     <div className="flex flex-wrap gap-2.5">
@@ -453,17 +459,17 @@ export function ProductDetail() {
                             type="button"
                             disabled={isDisabled}
                             onClick={() => handleVariantSelect(variant)}
-                            className={`rounded-xl border px-4 py-2 text-xs font-bold transition-all ${
+                            className={`rounded-xl border px-4 py-2 font-mono text-xs font-bold transition-all ${
                               isSelected
-                                ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/20 text-brand-700 dark:text-brand-300 ring-1 ring-brand-500'
+                                ? 'border-accent bg-accent-soft text-accent ring-1 ring-accent'
                                 : isDisabled
-                                ? 'border-zinc-200 dark:border-slate-800 bg-zinc-100 dark:bg-slate-800/40 text-zinc-400 dark:text-slate-600 line-through cursor-not-allowed'
-                                : 'border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-charcoal dark:text-slate-200 hover:border-charcoal dark:hover:border-slate-500'
+                                ? 'border-line bg-shell text-muted line-through cursor-not-allowed'
+                                : 'border-line bg-white text-ink hover:border-accent'
                             }`}
                           >
                             <span>{variant.label}</span>
                             {variant.price !== product.price && (
-                              <span className="ml-1.5 text-brand-600 dark:text-brand-400">
+                              <span className="ml-1.5 text-accent">
                                 ₹{variant.price.toLocaleString('en-IN')}
                               </span>
                             )}
@@ -474,25 +480,25 @@ export function ProductDetail() {
                   </div>
                 )}
 
-                {/* Quantity Adjuster */}
+                {/* Quantity Stepper */}
                 <div className="mt-6 flex items-center gap-4">
                   <div>
-                    <label className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 block mb-2">
+                    <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block mb-2">
                       Quantity
                     </label>
 
-                    <div className="flex h-11 items-center rounded-xl border border-zinc-200 dark:border-slate-700 bg-zinc-50/50 dark:bg-slate-800 p-1">
+                    <div className="flex h-11 items-center rounded-xl border border-line bg-shell p-1">
                       <button
                         type="button"
                         onClick={decreaseQuantity}
                         disabled={quantity <= 1}
-                        className="flex h-9 w-9 items-center justify-center rounded-lg text-charcoal dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-ink hover:bg-white disabled:opacity-30 transition-colors"
                         aria-label="Decrease quantity"
                       >
                         <Minus className="h-4 w-4" />
                       </button>
 
-                      <span className="flex w-10 justify-center font-mono text-sm font-bold text-charcoal dark:text-slate-100">
+                      <span className="flex w-10 justify-center font-mono text-sm font-bold text-ink">
                         {quantity}
                       </span>
 
@@ -500,7 +506,7 @@ export function ProductDetail() {
                         type="button"
                         onClick={increaseQuantity}
                         disabled={outOfStock || quantity >= currentStock}
-                        className="flex h-9 w-9 items-center justify-center rounded-lg text-charcoal dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-ink hover:bg-white disabled:opacity-30 transition-colors"
                         aria-label="Increase quantity"
                       >
                         <Plus className="h-4 w-4" />
@@ -511,97 +517,64 @@ export function ProductDetail() {
 
                 {/* Customization Options Box */}
                 {product.isCustomizable && (
-                  <div className="mt-6 rounded-2xl border border-brand-200 dark:border-brand-500/30 bg-brand-50/40 dark:bg-brand-500/10 p-4 sm:p-5">
+                  <div className="mt-6 rounded-2xl border border-accent/30 bg-accent-soft p-4 sm:p-5">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-brand-500" />
-                      <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">
+                      <Sparkles className="h-4 w-4 text-accent" />
+                      <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
                         Personalization Available
                       </span>
                     </div>
 
-                    <p className="mt-1 text-xs text-charcoal-light dark:text-slate-400">
-                      Choose how you would like to customize this piece:
+                    <p className="mt-1 font-sans text-xs text-muted">
+                      Specify custom text, name engraving, or color notes below:
                     </p>
 
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setCustomMode('text')}
-                        className={`rounded-xl border p-2.5 text-left text-xs font-bold transition-all ${
-                          customMode === 'text'
-                            ? 'border-brand-500 bg-white dark:bg-slate-800 text-brand-700 dark:text-brand-300 shadow-sm'
-                            : 'border-zinc-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 text-charcoal-light dark:text-slate-300 hover:border-zinc-300 dark:hover:border-slate-600'
-                        }`}
+                    <div className="mt-3.5">
+                      <label
+                        htmlFor="custom-notes"
+                        className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block mb-1"
                       >
-                        1. Inscription / Name
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setCustomMode('quote')}
-                        className={`rounded-xl border p-2.5 text-left text-xs font-bold transition-all ${
-                          customMode === 'quote'
-                            ? 'border-brand-500 bg-white dark:bg-slate-800 text-brand-700 dark:text-brand-300 shadow-sm'
-                            : 'border-zinc-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 text-charcoal-light dark:text-slate-300 hover:border-zinc-300 dark:hover:border-slate-600'
-                        }`}
-                      >
-                        2. Custom 3D CAD
-                      </button>
+                        Custom Text / Inscription Note
+                      </label>
+                      <Textarea
+                        id="custom-notes"
+                        value={customNotes}
+                        onChange={(e) => setCustomNotes(e.target.value)}
+                        placeholder="e.g. Inscribe 'Rahul & Priya · 2026' on bottom..."
+                        rows={2}
+                        className="text-xs bg-white"
+                      />
                     </div>
-
-                    {customMode === 'text' && (
-                      <div className="mt-3.5">
-                        <label
-                          htmlFor="custom-notes"
-                          className="font-mono text-[10px] font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 block mb-1"
-                        >
-                          Custom Text / Inscription
-                        </label>
-                        <Textarea
-                          id="custom-notes"
-                          value={customNotes}
-                          onChange={(e) => setCustomNotes(e.target.value)}
-                          placeholder="e.g. Engrave 'Rahul & Priya · 2026' on bottom, matte dark grey finish..."
-                          rows={2}
-                          className="text-xs"
-                        />
-                      </div>
-                    )}
-
-                    {customMode === 'quote' && (
-                      <div className="mt-3.5 rounded-xl border border-brand-200 dark:border-brand-500/30 bg-white dark:bg-slate-800 p-3 space-y-2">
-                        <p className="text-xs text-charcoal-light dark:text-slate-300 leading-relaxed">
-                          Need custom dimensions, mounting holes, or unique 3D features? Open our Instant Quote builder with this design as a base.
-                        </p>
-                        <Link
-                          to={`/custom-service?productId=${product.id}${
-                            selectedVariant ? `&variantId=${selectedVariant.id}` : ''
-                          }`}
-                          className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300"
-                        >
-                          <span>Open Custom 3D Studio →</span>
-                        </Link>
-                      </div>
-                    )}
                   </div>
                 )}
 
-                {/* Primary CTA Buttons */}
+                {/* Primary Action Buttons */}
                 <div className="mt-7 space-y-3">
                   <Button
                     size="lg"
                     disabled={outOfStock}
                     onClick={handleAddToCart}
-                    className={`w-full font-bold shadow-lg shadow-brand-500/20 ${
-                      added ? 'bg-emerald-600 hover:bg-emerald-700' : ''
+                    className={`w-full font-display font-bold shadow-lg shadow-accent/20 bg-accent hover:bg-accent-dark text-white border-accent ${
+                      added ? 'bg-emerald-600 hover:bg-emerald-700 border-emerald-600' : ''
                     }`}
                   >
                     <ShoppingCart className="mr-2 h-4 w-4" />
                     {added
                       ? 'Added to Cart ✓'
                       : outOfStock
-                      ? 'Currently Out of Stock'
+                      ? 'Out of Stock'
                       : `Add to Cart • ₹${(currentPrice * quantity).toLocaleString('en-IN')}`}
+                  </Button>
+
+                  <Button
+                    size="lg"
+                    variant="secondary"
+                    disabled={outOfStock}
+                    onClick={handleBuyNow}
+                    className="w-full font-display font-bold bg-dark text-white hover:bg-zinc-800"
+                  >
+                    <Zap className="mr-2 h-4 w-4 text-accent" />
+                    Buy Now
                   </Button>
 
                   <a
@@ -611,9 +584,9 @@ export function ProductDetail() {
                     className="block"
                   >
                     <Button
-                      size="lg"
+                      size="md"
                       variant="outline"
-                      className="w-full font-bold border-zinc-200 hover:border-emerald-500 hover:text-emerald-700"
+                      className="w-full font-sans font-semibold border-line hover:border-emerald-500 hover:text-emerald-700"
                     >
                       Ask about this piece on WhatsApp
                     </Button>
@@ -621,10 +594,10 @@ export function ProductDetail() {
                 </div>
 
                 {/* Pincode Delivery Estimator Widget */}
-                <div className="mt-6 rounded-2xl border border-zinc-200/80 dark:border-slate-800 bg-zinc-50/70 dark:bg-slate-800/60 p-4 space-y-3">
+                <div className="mt-6 rounded-2xl border border-line bg-shell p-4 space-y-3">
                   <div className="flex items-center gap-2">
-                    <Truck className="h-4 w-4 text-brand-500" />
-                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal dark:text-slate-200">
+                    <Truck className="h-4 w-4 text-accent" />
+                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-ink">
                       Check Delivery to Your Pincode
                     </span>
                   </div>
@@ -635,63 +608,55 @@ export function ProductDetail() {
                       maxLength={6}
                       value={pincodeCheck}
                       onChange={(e) => setPincodeCheck(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      className="h-10 text-xs bg-white dark:bg-slate-900"
+                      className="h-10 text-xs bg-white font-mono"
                     />
                   </div>
 
                   {pincodeCheck.length === 6 && (
-                    <div className="text-xs pt-1">
+                    <div className="text-xs pt-1 font-sans">
                       {isCheckingPincode ? (
-                        <span className="inline-flex items-center gap-1.5 text-charcoal-lighter dark:text-slate-400">
-                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
-                          Checking delivery network...
+                        <span className="inline-flex items-center gap-1.5 text-muted">
+                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                          Checking courier network...
                         </span>
                       ) : pincodeError ? (
-                        <span className="text-rose-600 dark:text-rose-400 font-medium">
+                        <span className="text-rose-600 font-medium">
                           {pincodeError}
                         </span>
                       ) : deliveryLocation ? (
                         <div className="space-y-1">
-                          <p className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5">
+                          <p className="text-emerald-700 font-bold flex items-center gap-1.5">
                             <CheckCircle2 className="h-3.5 w-3.5" />
                             Delivery Available to {deliveryLocation.city}, {deliveryLocation.state}!
                           </p>
-                          <p className="text-[11px] text-charcoal-light dark:text-slate-400">
-                            Estimated dispatch in 24–48h · Express courier delivery in 3–5 days.
+                          <p className="text-[11px] text-muted">
+                            Dispatched in 24–48h · Tracked express courier delivery in 3–5 days.
                           </p>
                         </div>
                       ) : null}
                     </div>
                   )}
                 </div>
-
-                {/* Added Toast */}
-                {added && (
-                  <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800 animate-in zoom-in-95">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    <span>{product.name} has been added to your cart!</span>
-                  </div>
-                )}
               </div>
 
               {/* Trust Badge Strip */}
-              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-4">
+              <div className="rounded-3xl border border-line bg-white p-6 shadow-soft space-y-4">
                 <div className="flex items-start gap-3">
-                  <Truck className="h-5 w-5 text-brand-500 shrink-0 mt-0.5" />
+                  <Truck className="h-5 w-5 text-accent shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="text-xs font-bold text-charcoal dark:text-slate-100">Pan-India Tracked Delivery</h4>
-                    <p className="text-[11px] text-charcoal-lighter dark:text-slate-400">
-                      Securely packed in multi-layer bubble wrap and dispatched via express courier.
+                    <h4 className="text-xs font-bold text-ink font-display">Pan-India Express Delivery</h4>
+                    <p className="text-[11px] text-muted font-sans">
+                      Multi-layer bubble wrapping and tracked courier dispatch.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <ShieldCheck className="h-5 w-5 text-brand-500 shrink-0 mt-0.5" />
+                  <ShieldCheck className="h-5 w-5 text-accent shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="text-xs font-bold text-charcoal dark:text-slate-100">100% Quality Inspected</h4>
-                    <p className="text-[11px] text-charcoal-lighter dark:text-slate-400">
-                      Every piece is dimensionally measured and hand-checked before shipping.
+                    <h4 className="text-xs font-bold text-ink font-display">100% Quality Inspected</h4>
+                    <p className="text-[11px] text-muted font-sans">
+                      Every print is dimensionally verified before packing.
                     </p>
                   </div>
                 </div>
@@ -703,72 +668,29 @@ export function ProductDetail() {
 
       {/* Related Products Section */}
       {relatedProducts.length > 0 && (
-        <section className="border-t border-zinc-200 dark:border-slate-800 bg-[#f4f2ef] dark:bg-[#0f172a] py-16 transition-colors">
+        <section className="border-t border-line bg-shell py-16">
           <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
             <div className="flex items-end justify-between gap-5">
               <div>
-                <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
                   Recommended For You
                 </span>
-                <h3 className="mt-1 font-serif text-2xl font-bold text-charcoal dark:text-slate-100 sm:text-3xl">
+                <h3 className="mt-1 font-display text-2xl font-bold text-ink sm:text-3xl">
                   Related Workshop Pieces
                 </h3>
               </div>
 
               <Link
                 to="/catalog"
-                className="text-xs font-bold text-brand-600 hover:text-brand-700"
+                className="text-xs font-bold text-accent hover:underline font-mono"
               >
-                <span>View Full Catalog</span>
+                <span>View Catalog →</span>
               </Link>
             </div>
 
             <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {relatedProducts.map((related) => (
-                <Link
-                  key={related.id}
-                  to={`/product/${related.id}`}
-                  className="group"
-                >
-                  <Card className="flex h-full flex-col justify-between overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg group-hover:border-brand-300">
-                    <div className="relative aspect-square overflow-hidden bg-zinc-100 dark:bg-slate-800">
-                      <img
-                        src={related.image}
-                        alt={related.name}
-                        loading="lazy"
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      {related.isCustomizable && (
-                        <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-charcoal/85 backdrop-blur-sm px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white shadow-sm">
-                          <Sparkles className="h-3 w-3 text-brand-400" />
-                          Personalize
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="p-5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 truncate">
-                          {related.category || 'Workshop Piece'}
-                        </span>
-                        <span className="text-[11px] font-bold text-amber-500">★ 4.9</span>
-                      </div>
-
-                      <h4 className="mt-1 line-clamp-1 font-serif text-base font-bold text-charcoal dark:text-slate-100 group-hover:text-brand-600 transition-colors">
-                        {related.name}
-                      </h4>
-
-                      <div className="mt-4 flex items-center justify-between border-t border-zinc-100 dark:border-slate-700/60 pt-3">
-                        <span className="font-serif text-base font-bold text-charcoal dark:text-slate-100">
-                          ₹{Number(related.price).toLocaleString('en-IN')}
-                        </span>
-                        <span className="text-xs font-bold text-brand-600 dark:text-brand-400 group-hover:underline">
-                          View Piece →
-                        </span>
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
+                <ProductCard key={related.id} product={related} />
               ))}
             </div>
           </div>

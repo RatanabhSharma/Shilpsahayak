@@ -268,51 +268,48 @@ export function Checkout() {
     }
   };
 
-  /* ------------------------------------------------------------
-     Success Confirmation Screen
-     ------------------------------------------------------------ */
   if (isSuccess) {
     return (
-      <div className="min-h-[75vh] bg-[#f4f2ef] dark:bg-[#0f172a] flex items-center justify-center px-5 py-16 transition-colors duration-200">
-        <div className="mx-auto max-w-lg rounded-3xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-900 p-8 sm:p-10 text-center shadow-xl">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+      <div className="min-h-[75vh] bg-paper flex items-center justify-center px-5 py-16">
+        <div className="mx-auto max-w-lg rounded-3xl border border-emerald-200 bg-white p-8 sm:p-10 text-center shadow-card">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
             <CheckCircle2 className="h-10 w-10" />
           </div>
 
-          <span className="mt-5 font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
+          <span className="mt-5 font-mono text-xs font-bold uppercase tracking-wider text-accent block">
             Order Confirmed & Queued
           </span>
 
-          <h1 className="mt-2 font-serif text-3xl font-bold text-charcoal dark:text-slate-100">
+          <h1 className="mt-2 font-display text-3xl font-bold text-ink">
             Thank you for your order!
           </h1>
 
-          <p className="mt-2 text-sm text-charcoal-light dark:text-slate-400 leading-relaxed">
+          <p className="mt-2 font-sans text-sm text-muted leading-relaxed">
             Your prints have been entered into our Patiala studio production schedule. We will reach out via WhatsApp/email with slicing confirmation.
           </p>
 
-          <div className="mt-6 rounded-2xl border border-zinc-100 dark:border-slate-800 bg-zinc-50/60 dark:bg-slate-800/80 p-4 text-left divide-y divide-zinc-100 dark:divide-slate-800 text-xs">
+          <div className="mt-6 rounded-2xl border border-line bg-shell p-4 text-left divide-y divide-line text-xs font-sans">
             <div className="flex justify-between py-2">
-              <span className="text-charcoal-lighter dark:text-slate-400">Order Reference</span>
-              <span className="font-mono font-bold text-charcoal dark:text-slate-100">
+              <span className="text-muted">Order Reference</span>
+              <span className="font-mono font-bold text-ink">
                 #{orderId.slice(0, 8).toUpperCase()}
               </span>
             </div>
             <div className="flex justify-between py-2">
-              <span className="text-charcoal-lighter dark:text-slate-400">Total Paid / Payable</span>
-              <span className="font-mono font-bold text-charcoal dark:text-slate-100">
+              <span className="text-muted">Total Paid / Payable</span>
+              <span className="font-mono font-bold text-ink">
                 ₹{total.toLocaleString('en-IN')}
               </span>
             </div>
             <div className="flex justify-between py-2">
-              <span className="text-charcoal-lighter dark:text-slate-400">Status</span>
-              <span className="font-bold text-emerald-700 dark:text-emerald-400">
+              <span className="text-muted">Status</span>
+              <span className="font-bold text-emerald-700">
                 Queued for Fabrication
               </span>
             </div>
           </div>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row justify-center">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row justify-center font-display">
             <Link to="/account" className="w-full sm:w-auto">
               <Button className="w-full font-bold">
                 View in Account Dashboard
@@ -331,32 +328,32 @@ export function Checkout() {
 
   if (authLoading || profileLoading) {
     return (
-      <div className="min-h-[60vh] bg-[#f4f2ef] dark:bg-[#0f172a] flex flex-col items-center justify-center py-24 transition-colors duration-200">
-        <Loader2 className="h-10 w-10 animate-spin text-brand-500" />
-        <p className="mt-4 text-sm font-semibold text-charcoal dark:text-slate-100">Loading checkout details...</p>
+      <div className="min-h-[60vh] bg-paper flex flex-col items-center justify-center py-24">
+        <Loader2 className="h-10 w-10 animate-spin text-accent" />
+        <p className="mt-4 text-sm font-semibold text-ink font-sans">Loading checkout details...</p>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-[70vh] bg-[#f4f2ef] dark:bg-[#0f172a] flex items-center justify-center px-5 py-20 transition-colors duration-200">
-        <div className="mx-auto max-w-md rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center shadow-lg">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400">
+      <div className="min-h-[70vh] bg-paper flex items-center justify-center px-5 py-20">
+        <div className="mx-auto max-w-md rounded-3xl border border-line bg-white p-8 text-center shadow-card">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-soft text-accent">
             <Lock className="h-7 w-7" />
           </div>
 
-          <h2 className="mt-5 font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
+          <h2 className="mt-5 font-display text-2xl font-bold text-ink">
             Login Required
           </h2>
 
-          <p className="mt-2 text-sm text-charcoal-light dark:text-slate-400 leading-relaxed">
+          <p className="mt-2 text-sm text-muted leading-relaxed font-sans">
             Please log in to continue with your shipping details and save this order to your account.
           </p>
 
           <Button
             onClick={() => navigate('/login')}
-            className="mt-6 w-full font-bold"
+            className="mt-6 w-full font-display font-bold"
           >
             Log In to Continue
           </Button>
@@ -367,16 +364,16 @@ export function Checkout() {
 
   if (cart.length === 0) {
     return (
-      <div className="min-h-[70vh] bg-[#f4f2ef] dark:bg-[#0f172a] flex items-center justify-center px-5 py-20 transition-colors duration-200">
+      <div className="min-h-[70vh] bg-paper flex items-center justify-center px-5 py-20">
         <div className="mx-auto max-w-md text-center">
-          <h1 className="font-serif text-3xl font-bold text-charcoal dark:text-slate-100">
+          <h1 className="font-display text-3xl font-bold text-ink">
             Your cart is empty
           </h1>
-          <p className="mt-2 text-sm text-charcoal-light dark:text-slate-400">
+          <p className="mt-2 text-sm text-muted font-sans">
             Add items to your cart before proceeding to checkout.
           </p>
           <Link to="/catalog" className="mt-6 inline-block">
-            <Button className="font-bold">Browse Catalogue</Button>
+            <Button className="font-display font-bold">Browse Catalog</Button>
           </Link>
         </div>
       </div>
@@ -384,28 +381,28 @@ export function Checkout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f2ef] dark:bg-[#0f172a] text-charcoal dark:text-slate-100 transition-colors duration-200">
+    <div className="min-h-screen bg-paper text-ink">
       {/* Checkout Header */}
-      <section className="border-b border-zinc-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
+      <section className="border-b border-line bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className="mb-4 inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-charcoal-light dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                className="mb-4 inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-muted hover:text-accent transition-colors"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
                 <span>Back to Cart</span>
               </button>
 
-              <h1 className="font-serif text-3xl font-bold text-charcoal dark:text-slate-100 sm:text-4xl">
+              <h1 className="font-display text-3xl font-bold text-ink sm:text-4xl">
                 Pan-India Delivery & Checkout
               </h1>
             </div>
 
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 text-xs font-bold text-emerald-800 dark:text-emerald-400">
-              <Lock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-mono font-bold text-emerald-800">
+              <Lock className="h-3.5 w-3.5 text-emerald-600" />
               <span>256-Bit SSL Encrypted</span>
             </div>
           </div>
@@ -419,12 +416,12 @@ export function Checkout() {
           <div id="checkout-form" className="lg:col-span-7">
             <form onSubmit={handleSubmit} noValidate className="space-y-8">
               {/* Step 1: Contact Details */}
-              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm">
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
                 <div className="flex items-center gap-2.5 mb-5">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 font-mono text-xs font-bold text-white">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
                     1
                   </span>
-                  <h2 className="font-serif text-xl font-bold text-charcoal dark:text-slate-100">
+                  <h2 className="font-display text-xl font-bold text-ink">
                     Customer Information
                   </h2>
                 </div>
@@ -456,8 +453,8 @@ export function Checkout() {
                       autoComplete="email"
                       required
                     />
-                    <p className="mt-1 text-[11px] text-charcoal-lighter">
-                      Invoices & tracking updates will be sent here.
+                    <p className="mt-1 font-mono text-[11px] text-muted">
+                      Invoices & tracking updates sent here.
                     </p>
                     {errors.email && (
                       <p className="mt-1 text-xs font-semibold text-rose-600">
@@ -479,8 +476,8 @@ export function Checkout() {
                       autoComplete="tel"
                       required
                     />
-                    <p className="mt-1 text-[11px] text-charcoal-lighter">
-                      +91 India format for dispatch coordination.
+                    <p className="mt-1 font-mono text-[11px] text-muted">
+                      +91 India format for dispatch.
                     </p>
                     {errors.phone && (
                       <p className="mt-1 text-xs font-semibold text-rose-600">
@@ -492,12 +489,12 @@ export function Checkout() {
               </div>
 
               {/* Step 2: Shipping Address */}
-              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm">
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
                 <div className="flex items-center gap-2.5 mb-5">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 font-mono text-xs font-bold text-white">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
                     2
                   </span>
-                  <h2 className="font-serif text-xl font-bold text-charcoal dark:text-slate-100">
+                  <h2 className="font-display text-xl font-bold text-ink">
                     Shipping & Delivery Address
                   </h2>
                 </div>
@@ -561,7 +558,7 @@ export function Checkout() {
                     </div>
 
                     <div>
-                      <label className="mb-1.5 block font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400">
+                      <label className="mb-1.5 block font-mono text-xs font-bold uppercase tracking-wider text-muted">
                         State *
                       </label>
                       <Select
@@ -596,16 +593,16 @@ export function Checkout() {
                         required
                       />
                       {pincodeValue.length === 6 && (
-                        <p className="mt-1 min-h-5 text-[11px] leading-5">
+                        <p className="mt-1 min-h-5 text-[11px] leading-5 font-mono">
                           {isPincodeLookingUp ? (
-                            <span className="inline-flex items-center gap-1.5 text-charcoal-lighter dark:text-slate-400">
-                              <span className="h-3 w-3 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+                            <span className="inline-flex items-center gap-1.5 text-muted">
+                              <span className="h-3 w-3 animate-spin rounded-full border-2 border-accent border-t-transparent" />
                               Auto-detecting postal circle...
                             </span>
                           ) : pincodeLookupError ? (
-                            <span className="text-rose-600 dark:text-rose-400">{pincodeLookupError}</span>
+                            <span className="text-rose-600">{pincodeLookupError}</span>
                           ) : pincodeLocation ? (
-                            <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                            <span className="text-emerald-700 font-bold">
                               ✓ {pincodeLocation.city}, {pincodeLocation.state}
                             </span>
                           ) : null}
@@ -619,9 +616,9 @@ export function Checkout() {
                     </div>
 
                     <div className="flex items-end">
-                      <div className="w-full rounded-xl border border-brand-200 dark:border-brand-500/30 bg-brand-50/50 dark:bg-brand-500/10 p-3 text-xs text-charcoal-light dark:text-slate-300 flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-brand-500 shrink-0" />
-                        <span>Pan-India tracked courier delivery across all states & UTs.</span>
+                      <div className="w-full rounded-xl border border-accent/30 bg-accent-soft p-3 text-xs text-ink flex items-center gap-2 font-sans">
+                        <MapPin className="h-4 w-4 text-accent shrink-0" />
+                        <span>Pan-India tracked courier delivery across all 29 states & UTs.</span>
                       </div>
                     </div>
                   </div>
@@ -629,12 +626,12 @@ export function Checkout() {
               </div>
 
               {/* Step 3: Order Notes */}
-              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm">
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
                 <div className="flex items-center gap-2.5 mb-4">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 font-mono text-xs font-bold text-white">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
                     3
                   </span>
-                  <h2 className="font-serif text-xl font-bold text-charcoal dark:text-slate-100">
+                  <h2 className="font-display text-xl font-bold text-ink">
                     Special Delivery Instructions
                   </h2>
                 </div>
@@ -650,7 +647,7 @@ export function Checkout() {
               <Button
                 type="submit"
                 size="lg"
-                className="w-full font-bold shadow-xl shadow-brand-500/20"
+                className="w-full font-display font-bold shadow-xl shadow-accent/20 bg-accent hover:bg-accent-dark text-white border-accent"
                 isLoading={isSubmitting}
               >
                 {isSubmitting
@@ -662,9 +659,9 @@ export function Checkout() {
 
           {/* Right Column: Order Review Sidebar */}
           <aside className="lg:col-span-5">
-            <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-md lg:sticky lg:top-28 space-y-6">
-              <div className="flex items-center justify-between border-b border-zinc-100 dark:border-slate-800 pb-4">
-                <h2 className="font-serif text-xl font-bold text-charcoal dark:text-slate-100">
+            <div className="rounded-3xl border border-line bg-white p-7 shadow-soft lg:sticky lg:top-28 space-y-6">
+              <div className="flex items-center justify-between border-b border-line pb-4">
+                <h2 className="font-display text-xl font-bold text-ink">
                   Items in this Order
                 </h2>
                 <Badge variant="default">
@@ -673,7 +670,7 @@ export function Checkout() {
               </div>
 
               {/* Item Mini List */}
-              <div className="divide-y divide-zinc-100 dark:divide-slate-800 max-h-80 overflow-y-auto pr-1">
+              <div className="divide-y divide-line max-h-80 overflow-y-auto pr-1 font-sans">
                 {cart.map((item, index) => {
                   const itemPrice = getItemPrice(item);
                   return (
@@ -681,9 +678,9 @@ export function Checkout() {
                       key={`${item.product.id}-${index}`}
                       className="flex items-center gap-3 py-3"
                     >
-                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-zinc-100 dark:border-slate-800 bg-zinc-50 dark:bg-slate-800">
+                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-line bg-shell">
                         {item.customPrint ? (
-                          <div className="flex h-full w-full items-center justify-center bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400">
+                          <div className="flex h-full w-full items-center justify-center bg-accent-soft text-accent">
                             <FileBox className="h-6 w-6" />
                           </div>
                         ) : (
@@ -696,20 +693,20 @@ export function Checkout() {
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="line-clamp-1 text-xs font-bold text-charcoal dark:text-slate-100">
+                        <p className="line-clamp-1 text-xs font-bold text-ink font-display">
                           {item.product.name}
                         </p>
                         {item.variantLabel && (
-                          <span className="font-mono text-[10px] text-charcoal-lighter dark:text-slate-400 block">
+                          <span className="font-mono text-[10px] text-muted block">
                             {item.variantLabel}
                           </span>
                         )}
-                        <span className="font-mono text-[11px] text-charcoal-light dark:text-slate-400">
+                        <span className="font-mono text-[11px] text-muted">
                           Qty: {item.quantity}
                         </span>
                       </div>
 
-                      <span className="font-mono text-xs font-bold text-charcoal dark:text-slate-100">
+                      <span className="font-mono text-xs font-bold text-ink">
                         ₹{(itemPrice * item.quantity).toLocaleString('en-IN')}
                       </span>
                     </div>
@@ -718,19 +715,19 @@ export function Checkout() {
               </div>
 
               {/* Price Breakdown */}
-              <div className="divide-y divide-zinc-100 dark:divide-slate-800 border-t border-zinc-100 dark:border-slate-800 pt-4 text-xs space-y-2">
+              <div className="divide-y divide-line border-t border-line pt-4 text-xs font-sans space-y-2">
                 <div className="flex justify-between pt-2">
-                  <span className="text-charcoal-lighter dark:text-slate-400">Subtotal</span>
-                  <span className="font-mono font-bold text-charcoal dark:text-slate-100">
+                  <span className="text-muted">Subtotal</span>
+                  <span className="font-mono font-bold text-ink">
                     ₹{subtotal.toLocaleString('en-IN')}
                   </span>
                 </div>
 
                 <div className="flex justify-between pt-2">
-                  <span className="text-charcoal-lighter dark:text-slate-400">Pan-India Courier</span>
-                  <span className="font-mono font-bold text-charcoal dark:text-slate-100">
+                  <span className="text-muted">Pan-India Courier</span>
+                  <span className="font-mono font-bold text-ink">
                     {shipping === 0 ? (
-                      <span className="text-emerald-600 dark:text-emerald-400">FREE</span>
+                      <span className="text-emerald-600 font-bold">FREE</span>
                     ) : (
                       `₹${shipping.toLocaleString('en-IN')}`
                     )}
@@ -738,27 +735,27 @@ export function Checkout() {
                 </div>
 
                 <div className="flex justify-between pt-2">
-                  <span className="text-charcoal-lighter dark:text-slate-400">Taxes</span>
-                  <span className="text-charcoal-lighter dark:text-slate-400">GST Included</span>
+                  <span className="text-muted">Taxes</span>
+                  <span className="text-muted">GST Included</span>
                 </div>
 
                 <div className="flex items-baseline justify-between pt-4">
-                  <span className="font-serif text-base font-bold text-charcoal dark:text-slate-100">
+                  <span className="font-display text-base font-bold text-ink">
                     Total Payable
                   </span>
-                  <span className="font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
+                  <span className="font-mono text-2xl font-bold text-accent">
                     ₹{total.toLocaleString('en-IN')}
                   </span>
                 </div>
               </div>
 
               {/* Trust Footer */}
-              <div className="rounded-2xl border border-zinc-100 dark:border-slate-800 bg-zinc-50/50 dark:bg-slate-800/60 p-4 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-charcoal dark:text-slate-100">
-                  <ShieldCheck className="h-4 w-4 text-brand-500" />
+              <div className="rounded-2xl border border-line bg-shell p-4 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-ink font-display">
+                  <ShieldCheck className="h-4 w-4 text-accent" />
                   <span>Workshop Guarantee</span>
                 </div>
-                <p className="text-[11px] text-charcoal-lighter dark:text-slate-400 leading-relaxed">
+                <p className="text-[11px] text-muted leading-relaxed font-sans">
                   Every order is checked for dimensional accuracy and wrapped with shock-resistant cushioning.
                 </p>
               </div>

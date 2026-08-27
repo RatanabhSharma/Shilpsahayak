@@ -26,17 +26,16 @@ interface BrandLogoProps {
   size?: 'sm' | 'md' | 'lg';
   showTagline?: boolean;
   taglineText?: string;
+  isDarkTheme?: boolean;
 }
 
 export function BrandLogo({
   className,
-  theme = 'light',
   size = 'md',
   showTagline = false,
-  taglineText = 'If you can imagine it, we can print it.'
+  taglineText = 'If you can imagine it, we can print it.',
+  isDarkTheme = false
 }: BrandLogoProps) {
-  const isDark = theme === 'dark';
-
   const markSizes = {
     sm: 'h-8 w-8 text-xs',
     md: 'h-10 w-10 text-sm',
@@ -56,7 +55,7 @@ export function BrandLogo({
         className={cn(
           'relative flex items-center justify-center rounded-xl font-display font-bold transition-transform duration-300 group-hover:scale-105 shadow-sm',
           markSizes[size],
-          'bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-brand-500/25'
+          'bg-accent text-white shadow-accent/25'
         )}
         aria-hidden="true"
       >
@@ -65,8 +64,8 @@ export function BrandLogo({
         </span>
         {/* Glowing corner accent */}
         <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-300"></span>
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-light opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent-light"></span>
         </span>
       </div>
 
@@ -74,18 +73,18 @@ export function BrandLogo({
         <span
           className={cn(
             'font-display font-bold tracking-tight leading-none',
-            titleSizes[size],
-            isDark ? 'text-white' : 'text-charcoal dark:text-white'
+            isDarkTheme ? 'text-white' : 'text-ink',
+            titleSizes[size]
           )}
         >
-          SHILP <span className="text-brand-500">SAHAYAK</span>
+          SHILP <span className="text-accent">SAHAYAK</span>
         </span>
 
         {showTagline && (
           <span
             className={cn(
               'font-sans text-[11px] font-medium tracking-wide mt-1 leading-tight',
-              isDark ? 'text-slate-400' : 'text-charcoal-lighter dark:text-slate-400'
+              isDarkTheme ? 'text-zinc-400' : 'text-muted'
             )}
           >
             {taglineText}
@@ -123,30 +122,28 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     const baseStyles =
       'inline-flex items-center justify-center gap-2 ' +
-      'font-medium tracking-[-0.01em] ' +
+      'font-sans font-semibold tracking-[-0.01em] ' +
       'rounded-xl border transition-all duration-200 ease-out ' +
       'focus-visible:outline-none focus-visible:ring-2 ' +
-      'focus-visible:ring-brand-500/40 focus-visible:ring-offset-2 ' +
+      'focus-visible:ring-accent/40 focus-visible:ring-offset-2 ' +
       'disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]';
 
     const variants = {
       primary:
-        'border-brand-500 bg-brand-500 text-white shadow-sm ' +
-        'hover:bg-brand-600 hover:border-brand-600 hover:shadow-brand-500/25 hover:shadow-md',
+        'border-accent bg-accent text-white shadow-sm ' +
+        'hover:bg-accent-dark hover:border-accent-dark hover:shadow-accent/25 hover:shadow-md',
 
       secondary:
-        'border-charcoal bg-charcoal text-white ' +
+        'border-dark bg-dark text-white ' +
         'hover:bg-zinc-800 hover:border-zinc-800 hover:shadow-md',
 
       outline:
-        'border-zinc-300 bg-white text-charcoal ' +
-        'hover:border-brand-500 hover:bg-brand-50/60 hover:text-brand-700 ' +
-        'dark:border-slate-700 dark:bg-dark-card dark:text-slate-200 dark:hover:border-brand-500',
+        'border-line bg-white text-ink ' +
+        'hover:border-accent hover:bg-accent-soft hover:text-accent',
 
       ghost:
-        'border-transparent bg-transparent text-charcoal-light ' +
-        'hover:bg-brand-50 hover:text-brand-600 ' +
-        'dark:text-slate-300 dark:hover:bg-dark-card dark:hover:text-brand-400',
+        'border-transparent bg-transparent text-muted ' +
+        'hover:bg-accent-soft hover:text-accent',
 
       whatsapp:
         'border-[#25D366] bg-[#25D366] text-white shadow-sm ' +
@@ -226,7 +223,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-charcoal-light"
+            className="mb-1.5 block font-mono text-xs font-semibold uppercase tracking-wider text-muted"
           >
             {label}
           </label>
@@ -239,14 +236,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           aria-describedby={error ? errorId : undefined}
           className={cn(
             'flex h-11 w-full rounded-xl border bg-white px-3.5 py-2.5',
-            'text-sm text-charcoal shadow-sm',
-            'placeholder:text-charcoal-lighter/80',
+            'text-sm text-ink shadow-sm font-sans',
+            'placeholder:text-muted/70',
             'transition-all duration-150 ease-out',
-            'border-zinc-200 hover:border-zinc-300',
-            'dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-100 dark:placeholder:text-slate-500 dark:hover:border-slate-600',
-            'focus:border-brand-500 focus:outline-none',
-            'focus:ring-2 focus:ring-brand-500/15',
-            'disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:opacity-60 dark:disabled:bg-slate-900',
+            'border-line hover:border-zinc-300',
+            'focus:border-accent focus:outline-none',
+            'focus:ring-2 focus:ring-accent/15',
+            'disabled:cursor-not-allowed disabled:bg-shell disabled:opacity-60',
             'file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium',
             error &&
               'border-red-500 focus:border-red-500 focus:ring-red-500/15',
@@ -258,7 +254,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {error && (
           <p
             id={errorId}
-            className="mt-1.5 text-xs leading-relaxed text-red-600 dark:text-red-400 font-medium"
+            className="mt-1.5 font-sans text-xs leading-relaxed text-red-600 font-medium"
           >
             {error}
           </p>
@@ -293,7 +289,7 @@ export const Textarea = forwardRef<
       {label && (
         <label
           htmlFor={textareaId}
-          className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-charcoal-light dark:text-slate-400"
+          className="mb-1.5 block font-mono text-xs font-semibold uppercase tracking-wider text-muted"
         >
           {label}
         </label>
@@ -306,14 +302,13 @@ export const Textarea = forwardRef<
         aria-describedby={error ? errorId : undefined}
         className={cn(
           'flex min-h-[100px] w-full resize-y rounded-xl border bg-white px-3.5 py-2.5',
-          'text-sm leading-relaxed text-charcoal shadow-sm',
-          'placeholder:text-charcoal-lighter/80',
+          'text-sm leading-relaxed text-ink shadow-sm font-sans',
+          'placeholder:text-muted/70',
           'transition-all duration-150 ease-out',
-          'border-zinc-200 hover:border-zinc-300',
-          'dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-100 dark:placeholder:text-slate-500 dark:hover:border-slate-600',
-          'focus:border-brand-500 focus:outline-none',
-          'focus:ring-2 focus:ring-brand-500/15',
-          'disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:opacity-60 dark:disabled:bg-slate-900',
+          'border-line hover:border-zinc-300',
+          'focus:border-accent focus:outline-none',
+          'focus:ring-2 focus:ring-accent/15',
+          'disabled:cursor-not-allowed disabled:bg-shell disabled:opacity-60',
           error &&
             'border-red-500 focus:border-red-500 focus:ring-red-500/15',
           className
@@ -324,7 +319,7 @@ export const Textarea = forwardRef<
       {error && (
         <p
           id={errorId}
-          className="mt-1.5 text-xs leading-relaxed text-red-600 dark:text-red-400 font-medium"
+          className="mt-1.5 font-sans text-xs leading-relaxed text-red-600 font-medium"
         >
           {error}
         </p>
@@ -347,10 +342,8 @@ export function Card({
   return (
     <div
       className={cn(
-        'rounded-2xl border border-zinc-200/80 bg-white',
-        'dark:border-slate-800 dark:bg-slate-800/90 dark:text-slate-100',
-        'shadow-[0_4px_20px_-2px_rgba(24,24,27,0.04)] dark:shadow-[0_4px_20px_-2px_rgba(0,0,0,0.3)]',
-        'transition-all duration-200',
+        'rounded-2xl border border-line bg-white',
+        'shadow-soft transition-all duration-200',
         className
       )}
       {...props}
@@ -375,22 +368,22 @@ export function Badge({
 }) {
   const variants = {
     default:
-      'border-zinc-200 bg-zinc-100 text-charcoal-light dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300',
+      'border-line bg-shell text-ink',
     brand:
-      'border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-400',
+      'border-accent/30 bg-accent-soft text-accent',
     success:
-      'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400',
+      'border-emerald-200 bg-emerald-50 text-emerald-700',
     warning:
-      'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400',
+      'border-amber-200 bg-amber-50 text-amber-700',
     danger:
-      'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-400'
+      'border-rose-200 bg-rose-50 text-rose-700'
   };
 
   return (
     <span
       className={cn(
         'inline-flex items-center rounded-full border px-2.5 py-0.5',
-        'text-[11px] font-semibold uppercase tracking-wider',
+        'font-mono text-[11px] font-bold uppercase tracking-wider',
         variants[variant],
         className
       )}
@@ -580,21 +573,20 @@ export function Select({
         aria-expanded={isOpen}
         className={cn(
           'group flex h-11 w-full items-center justify-between',
-          'rounded-xl border border-zinc-200 bg-white shadow-sm',
-          'dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-100',
-          'px-3.5 text-left text-sm font-medium text-charcoal',
+          'rounded-xl border border-line bg-white shadow-sm',
+          'px-3.5 text-left text-sm font-medium text-ink',
           'transition-all duration-150 ease-out',
-          'hover:border-zinc-300 dark:hover:border-slate-600',
-          'focus:outline-none focus:ring-2 focus:ring-brand-500/15',
-          'disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:opacity-60 dark:disabled:bg-slate-900',
+          'hover:border-zinc-300',
+          'focus:outline-none focus:ring-2 focus:ring-accent/15',
+          'disabled:cursor-not-allowed disabled:bg-shell disabled:opacity-60',
           isOpen &&
-            'border-brand-500 ring-2 ring-brand-500/15'
+            'border-accent ring-2 ring-accent/15'
         )}
       >
         <span
           className={cn(
             'truncate leading-5',
-            !selectedOption && 'text-charcoal-lighter dark:text-slate-400'
+            !selectedOption && 'text-muted'
           )}
         >
           {selectedOption?.label || placeholder}
@@ -603,10 +595,10 @@ export function Select({
         <ChevronDown
           aria-hidden="true"
           className={cn(
-            'ml-3 h-4 w-4 shrink-0 text-charcoal-lighter dark:text-slate-400',
+            'ml-3 h-4 w-4 shrink-0 text-muted',
             'transition-transform duration-150',
-            'group-hover:text-brand-500',
-            isOpen && 'rotate-180 text-brand-500'
+            'group-hover:text-accent',
+            isOpen && 'rotate-180 text-accent'
           )}
         />
       </button>
@@ -625,9 +617,8 @@ export function Select({
           }}
           className={cn(
             'z-[9999] overflow-y-auto rounded-xl',
-            'border border-zinc-200 bg-white',
-            'dark:border-slate-700 dark:bg-slate-800',
-            'p-1.5 shadow-[0_12px_32px_rgba(24,24,27,0.12)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.5)]',
+            'border border-line bg-white',
+            'p-1.5 shadow-card',
             dropdownPosition.openUpward
               ? 'origin-bottom'
               : 'origin-top'
@@ -649,10 +640,10 @@ export function Select({
                     'rounded-lg px-3 py-2.5',
                     'text-left text-sm font-medium',
                     'transition-colors duration-100',
-                    'text-charcoal-light dark:text-slate-300',
-                    'hover:bg-brand-50 hover:text-brand-700 dark:hover:bg-slate-700 dark:hover:text-brand-300',
+                    'text-ink',
+                    'hover:bg-accent-soft hover:text-accent',
                     isSelected &&
-                      'bg-brand-50 text-brand-700 font-semibold dark:bg-brand-500/20 dark:text-brand-300'
+                      'bg-accent-soft text-accent font-semibold'
                   )}
                 >
                   <span className="leading-5">
@@ -664,7 +655,7 @@ export function Select({
                       className={cn(
                         'ml-3 flex h-5 w-5 shrink-0',
                         'items-center justify-center',
-                        'rounded-full bg-brand-500'
+                        'rounded-full bg-accent'
                       )}
                     >
                       <Check

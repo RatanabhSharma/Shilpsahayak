@@ -188,6 +188,10 @@ interface StoreState {
 
   cart: CartItem[];
 
+  isCartOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
+
   orders: Order[];
 
   quotes: QuoteRequest[];
@@ -322,6 +326,10 @@ export const useStore =
 
         cart: [],
 
+        isCartOpen: false,
+        openCart: () => set({ isCartOpen: true }),
+        closeCart: () => set({ isCartOpen: false }),
+
         orders: [],
 
         quotes: [],
@@ -357,32 +365,12 @@ export const useStore =
                   newCartItemId
               );
 
-            /*
-             * If the exact same cart item already
-             * exists, increase its quantity.
-             */
-            if (
-              existingItemIndex !== -1
-            ) {
-              return {
-                cart: state.cart.map(
-                  (item, index) =>
-                    index ===
-                    existingItemIndex
-                      ? {
-                          ...item,
-                          quantity:
-                            item.quantity +
-                            quantity
-                        }
-                      : item
-                )
-              };
+            if (existingItemIndex > -1) {
+              const updatedCart = [...state.cart];
+              updatedCart[existingItemIndex].quantity += quantity;
+              return { cart: updatedCart, isCartOpen: true };
             }
 
-            /*
-             * Otherwise create a new cart line.
-             */
             return {
               cart: [
                 ...state.cart,
@@ -390,11 +378,12 @@ export const useStore =
                   product,
                   quantity,
                   customNotes,
-                  variantId,
                   variantLabel,
+                  variantId,
                   customPrint
                 }
-              ]
+              ],
+              isCartOpen: true
             };
           }),
 

@@ -4,41 +4,55 @@ import {
   Search,
   Filter,
   ChevronRight,
-  Loader2
+  Loader2,
+  ShoppingBag,
 } from 'lucide-react';
-
-import {
-  Card,
-  Input,
-  Select
-} from '../../components/ui';
 
 import {
   useOrders,
   OrderStatus,
-  useUpdateOrderStatus
+  useUpdateOrderStatus,
 } from '../../hooks/useOrders';
 
-const STATUS_OPTIONS = [
+const STATUS_OPTIONS: { value: OrderStatus; label: string }[] = [
   { value: 'Pending', label: 'Pending' },
   { value: 'Confirmed', label: 'Confirmed' },
   { value: 'Printing', label: 'Printing' },
   { value: 'Quality Check', label: 'Quality Check' },
   { value: 'Shipped', label: 'Shipped' },
   { value: 'Delivered', label: 'Delivered' },
-  { value: 'Cancelled', label: 'Cancelled' }
+  { value: 'Cancelled', label: 'Cancelled' },
 ];
 
 const FILTER_OPTIONS = [
-  { value: 'All', label: 'All Status' },
-  ...STATUS_OPTIONS
+  { value: 'All', label: 'All Statuses' },
+  ...STATUS_OPTIONS,
 ];
+
+function getOrderStatusClass(status: OrderStatus): string {
+  switch (status) {
+    case 'Delivered':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    case 'Printing':
+    case 'Quality Check':
+      return 'bg-purple-50 text-purple-700 border-purple-200';
+    case 'Shipped':
+      return 'bg-blue-50 text-blue-700 border-blue-200';
+    case 'Confirmed':
+      return 'bg-slate-100 text-slate-700 border-slate-200';
+    case 'Cancelled':
+      return 'bg-rose-50 text-rose-700 border-rose-200';
+    case 'Pending':
+    default:
+      return 'bg-amber-50 text-amber-700 border-amber-200';
+  }
+}
 
 export function Orders() {
   const {
     data: orders = [],
     isLoading,
-    isError
+    isError,
   } = useOrders();
 
   const updateStatus = useUpdateOrderStatus();
@@ -50,19 +64,12 @@ export function Orders() {
     const searchTerm = search.toLowerCase().trim();
 
     const matchesSearch =
-      order.customerName
-        .toLowerCase()
-        .includes(searchTerm) ||
-      order.id
-        .toLowerCase()
-        .includes(searchTerm) ||
-      order.customerEmail
-        .toLowerCase()
-        .includes(searchTerm);
+      order.customerName.toLowerCase().includes(searchTerm) ||
+      order.id.toLowerCase().includes(searchTerm) ||
+      order.customerEmail.toLowerCase().includes(searchTerm);
 
     const matchesStatus =
-      statusFilter === 'All' ||
-      order.status === statusFilter;
+      statusFilter === 'All' || order.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
@@ -74,251 +81,188 @@ export function Orders() {
     try {
       await updateStatus.mutateAsync({
         id: orderId,
-        status: newStatus
+        status: newStatus,
       });
     } catch (error) {
-      console.error(
-        'Failed to update order status:',
-        error
-      );
-
-      alert(
-        'Failed to update order status. Please try again.'
-      );
+      console.error('Failed to update order status:', error);
+      alert('Failed to update order status. Please try again.');
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
+      <div className="flex items-center justify-center h-64 gap-2">
+        <Loader2 className="w-6 h-6 animate-spin text-accent" />
+        <span className="text-xs font-mono text-muted uppercase tracking-wider">Loading orders...</span>
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="text-center py-12 text-red-600">
-        Failed to load orders. Please try again.
+      <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-center text-xs font-semibold text-rose-700">
+        Failed to load orders. Please check your connection and try again.
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-
-      {/* Page Header */}
-      <div className="flex justify-between items-center">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-4">
         <div>
-          <h1 className="text-2xl font-serif font-bold text-charcoal">
-            Orders
+          <span className="font-mono text-xs font-semibold uppercase tracking-wider text-accent block">
+            Fulfillment & Dispatch
+          </span>
+          <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+            Customer Orders
           </h1>
-
-          <p className="text-charcoal-light text-sm mt-1">
-            Manage and track customer orders
+          <p className="mt-1 text-xs text-muted">
+            Track live customer orders, update production status, and manage dispatch history.
           </p>
+        </div>
+        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-line shadow-xs">
+          <ShoppingBag className="w-4 h-4 text-accent" />
+          <span className="font-mono text-xs font-bold text-ink">
+            {orders.length} Total Orders
+          </span>
         </div>
       </div>
 
-      {/* Filters */}
-      <Card className="p-4 border-none shadow-sm overflow-visible">
-        <div className="flex flex-col sm:flex-row gap-4">
-
+      {/* Filter & Search Bar */}
+      <div className="rounded-xl border border-line bg-white p-4 shadow-xs">
+        <div className="flex flex-col sm:flex-row gap-3">
           {/* Search */}
           <div className="relative flex-1">
-            <Search
-              className="
-                absolute
-                left-3
-                top-1/2
-                -translate-y-1/2
-                w-4
-                h-4
-                text-charcoal-lighter
-              "
-            />
-
-            <Input
-              placeholder="Search by name, email or order ID..."
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+            <input
+              type="text"
+              placeholder="Search by customer name, email, or order ID..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
+              className="w-full pl-9 pr-3 py-2 text-xs font-sans text-ink bg-white border border-line rounded-lg outline-none focus:border-accent"
             />
           </div>
 
-          {/* Status Filter */}
+          {/* Status Filter Dropdown */}
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-charcoal-lighter flex-shrink-0" />
-
-            <Select
+            <Filter className="w-4 h-4 text-muted shrink-0" />
+            <select
               value={statusFilter}
-              onChange={setStatusFilter}
-              className="w-52"
-              options={FILTER_OPTIONS}
-            />
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-48 py-2 px-3 text-xs font-sans font-semibold text-ink bg-white border border-line rounded-lg outline-none focus:border-accent cursor-pointer"
+            >
+              {FILTER_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
           </div>
-
         </div>
-      </Card>
+      </div>
 
-      {/* Orders Table */}
-      <Card className="border-none shadow-sm overflow-hidden">
+      {/* Orders Table Card */}
+      <div className="rounded-xl border border-line bg-white shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-
           <table className="w-full text-left border-collapse">
-
             <thead>
-              <tr
-                className="
-                  bg-surface
-                  text-xs
-                  uppercase
-                  tracking-wider
-                  text-charcoal-light
-                  border-b
-                  border-brand-100
-                "
-              >
-                <th className="px-6 py-4 font-medium">
-                  Order ID
-                </th>
-
-                <th className="px-6 py-4 font-medium">
-                  Customer
-                </th>
-
-                <th className="px-6 py-4 font-medium">
-                  Date
-                </th>
-
-                <th className="px-6 py-4 font-medium">
-                  Total
-                </th>
-
-                <th className="px-6 py-4 font-medium">
-                  Status
-                </th>
-
-                <th className="px-6 py-4 font-medium text-right">
-                  Actions
-                </th>
+              <tr className="bg-shell/50 border-b border-line text-[10px] font-mono font-bold uppercase tracking-wider text-muted">
+                <th className="px-5 py-3">Order ID</th>
+                <th className="px-5 py-3">Customer</th>
+                <th className="px-5 py-3">Date</th>
+                <th className="px-5 py-3">Total Amount</th>
+                <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3 text-right">Actions</th>
               </tr>
             </thead>
-
-            <tbody className="divide-y divide-brand-50">
-
+            <tbody className="divide-y divide-line font-sans text-xs">
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="
-                      px-6
-                      py-12
-                      text-center
-                      text-charcoal-light
-                    "
-                  >
-                    No orders found.
+                  <td colSpan={6} className="px-5 py-12 text-center text-xs font-mono text-muted">
+                    No orders matching your criteria found.
                   </td>
                 </tr>
               ) : (
                 filteredOrders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="
-                      hover:bg-brand-50/50
-                      transition-colors
-                    "
-                  >
-
+                  <tr key={order.id} className="hover:bg-shell/40 transition-colors">
                     {/* Order ID */}
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-3.5">
                       <Link
                         to={`/admin/orders/${order.id}`}
-                        className="
-                          font-medium
-                          text-brand-600
-                          hover:text-brand-700
-                          transition-colors
-                        "
+                        className="font-mono text-xs font-bold text-accent hover:underline"
                       >
                         #{order.id.slice(0, 8)}
                       </Link>
                     </td>
 
                     {/* Customer */}
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-3.5">
                       <div>
-                        <p className="font-medium text-charcoal">
-                          {order.customerName}
-                        </p>
-
-                        <p className="text-xs text-charcoal-lighter">
-                          {order.customerEmail}
-                        </p>
+                        <p className="font-semibold text-ink">{order.customerName}</p>
+                        <p className="font-mono text-[10px] text-muted">{order.customerEmail}</p>
                       </div>
                     </td>
 
                     {/* Date */}
-                    <td className="px-6 py-4 text-sm text-charcoal-light">
-                      {new Date(
-                        order.date
-                      ).toLocaleDateString('en-IN', {
+                    <td className="px-5 py-3.5 font-mono text-muted">
+                      {new Date(order.date).toLocaleDateString('en-IN', {
                         day: 'numeric',
                         month: 'short',
-                        year: 'numeric'
+                        year: 'numeric',
                       })}
                     </td>
 
-                    {/* Total */}
-                    <td className="px-6 py-4 font-medium text-charcoal">
-                      ₹{order.total.toLocaleString('en-IN')}
+                    {/* Total Amount */}
+                    <td className="px-5 py-3.5 font-mono font-bold text-ink">
+                      ₹{Number(order.total || 0).toLocaleString('en-IN')}
                     </td>
 
-                    {/* Individual Order Status */}
-                    <td className="px-6 py-4">
-                      <Select
-                        value={order.status}
-                        onChange={(value) =>
-                          handleStatusChange(
-                            order.id,
-                            value as OrderStatus
-                          )
-                        }
-                        className="w-44"
-                        options={STATUS_OPTIONS}
-                      />
+                    {/* Status Dropdown / Pill */}
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex px-2 py-0.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-wider border ${getOrderStatusClass(
+                            order.status
+                          )}`}
+                        >
+                          {order.status}
+                        </span>
+                        <select
+                          value={order.status}
+                          onChange={(e) =>
+                            handleStatusChange(order.id, e.target.value as OrderStatus)
+                          }
+                          className="py-1 px-2 text-[11px] font-mono border border-line rounded bg-white text-ink outline-none focus:border-accent cursor-pointer"
+                        >
+                          {STATUS_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </td>
 
                     {/* Actions */}
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-5 py-3.5 text-right">
                       <Link
                         to={`/admin/orders/${order.id}`}
-                        className="
-                          inline-flex
-                          items-center
-                          text-sm
-                          text-charcoal-light
-                          hover:text-brand-600
-                          transition-colors
-                        "
+                        className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-muted hover:text-accent transition-colors"
                       >
-                        View
-
-                        <ChevronRight className="w-4 h-4 ml-1" />
+                        <span>View</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
                       </Link>
                     </td>
-
                   </tr>
                 ))
               )}
-
             </tbody>
           </table>
-
         </div>
-      </Card>
-
+      </div>
     </div>
   );
 }
+
+export default Orders;

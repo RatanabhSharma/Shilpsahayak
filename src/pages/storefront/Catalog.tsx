@@ -9,21 +9,21 @@ import {
   Search,
   Sparkles,
   X,
-  ArrowRight,
   SlidersHorizontal,
 } from 'lucide-react';
 import {
   Link,
   useSearchParams,
 } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 import { useProducts } from '../../hooks/useProducts';
 import {
   Button,
-  Card,
   Input,
   Select,
 } from '../../components/ui';
+import { ProductCard } from '../../components/product/ProductCard';
 import { ProductGridSkeleton } from '../../components/loading/ProductSkeleton';
 
 type SortOption =
@@ -42,7 +42,6 @@ function getPriceCeiling(price: number) {
   if (price <= 0) {
     return 15000;
   }
-
   return Math.max(
     15000,
     Math.ceil(price / 1000) * 1000
@@ -76,19 +75,13 @@ export function Catalog() {
   const sortParam =
     (searchParams.get('sort') as SortOption) || 'featured';
 
-  /* ----------------------------------------------------------
-     Active Products
-     ---------------------------------------------------------- */
-
+  /* Active Products */
   const activeProducts = useMemo(
     () => products.filter((product) => product.active !== false),
     [products]
   );
 
-  /* ----------------------------------------------------------
-     Price Range
-     ---------------------------------------------------------- */
-
+  /* Price Ceiling */
   const priceMaximum = useMemo(() => {
     const highestProductPrice = activeProducts.reduce(
       (highest, product) =>
@@ -104,10 +97,7 @@ export function Catalog() {
     setMaxPrice(priceMaximum);
   }, [priceMaximum]);
 
-  /* ----------------------------------------------------------
-     Filter Options
-     ---------------------------------------------------------- */
-
+  /* Filter Options */
   const categories = useMemo(() => {
     const counts = new Map<string, number>();
 
@@ -137,10 +127,7 @@ export function Catalog() {
     [activeProducts]
   );
 
-  /* ----------------------------------------------------------
-     Filtering & Sorting Logic
-     ---------------------------------------------------------- */
-
+  /* Filtering & Sorting Logic */
   const filteredProducts = useMemo(() => {
     let result = [...activeProducts];
 
@@ -227,10 +214,7 @@ export function Catalog() {
     sortParam,
   ]);
 
-  /* ----------------------------------------------------------
-     URL Parameter Helpers
-     ---------------------------------------------------------- */
-
+  /* URL Helpers */
   const updateSearchParam = (key: string, value: string | null) => {
     const nextParams = new URLSearchParams(searchParams);
     if (value) {
@@ -364,12 +348,12 @@ export function Catalog() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#f4f2ef] dark:bg-[#0f172a] transition-colors duration-200">
+      <div className="min-h-screen bg-paper">
         <div className="mx-auto max-w-[1440px] px-5 py-12 sm:px-8 lg:px-10">
           <div className="max-w-2xl space-y-3">
-            <div className="h-4 w-24 rounded-full bg-zinc-200 dark:bg-slate-800 animate-pulse" />
-            <div className="h-10 w-72 rounded-xl bg-zinc-200 dark:bg-slate-800 animate-pulse" />
-            <div className="h-4 w-full max-w-lg rounded-md bg-zinc-200 dark:bg-slate-800 animate-pulse" />
+            <div className="h-4 w-24 rounded-full bg-shell animate-pulse" />
+            <div className="h-10 w-72 rounded-xl bg-shell animate-pulse" />
+            <div className="h-4 w-full max-w-lg rounded-md bg-shell animate-pulse" />
           </div>
 
           <div className="mt-12">
@@ -382,21 +366,21 @@ export function Catalog() {
 
   if (isError) {
     return (
-      <div className="min-h-[60vh] bg-[#f4f2ef] dark:bg-[#0f172a] text-charcoal dark:text-slate-100 flex items-center justify-center px-5 transition-colors duration-200">
+      <div className="min-h-[60vh] bg-paper text-ink flex items-center justify-center px-5">
         <div className="max-w-md text-center">
-          <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
             Catalog Error
           </span>
-          <h1 className="mt-3 font-serif text-3xl font-bold text-charcoal dark:text-slate-100">
+          <h1 className="mt-3 font-display text-3xl font-bold text-ink">
             Unable to load products.
           </h1>
-          <p className="mt-3 text-sm text-charcoal-light dark:text-slate-400">
+          <p className="mt-3 text-sm text-muted font-sans">
             Please check your connection and refresh the page.
           </p>
           <Button
             type="button"
             onClick={() => window.location.reload()}
-            className="mt-6 font-bold"
+            className="mt-6 font-display font-bold"
           >
             Retry Connection
           </Button>
@@ -405,43 +389,69 @@ export function Catalog() {
     );
   }
 
-  /* ----------------------------------------------------------
-     Sidebar Filter Panel
-     ---------------------------------------------------------- */
-
+  /* Sidebar Filter Panel */
   const filterPanel = (
-    <div className="space-y-7">
+    <div className="space-y-7 font-sans">
       {/* Categories */}
-      <FilterGroup title="Categories">
-        {categories.map((category) => (
-          <CheckboxFilter
-            key={category.name}
-            label={`${category.name}`}
-            badgeCount={category.count}
-            checked={selectedCategories.includes(category.name)}
-            onChange={() => toggleCategory(category.name)}
-          />
-        ))}
-      </FilterGroup>
+      <div className="space-y-3">
+        <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-ink">Categories</h3>
+        <div className="space-y-2">
+          {categories.map((category) => {
+            const isChecked = selectedCategories.includes(category.name);
+            return (
+              <label
+                key={category.name}
+                className="flex items-center justify-between text-xs font-medium text-ink cursor-pointer hover:text-accent transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => toggleCategory(category.name)}
+                    className="h-4 w-4 rounded border-line text-accent focus:ring-accent"
+                  />
+                  <span>{category.name}</span>
+                </div>
+                <span className="font-mono text-2xs text-muted bg-shell px-2 py-0.5 rounded-full">
+                  {category.count}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Materials */}
       {materials.length > 0 && (
-        <FilterGroup title="Material">
-          {materials.map((material) => (
-            <CheckboxFilter
-              key={material}
-              label={material}
-              checked={selectedMaterials.includes(material)}
-              onChange={() => toggleMaterial(material)}
-            />
-          ))}
-        </FilterGroup>
+        <div className="space-y-3 pt-4 border-t border-line">
+          <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-ink">Material</h3>
+          <div className="space-y-2">
+            {materials.map((material) => {
+              const isChecked = selectedMaterials.includes(material);
+              return (
+                <label
+                  key={material}
+                  className="flex items-center gap-2 text-xs font-medium text-ink cursor-pointer hover:text-accent transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => toggleMaterial(material)}
+                    className="h-4 w-4 rounded border-line text-accent focus:ring-accent"
+                  />
+                  <span>{material}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       {/* Price Range */}
-      <FilterGroup title="Price Range">
-        <div className="pt-2">
-          <div className="mb-3 flex items-center justify-between text-xs font-mono font-semibold text-charcoal">
+      <div className="space-y-3 pt-4 border-t border-line">
+        <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-ink">Price Range</h3>
+        <div>
+          <div className="mb-3 flex items-center justify-between text-xs font-mono font-semibold text-ink">
             <span>{formatPrice(minPrice)}</span>
             <span>
               {formatPrice(maxPrice)}
@@ -450,19 +460,14 @@ export function Catalog() {
           </div>
 
           <div className="relative h-6 flex items-center">
-            {/* Slider track background */}
-            <div className="absolute left-0 right-0 h-1.5 rounded-full bg-zinc-200" />
-
-            {/* Active range track */}
+            <div className="absolute left-0 right-0 h-1.5 rounded-full bg-line" />
             <div
-              className="absolute h-1.5 rounded-full bg-brand-500"
+              className="absolute h-1.5 rounded-full bg-accent"
               style={{
                 left: `${(minPrice / priceMaximum) * 100}%`,
                 right: `${100 - (maxPrice / priceMaximum) * 100}%`,
               }}
             />
-
-            {/* Min Range Input */}
             <input
               type="range"
               min={0}
@@ -473,8 +478,6 @@ export function Catalog() {
               aria-label="Minimum price"
               className="catalog-range absolute inset-0 z-20 h-6 w-full cursor-pointer appearance-none bg-transparent"
             />
-
-            {/* Max Range Input */}
             <input
               type="range"
               min={0}
@@ -487,23 +490,26 @@ export function Catalog() {
             />
           </div>
         </div>
-      </FilterGroup>
+      </div>
 
-      {/* In Stock Only */}
-      <FilterGroup title="Availability">
-        <CheckboxFilter
-          label="In Stock Only"
-          description="Ready for immediate packing"
-          checked={inStockOnly}
-          onChange={() => setInStockOnly((prev) => !prev)}
-        />
-      </FilterGroup>
+      {/* Availability */}
+      <div className="space-y-3 pt-4 border-t border-line">
+        <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-ink">Availability</h3>
+        <label className="flex items-center gap-2 text-xs font-medium text-ink cursor-pointer">
+          <input
+            type="checkbox"
+            checked={inStockOnly}
+            onChange={() => setInStockOnly((prev) => !prev)}
+            className="h-4 w-4 rounded border-line text-accent focus:ring-accent"
+          />
+          <span>In Stock Only</span>
+        </label>
+      </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#f4f2ef] dark:bg-[#0f172a] text-charcoal dark:text-slate-100 transition-colors duration-200">
-      {/* Slider Styles */}
+    <div className="min-h-screen bg-paper text-ink">
       <style>
         {`
           .catalog-range {
@@ -514,7 +520,7 @@ export function Catalog() {
             width: 18px;
             height: 18px;
             border-radius: 9999px;
-            background: #ff6b1a;
+            background: #ff4d00;
             border: 2px solid #ffffff;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
             cursor: pointer;
@@ -524,53 +530,83 @@ export function Catalog() {
             width: 18px;
             height: 18px;
             border-radius: 9999px;
-            background: #ff6b1a;
+            background: #ff4d00;
             border: 2px solid #ffffff;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
             cursor: pointer;
             pointer-events: auto;
           }
-          .catalog-range:focus-visible::-webkit-slider-thumb {
-            outline: 2px solid #ff6b1a;
-            outline-offset: 2px;
-          }
         `}
       </style>
 
       {/* Page Header */}
-      <section className="border-b border-zinc-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
+      <section className="border-b border-line bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8 lg:px-10 lg:py-12">
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
             <div>
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 dark:bg-brand-500/10 px-3 py-1 text-xs font-bold text-brand-600 dark:text-brand-400">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1 font-mono text-xs font-bold text-accent">
                 <Sparkles className="h-3.5 w-3.5" />
                 <span>Shop Collection</span>
               </div>
 
-              <h1 className="mt-3 font-serif text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl text-charcoal dark:text-slate-100">
+              <h1 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl text-ink">
                 3D Printed Catalog & Creations
               </h1>
 
-              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-charcoal-light dark:text-slate-400 sm:text-base">
-                Explore our curated catalog of precision-printed pieces. Have a custom STL or CAD model you want us to produce instead?{' '}
+              <p className="mt-3 max-w-2xl font-sans text-sm leading-relaxed text-muted sm:text-base">
+                Browse our curated line of precision 3D printed products. Have a custom STL or CAD model you want us to produce instead?{' '}
                 <Link
                   to="/custom-service"
-                  className="font-bold text-brand-600 dark:text-brand-400 underline underline-offset-4 hover:text-brand-700 dark:hover:text-brand-300 transition-colors"
+                  className="font-bold text-accent underline underline-offset-4 hover:text-accent-dark transition-colors"
                 >
-                  Upload for Instant Quote →
+                  Upload CAD for Instant Quote →
                 </Link>
               </p>
             </div>
 
-            <div className="shrink-0 rounded-2xl border border-zinc-200 dark:border-slate-800 bg-zinc-50/70 dark:bg-slate-800/80 p-4">
-              <span className="font-mono text-xs font-semibold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 block">
+            <div className="shrink-0 rounded-2xl border border-line bg-shell p-4 font-mono">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted block">
                 Total Stock
               </span>
-              <span className="font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
+              <span className="font-display text-2xl font-bold text-ink">
                 {activeProducts.length} {activeProducts.length === 1 ? 'Piece' : 'Pieces'}
               </span>
             </div>
           </div>
+
+          {/* Category Filter Pills Horizontal Strip */}
+          {categories.length > 0 && (
+            <div className="mt-8 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+              <button
+                type="button"
+                onClick={() => updateSearchParam('category', null)}
+                className={`px-4 py-2 rounded-full font-mono text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-colors border ${
+                  selectedCategories.length === 0
+                    ? 'bg-accent text-white border-accent'
+                    : 'bg-shell text-ink border-line hover:border-accent hover:text-accent'
+                }`}
+              >
+                All Products ({activeProducts.length})
+              </button>
+              {categories.map((cat) => {
+                const isSelected = selectedCategories.includes(cat.name);
+                return (
+                  <button
+                    key={cat.name}
+                    type="button"
+                    onClick={() => toggleCategory(cat.name)}
+                    className={`px-4 py-2 rounded-full font-mono text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-colors border ${
+                      isSelected
+                        ? 'bg-accent text-white border-accent'
+                        : 'bg-shell text-ink border-line hover:border-accent hover:text-accent'
+                    }`}
+                  >
+                    {cat.name} ({cat.count})
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
@@ -579,11 +615,11 @@ export function Catalog() {
         <div className="grid gap-10 lg:grid-cols-[260px_minmax(0,1fr)]">
           {/* Desktop Filter Sidebar */}
           <aside className="hidden lg:block" aria-label="Product filters">
-            <div className="sticky top-28 rounded-2xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
-              <div className="flex items-center justify-between border-b border-zinc-100 dark:border-slate-800 pb-4">
+            <div className="sticky top-28 rounded-2xl border border-line bg-white p-6 shadow-soft">
+              <div className="flex items-center justify-between border-b border-line pb-4">
                 <div className="flex items-center gap-2">
-                  <SlidersHorizontal className="h-4 w-4 text-brand-500" />
-                  <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal dark:text-slate-100">
+                  <SlidersHorizontal className="h-4 w-4 text-accent" />
+                  <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-ink">
                     Filters
                   </h2>
                 </div>
@@ -592,7 +628,7 @@ export function Catalog() {
                   <button
                     type="button"
                     onClick={clearFilters}
-                    className="font-mono text-[11px] font-bold text-brand-600 hover:text-brand-700 underline"
+                    className="font-mono text-[11px] font-bold text-accent hover:underline"
                   >
                     Reset
                   </button>
@@ -609,13 +645,12 @@ export function Catalog() {
           <section>
             {/* Search & Sort Controls Bar */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              {/* Search Bar */}
               <div className="relative min-w-0 flex-1">
-                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-charcoal-lighter" />
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search prints, materials, keywords..."
+                  placeholder="Search pieces, materials, keywords..."
                   aria-label="Search catalog"
                   className="pl-10 pr-9 bg-white"
                 />
@@ -623,7 +658,7 @@ export function Catalog() {
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal-lighter hover:text-charcoal"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink"
                     aria-label="Clear search"
                   >
                     <X className="h-4 w-4" />
@@ -631,17 +666,17 @@ export function Catalog() {
                 )}
               </div>
 
-              {/* Mobile Filter Sheet Button */}
+              {/* Mobile Filter Button */}
               <Button
                 type="button"
                 variant="outline"
                 className="bg-white lg:hidden font-semibold"
                 onClick={() => setIsFilterOpen((prev) => !prev)}
               >
-                <Filter className="mr-2 h-4 w-4 text-brand-500" />
+                <Filter className="mr-2 h-4 w-4 text-accent" />
                 Filters
                 {hasActiveFilters && (
-                  <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-500 px-1 font-mono text-[10px] font-bold text-white">
+                  <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 font-mono text-[10px] font-bold text-white">
                     {activeFilterChips.length}
                   </span>
                 )}
@@ -649,7 +684,7 @@ export function Catalog() {
 
               {/* Sort Selector */}
               <div className="flex items-center gap-2">
-                <span className="hidden whitespace-nowrap font-mono text-xs font-semibold text-charcoal-lighter sm:inline">
+                <span className="hidden whitespace-nowrap font-mono text-xs font-semibold text-muted sm:inline">
                   Sort:
                 </span>
                 <Select
@@ -666,18 +701,18 @@ export function Catalog() {
               </div>
             </div>
 
-            {/* Mobile Filter Drawer / Modal */}
+            {/* Mobile Filter Drawer */}
             {isFilterOpen && (
-              <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-lg lg:hidden">
-                <div className="mb-6 flex items-center justify-between border-b border-zinc-100 dark:border-slate-800 pb-4">
-                  <h3 className="font-serif text-lg font-bold text-charcoal dark:text-slate-100">
+              <div className="mt-4 rounded-2xl border border-line bg-white p-6 shadow-card lg:hidden">
+                <div className="mb-6 flex items-center justify-between border-b border-line pb-4">
+                  <h3 className="font-display text-lg font-bold text-ink">
                     Filter Products
                   </h3>
                   <button
                     type="button"
                     aria-label="Close filters"
                     onClick={() => setIsFilterOpen(false)}
-                    className="rounded-lg p-1 text-charcoal-lighter dark:text-slate-400 hover:text-charcoal dark:hover:text-white"
+                    className="rounded-lg p-1 text-muted hover:text-ink"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -685,7 +720,7 @@ export function Catalog() {
 
                 {filterPanel}
 
-                <div className="mt-8 flex gap-3 border-t border-zinc-100 dark:border-slate-800 pt-5">
+                <div className="mt-8 flex gap-3 border-t border-line pt-5">
                   <Button
                     type="button"
                     variant="outline"
@@ -705,9 +740,9 @@ export function Catalog() {
               </div>
             )}
 
-            {/* Active Filters Bar */}
-            <div className="mt-5 flex flex-wrap items-center gap-2 border-b border-zinc-200 dark:border-slate-800 pb-4">
-              <span className="mr-1 font-mono text-xs font-semibold text-charcoal-light dark:text-slate-400">
+            {/* Active Filter Chips Bar */}
+            <div className="mt-5 flex flex-wrap items-center gap-2 border-b border-line pb-4">
+              <span className="mr-1 font-mono text-xs font-semibold text-muted">
                 {filteredProducts.length} {filteredProducts.length === 1 ? 'result' : 'results'}
               </span>
 
@@ -716,10 +751,10 @@ export function Catalog() {
                   key={`${chip.label}-${index}`}
                   type="button"
                   onClick={chip.remove}
-                  className="group inline-flex items-center gap-1.5 rounded-full border border-brand-200 dark:border-brand-500/30 bg-brand-50 dark:bg-brand-500/10 px-3 py-1 font-mono text-xs font-semibold text-brand-700 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-500/20 transition-colors"
+                  className="group inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent-soft px-3 py-1 font-mono text-xs font-semibold text-accent hover:bg-accent hover:text-white transition-colors"
                 >
                   <span>{chip.label}</span>
-                  <X className="h-3 w-3 text-brand-500 group-hover:text-brand-800 dark:group-hover:text-brand-200" />
+                  <X className="h-3 w-3" />
                 </button>
               ))}
 
@@ -727,7 +762,7 @@ export function Catalog() {
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="ml-auto font-mono text-xs font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 underline"
+                  className="ml-auto font-mono text-xs font-bold text-accent hover:underline"
                 >
                   Clear All
                 </button>
@@ -736,16 +771,16 @@ export function Catalog() {
 
             {/* Product Cards Grid */}
             {filteredProducts.length === 0 ? (
-              <div className="mt-8 rounded-2xl border border-dashed border-zinc-300 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 py-20 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 dark:bg-brand-500/10 text-brand-500">
+              <div className="mt-8 rounded-2xl border border-dashed border-line bg-white px-6 py-20 text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-shell text-accent">
                   <PackageSearch className="h-7 w-7" />
                 </div>
 
-                <h3 className="mt-5 font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
+                <h3 className="mt-5 font-display text-2xl font-bold text-ink">
                   No products matched your filters
                 </h3>
 
-                <p className="mx-auto mt-2 max-w-md text-sm text-charcoal-light dark:text-slate-400">
+                <p className="mx-auto mt-2 max-w-md font-sans text-sm text-muted">
                   Try clearing some filter tags, or request a custom 3D print using your own 3D CAD design.
                 </p>
 
@@ -760,7 +795,7 @@ export function Catalog() {
                   </Button>
 
                   <Link to="/custom-service">
-                    <Button className="font-bold">
+                    <Button className="font-display font-bold">
                       <Sparkles className="mr-2 h-4 w-4" />
                       Get Custom 3D Quote
                     </Button>
@@ -768,175 +803,20 @@ export function Catalog() {
                 </div>
               </div>
             ) : (
-              <div className="mt-7 grid w-full gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4 }}
+                className="mt-7 grid w-full gap-6 sm:grid-cols-2 xl:grid-cols-3"
+              >
                 {filteredProducts.map((product) => (
-                  <Link
-                    key={product.id}
-                    to={`/product/${product.id}`}
-                    className="group min-w-0 w-full"
-                  >
-                    <Card className="flex h-full flex-col justify-between overflow-hidden transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-xl group-hover:border-brand-300">
-                      <div className="relative overflow-hidden bg-zinc-100 dark:bg-slate-800">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          loading="lazy"
-                          className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-
-                        {/* Badges */}
-                        <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-                          {product.isCustomizable && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-charcoal/85 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
-                              <Sparkles className="h-3 w-3 text-brand-400" />
-                              Personalize
-                            </span>
-                          )}
-                          {product.featured && (
-                            <span className="inline-flex items-center rounded-full bg-brand-500 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
-                              Featured
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-1 flex-col justify-between p-5">
-                        <div>
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 truncate">
-                              {product.category || 'Workshop Item'}
-                            </span>
-                            <div className="flex items-center gap-1 shrink-0 text-amber-500 text-xs font-bold">
-                              <span>★</span>
-                              <span>4.9</span>
-                            </div>
-                          </div>
-
-                          <h2 className="mt-1.5 line-clamp-2 min-h-[3rem] font-serif text-lg font-bold text-charcoal dark:text-slate-100 group-hover:text-brand-600 transition-colors">
-                            {product.name}
-                          </h2>
-
-                          {product.description && (
-                            <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-charcoal-lighter dark:text-slate-400">
-                              {product.description}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="mt-5 flex items-center justify-between border-t border-zinc-100 dark:border-slate-700/60 pt-3.5">
-                          <div>
-                            <span className="text-[11px] text-charcoal-lighter dark:text-slate-400 block font-mono uppercase">
-                              Price
-                            </span>
-                            <span className="font-serif text-lg font-bold text-charcoal dark:text-slate-100">
-                              {formatPrice(Number(product.price) || 0)}
-                            </span>
-                          </div>
-
-                          <span className="inline-flex items-center gap-1.5 rounded-xl bg-brand-50 dark:bg-brand-500/15 px-3 py-1.5 text-xs font-bold text-brand-600 dark:text-brand-400 group-hover:bg-brand-500 group-hover:text-white transition-colors shadow-sm">
-                            <span>View Piece</span>
-                            <ArrowRight className="h-3.5 w-3.5" />
-                          </span>
-                        </div>
-                      </div>
-                    </Card>
-                  </Link>
+                  <ProductCard key={product.id} product={product} />
                 ))}
-              </div>
-            )}
-
-            {/* Custom Print Service Promo Banner */}
-            {filteredProducts.length > 0 && (
-              <div className="mt-14 rounded-2xl border border-brand-500/30 bg-gradient-to-r from-brand-50 via-orange-50/50 to-white dark:from-slate-900 dark:via-brand-950/30 dark:to-slate-900 p-6 sm:p-8 shadow-sm">
-                <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
-                  <div className="space-y-1">
-                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">
-                      Looking for custom dimensions or prototypes?
-                    </span>
-                    <h2 className="font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
-                      Send us your 3D CAD file for a instant estimate.
-                    </h2>
-                    <p className="max-w-xl text-xs text-charcoal-light dark:text-slate-400 sm:text-sm">
-                      Upload STL/OBJ files, calculate precise weight and material volume, and get rapid fabrication within 48 hours.
-                    </p>
-                  </div>
-
-                  <Link to="/custom-service" className="shrink-0">
-                    <Button size="lg" className="w-full font-bold sm:w-auto shadow-md shadow-brand-500/20">
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Start Custom Print
-                    </Button>
-                  </Link>
-                </div>
-              </div>
+              </motion.div>
             )}
           </section>
         </div>
       </main>
     </div>
-  );
-}
-
-/* ----------------------------------------------------------
-   Subcomponents for Filters
-   ---------------------------------------------------------- */
-
-function FilterGroup({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <h3 className="mb-3 font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400">
-        {title}
-      </h3>
-      <div className="space-y-2.5">{children}</div>
-    </div>
-  );
-}
-
-function CheckboxFilter({
-  label,
-  description,
-  badgeCount,
-  checked,
-  onChange,
-}: {
-  label: string;
-  description?: string;
-  badgeCount?: number;
-  checked: boolean;
-  onChange: () => void;
-}) {
-  return (
-    <label className="flex cursor-pointer items-start justify-between gap-2 text-sm text-charcoal-light dark:text-slate-300 hover:text-charcoal dark:hover:text-white transition-colors">
-      <div className="flex items-start gap-2.5">
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={onChange}
-          className="mt-0.5 h-4 w-4 shrink-0 rounded cursor-pointer accent-brand-500"
-        />
-        <div className="leading-tight">
-          <span className={checked ? 'font-bold text-charcoal dark:text-slate-100' : 'font-medium'}>
-            {label}
-          </span>
-          {description && (
-            <span className="block text-[11px] text-charcoal-lighter dark:text-slate-400 mt-0.5">
-              {description}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {typeof badgeCount === 'number' && (
-        <span className="font-mono text-xs text-charcoal-lighter dark:text-slate-500">
-          {badgeCount}
-        </span>
-      )}
-    </label>
   );
 }

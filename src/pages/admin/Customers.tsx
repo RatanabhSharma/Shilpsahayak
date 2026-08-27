@@ -1,8 +1,10 @@
 import { useStore } from '../../store';
-import { Card } from '../../components/ui';
 import { format } from 'date-fns';
+import { Users, Mail, Phone, ShoppingBag } from 'lucide-react';
+
 export function Customers() {
   const orders = useStore((state) => state.orders);
+
   // Group orders by customer email to get unique customers
   const customersMap = orders.reduce(
     (acc, order) => {
@@ -13,79 +15,114 @@ export function Customers() {
           phone: order.customerPhone,
           ordersCount: 0,
           totalSpent: 0,
-          lastOrderDate: order.date
+          lastOrderDate: order.date,
         };
       }
       acc[order.customerEmail].ordersCount += 1;
       acc[order.customerEmail].totalSpent += order.total;
       if (
-      new Date(order.date) > new Date(acc[order.customerEmail].lastOrderDate))
-      {
+        new Date(order.date) > new Date(acc[order.customerEmail].lastOrderDate)
+      ) {
         acc[order.customerEmail].lastOrderDate = order.date;
       }
       return acc;
     },
     {} as Record<string, any>
   );
+
   const customers = Object.values(customersMap);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-serif font-bold text-charcoal">
-          Customers
-        </h1>
-        <p className="text-charcoal-light text-sm mt-1">
-          View customer history and details.
-        </p>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-4">
+        <div>
+          <span className="font-mono text-xs font-semibold uppercase tracking-wider text-accent block">
+            CRM Directory
+          </span>
+          <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+            Customer Directory
+          </h1>
+          <p className="mt-1 text-xs text-muted">
+            Overview of customer profiles, purchase history, and lifetime spending value.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-line shadow-xs font-mono text-xs font-bold text-ink">
+          <Users className="w-4 h-4 text-accent" />
+          <span>{customers.length} Registered Customers</span>
+        </div>
       </div>
 
-      <Card className="border-none shadow-sm overflow-hidden">
+      {/* Customer Directory Table */}
+      <div className="rounded-xl border border-line bg-white shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-surface text-xs uppercase tracking-wider text-charcoal-light border-b border-brand-100">
-                <th className="px-6 py-4 font-medium">Customer</th>
-                <th className="px-6 py-4 font-medium">Contact</th>
-                <th className="px-6 py-4 font-medium">Orders</th>
-                <th className="px-6 py-4 font-medium">Total Spent</th>
-                <th className="px-6 py-4 font-medium">Last Order</th>
+              <tr className="bg-shell/50 border-b border-line text-[10px] font-mono font-bold uppercase tracking-wider text-muted">
+                <th className="px-5 py-3">Customer Name</th>
+                <th className="px-5 py-3">Contact Details</th>
+                <th className="px-5 py-3">Total Orders</th>
+                <th className="px-5 py-3">Lifetime Spent</th>
+                <th className="px-5 py-3">Last Active Date</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-brand-50">
-              {customers.map((customer, i) =>
-              <tr key={i} className="hover:bg-brand-50/50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-charcoal">
-                    {customer.name}
+            <tbody className="divide-y divide-line font-sans text-xs">
+              {customers.map((customer, i) => (
+                <tr key={i} className="hover:bg-shell/40 transition-colors">
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center font-mono font-bold text-accent text-xs shrink-0">
+                        {customer.name ? customer.name.charAt(0).toUpperCase() : 'C'}
+                      </div>
+                      <span className="font-semibold text-ink">{customer.name}</span>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-charcoal-light">
-                    <div>{customer.email}</div>
-                    <div className="text-xs mt-1">{customer.phone}</div>
+
+                  <td className="px-5 py-3.5">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1.5 font-mono text-xs text-ink">
+                        <Mail className="w-3.5 h-3.5 text-muted shrink-0" />
+                        <span>{customer.email}</span>
+                      </div>
+                      {customer.phone && (
+                        <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted">
+                          <Phone className="w-3.5 h-3.5 text-muted shrink-0" />
+                          <span>{customer.phone}</span>
+                        </div>
+                      )}
+                    </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-charcoal-light">
-                    {customer.ordersCount}
+
+                  <td className="px-5 py-3.5 font-mono font-bold text-ink">
+                    <div className="flex items-center gap-1.5">
+                      <ShoppingBag className="w-3.5 h-3.5 text-muted" />
+                      <span>{customer.ordersCount} orders</span>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium text-brand-600">
-                    ₹{customer.totalSpent.toLocaleString('en-IN')}
+
+                  <td className="px-5 py-3.5 font-mono font-bold text-accent text-sm">
+                    ₹{Number(customer.totalSpent || 0).toLocaleString('en-IN')}
                   </td>
-                  <td className="px-6 py-4 text-sm text-charcoal-light">
+
+                  <td className="px-5 py-3.5 font-mono text-muted">
                     {format(new Date(customer.lastOrderDate), 'MMM d, yyyy')}
                   </td>
                 </tr>
-              )}
-              {customers.length === 0 &&
-              <tr>
-                  <td
-                  colSpan={5}
-                  className="px-6 py-12 text-center text-charcoal-light">
+              ))}
 
-                    No customers found.
+              {customers.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-5 py-12 text-center text-xs font-mono text-muted">
+                    No customer records found yet. Customer profiles build automatically as orders arrive.
                   </td>
                 </tr>
-              }
+              )}
             </tbody>
           </table>
         </div>
-      </Card>
-    </div>);
-
+      </div>
+    </div>
+  );
 }
+
+export default Customers;

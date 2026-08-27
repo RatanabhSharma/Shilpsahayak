@@ -81,10 +81,7 @@ export function CustomService() {
   const selectedProduct = products.find((product) => product.id === productId);
   const selectedVariant = selectedProduct?.variants?.find((variant) => variant.id === variantId);
 
-  /* ---------------------------------------------------------------------- */
-  /* Service Mode & File State                                              */
-  /* ---------------------------------------------------------------------- */
-
+  /* Service Mode & File State */
   const [mode, setMode] = useState<ServiceMode>('3d-model');
   const [file, setFile] = useState<File | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -93,13 +90,10 @@ export function CustomService() {
   const [successMessage, setSuccessMessage] = useState('');
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
-  /* ---------------------------------------------------------------------- */
-  /* Print Settings                                                         */
-  /* ---------------------------------------------------------------------- */
-
+  /* Print Settings */
   const [material, setMaterial] = useState<MaterialType>('PLA');
   const [infoMaterialModal, setInfoMaterialModal] = useState<MaterialType | null>(null);
-  const [color, setColor] = useState('#FF6B1A');
+  const [color, setColor] = useState('#FF4D00');
   const [infill, setInfill] = useState(20);
   const [layerHeight, setLayerHeight] = useState(0.2);
   const [quantity, setQuantity] = useState(1);
@@ -384,43 +378,43 @@ export function CustomService() {
 
   if (authLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-28 bg-[#f4f2ef] dark:bg-[#0f172a] text-charcoal dark:text-slate-100 transition-colors duration-200">
-        <Loader2 className="h-10 w-10 animate-spin text-brand-500" />
-        <p className="mt-4 text-sm font-semibold text-charcoal dark:text-slate-200">Checking your account...</p>
+      <div className="flex flex-col items-center justify-center py-28 bg-paper text-ink">
+        <Loader2 className="h-10 w-10 animate-spin text-accent" />
+        <p className="mt-4 font-mono text-sm font-semibold text-ink">Checking your account...</p>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-[70vh] bg-[#f4f2ef] dark:bg-[#0f172a] flex items-center justify-center px-5 py-20 transition-colors duration-200">
-        <div className="mx-auto max-w-md rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center shadow-lg">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400">
+      <div className="min-h-[70vh] bg-paper flex items-center justify-center px-5 py-20">
+        <div className="mx-auto max-w-md rounded-3xl border border-line bg-white p-8 text-center shadow-card">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-soft text-accent">
             <Lock className="h-7 w-7" />
           </div>
 
-          <h1 className="mt-5 font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
+          <h1 className="mt-5 font-display text-2xl font-bold text-ink">
             Sign In to Upload 3D Files
           </h1>
 
-          <p className="mt-2.5 text-sm text-charcoal-light dark:text-slate-400 leading-relaxed">
+          <p className="mt-2.5 font-sans text-sm text-muted leading-relaxed">
             Please sign in to your Shilp Sahayak account so we can link your 3D models and quotes to your dashboard.
           </p>
 
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row justify-center">
+          <div className="mt-7 flex flex-col gap-3 sm:flex-row justify-center font-display">
             <Link
               to={`/login?redirect=${encodeURIComponent(
                 window.location.pathname + window.location.search
               )}`}
               className="w-full"
             >
-              <Button className="w-full font-bold">
+              <Button className="w-full font-bold bg-accent hover:bg-accent-dark text-white border-accent">
                 Sign In to Continue
               </Button>
             </Link>
-            <Link to="/register" className="w-full">
+            <Link to="/login" className="w-full">
               <Button variant="outline" className="w-full font-semibold">
-                Create Free Account
+                Create Account
               </Button>
             </Link>
           </div>
@@ -431,30 +425,30 @@ export function CustomService() {
 
   if (profileLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-28 bg-[#f4f2ef] dark:bg-[#0f172a] text-charcoal dark:text-slate-100 transition-colors duration-200">
-        <Loader2 className="h-10 w-10 animate-spin text-brand-500" />
-        <p className="mt-4 text-sm font-semibold text-charcoal dark:text-slate-200">Loading your profile...</p>
+      <div className="flex flex-col items-center justify-center py-28 bg-paper text-ink">
+        <Loader2 className="h-10 w-10 animate-spin text-accent" />
+        <p className="mt-4 font-mono text-sm font-semibold text-ink">Loading your profile...</p>
       </div>
     );
   }
 
   if (isSuccess) {
     return (
-      <div className="min-h-[70vh] bg-[#f4f2ef] dark:bg-[#0f172a] flex items-center justify-center px-5 py-20 transition-colors duration-200">
-        <div className="mx-auto max-w-lg rounded-3xl border border-emerald-200 dark:border-emerald-500/40 bg-white dark:bg-slate-900 p-8 text-center shadow-xl">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+      <div className="min-h-[70vh] bg-paper flex items-center justify-center px-5 py-20">
+        <div className="mx-auto max-w-lg rounded-3xl border border-emerald-200 bg-white p-8 text-center shadow-card">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
             <CheckCircle2 className="h-9 w-9" />
           </div>
 
-          <h1 className="mt-5 font-serif text-3xl font-bold text-charcoal dark:text-slate-100">
+          <h1 className="mt-5 font-display text-3xl font-bold text-ink">
             Request Received!
           </h1>
 
-          <p className="mt-3 text-sm text-charcoal-light dark:text-slate-400 leading-relaxed">
+          <p className="mt-3 font-sans text-sm text-muted leading-relaxed">
             {successMessage}
           </p>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row justify-center">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row justify-center font-display">
             <Button
               variant="outline"
               onClick={() => {
@@ -472,7 +466,7 @@ export function CustomService() {
             </Button>
 
             <Link to="/account">
-              <Button className="font-bold">
+              <Button className="font-bold bg-accent hover:bg-accent-dark text-white border-accent">
                 View My Quotes & Dashboard
               </Button>
             </Link>
@@ -483,51 +477,51 @@ export function CustomService() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f2ef] dark:bg-[#0f172a] text-charcoal dark:text-slate-100 transition-colors duration-200">
+    <div className="min-h-screen bg-paper text-ink">
       {/* 1. Header Section */}
-      <section className="border-b border-zinc-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
+      <section className="border-b border-line bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8 lg:px-10 lg:py-12">
           <div className="grid items-end gap-8 lg:grid-cols-12">
             <div className="lg:col-span-7">
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 dark:bg-brand-500/10 px-3 py-1 text-xs font-bold text-brand-600 dark:text-brand-400">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1 font-mono text-xs font-bold text-accent">
                 <Sparkles className="h-3.5 w-3.5" />
                 <span>Instant 3D Prototyping & Studio Fab</span>
               </div>
 
-              <h1 className="mt-3 font-serif text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl text-charcoal dark:text-slate-100">
+              <h1 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl text-ink">
                 Send the file. Get an instant quote.
               </h1>
 
-              <p className="mt-3 max-w-xl text-sm leading-relaxed text-charcoal-light dark:text-slate-400 sm:text-base">
+              <p className="mt-3 max-w-xl font-sans text-sm leading-relaxed text-muted sm:text-base">
                 Upload your 3D CAD model for live STL volume and pricing calculations. Our engineering makers verify tolerances before manufacturing.
               </p>
             </div>
 
             {/* Quick Specs Pill Badges */}
-            <div className="grid grid-cols-3 gap-3 rounded-2xl border border-zinc-200 dark:border-slate-800 bg-zinc-50/60 dark:bg-slate-800/80 p-4 lg:col-span-5">
+            <div className="grid grid-cols-3 gap-3 rounded-2xl border border-line bg-shell p-4 lg:col-span-5">
               <div>
-                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 block">
+                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block">
                   Build Envelope
                 </span>
-                <span className="font-serif text-xs sm:text-sm font-bold text-charcoal dark:text-slate-100">
+                <span className="font-display text-xs sm:text-sm font-bold text-ink">
                   300 × 300 × 350 mm
                 </span>
               </div>
 
               <div>
-                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 block">
+                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block">
                   Turnaround
                 </span>
-                <span className="font-serif text-xs sm:text-sm font-bold text-charcoal dark:text-slate-100">
+                <span className="font-display text-xs sm:text-sm font-bold text-ink">
                   24–48 Hours
                 </span>
               </div>
 
               <div>
-                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 block">
+                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block">
                   Supported Files
                 </span>
-                <span className="font-serif text-xs sm:text-sm font-bold text-charcoal dark:text-slate-100">
+                <span className="font-display text-xs sm:text-sm font-bold text-ink">
                   STL · OBJ · 3MF
                 </span>
               </div>
@@ -537,18 +531,18 @@ export function CustomService() {
       </section>
 
       {/* 2. Transparent Pricing Comparison Banner */}
-      <section className="bg-brand-50/60 dark:bg-brand-950/30 border-b border-brand-200/70 dark:border-brand-900/40 transition-colors">
+      <section className="bg-accent-soft border-b border-accent/20">
         <div className="mx-auto max-w-[1440px] px-5 py-4 sm:px-8 lg:px-10">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3 text-left">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-sm">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white shadow-sm">
                 <Zap className="h-5 w-5" />
               </div>
               <div>
-                <span className="font-serif text-sm font-bold text-charcoal dark:text-slate-100 block">
+                <span className="font-display text-sm font-bold text-ink block">
                   Transparent Per-Gram Pricing: Starting at ₹4.5/g vs Market ₹10–15/g
                 </span>
-                <span className="text-xs text-charcoal-light dark:text-slate-400">
+                <span className="font-sans text-xs text-muted">
                   No hidden slicing surcharge. Direct maker fabrication from our Patiala studio.
                 </span>
               </div>
@@ -558,7 +552,7 @@ export function CustomService() {
               href={whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 text-xs font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 underline"
+              className="shrink-0 font-mono text-xs font-bold text-accent hover:underline"
             >
               Need bulk / batch manufacturing? Chat on WhatsApp →
             </a>
@@ -569,12 +563,12 @@ export function CustomService() {
       {/* 3. Main Form & Sidebar */}
       <main className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8 lg:px-10">
         {selectedProduct && (
-          <div className="mb-8 rounded-2xl border border-brand-300 bg-brand-50/50 p-4 sm:p-5 flex items-center justify-between">
+          <div className="mb-8 rounded-2xl border border-accent/30 bg-accent-soft p-4 sm:p-5 flex items-center justify-between">
             <div>
-              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-brand-600">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent">
                 Customizing Product Base
               </span>
-              <h2 className="font-serif text-lg font-bold text-charcoal">
+              <h2 className="font-display text-lg font-bold text-ink">
                 {selectedProduct.name}
               </h2>
             </div>
@@ -588,12 +582,12 @@ export function CustomService() {
           {/* Left Column: Multi-Step Configuration */}
           <div className="lg:col-span-7 space-y-10">
             {/* STEP 01: Starting Method */}
-            <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm">
+            <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
               <div className="flex items-center gap-2.5 mb-5">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 font-mono text-xs font-bold text-white">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
                   1
                 </span>
-                <h2 className="font-serif text-xl font-bold text-charcoal dark:text-slate-100">
+                <h2 className="font-display text-xl font-bold text-ink">
                   What are you starting with?
                 </h2>
               </div>
@@ -628,19 +622,19 @@ export function CustomService() {
                       onClick={() => handleModeChange(item.id as ServiceMode)}
                       className={`rounded-2xl border p-4 text-left transition-all ${
                         isActive
-                          ? 'border-brand-500 bg-brand-50/70 dark:bg-brand-500/15 ring-2 ring-brand-500/20 shadow-sm'
-                          : 'border-zinc-200 dark:border-slate-800 bg-zinc-50/50 dark:bg-slate-800/60 hover:border-zinc-300 dark:hover:border-slate-700'
+                          ? 'border-accent bg-accent-soft ring-2 ring-accent/20 shadow-sm'
+                          : 'border-line bg-shell hover:border-accent/40'
                       }`}
                     >
                       <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${
-                        isActive ? 'bg-brand-500 text-white' : 'bg-zinc-200 dark:bg-slate-700 text-charcoal-light dark:text-slate-300'
+                        isActive ? 'bg-accent text-white' : 'bg-line text-muted'
                       }`}>
                         <Icon className="h-5 w-5" />
                       </div>
-                      <h3 className="mt-3 font-serif text-sm font-bold text-charcoal dark:text-slate-100">
+                      <h3 className="mt-3 font-display text-sm font-bold text-ink">
                         {item.title}
                       </h3>
-                      <p className="mt-0.5 text-xs text-charcoal-lighter dark:text-slate-400">
+                      <p className="mt-0.5 font-mono text-xs text-muted">
                         {item.desc}
                       </p>
                     </button>
@@ -650,12 +644,12 @@ export function CustomService() {
             </div>
 
             {/* STEP 02: Upload or Description */}
-            <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm">
+            <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
               <div className="flex items-center gap-2.5 mb-5">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 font-mono text-xs font-bold text-white">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
                   2
                 </span>
-                <h2 className="font-serif text-xl font-bold text-charcoal dark:text-slate-100">
+                <h2 className="font-display text-xl font-bold text-ink">
                   {mode === '3d-model'
                     ? 'Upload 3D CAD Geometry'
                     : mode === 'image'
@@ -682,29 +676,29 @@ export function CustomService() {
                     htmlFor="custom-file-input"
                     className={`flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all ${
                       file
-                        ? 'border-brand-500 bg-brand-50/40 dark:bg-brand-500/10'
-                        : 'border-zinc-300 dark:border-slate-700 bg-zinc-50/50 dark:bg-slate-800/40 hover:border-brand-400 hover:bg-brand-50/20 dark:hover:bg-brand-950/20'
+                        ? 'border-accent bg-accent-soft'
+                        : 'border-line bg-shell hover:border-accent hover:bg-accent-soft/30'
                     }`}
                   >
                     {file ? (
                       <div className="flex flex-col items-center">
-                        <FileBox className="h-10 w-10 text-brand-500" />
-                        <span className="mt-2 font-mono text-xs font-bold text-charcoal dark:text-slate-100 max-w-xs truncate">
+                        <FileBox className="h-10 w-10 text-accent" />
+                        <span className="mt-2 font-mono text-xs font-bold text-ink max-w-xs truncate">
                           {file.name}
                         </span>
-                        <span className="text-[11px] text-brand-600 dark:text-brand-400 mt-0.5">
+                        <span className="text-[11px] font-mono text-accent mt-0.5">
                           Click to replace file
                         </span>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center">
-                        <Upload className="h-10 w-10 text-charcoal-lighter dark:text-slate-400" />
-                        <span className="mt-2 text-sm font-bold text-charcoal dark:text-slate-100">
+                        <Upload className="h-10 w-10 text-muted" />
+                        <span className="mt-2 font-display text-sm font-bold text-ink">
                           {mode === '3d-model'
                             ? 'Drop STL, OBJ, 3MF or STEP file'
                             : 'Drop JPG, PNG, WEBP or PDF'}
                         </span>
-                        <span className="text-xs text-charcoal-lighter dark:text-slate-400 mt-1">
+                        <span className="text-xs text-muted font-sans mt-1">
                           Max file size: 100MB · Instant volume parsing for STL
                         </span>
                       </div>
@@ -715,7 +709,7 @@ export function CustomService() {
 
               {mode !== '3d-model' && (
                 <div className="mt-5 space-y-2">
-                  <label className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 block">
+                  <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block">
                     {mode === 'image' ? 'Design Instructions & Desired Dimensions' : 'Detailed Project Idea'}
                   </label>
                   <Textarea
@@ -733,13 +727,13 @@ export function CustomService() {
             </div>
 
             {/* STEP 03: Material Selection */}
-            <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm">
+            <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 font-mono text-xs font-bold text-white">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
                     3
                   </span>
-                  <h2 className="font-serif text-xl font-bold text-charcoal dark:text-slate-100">
+                  <h2 className="font-display text-xl font-bold text-ink">
                     Choose Material
                   </h2>
                 </div>
@@ -747,7 +741,7 @@ export function CustomService() {
                 <button
                   type="button"
                   onClick={() => setInfoMaterialModal('PLA')}
-                  className="inline-flex items-center gap-1 font-mono text-xs font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700"
+                  className="inline-flex items-center gap-1 font-mono text-xs font-bold text-accent hover:underline"
                 >
                   <HelpCircle className="h-3.5 w-3.5" />
                   <span>Material Guide</span>
@@ -763,8 +757,8 @@ export function CustomService() {
                       key={opt.id}
                       className={`relative rounded-2xl border p-4 transition-all ${
                         isActive
-                          ? 'border-brand-500 bg-brand-50/60 dark:bg-brand-500/15 ring-1 ring-brand-500 shadow-sm'
-                          : 'border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-zinc-300 dark:hover:border-slate-600'
+                          ? 'border-accent bg-accent-soft ring-1 ring-accent shadow-sm'
+                          : 'border-line bg-white hover:border-accent'
                       }`}
                     >
                       <button
@@ -773,19 +767,19 @@ export function CustomService() {
                         className="w-full text-left"
                       >
                         <div className="flex items-baseline justify-between pr-7">
-                          <span className="font-serif text-base font-bold text-charcoal dark:text-slate-100">
+                          <span className="font-display text-base font-bold text-ink">
                             {opt.name}
                           </span>
-                          <span className="font-mono text-xs font-bold text-brand-600 dark:text-brand-400">
+                          <span className="font-mono text-xs font-bold text-accent">
                             ₹{opt.rate}/g
                           </span>
                         </div>
 
-                        <p className="mt-1 text-xs text-charcoal-light dark:text-slate-400 line-clamp-1">
+                        <p className="mt-1 font-sans text-xs text-muted line-clamp-1">
                           {meta?.tagline || `Density ${opt.density} g/cc`}
                         </p>
 
-                        <div className="mt-2.5 flex items-center gap-2 text-[11px] font-mono text-charcoal-lighter dark:text-slate-500">
+                        <div className="mt-2.5 flex items-center gap-2 text-[11px] font-mono text-muted">
                           <span>{meta?.strength.split('·')[0] || 'Standard'}</span>
                           <span>•</span>
                           <span>{meta?.heatResistance || '55°C'}</span>
@@ -796,7 +790,7 @@ export function CustomService() {
                         type="button"
                         onClick={() => setInfoMaterialModal(opt.id)}
                         title={`View ${opt.name} details`}
-                        className="absolute top-3.5 right-3.5 flex h-6 w-6 items-center justify-center rounded-full bg-zinc-100 dark:bg-slate-700 text-charcoal-lighter dark:text-slate-300 hover:bg-brand-500 hover:text-white transition-colors"
+                        className="absolute top-3.5 right-3.5 flex h-6 w-6 items-center justify-center rounded-full bg-shell text-muted hover:bg-accent hover:text-white transition-colors"
                       >
                         <Info className="h-3.5 w-3.5" />
                       </button>
@@ -807,25 +801,25 @@ export function CustomService() {
             </div>
 
             {/* STEP 04: Slicing Parameters */}
-            <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm space-y-6">
+            <div className="rounded-3xl border border-line bg-white p-7 shadow-soft space-y-6">
               <div className="flex items-center gap-2.5">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 font-mono text-xs font-bold text-white">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
                   4
                 </span>
-                <h2 className="font-serif text-xl font-bold text-charcoal dark:text-slate-100">
+                <h2 className="font-display text-xl font-bold text-ink">
                   Print Parameters & Quantity
                 </h2>
               </div>
 
               {mode === '3d-model' && (
-                <div className="grid gap-6 sm:grid-cols-2 border-b border-zinc-100 dark:border-slate-800 pb-6">
+                <div className="grid gap-6 sm:grid-cols-2 border-b border-line pb-6">
                   {/* Infill */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400">
+                      <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted">
                         Infill Density: {infill}%
                       </label>
-                      <span className="text-[11px] font-semibold text-brand-600 dark:text-brand-400">
+                      <span className="font-mono text-[11px] font-semibold text-accent">
                         {infill <= 20
                           ? 'Standard / Decorative'
                           : infill <= 50
@@ -840,19 +834,19 @@ export function CustomService() {
                       step="5"
                       value={infill}
                       onChange={(e) => setInfill(Number(e.target.value))}
-                      className="w-full accent-brand-500 cursor-pointer"
+                      className="w-full accent-accent cursor-pointer"
                     />
                   </div>
 
                   {/* Layer Height */}
                   <div>
-                    <label className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 block mb-2">
+                    <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block mb-2">
                       Layer Resolution
                     </label>
                     <select
                       value={String(layerHeight)}
                       onChange={(e) => setLayerHeight(Number(e.target.value))}
-                      className="h-10 w-full rounded-xl border border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-xs font-semibold text-charcoal dark:text-slate-100 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                      className="h-10 w-full rounded-xl border border-line bg-white px-3 text-xs font-mono font-semibold text-ink outline-none focus:border-accent"
                     >
                       {LAYER_HEIGHT_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>
@@ -867,7 +861,7 @@ export function CustomService() {
               {/* Color & Quantity */}
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
-                  <label className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 block mb-2">
+                  <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block mb-2">
                     Primary Filament Color
                   </label>
                   <div className="flex items-center gap-3">
@@ -875,16 +869,16 @@ export function CustomService() {
                       type="color"
                       value={color}
                       onChange={(e) => setColor(e.target.value)}
-                      className="h-10 w-12 rounded-xl border border-zinc-200 dark:border-slate-700 p-1 cursor-pointer bg-white dark:bg-slate-800"
+                      className="h-10 w-12 rounded-xl border border-line p-1 cursor-pointer bg-white"
                     />
-                    <span className="font-mono text-xs font-bold text-charcoal dark:text-slate-100">
+                    <span className="font-mono text-xs font-bold text-ink">
                       {color.toUpperCase()}
                     </span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 block mb-2">
+                  <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block mb-2">
                     Print Quantity
                   </label>
                   <Input
@@ -898,7 +892,7 @@ export function CustomService() {
 
               {/* Dimensions for 2D/Idea mode */}
               {mode !== '3d-model' && (
-                <div className="grid grid-cols-3 gap-3 border-t border-zinc-100 dark:border-slate-800 pt-5">
+                <div className="grid grid-cols-3 gap-3 border-t border-line pt-5">
                   <Input
                     label="Length (mm)"
                     type="number"
@@ -927,8 +921,8 @@ export function CustomService() {
               )}
 
               {/* Special Notes */}
-              <div className="border-t border-zinc-100 dark:border-slate-800 pt-5">
-                <label className="font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 block mb-2">
+              <div className="border-t border-line pt-5">
+                <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block mb-2">
                   Special Finishing or Engineering Instructions (Optional)
                 </label>
                 <Textarea
@@ -941,12 +935,12 @@ export function CustomService() {
             </div>
 
             {/* STEP 05: Contact Details */}
-            <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm space-y-5">
+            <div className="rounded-3xl border border-line bg-white p-7 shadow-soft space-y-5">
               <div className="flex items-center gap-2.5">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 font-mono text-xs font-bold text-white">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
                   5
                 </span>
-                <h2 className="font-serif text-xl font-bold text-charcoal dark:text-slate-100">
+                <h2 className="font-display text-xl font-bold text-ink">
                   Your Contact Details
                 </h2>
               </div>
@@ -981,9 +975,9 @@ export function CustomService() {
           <aside className="lg:col-span-5">
             <div className="lg:sticky lg:top-28 space-y-6">
               {/* Estimate Calculation Card */}
-              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-md">
-                <div className="flex items-center justify-between border-b border-zinc-100 dark:border-slate-800 pb-4">
-                  <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
+                <div className="flex items-center justify-between border-b border-line pb-4">
+                  <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
                     Live Calculation
                   </span>
                   <Badge variant="default">Patiala Workshop</Badge>
@@ -991,44 +985,44 @@ export function CustomService() {
 
                 {isCalculating ? (
                   <div className="py-8 text-center space-y-3">
-                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-brand-500" />
-                    <p className="text-xs font-semibold text-charcoal dark:text-slate-200">
+                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-accent" />
+                    <p className="font-mono text-xs font-semibold text-ink">
                       Analyzing 3D STL mesh & volume...
                     </p>
                   </div>
                 ) : mode === '3d-model' && estimatedPrice !== null ? (
                   <div className="py-6 space-y-5">
                     <div>
-                      <span className="font-serif text-4xl font-bold text-charcoal dark:text-slate-100">
+                      <span className="font-mono text-4xl font-bold text-ink">
                         ₹{estimatedPrice.toLocaleString('en-IN')}
                       </span>
-                      <span className="text-xs text-charcoal-lighter dark:text-slate-400 block mt-1">
+                      <span className="font-sans text-xs text-muted block mt-1">
                         Includes base slicing fee + {quantity} × {material} ({infill}% infill)
                       </span>
                     </div>
 
-                    <div className="divide-y divide-zinc-100 dark:divide-slate-800 rounded-2xl border border-zinc-100 dark:border-slate-800 bg-zinc-50/50 dark:bg-slate-800/80 px-4 py-2 text-xs">
+                    <div className="divide-y divide-line rounded-2xl border border-line bg-shell px-4 py-2 text-xs font-sans">
                       <div className="flex justify-between py-2">
-                        <span className="text-charcoal-lighter dark:text-slate-400">Volume</span>
-                        <span className="font-mono font-bold text-charcoal dark:text-slate-100">
+                        <span className="text-muted">Volume</span>
+                        <span className="font-mono font-bold text-ink">
                           {volume?.toFixed(2)} cm³
                         </span>
                       </div>
                       <div className="flex justify-between py-2">
-                        <span className="text-charcoal-lighter dark:text-slate-400">Est. Weight</span>
-                        <span className="font-mono font-bold text-charcoal dark:text-slate-100">
+                        <span className="text-muted">Est. Weight</span>
+                        <span className="font-mono font-bold text-ink">
                           {estimatedWeight} g
                         </span>
                       </div>
                       <div className="flex justify-between py-2">
-                        <span className="text-charcoal-lighter dark:text-slate-400">Material Rate</span>
-                        <span className="font-mono font-bold text-charcoal dark:text-slate-100">
+                        <span className="text-muted">Material Rate</span>
+                        <span className="font-mono font-bold text-ink">
                           ₹{MATERIAL_CONFIG[material].pricePerGram}/g
                         </span>
                       </div>
                       <div className="flex justify-between py-2">
-                        <span className="text-charcoal-lighter dark:text-slate-400">Total Quantity</span>
-                        <span className="font-mono font-bold text-charcoal dark:text-slate-100">
+                        <span className="text-muted">Total Quantity</span>
+                        <span className="font-mono font-bold text-ink">
                           {quantity} pcs
                         </span>
                       </div>
@@ -1036,13 +1030,13 @@ export function CustomService() {
                   </div>
                 ) : (
                   <div className="py-6 text-center space-y-2">
-                    <Box className="mx-auto h-8 w-8 text-brand-500/60" />
-                    <p className="font-serif text-base font-bold text-charcoal dark:text-slate-100">
+                    <Box className="mx-auto h-8 w-8 text-accent/60" />
+                    <p className="font-display text-base font-bold text-ink">
                       {mode === '3d-model'
                         ? 'Upload an STL file to calculate cost'
                         : 'Manual Engineering Review'}
                     </p>
-                    <p className="text-xs text-charcoal-lighter dark:text-slate-400">
+                    <p className="font-sans text-xs text-muted">
                       {mode === '3d-model'
                         ? 'Live calculation computes per-gram weight and slicing tolerances.'
                         : 'Our team will review your photos or brief and provide a quote within 4 hours.'}
@@ -1051,13 +1045,13 @@ export function CustomService() {
                 )}
 
                 {/* Primary Action Buttons */}
-                <div className="space-y-3 pt-2">
+                <div className="space-y-3 pt-2 font-display">
                   {mode === '3d-model' && (
                     <Button
                       size="lg"
                       disabled={!file || estimatedPrice === null || isCalculating || isSubmitting}
                       onClick={handleAddToCart}
-                      className="w-full font-bold shadow-lg shadow-brand-500/20"
+                      className="w-full font-bold shadow-lg shadow-accent/20 bg-accent hover:bg-accent-dark text-white border-accent"
                     >
                       <ShoppingCart className="mr-2 h-4 w-4" />
                       {isSubmitting
@@ -1084,14 +1078,14 @@ export function CustomService() {
               </div>
 
               {/* NDA & Confidentiality Note */}
-              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-3">
+              <div className="rounded-3xl border border-line bg-white p-6 shadow-soft space-y-3">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-brand-500" />
-                  <h4 className="text-xs font-bold text-charcoal dark:text-slate-100">Confidentiality Guaranteed</h4>
+                  <ShieldCheck className="h-5 w-5 text-accent" />
+                  <h4 className="font-display text-xs font-bold text-ink">Confidentiality Guaranteed</h4>
                 </div>
-                <p className="text-xs text-charcoal-light dark:text-slate-400 leading-relaxed">
+                <p className="font-sans text-xs text-muted leading-relaxed">
                   Working on proprietary hardware or an unreleased invention? We protect your CAD intellectual property with standard NDA agreements.{' '}
-                  <Link to="/contact" className="font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 underline">
+                  <Link to="/contact" className="font-bold text-accent hover:underline font-mono">
                     Request an NDA
                   </Link>
                 </p>
@@ -1102,13 +1096,13 @@ export function CustomService() {
       </main>
 
       {/* 4. Engineering Info Section */}
-      <section className="border-t border-zinc-200 dark:border-slate-800 bg-[#f4f2ef] dark:bg-[#0f172a] py-16 transition-colors">
+      <section className="border-t border-line bg-shell py-16">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
           <div className="mb-8">
-            <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
               Workshop Best Practices
             </span>
-            <h3 className="mt-1 font-serif text-2xl font-bold text-charcoal dark:text-slate-100 sm:text-3xl">
+            <h3 className="mt-1 font-display text-2xl font-bold text-ink sm:text-3xl">
               Design for 3D Printing Guidelines
             </h3>
           </div>
@@ -1132,11 +1126,11 @@ export function CustomService() {
                 desc: 'Angles over 45 degrees require support structures. Chamfers are preferred over fillets at the base.',
               },
             ].map((tip) => (
-              <Card key={tip.title} className="p-6">
-                <h4 className="font-serif text-base font-bold text-charcoal dark:text-slate-100">
+              <Card key={tip.title} className="p-6 bg-white">
+                <h4 className="font-display text-base font-bold text-ink">
                   {tip.title}
                 </h4>
-                <p className="mt-2 text-xs leading-relaxed text-charcoal-light dark:text-slate-400">
+                <p className="mt-2 font-sans text-xs leading-relaxed text-muted">
                   {tip.desc}
                 </p>
               </Card>
@@ -1155,18 +1149,18 @@ export function CustomService() {
           onClick={() => setInfoMaterialModal(null)}
         >
           <div
-            className="relative w-full max-w-lg rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-2xl animate-in zoom-in-95"
+            className="relative w-full max-w-lg rounded-3xl border border-line bg-white p-7 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
                   Material Guide
                 </span>
-                <h3 id="material-modal-title" className="mt-1 font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
+                <h3 id="material-modal-title" className="mt-1 font-display text-2xl font-bold text-ink">
                   {MATERIAL_CONFIG[infoMaterialModal].label}
                 </h3>
-                <p className="text-xs text-charcoal-light dark:text-slate-400">
+                <p className="font-sans text-xs text-muted">
                   {MATERIAL_CONFIG[infoMaterialModal].tagline}
                 </p>
               </div>
@@ -1174,51 +1168,51 @@ export function CustomService() {
               <button
                 type="button"
                 onClick={() => setInfoMaterialModal(null)}
-                className="rounded-lg p-1.5 text-charcoal-lighter dark:text-slate-400 hover:text-charcoal dark:hover:text-slate-200 transition-colors"
+                className="rounded-lg p-1.5 text-muted hover:text-ink transition-colors"
                 aria-label="Close guide"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <p className="mt-4 text-xs leading-relaxed text-charcoal-light">
+            <p className="mt-4 font-sans text-xs leading-relaxed text-muted">
               {MATERIAL_CONFIG[infoMaterialModal].description}
             </p>
 
-            <div className="mt-5 divide-y divide-zinc-100 rounded-2xl border border-zinc-100 bg-zinc-50/60 px-4 py-1 text-xs">
+            <div className="mt-5 divide-y divide-line rounded-2xl border border-line bg-shell px-4 py-1 text-xs font-sans">
               <div className="flex justify-between py-2.5">
-                <span className="text-charcoal-lighter">Rate</span>
-                <span className="font-mono font-bold text-brand-600">
+                <span className="text-muted">Rate</span>
+                <span className="font-mono font-bold text-accent">
                   ₹{MATERIAL_CONFIG[infoMaterialModal].pricePerGram} / gram
                 </span>
               </div>
               <div className="flex justify-between py-2.5">
-                <span className="text-charcoal-lighter">Density</span>
-                <span className="font-mono text-charcoal">
+                <span className="text-muted">Density</span>
+                <span className="font-mono text-ink">
                   {MATERIAL_CONFIG[infoMaterialModal].density} g/cm³
                 </span>
               </div>
               <div className="flex justify-between py-2.5">
-                <span className="text-charcoal-lighter">Strength</span>
-                <span className="font-semibold text-charcoal">
+                <span className="text-muted">Strength</span>
+                <span className="font-semibold text-ink">
                   {MATERIAL_CONFIG[infoMaterialModal].strength}
                 </span>
               </div>
               <div className="flex justify-between py-2.5">
-                <span className="text-charcoal-lighter">Heat Deflection</span>
-                <span className="font-semibold text-charcoal">
+                <span className="text-muted">Heat Deflection</span>
+                <span className="font-semibold text-ink">
                   {MATERIAL_CONFIG[infoMaterialModal].heatResistance}
                 </span>
               </div>
               <div className="py-2.5">
-                <span className="text-charcoal-lighter block mb-0.5">Best For:</span>
-                <span className="font-semibold text-charcoal">
+                <span className="text-muted block mb-0.5">Best For:</span>
+                <span className="font-semibold text-ink">
                   {MATERIAL_CONFIG[infoMaterialModal].bestFor}
                 </span>
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-2.5">
+            <div className="mt-6 flex justify-end gap-2.5 font-display">
               <Button
                 type="button"
                 variant="outline"
@@ -1233,7 +1227,7 @@ export function CustomService() {
                   setMaterial(infoMaterialModal);
                   setInfoMaterialModal(null);
                 }}
-                className="font-bold"
+                className="font-bold bg-accent hover:bg-accent-dark text-white border-accent"
               >
                 Select {MATERIAL_CONFIG[infoMaterialModal].label}
               </Button>

@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-import { Button, Card, Input } from '../../components/ui';
 import { useProducts, Product } from '../../hooks/useProducts';
 import {
   DEFAULT_HOMEPAGE_SETTINGS,
@@ -219,21 +218,21 @@ export function AdminHome() {
     return (
       <div
         key={`${field}-${product.id}`}
-        className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 transition-colors ${
+        className={`flex items-center gap-3 rounded-lg border px-3.5 py-2.5 transition-colors ${
           selected
-            ? 'border-brand-300 dark:border-brand-500/40 bg-brand-50/70 dark:bg-brand-500/10'
-            : 'border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-800/80'
+            ? 'border-accent/40 bg-accent/5'
+            : 'border-line bg-white hover:border-line/80'
         }`}
       >
         <img
           src={product.image}
           alt=""
-          className="h-12 w-12 shrink-0 rounded-lg bg-surface dark:bg-slate-900 object-cover"
+          className="h-10 w-10 shrink-0 rounded-md bg-shell object-cover border border-line"
         />
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-charcoal dark:text-slate-100">{product.name}</p>
-          <p className="mt-0.5 text-xs text-charcoal-lighter dark:text-slate-400">
+          <p className="truncate text-xs font-semibold text-ink">{product.name}</p>
+          <p className="mt-0.5 text-[11px] font-mono text-muted">
             {product.category || 'Uncategorized'} · ₹{product.price.toLocaleString('en-IN')}
           </p>
         </div>
@@ -241,13 +240,13 @@ export function AdminHome() {
         <button
           type="button"
           onClick={() => toggleProduct(field, product.id)}
-          className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-medium transition-colors ${
+          className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors ${
             selected
-              ? 'border-brand-500 bg-brand-500 text-white hover:bg-brand-600'
-              : 'border-zinc-200 dark:border-slate-700 text-charcoal-light dark:text-slate-300 hover:bg-brand-50 dark:hover:bg-slate-700'
+              ? 'border-accent bg-accent text-white hover:bg-accent-dark'
+              : 'border-line bg-white text-muted hover:text-ink hover:bg-shell'
           }`}
         >
-          {selected ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+          {selected ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
           {selected ? 'Selected' : 'Add'}
         </button>
 
@@ -262,7 +261,7 @@ export function AdminHome() {
                   [field]: moveItem(current[field], index, -1),
                 }))
               }
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 dark:border-slate-700 text-charcoal-light dark:text-slate-300 disabled:cursor-not-allowed disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-slate-700"
+              className="flex h-7 w-7 items-center justify-center rounded-md border border-line text-muted disabled:cursor-not-allowed disabled:opacity-30 hover:bg-shell hover:text-ink"
               aria-label={`Move ${product.name} up`}
             >
               <ArrowUp className="h-3.5 w-3.5" />
@@ -276,7 +275,7 @@ export function AdminHome() {
                   [field]: moveItem(current[field], index, 1),
                 }))
               }
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 dark:border-slate-700 text-charcoal-light dark:text-slate-300 disabled:cursor-not-allowed disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-slate-700"
+              className="flex h-7 w-7 items-center justify-center rounded-md border border-line text-muted disabled:cursor-not-allowed disabled:opacity-30 hover:bg-shell hover:text-ink"
               aria-label={`Move ${product.name} down`}
             >
               <ArrowDown className="h-3.5 w-3.5" />
@@ -290,95 +289,110 @@ export function AdminHome() {
   if (productsLoading || settingsLoading) {
     return (
       <div className="flex h-64 items-center justify-center gap-3">
-        <Loader2 className="h-7 w-7 animate-spin text-brand-500" />
-        <span className="text-sm text-charcoal-light">Loading homepage controls...</span>
+        <Loader2 className="h-6 w-6 animate-spin text-accent" />
+        <span className="text-xs font-mono text-muted uppercase tracking-wider">Loading storefront settings...</span>
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-        Failed to load homepage settings. Please refresh and try again.
+      <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700">
+        Failed to load homepage configuration. Please refresh the page and try again.
       </div>
     );
   }
 
   return (
     <form onSubmit={save} className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-line pb-4">
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.15em] text-brand-500">Storefront</p>
-          <h1 className="mt-1 text-2xl font-serif font-bold text-charcoal dark:text-slate-100">Home Page</h1>
-          <p className="mt-1 text-sm text-charcoal-light dark:text-slate-400">
-            Control homepage promotions, products, categories and the announcement bar.
+          <span className="font-mono text-xs font-semibold uppercase tracking-wider text-accent block">
+            Storefront CMS
+          </span>
+          <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-ink">
+            Homepage Content Manager
+          </h1>
+          <p className="mt-1 text-xs text-muted">
+            Configure announcement ticker, hero carousel slides, featured product grids, and shop categories.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {showSuccess && (
-            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-600 dark:text-green-400">
-              <CheckCircle2 className="h-4 w-4" /> Saved
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Changes Saved
             </span>
           )}
           <Link
             to="/"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-charcoal dark:text-slate-100 hover:bg-zinc-100 dark:hover:bg-slate-700 transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3.5 py-2 text-xs font-semibold text-ink hover:bg-shell transition-colors shadow-xs"
           >
-            <Eye className="h-4 w-4" /> Preview storefront
+            <Eye className="h-3.5 w-3.5 text-muted" /> Preview Storefront
           </Link>
-          <Button type="submit" isLoading={updateHomepage.isPending}>
-            <Save className="mr-2 h-4 w-4" />
-            {updateHomepage.isPending ? 'Saving...' : 'Save Home Page'}
-          </Button>
+          <button
+            type="submit"
+            disabled={updateHomepage.isPending}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white hover:bg-accent-dark transition-colors shadow-xs shadow-accent/20 disabled:opacity-50"
+          >
+            {updateHomepage.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Save className="h-3.5 w-3.5" />
+            )}
+            {updateHomepage.isPending ? 'Saving...' : 'Save Configuration'}
+          </button>
         </div>
       </div>
 
-      <Card className="border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      {/* Announcement Bar Settings Card */}
+      <div className="rounded-xl border border-line bg-white p-6 shadow-xs space-y-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="font-serif text-lg font-semibold text-charcoal dark:text-slate-100">Announcement Bar</h2>
-            <p className="mt-1 max-w-2xl text-sm text-charcoal-light dark:text-slate-400">
-              Add one or more messages. Each message travels from right to left on its own, then the next message starts.
+            <h2 className="font-display text-base font-bold text-ink">Announcement Bar</h2>
+            <p className="mt-0.5 text-xs text-muted">
+              Add broadcast messages displayed at the top banner of the storefront.
             </p>
           </div>
           <button
             type="button"
             onClick={() => setForm((current) => ({ ...current, announcementEnabled: !current.announcementEnabled }))}
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-              form.announcementEnabled ? 'bg-green-50 dark:bg-green-500/15 text-green-700 dark:text-green-400' : 'bg-surface dark:bg-slate-800 text-charcoal-light dark:text-slate-400'
+            className={`rounded-full px-3 py-1 font-mono text-[11px] font-bold ${
+              form.announcementEnabled
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-shell text-muted border border-line'
             }`}
           >
-            {form.announcementEnabled ? 'Enabled' : 'Disabled'}
+            {form.announcementEnabled ? 'Status: Active' : 'Status: Disabled'}
           </button>
         </div>
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_280px]">
-          <div>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-semibold text-charcoal dark:text-slate-100">Messages</h3>
-                <p className="mt-0.5 text-xs text-charcoal-light dark:text-slate-400">Add multiple messages only when you need a sequence.</p>
-              </div>
+        <div className="grid gap-5 lg:grid-cols-[1fr_260px]">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-xs font-semibold uppercase tracking-wider text-muted">
+                Ticker Messages
+              </span>
               <button
                 type="button"
                 onClick={() => setForm((current) => ({ ...current, announcementMessages: [...current.announcementMessages, ''] }))}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-charcoal dark:text-slate-100 hover:bg-zinc-100 dark:hover:bg-slate-700"
+                className="inline-flex items-center gap-1 rounded-lg border border-line bg-white px-2.5 py-1 text-xs font-semibold text-ink hover:bg-shell"
               >
-                <Plus className="h-3.5 w-3.5" /> Add message
+                <Plus className="h-3.5 w-3.5 text-accent" /> Add Message
               </button>
             </div>
 
-            <div className="mt-3 space-y-2">
+            <div className="space-y-2">
               {form.announcementMessages.map((message, index) => (
-                <div key={`announcement-${index}`} className="flex items-start gap-2">
-                  <div className="flex h-10 w-8 shrink-0 items-center justify-center font-mono text-[10px] text-charcoal-lighter dark:text-slate-400">
+                <div key={`announcement-${index}`} className="flex items-center gap-2">
+                  <span className="font-mono text-[10px] font-bold text-muted w-5 text-center">
                     {index + 1}
-                  </div>
-                  <Input
-                    label={index === 0 ? 'Announcement text' : undefined}
+                  </span>
+                  <input
+                    type="text"
                     value={message}
                     onChange={(event) => setForm((current) => ({
                       ...current,
@@ -386,23 +400,35 @@ export function AdminHome() {
                         itemIndex === index ? event.target.value : item
                       ),
                     }))}
-                    placeholder="Free Pan-India shipping on orders over ₹499..."
-                    className="flex-1"
+                    placeholder="Free Pan-India shipping on custom 3D orders over ₹999..."
+                    className="flex-1 rounded-lg border border-line bg-white px-3 py-2 text-xs font-sans text-ink outline-none focus:border-accent"
                   />
-                  <div className="mt-1 flex shrink-0 items-center gap-1">
-                    <button type="button" disabled={index === 0}
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={index === 0}
                       onClick={() => setForm((current) => ({ ...current, announcementMessages: moveItem(current.announcementMessages, index, -1) }))}
-                      className="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 dark:border-slate-700 text-charcoal-light dark:text-slate-300 disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-slate-700" aria-label="Move announcement up">
+                      className="p-1.5 rounded border border-line text-muted disabled:opacity-30 hover:bg-shell hover:text-ink"
+                      aria-label="Move announcement up"
+                    >
                       <ArrowUp className="h-3.5 w-3.5" />
                     </button>
-                    <button type="button" disabled={index === form.announcementMessages.length - 1}
+                    <button
+                      type="button"
+                      disabled={index === form.announcementMessages.length - 1}
                       onClick={() => setForm((current) => ({ ...current, announcementMessages: moveItem(current.announcementMessages, index, 1) }))}
-                      className="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 dark:border-slate-700 text-charcoal-light dark:text-slate-300 disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-slate-700" aria-label="Move announcement down">
+                      className="p-1.5 rounded border border-line text-muted disabled:opacity-30 hover:bg-shell hover:text-ink"
+                      aria-label="Move announcement down"
+                    >
                       <ArrowDown className="h-3.5 w-3.5" />
                     </button>
-                    <button type="button" disabled={form.announcementMessages.length === 1}
+                    <button
+                      type="button"
+                      disabled={form.announcementMessages.length === 1}
                       onClick={() => setForm((current) => ({ ...current, announcementMessages: current.announcementMessages.filter((_, itemIndex) => itemIndex !== index) }))}
-                      className="flex h-9 w-9 items-center justify-center rounded-md border border-red-200 dark:border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 disabled:opacity-30" aria-label="Remove announcement">
+                      className="p-1.5 rounded border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-30"
+                      aria-label="Remove announcement"
+                    >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
@@ -411,56 +437,70 @@ export function AdminHome() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-zinc-200 dark:border-slate-800 bg-surface dark:bg-slate-800/60 px-4 py-4">
-            <label className="block text-sm font-medium text-charcoal dark:text-slate-100" htmlFor="announcement-duration">Scroll duration</label>
-            <p className="mt-1 text-xs leading-relaxed text-charcoal-light dark:text-slate-400">Higher duration means slower movement. The next message starts only after the current one finishes.</p>
-            <div className="mt-4 flex items-center gap-3">
-              <input id="announcement-duration" type="range" min={12} max={40} step={1} value={form.announcementDuration}
+          <div className="rounded-lg border border-line bg-shell p-4 space-y-2">
+            <label className="block text-xs font-semibold text-ink" htmlFor="announcement-duration">
+              Scroll Speed (Duration)
+            </label>
+            <p className="text-[11px] text-muted leading-relaxed">
+              Higher value means smoother, slower ticker movement across the header.
+            </p>
+            <div className="flex items-center gap-3 pt-2">
+              <input
+                id="announcement-duration"
+                type="range"
+                min={12}
+                max={40}
+                step={1}
+                value={form.announcementDuration}
                 onChange={(event) => setForm((current) => ({ ...current, announcementDuration: Number(event.target.value) }))}
-                className="w-full accent-[#ff6b1a]" />
-              <span className="w-16 text-right text-sm font-medium text-charcoal dark:text-slate-200">{form.announcementDuration}s</span>
+                className="w-full accent-[#ff4d00]"
+              />
+              <span className="font-mono text-xs font-bold text-ink w-10 text-right">{form.announcementDuration}s</span>
             </div>
           </div>
         </div>
-      </Card>
+      </div>
 
-      <Card className="border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      {/* Hero Carousel Slideshow Manager */}
+      <div className="rounded-xl border border-line bg-white p-6 shadow-xs space-y-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="font-serif text-lg font-semibold text-charcoal dark:text-slate-100">Hero Promotions</h2>
-            <p className="mt-1 max-w-3xl text-sm text-charcoal-light dark:text-slate-400">
-              Create promotional slides for new launches, sales, announcements and campaigns. These are independent of products in the catalog.
+            <h2 className="font-display text-base font-bold text-ink">Hero Carousel Slides</h2>
+            <p className="mt-0.5 text-xs text-muted">
+              Customize promotional hero banners, campaign graphics, and feature launches.
             </p>
           </div>
-          <Button type="button" onClick={addHeroSlide}>
-            <Plus className="mr-2 h-4 w-4" /> Add slide
-          </Button>
+          <button
+            type="button"
+            onClick={addHeroSlide}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 font-sans text-xs font-semibold text-white hover:bg-accent-dark transition-colors shadow-xs shadow-accent/20"
+          >
+            <Plus className="h-3.5 w-3.5" /> Add Slide
+          </button>
         </div>
 
-        <div className="mt-5 grid gap-4 lg:grid-cols-2">
-          <div className="flex items-center justify-between rounded-xl border border-zinc-200 dark:border-slate-800 bg-surface dark:bg-slate-800/60 px-4 py-3">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="flex items-center justify-between rounded-lg border border-line bg-shell px-4 py-3">
             <div>
-              <p className="text-sm font-medium text-charcoal dark:text-slate-100">Automatic slideshow</p>
-              <p className="mt-0.5 text-xs text-charcoal-light dark:text-slate-400">Automatically move through enabled slides.</p>
+              <p className="text-xs font-semibold text-ink">Autoplay Slideshow</p>
+              <p className="text-[11px] text-muted">Automatically cycle through enabled slides.</p>
             </div>
             <button
               type="button"
-              onClick={() =>
-                setForm((current) => ({ ...current, heroAutoplay: !current.heroAutoplay }))
-              }
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                form.heroAutoplay ? 'bg-green-50 dark:bg-green-500/15 text-green-700 dark:text-green-400' : 'bg-surface dark:bg-slate-800 text-charcoal-light dark:text-slate-400'
+              onClick={() => setForm((current) => ({ ...current, heroAutoplay: !current.heroAutoplay }))}
+              className={`rounded-full px-3 py-1 font-mono text-[10px] font-bold ${
+                form.heroAutoplay ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-white text-muted border border-line'
               }`}
             >
               {form.heroAutoplay ? 'Enabled' : 'Disabled'}
             </button>
           </div>
 
-          <div className="rounded-xl border border-zinc-200 dark:border-slate-800 bg-surface dark:bg-slate-800/60 px-4 py-3">
-            <label className="block text-sm font-medium text-charcoal dark:text-slate-100" htmlFor="hero-interval">
-              Slide duration
+          <div className="rounded-lg border border-line bg-shell px-4 py-3">
+            <label className="block text-xs font-semibold text-ink" htmlFor="hero-interval">
+              Slide Transition Interval
             </label>
-            <div className="mt-2 flex items-center gap-3">
+            <div className="mt-1 flex items-center gap-3">
               <input
                 id="hero-interval"
                 type="range"
@@ -474,9 +514,9 @@ export function AdminHome() {
                     heroInterval: Number(event.target.value),
                   }))
                 }
-                className="w-full accent-[#ff6b1a]"
+                className="w-full accent-[#ff4d00]"
               />
-              <span className="w-20 text-right text-sm font-medium text-charcoal dark:text-slate-200">
+              <span className="font-mono text-xs font-bold text-ink w-12 text-right">
                 {(form.heroInterval / 1000).toFixed(1)}s
               </span>
             </div>
@@ -484,32 +524,29 @@ export function AdminHome() {
         </div>
 
         {form.heroSlides.length === 0 ? (
-          <div className="mt-5 rounded-lg border border-dashed border-brand-200 bg-surface px-6 py-12 text-center">
-            <p className="text-sm font-medium text-charcoal">No hero slides yet.</p>
-            <p className="mt-1 text-xs text-charcoal-light">
-              Add a slide for a new arrival, sale, campaign or important announcement.
-            </p>
+          <div className="rounded-lg border border-dashed border-line bg-shell px-6 py-10 text-center font-mono text-xs text-muted">
+            No hero slides created yet. Click "Add Slide" to begin.
           </div>
         ) : (
-          <div className="mt-5 space-y-5">
+          <div className="space-y-4">
             {form.heroSlides.map((slide, index) => (
-              <Card key={slide.id} className="border border-brand-100 p-5 shadow-none">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-[0.15em] text-brand-500">
-                      Slide {index + 1}
-                    </p>
-                    <p className="mt-1 text-sm text-charcoal-light">
-                      {slide.title || 'Untitled promotion'}
-                    </p>
+              <div key={slide.id} className="rounded-lg border border-line bg-paper p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-line pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-accent">
+                      Slide #{index + 1}
+                    </span>
+                    <span className="text-xs font-semibold text-ink truncate max-w-[200px]">
+                      {slide.title || 'Untitled Banner'}
+                    </span>
                   </div>
 
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     <button
                       type="button"
                       disabled={index === 0}
                       onClick={() => moveHeroSlide(index, -1)}
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-brand-100 text-charcoal-light disabled:opacity-30"
+                      className="p-1 rounded border border-line text-muted disabled:opacity-30 hover:bg-white hover:text-ink"
                       aria-label="Move slide up"
                     >
                       <ArrowUp className="h-3.5 w-3.5" />
@@ -518,7 +555,7 @@ export function AdminHome() {
                       type="button"
                       disabled={index === form.heroSlides.length - 1}
                       onClick={() => moveHeroSlide(index, 1)}
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-brand-100 text-charcoal-light disabled:opacity-30"
+                      className="p-1 rounded border border-line text-muted disabled:opacity-30 hover:bg-white hover:text-ink"
                       aria-label="Move slide down"
                     >
                       <ArrowDown className="h-3.5 w-3.5" />
@@ -526,7 +563,7 @@ export function AdminHome() {
                     <button
                       type="button"
                       onClick={() => removeHeroSlide(slide.id)}
-                      className="ml-1 flex h-8 w-8 items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+                      className="p-1 rounded border border-rose-200 text-rose-600 hover:bg-rose-50"
                       aria-label="Delete slide"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -534,57 +571,77 @@ export function AdminHome() {
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-                  <div className="space-y-4">
-                    <Input
-                      label="Small label"
-                      value={slide.eyebrow}
-                      onChange={(event) => updateHeroSlide(slide.id, 'eyebrow', event.target.value)}
-                      placeholder="NEW ARRIVAL / SALE / ANNOUNCEMENT"
-                    />
-                    <Input
-                      label="Main heading"
-                      value={slide.title}
-                      onChange={(event) => updateHeroSlide(slide.id, 'title', event.target.value)}
-                      placeholder="Summer Print Sale"
-                      required
-                    />
+                <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+                  <div className="space-y-3">
                     <div>
-                      <label className="mb-1.5 block text-xs font-medium text-charcoal">Description</label>
+                      <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                        Eyebrow Label
+                      </label>
+                      <input
+                        type="text"
+                        value={slide.eyebrow}
+                        onChange={(event) => updateHeroSlide(slide.id, 'eyebrow', event.target.value)}
+                        placeholder="BESPOKE FABRICATION"
+                        className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs text-ink outline-none focus:border-accent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                        Heading Title *
+                      </label>
+                      <input
+                        type="text"
+                        value={slide.title}
+                        onChange={(event) => updateHeroSlide(slide.id, 'title', event.target.value)}
+                        placeholder="Custom 3D Fabrication"
+                        required
+                        className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-ink outline-none focus:border-accent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                        Description
+                      </label>
                       <textarea
                         value={slide.description}
                         onChange={(event) => updateHeroSlide(slide.id, 'description', event.target.value)}
-                        placeholder="Up to 20% off selected pieces this week."
-                        rows={4}
-                        className="w-full rounded-lg border border-brand-200 bg-white px-3 py-2.5 text-sm text-charcoal outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10"
+                        placeholder="Precision layered engineering..."
+                        rows={3}
+                        className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs text-ink outline-none focus:border-accent"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div>
-                      <Input
-                        label="Hero image URL"
+                      <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                        Image URL
+                      </label>
+                      <input
+                        type="url"
                         value={slide.image}
                         onChange={(event) => updateHeroSlide(slide.id, 'image', event.target.value)}
                         placeholder="https://..."
-                        type="url"
+                        className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs font-mono text-ink outline-none focus:border-accent"
                       />
-                      {/* Curated quick preset image picker */}
-                      <div className="mt-2.5 space-y-1.5">
-                        <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">
-                          Curated Workshop Presets:
+
+                      {/* Curated quick preset picker */}
+                      <div className="mt-2 space-y-1">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted">
+                          Curated Presets:
                         </span>
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-1">
                           {CURATED_HERO_PRESETS.map((preset) => (
                             <button
                               key={preset.label}
                               type="button"
                               onClick={() => updateHeroSlide(slide.id, 'image', preset.url)}
-                              className={`rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                              className={`rounded border px-2 py-0.5 text-[10px] font-medium transition-colors ${
                                 slide.image === preset.url
-                                  ? 'border-brand-500 bg-brand-500/15 text-brand-600 dark:text-brand-400 font-bold'
-                                  : 'border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-charcoal-light dark:text-slate-300 hover:border-brand-400 dark:hover:border-brand-500'
+                                  ? 'border-accent bg-accent/10 text-accent font-bold'
+                                  : 'border-line bg-white text-muted hover:border-accent/40'
                               }`}
                             >
                               {preset.label}
@@ -595,107 +652,126 @@ export function AdminHome() {
                     </div>
 
                     {slide.image ? (
-                      <div className="overflow-hidden rounded-xl border border-brand-100 dark:border-slate-800 bg-surface dark:bg-slate-950">
-                        <img src={slide.image} alt="" className="aspect-[16/9] w-full object-cover" />
+                      <div className="overflow-hidden rounded-lg border border-line bg-shell">
+                        <img src={slide.image} alt="" className="aspect-[21/9] w-full object-cover" />
                       </div>
                     ) : (
-                      <div className="flex aspect-[16/9] items-center justify-center rounded-xl border border-dashed border-brand-200 dark:border-slate-700 bg-surface dark:bg-slate-800/60 text-xs text-charcoal-light dark:text-slate-400">
-                        Add an image URL or choose a preset to preview.
+                      <div className="flex aspect-[21/9] items-center justify-center rounded-lg border border-dashed border-line bg-shell text-[11px] text-muted font-mono">
+                        No image preview available
                       </div>
                     )}
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <Input
-                        label="Button text"
-                        value={slide.buttonText}
-                        onChange={(event) => updateHeroSlide(slide.id, 'buttonText', event.target.value)}
-                        placeholder="Shop now"
-                      />
-                      <Input
-                        label="Button link"
-                        value={slide.buttonLink}
-                        onChange={(event) => updateHeroSlide(slide.id, 'buttonLink', event.target.value)}
-                        placeholder="/catalog"
-                      />
+
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-[10px] font-mono text-muted mb-1">Button Text</label>
+                        <input
+                          type="text"
+                          value={slide.buttonText}
+                          onChange={(event) => updateHeroSlide(slide.id, 'buttonText', event.target.value)}
+                          placeholder="Shop Now"
+                          className="w-full rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs text-ink outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-mono text-muted mb-1">Button Link</label>
+                        <input
+                          type="text"
+                          value={slide.buttonLink}
+                          onChange={(event) => updateHeroSlide(slide.id, 'buttonLink', event.target.value)}
+                          placeholder="/catalog"
+                          className="w-full rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs text-ink outline-none"
+                        />
+                      </div>
                     </div>
+
                     <button
                       type="button"
                       onClick={() => updateHeroSlide(slide.id, 'enabled', !slide.enabled)}
-                      className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
-                        slide.enabled ? 'bg-green-50 dark:bg-green-500/15 text-green-700 dark:text-green-400' : 'bg-surface dark:bg-slate-800 text-charcoal-light dark:text-slate-400'
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-[10px] font-bold ${
+                        slide.enabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-shell text-muted border border-line'
                       }`}
                     >
-                      {slide.enabled ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                      {slide.enabled ? 'Visible on storefront' : 'Hidden on storefront'}
+                      {slide.enabled ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                      {slide.enabled ? 'Visible on Storefront' : 'Hidden on Storefront'}
                     </button>
                   </div>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         )}
-      </Card>
+      </div>
 
+      {/* Featured Products & Shop Categories Sections */}
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card className="border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
-          <div className="mb-5">
-            <h2 className="font-serif text-lg font-semibold text-charcoal dark:text-slate-100">Homepage Product Sections</h2>
-            <p className="mt-1 text-sm text-charcoal-light dark:text-slate-400">
-              Control the products shown in the stocked-products section and the lower workshop grid independently.
+        {/* Featured Products Card */}
+        <div className="rounded-xl border border-line bg-white p-6 shadow-xs space-y-4">
+          <div>
+            <h2 className="font-display text-base font-bold text-ink">Featured Product Sections</h2>
+            <p className="mt-0.5 text-xs text-muted">
+              Select which products appear in the featured homepage showcases.
             </p>
           </div>
 
-          <div>
-            <h3 className="text-sm font-semibold text-charcoal dark:text-slate-100">Pieces We Keep Stocked</h3>
-            <p className="mt-1 text-xs text-charcoal-light dark:text-slate-400">Select and order the products for the main featured section.</p>
-            <div className="mt-3 space-y-2">
+          <div className="space-y-2">
+            <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-accent">
+              Section 1: Stocked Items Showcase
+            </h3>
+            <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
               {activeProducts.map((product) => renderProductRow(product, 'featuredProductIds'))}
             </div>
           </div>
 
-          <div className="mt-8 border-t border-zinc-200 dark:border-slate-800 pt-6">
-            <h3 className="text-sm font-semibold text-charcoal dark:text-slate-100">More From the Workshop</h3>
-            <p className="mt-1 text-xs text-charcoal-light dark:text-slate-400">Select and order the products for the lower homepage grid.</p>
-            <div className="mt-3 space-y-2">
+          <div className="pt-4 border-t border-line space-y-2">
+            <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-accent">
+              Section 2: Secondary Workshop Grid
+            </h3>
+            <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
               {activeProducts.map((product) => renderProductRow(product, 'selectedProductIds'))}
             </div>
           </div>
-        </Card>
+        </div>
 
-        <Card className="border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
-          <div className="mb-5">
-            <h2 className="font-serif text-lg font-semibold text-charcoal dark:text-slate-100">Shop by Category</h2>
-            <p className="mt-1 text-sm text-charcoal-light dark:text-slate-400">
-              Select the categories and their order on the homepage. Category images continue to come from the product catalog.
+        {/* Categories Card */}
+        <div className="rounded-xl border border-line bg-white p-6 shadow-xs space-y-4">
+          <div>
+            <h2 className="font-display text-base font-bold text-ink">Shop by Category Order</h2>
+            <p className="mt-0.5 text-xs text-muted">
+              Toggle categories to display on the storefront homepage and set their presentation sequence.
             </p>
           </div>
 
           {availableCategories.length === 0 ? (
-            <p className="py-8 text-center text-sm text-charcoal-light dark:text-slate-400">Create products with categories first.</p>
+            <p className="py-8 text-center text-xs font-mono text-muted">
+              No categories found. Add products with categories in the catalog first.
+            </p>
           ) : (
-            <div className="grid gap-2">
+            <div className="space-y-2">
               {availableCategories.map((category) => {
                 const selected = form.categoryNames.includes(category);
                 const index = form.categoryNames.indexOf(category);
                 return (
                   <div
                     key={category}
-                    className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${
+                    className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${
                       selected
-                        ? 'border-brand-300 dark:border-brand-500/40 bg-brand-50/70 dark:bg-brand-500/10'
-                        : 'border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-800/80'
+                        ? 'border-accent/40 bg-accent/5'
+                        : 'border-line bg-white'
                     }`}
                   >
                     <button
                       type="button"
                       onClick={() => toggleCategory(category)}
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${
-                        selected ? 'border-brand-500 bg-brand-500 text-white' : 'border-zinc-200 dark:border-slate-700 text-transparent'
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded border ${
+                        selected
+                          ? 'border-accent bg-accent text-white font-bold'
+                          : 'border-line text-transparent'
                       }`}
                       aria-label={`${selected ? 'Remove' : 'Add'} ${category}`}
                     >
-                      <span className="text-sm">✓</span>
+                      <span className="text-xs">✓</span>
                     </button>
-                    <span className="flex-1 text-sm font-medium text-charcoal dark:text-slate-100">{category}</span>
+                    <span className="flex-1 text-xs font-semibold text-ink">{category}</span>
                     {selected && (
                       <div className="flex gap-1">
                         <button
@@ -707,7 +783,7 @@ export function AdminHome() {
                               categoryNames: moveItem(current.categoryNames, index, -1),
                             }))
                           }
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 dark:border-slate-700 text-charcoal-light dark:text-slate-300 disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-slate-700"
+                          className="p-1 rounded border border-line text-muted disabled:opacity-30 hover:bg-shell"
                         >
                           <ArrowUp className="h-3 w-3" />
                         </button>
@@ -720,7 +796,7 @@ export function AdminHome() {
                               categoryNames: moveItem(current.categoryNames, index, 1),
                             }))
                           }
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 dark:border-slate-700 text-charcoal-light dark:text-slate-300 disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-slate-700"
+                          className="p-1 rounded border border-line text-muted disabled:opacity-30 hover:bg-shell"
                         >
                           <ArrowDown className="h-3 w-3" />
                         </button>
@@ -731,7 +807,7 @@ export function AdminHome() {
               })}
             </div>
           )}
-        </Card>
+        </div>
       </div>
     </form>
   );

@@ -1,94 +1,138 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowRight,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Layers,
   MessageSquare,
   ShieldCheck,
+  Cpu,
   Sparkles,
+  ArrowRight,
+  UploadCloud,
+  Sliders,
+  Package,
+  Building2,
   Star,
-  Truck,
-  CheckCircle2,
 } from 'lucide-react';
 
 import { useProducts } from '../../hooks/useProducts';
 import { useHomepage } from '../../hooks/useHomepage';
 import { useSettings } from '../../hooks/useSettings';
-import { Button, Card } from '../../components/ui';
+import { useReviews, useAddReview } from '../../hooks/useReviews';
+import { Card } from '../../components/ui';
+import { ProductCard } from '../../components/product/ProductCard';
 import { FeaturedProductSkeleton } from '../../components/loading/ProductSkeleton';
 
-const CUSTOMER_REVIEWS = [
+/* ============================================================
+   4 VERIFIED STUDIO ADVANTAGES (NO FABRICATED NUMBERS/CLAIMS)
+   ============================================================ */
+const STUDIO_ADVANTAGES = [
   {
-    id: 'rev-1',
-    name: 'Aarav Mehta',
-    location: 'Bangalore, KA',
-    rating: 5,
-    date: 'Verified Buyer',
-    productName: 'Custom Lithophane Ambient Lamp',
-    text: 'The detail on the lithophane lamp is astonishing! When you turn the light on, my family photo shines with so much depth. Arrived safely bubble-wrapped within 3 days.',
+    icon: Cpu,
+    title: 'High-Detail 3D Fabrication',
+    description: 'Precision FDM and SLA additive manufacturing delivering clean layer resolution and geometric accuracy.',
   },
   {
-    id: 'rev-2',
-    name: 'Pooja Sundaram',
-    location: 'Mumbai, MH',
-    rating: 5,
-    date: 'Verified Buyer',
-    productName: 'DOOM RGB Gaming Lightbox',
-    text: 'Super high quality finish! No visible layer flaws, the colors are rich, and the RGB lighting is bright. Looks phenomenal on my desk setup.',
+    icon: Layers,
+    title: 'Versatile Material Range',
+    description: 'A comprehensive selection of polymers including rigid PLA, impact-resistant PETG, engineering ABS, and ultra-fine UV resin.',
   },
   {
-    id: 'rev-3',
-    name: 'Vikramjit Singh',
-    location: 'Chandigarh, PB',
-    rating: 5,
-    date: 'Verified Buyer',
-    productName: 'Desktop Cable & Pen Organizer',
-    text: 'Sturdy PETG material with clean geometric lines. Holds my stationeries and phone perfectly. Direct studio pricing made it a no-brainer.',
+    icon: ShieldCheck,
+    title: 'Manual Quality Inspection',
+    description: 'Every printed piece undergoes individual surface tolerance checks and careful hand finishing before packaging.',
+  },
+  {
+    icon: UploadCloud,
+    title: 'Custom On-Demand Production',
+    description: 'Upload your own CAD STL/OBJ files or collaborate on bespoke ideas for single prototypes and batch production.',
   },
 ];
 
-const WHY_US_STATS = [
-  { label: 'Base Print Rate', value: '₹4.5/g', note: 'vs. ₹10–15/g industry avg.' },
-  { label: 'Layer Precision', value: '±0.1 mm', note: 'Micron-grade FDM calibration' },
-  { label: 'Dispatch Time', value: '24–48 h', note: 'After order confirmation' },
-  { label: 'Free Shipping', value: '₹499+', note: 'Pan-India courier included' },
+/* ============================================================
+   4-STEP PROCESS (HOW IT WORKS)
+   ============================================================ */
+const HOW_IT_WORKS_STEPS = [
+  {
+    step: '01',
+    title: 'Choose or Upload',
+    description: 'Select an artisan piece from our curated catalog or upload your custom 3D model (STL, OBJ, 3MF).',
+    icon: UploadCloud,
+  },
+  {
+    step: '02',
+    title: 'Customize & Configure',
+    description: 'Select your preferred material, color finish, layer resolution, and infill density for your application.',
+    icon: Sliders,
+  },
+  {
+    step: '03',
+    title: 'Precision Fabrication',
+    description: 'Our workshop machines fabricate your object layer by layer with continuous monitoring.',
+    icon: Cpu,
+  },
+  {
+    step: '04',
+    title: 'Inspection & Delivery',
+    description: 'Each piece is hand-inspected, packed with protective padding, and dispatched via tracked express courier.',
+    icon: Package,
+  },
 ];
 
 const FAQ_ITEMS = [
   {
     q: 'What file formats do you accept for custom 3D printing?',
-    a: 'We accept STL, OBJ, and 3MF formats. STL is the most common export from any CAD software (Fusion 360, SolidWorks, TinkerCAD). If you only have a reference image or idea, our studio can handle ideation-to-print as well.',
+    a: 'We accept standard 3D CAD files including STL, OBJ, and 3MF formats. If you have a reference photograph, technical drawing, or concept idea, our workshop team can assist with 3D modeling.',
   },
   {
-    q: 'How is the custom print price calculated?',
-    a: 'Pricing is transparent and weight-based: (Volume × Density × Infill Factor × Material Rate) + ₹100 base fee. For PLA at ₹4.5/g with 20% infill, our calculator gives you an exact figure the moment your STL is uploaded — no hidden surcharges.',
+    q: 'How is the custom print estimate calculated?',
+    a: 'Pricing is based transparently on calculated model volume, material density, chosen infill factor, material rate per gram, and a base setup fee. Our instant slicer provides an estimate the moment you upload your file.',
   },
   {
-    q: 'Which materials are available and when should I use each?',
-    a: 'PLA is best for display pieces and gifts. PETG for food-safe containers and moderate heat. ABS for high-temperature and impact parts. Silk PLA for premium aesthetic finishes. UV Resin for ultra-fine detail miniatures. Wood PLA for an organic, wood-grain effect.',
+    q: 'Which materials are available and when should I choose each?',
+    a: 'PLA is ideal for detailed aesthetic display objects, lithophanes, and home decor. PETG provides superior impact and heat resistance for functional components. UV photopolymer resin delivers smooth injection-mold quality detail for intricate miniatures.',
   },
   {
-    q: 'Do you ship pan-India? How long does delivery take?',
-    a: 'Yes — we ship to all 29 states and 7 UTs via tracked courier. Standard prints dispatch in 24–48 hours of order confirmation. Delivery is typically 3–7 business days depending on your pin code. Shipping is free on all orders above ₹499.',
+    q: 'Do you deliver across India?',
+    a: 'Yes, we ship to all serviceable pin codes across India via tracked courier partners. Orders qualifying for our configured threshold receive free shipping, and tracking details are provided upon dispatch.',
   },
   {
-    q: 'Is my CAD file kept confidential?',
-    a: 'Absolutely. All STL files and design files shared with us are handled with complete confidentiality. We do not share, publish, or reproduce your designs without written permission. NDA-protected service available for enterprise clients.',
+    q: 'Are custom CAD files kept confidential?',
+    a: 'Yes. Customer designs and 3D files are treated with strict confidentiality, processed on secure servers, and are never shared or manufactured for others without explicit consent.',
   },
   {
-    q: 'Can I order in bulk for events, colleges, or businesses?',
-    a: 'Yes! We specialize in small-to-medium production batches (10–500+ pieces). College projects, robotics teams, corporate gifting, retail brand merchandise — reach out via WhatsApp or the contact form for custom bulk pricing.',
+    q: 'Do you offer bulk corporate and event solutions?',
+    a: 'Yes. We cater to corporate welcome kits, custom merchandise, branded desk items, and commemorative trophies with volume pricing tiers.',
   },
 ];
+
+/* Helper Organic Wave Divider Component */
+function OrganicWaveDivider({ fill = '#FAF9F6', flip = false }: { fill?: string; flip?: boolean }) {
+  return (
+    <div className={`w-full overflow-hidden leading-none select-none -mb-1 ${flip ? 'rotate-180' : ''}`}>
+      <svg
+        className="relative block w-full h-[40px] sm:h-[70px] lg:h-[90px]"
+        viewBox="0 0 1440 180"
+        preserveAspectRatio="none"
+      >
+        <path
+          d="M0,64L48,80C96,96,192,128,288,128C384,128,480,96,576,85.3C672,75,768,85,864,106.7C960,128,1056,160,1152,160C1248,160,1344,128,1392,112L1440,96L1440,180L1392,180C1344,180,1248,180,1152,180C1056,180,960,180,864,180C768,180,672,180,576,180C480,180,384,180,288,180C192,180,96,180,48,180L0,180Z"
+          fill={fill}
+        />
+      </svg>
+    </div>
+  );
+}
 
 export function Home() {
   const { data: products = [], isLoading } = useProducts();
   const { data: homepageSettings } = useHomepage();
   const { data: settings } = useSettings();
+  const { data: reviews = [] } = useReviews();
+  const addReviewMutation = useAddReview();
 
   const whatsappNumber = settings?.whatsappNumber || '919876543210';
   const whatsappLink = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}`;
@@ -98,23 +142,58 @@ export function Home() {
     [products]
   );
 
-  const featuredProducts = useMemo(() => {
-    const configuredIds = homepageSettings?.featuredProductIds ?? [];
+  /* Dynamic Hero Slides from Firestore Settings (Max 3 slides) */
+  const heroSlides = useMemo(() => {
+    const configuredSlides = (homepageSettings?.heroSlides || []).filter((s) => s.enabled).slice(0, 3);
+    if (configuredSlides.length > 0) {
+      return configuredSlides;
+    }
+    return activeProducts.slice(0, 3).map((product, idx) => ({
+      id: product.id || `slide-${idx}`,
+      eyebrow: 'CUSTOM 3D FABRICATION & STUDIO GOODS',
+      title: product.name,
+      description: product.description,
+      image: product.image,
+      buttonText: 'EXPLORE CATALOG',
+      buttonLink: `/product/${product.id}`,
+    }));
+  }, [homepageSettings?.heroSlides, activeProducts]);
 
+  /* Hero Slideshow State & Accessible Timer */
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    if (!homepageSettings?.heroAutoplay || heroSlides.length <= 1 || isPaused) return;
+    const intervalTime = Math.max(5000, Math.min(homepageSettings?.heroInterval || 6000, 8000));
+    const interval = setInterval(() => {
+      setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length);
+    }, intervalTime);
+    return () => clearInterval(interval);
+  }, [heroSlides.length, homepageSettings?.heroAutoplay, homepageSettings?.heroInterval, isPaused]);
+
+  const currentSlide = heroSlides[currentSlideIndex] || heroSlides[0] || {
+    eyebrow: 'CUSTOM 3D FABRICATION & STUDIO GOODS',
+    title: 'Turn Ideas Into Something Real.',
+    description: 'Precision custom 3D printing, bespoke interior accents, and made-to-order physical goods designed and fabricated in India.',
+    image: 'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&w=2000&q=80',
+    buttonText: 'EXPLORE CATALOG',
+    buttonLink: '/catalog',
+  };
+
+  const bestSellers = useMemo(() => {
+    const configuredIds = homepageSettings?.featuredProductIds ?? [];
     if (configuredIds.length === 0) {
       return activeProducts.filter((product) => product.featured).slice(0, 8);
     }
-
     const matched = configuredIds
       .map((id) => activeProducts.find((product) => product.id === id))
       .filter(Boolean) as typeof activeProducts;
-
     return matched.length > 0 ? matched : activeProducts.slice(0, 8);
   }, [activeProducts, homepageSettings?.featuredProductIds]);
 
   const categories = useMemo(() => {
     const categoryMap = new Map<string, { image: string; count: number }>();
-
     for (const product of activeProducts) {
       if (product.category) {
         const existing = categoryMap.get(product.category);
@@ -125,480 +204,333 @@ export function Home() {
         }
       }
     }
-
     const configuredNames = homepageSettings?.categoryNames ?? [];
-
     if (configuredNames.length === 0) {
-      return Array.from(categoryMap.entries()).map(([name, data]) => ({
+      return Array.from(categoryMap.entries()).slice(0, 4).map(([name, data]) => ({
         name,
         image: data.image,
         productCount: data.count,
       }));
     }
-
-    return configuredNames
+    const result = configuredNames
       .map((name) => {
         const data = categoryMap.get(name);
         return data ? { name, image: data.image, productCount: data.count } : null;
       })
       .filter(Boolean) as { name: string; image: string; productCount: number }[];
+    return result.length > 0 ? result.slice(0, 4) : Array.from(categoryMap.entries()).slice(0, 4).map(([name, data]) => ({
+      name,
+      image: data.image,
+      productCount: data.count,
+    }));
   }, [activeProducts, homepageSettings?.categoryNames]);
-
-  const heroSlides = useMemo(
-    () => (homepageSettings?.heroSlides ?? []).filter((slide) => slide.enabled),
-    [homepageSettings?.heroSlides]
-  );
-
-  const [slideIndex, setSlideIndex] = useState(0);
-  const slideCount = heroSlides.length;
-
-  useEffect(() => {
-    if (slideCount === 0 || slideIndex >= slideCount) {
-      setSlideIndex(0);
-    }
-  }, [slideCount, slideIndex]);
-
-  useEffect(() => {
-    if (!homepageSettings?.heroAutoplay || slideCount <= 1) return;
-
-    const timer = window.setInterval(() => {
-      setSlideIndex((currentIndex) => (currentIndex + 1) % slideCount);
-    }, homepageSettings.heroInterval || 5000);
-
-    return () => window.clearInterval(timer);
-  }, [homepageSettings?.heroAutoplay, homepageSettings?.heroInterval, slideCount]);
-
-  const currentSlide = heroSlides[slideIndex];
-
-  const nextSlide = () => {
-    if (slideCount <= 1) return;
-    setSlideIndex((currentIndex) => (currentIndex + 1) % slideCount);
-  };
-
-  const previousSlide = () => {
-    if (slideCount <= 1) return;
-    setSlideIndex((currentIndex) => (currentIndex - 1 + slideCount) % slideCount);
-  };
-
-  const goToSlide = (index: number) => setSlideIndex(index);
-
-  const categoryScrollRef = useRef<HTMLDivElement>(null);
-
-  const scrollCategories = (direction: 'left' | 'right') => {
-    const el = categoryScrollRef.current;
-    if (!el) return;
-    const amount = el.clientWidth * 0.8;
-    el.scrollBy({
-      left: direction === 'left' ? -amount : amount,
-      behavior: 'smooth',
-    });
-  };
 
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
+  /* Live Review Form state connected to Firestore */
+  const [reviewForm, setReviewForm] = useState({ name: '', experience: '🤩', text: '' });
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+
+  const handleReviewSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewForm.name.trim() || !reviewForm.text.trim()) return;
+
+    addReviewMutation.mutate({
+      name: reviewForm.name.trim(),
+      rating: 5,
+      experience: reviewForm.experience,
+      quote: reviewForm.text.trim(),
+    });
+    setReviewSubmitted(true);
+  };
+
+  /* Animation variants */
+  const staggerContainer = {
+    hidden: {},
+    show: { transition: { staggerChildren: 0.08 } },
+  };
+
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1] } },
+  };
+
   return (
-    <div className="bg-[#f4f2ef] dark:bg-[#0f172a] text-charcoal dark:text-slate-100 transition-colors duration-200">
+    <div className="bg-[#FAF9F6] text-ink selection:bg-accent-soft selection:text-accent overflow-x-hidden">
       {/* =====================================================
-          1. PRODUCT-FOCUSED E-COMMERCE HERO SECTION
+          1. HERO SECTION (STATIC-FIRST WITH CONTROLLED SLIDESHOW)
       ====================================================== */}
-      <section className="relative overflow-hidden bg-[#0b0f17] text-white">
-        {/* Engineering grid background texture */}
-        <div className="absolute inset-0 grid-plate opacity-20 pointer-events-none" />
+      <section
+        className="relative overflow-hidden bg-[#121212] min-h-[580px] sm:min-h-[660px] lg:min-h-[720px] flex flex-col justify-between text-white"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        onFocus={() => setIsPaused(true)}
+        onBlur={() => setIsPaused(false)}
+      >
+        {/* Dynamic Background Image with Smooth Crossfade */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentSlide.id || currentSlideIndex}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.75 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6, ease: 'easeInOut' }}
+            className="absolute inset-0 z-0"
+          >
+            <img
+              src={currentSlide.image}
+              alt={currentSlide.title}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#121212]/95 via-[#121212]/60 to-transparent" />
+            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#121212]/80 to-transparent" />
+          </motion.div>
+        </AnimatePresence>
 
-        {/* Ambient atmospheric orange glows */}
-        <div className="pointer-events-none absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-brand-500/15 blur-[120px]" />
-        <div className="pointer-events-none absolute -bottom-40 -right-40 h-[600px] w-[600px] rounded-full bg-brand-500/20 blur-[140px]" />
+        {/* Hero Copy Content */}
+        <div className="relative z-10 mx-auto max-w-[1440px] px-6 sm:px-10 lg:px-16 pt-24 sm:pt-32 pb-12 w-full flex-1 flex flex-col justify-center">
+          <div className="max-w-2xl space-y-5">
+            {/* Verified Trust Badges Strip */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-md px-3 py-1 font-mono text-[11px] font-semibold text-zinc-200 border border-white/15">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                Modern 3D Fabrication Studio
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/20 backdrop-blur-md px-3 py-1 font-mono text-[11px] font-semibold text-accent-light border border-accent/30">
+                Pan-India Delivery
+              </span>
+            </div>
 
-        <div className="relative mx-auto max-w-[1440px] px-5 py-16 sm:px-8 lg:px-10 lg:py-24">
-          <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
-            {/* Left Content Column */}
-            <div className="order-2 lg:order-1 space-y-6">
-              {/* Eyebrow badge */}
-              <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-3.5 py-1.5 backdrop-blur-sm">
-                <span className="h-2 w-2 rounded-full bg-brand-500 animate-pulse" />
-                <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-400">
-                  {currentSlide?.eyebrow || 'Studio 3D Creations'}
-                </span>
-              </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentSlide.id || currentSlideIndex}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                className="space-y-4"
+              >
+                <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white leading-[1.08]">
+                  Turn Ideas Into Something Real.
+                </h1>
+                <p className="font-sans text-sm sm:text-base text-zinc-300 max-w-lg leading-relaxed">
+                  Precision custom 3D printing, bespoke interior lighting, and made-to-order physical goods crafted in our dedicated Indian makerspace.
+                </p>
+              </motion.div>
+            </AnimatePresence>
 
-              <h1 className="max-w-2xl font-serif text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl text-white">
-                {currentSlide?.title || 'Crafted by Layer. Designed for Living.'}
-              </h1>
+            {/* Dual CTA Buttons */}
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <Link
+                to="/catalog"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-7 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-accent/25 transition-all hover:bg-accent-dark hover:scale-[1.02]"
+              >
+                <span>Explore Products</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                to="/custom-service"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 px-7 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white transition-all hover:bg-white hover:text-black"
+              >
+                <span>Get Custom Print</span>
+              </Link>
+            </div>
+          </div>
+        </div>
 
-              <p className="max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
-                {currentSlide?.description ||
-                  'Explore our curated collection of 3D printed lamps, bespoke gifts, desk essentials and pop-culture collectibles — precision-made and dispatched Pan-India.'}
-              </p>
+        {/* Slideshow Controls (If Multiple Slides Configured) */}
+        {heroSlides.length > 1 && (
+          <div className="relative z-20 mx-auto max-w-[1440px] px-6 sm:px-10 lg:px-16 w-full flex items-center justify-between pb-4">
+            <div className="flex items-center gap-2">
+              {heroSlides.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentSlideIndex(idx)}
+                  className={`h-2 rounded-full transition-all ${
+                    currentSlideIndex === idx ? 'w-8 bg-accent' : 'w-2 bg-white/40 hover:bg-white'
+                  }`}
+                  aria-label={`Go to slide ${idx + 1}`}
+                />
+              ))}
+            </div>
 
-              {/* Shopping CTAs */}
-              <div className="flex flex-col gap-3.5 sm:flex-row pt-2">
-                <Link to="/catalog" className="inline-flex">
-                  <Button
-                    size="lg"
-                    className="group w-full px-8 font-bold sm:w-auto shadow-lg shadow-brand-500/25 h-12"
-                  >
-                    <span>Shop Best Sellers</span>
-                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </Button>
-                </Link>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() =>
+                  setCurrentSlideIndex((prev) => (prev === 0 ? heroSlides.length - 1 : prev - 1))
+                }
+                className="w-9 h-9 rounded-full bg-white/10 border border-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-accent transition-colors"
+                aria-label="Previous Slide"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length)}
+                className="w-9 h-9 rounded-full bg-white/10 border border-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-accent transition-colors"
+                aria-label="Next Slide"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
-                <Link to="/custom-service" className="inline-flex">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="w-full border-slate-700 bg-slate-900/70 text-white hover:border-brand-500 hover:bg-slate-800 sm:w-auto font-semibold h-12"
-                  >
-                    <Sparkles className="mr-2 h-4 w-4 text-brand-400" />
-                    <span>Get Custom Quote</span>
-                  </Button>
-                </Link>
-              </div>
+        {/* Seamless Organic Wave Divider to Base Paper (#FAF9F6) */}
+        <OrganicWaveDivider fill="#FAF9F6" />
+      </section>
 
-              {/* Micro Trust Indicators */}
-              <div className="grid grid-cols-3 gap-4 pt-6 border-t border-slate-800 text-slate-300">
-                <div>
-                  <p className="font-mono text-lg sm:text-xl font-bold text-white">Free</p>
-                  <p className="text-xs text-slate-400">Shipping over ₹499</p>
-                </div>
-                <div>
-                  <p className="font-mono text-lg sm:text-xl font-bold text-white">50µm</p>
-                  <p className="text-xs text-slate-400">Layer Precision</p>
-                </div>
-                <div>
-                  <p className="font-mono text-lg sm:text-xl font-bold text-white">100%</p>
-                  <p className="text-xs text-slate-400">Quality Checked</p>
-                </div>
-              </div>
+      {/* =====================================================
+          2. 4-STEP "HOW IT WORKS" PROCESS SECTION
+      ====================================================== */}
+      <section className="bg-[#FAF9F6] py-14 border-b border-line">
+        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
+              Streamlined Production
+            </span>
+            <h2 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl text-ink">
+              How Shilp Sahayak Works
+            </h2>
+            <p className="mt-2 font-sans text-xs sm:text-sm text-muted">
+              From digital CAD concept to precision physical object delivered to your doorstep.
+            </p>
+          </div>
 
-              {/* Slide controls if multiple slides exist */}
-              {slideCount > 1 && (
-                <div className="pt-2 flex items-center gap-4">
-                  <button
-                    type="button"
-                    onClick={previousSlide}
-                    aria-label="Previous slide"
-                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700 bg-slate-800/60 text-slate-300 transition-colors hover:border-brand-500 hover:text-white"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-
-                  <div className="flex items-center gap-2">
-                    {heroSlides.map((slide, index) => (
-                      <button
-                        key={slide.id}
-                        type="button"
-                        onClick={() => goToSlide(index)}
-                        aria-label={`Slide ${index + 1}`}
-                        className={`h-1.5 rounded-full transition-all duration-300 ${
-                          index === slideIndex
-                            ? 'w-8 bg-brand-500'
-                            : 'w-2 bg-slate-700 hover:bg-slate-500'
-                        }`}
-                      />
-                    ))}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {HOW_IT_WORKS_STEPS.map((stepItem) => {
+              const Icon = stepItem.icon;
+              return (
+                <div
+                  key={stepItem.step}
+                  className="relative rounded-2xl bg-white p-6 border border-line shadow-soft flex flex-col justify-between hover:shadow-card hover:-translate-y-1 transition-all"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="w-12 h-12 rounded-xl bg-accent-soft text-accent flex items-center justify-center">
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <span className="font-mono text-xl font-extrabold text-line">
+                        {stepItem.step}
+                      </span>
+                    </div>
+                    <h3 className="font-display text-lg font-bold text-ink">
+                      {stepItem.title}
+                    </h3>
+                    <p className="font-sans text-xs text-muted leading-relaxed">
+                      {stepItem.description}
+                    </p>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={nextSlide}
-                    aria-label="Next slide"
-                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700 bg-slate-800/60 text-slate-300 transition-colors hover:border-brand-500 hover:text-white"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
                 </div>
-              )}
-            </div>
-
-            {/* Right Product Showcase Frame */}
-            <div className="order-1 lg:order-2">
-              <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-[#121824] shadow-2xl p-3 sm:p-4 group">
-                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-slate-950">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={currentSlide?.id || 'default-hero'}
-                      initial={{ opacity: 0, scale: 0.96 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 1.04 }}
-                      transition={{ duration: 0.45, ease: 'easeOut' }}
-                      className="relative h-full w-full"
-                    >
-                      <img
-                        src={
-                          currentSlide?.image ||
-                          'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80'
-                        }
-                        alt={currentSlide?.title || '3D Printed Product'}
-                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#0b0f17] via-[#0b0f17]/25 to-transparent" />
-
-                      {/* Top Glassmorphic Tag */}
-                      <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none">
-                        <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/40 bg-black/60 px-3 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-brand-300 backdrop-blur-md">
-                          <span className="h-2 w-2 rounded-full bg-brand-500 animate-ping" />
-                          <span>Featured Studio Piece</span>
-                        </div>
-
-                        <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-black/50 px-3 py-1 text-[10px] font-mono text-slate-300 backdrop-blur-md">
-                          <span>Pan-India Delivery</span>
-                        </div>
-                      </div>
-
-                      {/* Bottom Slide Info Overlay */}
-                      <div className="absolute bottom-4 left-4 right-4 space-y-1.5 pointer-events-none">
-                        <p className="font-serif text-lg sm:text-xl font-bold text-white drop-shadow-md">
-                          {currentSlide?.title || 'Custom 3D Printing & Fabrication'}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-lg bg-white/15 px-2.5 py-0.5 text-[10px] font-mono text-slate-200 backdrop-blur-md">
-                            PLA · PETG · Resin
-                          </span>
-                          <span className="rounded-lg bg-brand-500/25 border border-brand-500/30 px-2.5 py-0.5 text-[10px] font-mono font-bold text-brand-300 backdrop-blur-md">
-                            Ready to Ship
-                          </span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* =====================================================
-          MARQUEE BRAND TICKER (LIKE ZOOMORA / 3LAYERED / NOZAYA)
+          3. FEATURED PRODUCTS & BEST SELLERS CATALOG
       ====================================================== */}
-      <div className="border-y border-zinc-200/90 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 py-3.5 overflow-hidden select-none backdrop-blur-sm shadow-sm">
-        <div className="animate-marquee space-x-8 text-xs font-mono font-bold tracking-wider uppercase text-charcoal-light dark:text-slate-300">
-          <span className="flex items-center gap-2">✨ 100% Plant-Based Biopolymer PLA</span>
-          <span className="text-brand-500">•</span>
-          <span className="flex items-center gap-2">⚡ 50µm Precision Micro-Layering</span>
-          <span className="text-brand-500">•</span>
-          <span className="flex items-center gap-2">🎁 Custom Lithophanes & Lightboxes</span>
-          <span className="text-brand-500">•</span>
-          <span className="flex items-center gap-2">🚚 Free Pan-India Delivery on Orders &gt; ₹499</span>
-          <span className="text-brand-500">•</span>
-          <span className="flex items-center gap-2">🇮🇳 Handcrafted in Punjab</span>
-          <span className="text-brand-500">•</span>
-          <span className="flex items-center gap-2">📦 Safe Multi-Layer Packaging</span>
-          <span className="text-brand-500">•</span>
-          <span className="flex items-center gap-2">✨ 100% Plant-Based Biopolymer PLA</span>
-          <span className="text-brand-500">•</span>
-          <span className="flex items-center gap-2">⚡ 50µm Precision Micro-Layering</span>
-          <span className="text-brand-500">•</span>
-          <span className="flex items-center gap-2">🎁 Custom Lithophanes & Lightboxes</span>
-          <span className="text-brand-500">•</span>
-          <span className="flex items-center gap-2">🚚 Free Pan-India Delivery on Orders &gt; ₹499</span>
-          <span className="text-brand-500">•</span>
-        </div>
-      </div>
-
-      {/* =====================================================
-          2. FEATURED & BEST SELLING PRODUCTS (SHOPPING CARDS)
-      ====================================================== */}
-      <section className="py-20 lg:py-24 bg-[#f4f2ef] dark:bg-[#0f172a] border-b border-zinc-200 dark:border-slate-800 transition-colors">
-        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-            <div>
-              <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
-                Trending Drops
-              </span>
-              <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight sm:text-4xl text-charcoal dark:text-slate-100">
-                Best Selling Pieces
-              </h2>
-              <p className="mt-2 max-w-xl text-sm text-charcoal-light dark:text-slate-400">
-                Functional decor, illuminated lamps, and personalized favorites crafted with care and ready to ship.
-              </p>
+      <section className="bg-[#FAF9F6] py-14">
+        {/* Dynamic Announcement Ticker Strip */}
+        {homepageSettings?.announcementMessages && homepageSettings.announcementMessages.length > 0 && (
+          <div className="border-y border-line bg-white py-3 overflow-hidden select-none mb-12">
+            <div className="animate-marquee space-x-8 font-mono text-xs font-bold tracking-wider uppercase text-ink">
+              {homepageSettings.announcementMessages.map((msg, idx) => (
+                <span key={idx} className="inline-flex items-center gap-4">
+                  <span>{msg}</span>
+                  <span className="text-accent">•</span>
+                </span>
+              ))}
             </div>
-
-            <Link
-              to="/catalog"
-              className="inline-flex items-center gap-1.5 text-sm font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 transition-colors"
-            >
-              <span>Explore All Products</span>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
           </div>
+        )}
 
+        {/* Section Header */}
+        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10 mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
+              Flagship Collection
+            </span>
+            <h2 className="mt-1 font-display text-3xl font-bold tracking-tight sm:text-4xl text-ink">
+              Featured 3D Creations
+            </h2>
+            <p className="mt-1 font-sans text-xs sm:text-sm text-muted">
+              Handcrafted 3D printed lighting, desk accessories, and customized keepsakes.
+            </p>
+          </div>
+          <Link
+            to="/catalog"
+            className="inline-flex items-center gap-1.5 font-display text-sm font-bold text-accent hover:underline"
+          >
+            <span>View Complete Catalog</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        {/* Product Cards Grid */}
+        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10 pb-6">
           {isLoading ? (
-            <div className="mt-10">
-              <FeaturedProductSkeleton />
-            </div>
-          ) : featuredProducts.length === 0 ? (
-            <div className="mt-10 rounded-2xl border border-dashed border-zinc-200 dark:border-slate-800 p-12 text-center text-charcoal-lighter dark:text-slate-400">
-              No products found in catalog yet.
-            </div>
+            <FeaturedProductSkeleton />
           ) : (
-            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {featuredProducts.map((product) => {
-                const regularPrice = Number(product.price) || 0;
-                const compareAtPrice = Math.round(regularPrice * 1.35);
-                const discountPercent = regularPrice > 0 ? Math.round(((compareAtPrice - regularPrice) / compareAtPrice) * 100) : 0;
-
-                return (
-                  <Link
-                    key={product.id}
-                    to={`/product/${product.id}`}
-                    className="group flex flex-col"
-                  >
-                    <Card className="flex h-full flex-col justify-between overflow-hidden transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-xl group-hover:border-brand-300">
-                      <div className="relative overflow-hidden bg-zinc-100 dark:bg-slate-800">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          loading="lazy"
-                          className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-
-                        {/* Badges */}
-                        <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-                          {product.isCustomizable && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-charcoal/85 backdrop-blur-sm px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
-                              <Sparkles className="h-3 w-3 text-brand-400" />
-                              Personalize
-                            </span>
-                          )}
-                          {product.featured && (
-                            <span className="inline-flex items-center rounded-full bg-brand-500 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-white shadow-sm">
-                              Best Seller
-                            </span>
-                          )}
-                        </div>
-
-                        {discountPercent > 0 && (
-                          <span className="absolute top-3 right-3 rounded-full bg-emerald-600 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
-                            Save {discountPercent}%
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex flex-1 flex-col justify-between p-5">
-                        <div>
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-charcoal-lighter dark:text-slate-400 truncate">
-                              {product.category || 'Workshop Item'}
-                            </span>
-                            {/* Star ratings */}
-                            <div className="flex items-center gap-1 shrink-0 text-amber-500 text-xs font-bold">
-                              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                              <span>4.9</span>
-                            </div>
-                          </div>
-
-                          <h3 className="mt-1.5 line-clamp-2 font-serif text-lg font-bold text-charcoal dark:text-slate-100 group-hover:text-brand-600 transition-colors">
-                            {product.name}
-                          </h3>
-                        </div>
-
-                        {/* Price & Action Strip */}
-                        <div className="mt-5 flex items-center justify-between border-t border-zinc-100 dark:border-slate-700/60 pt-3.5">
-                          <div>
-                            <div className="flex items-baseline gap-2">
-                              <span className="font-serif text-lg font-bold text-charcoal dark:text-slate-100">
-                                ₹{regularPrice.toLocaleString('en-IN')}
-                              </span>
-                              {compareAtPrice > regularPrice && (
-                                <span className="font-mono text-xs text-charcoal-lighter dark:text-slate-500 line-through">
-                                  ₹{compareAtPrice.toLocaleString('en-IN')}
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-[10px] font-mono text-brand-600 dark:text-brand-400 font-semibold block">
-                              Free Shipping over ₹499
-                            </span>
-                          </div>
-
-                          <span className="inline-flex items-center gap-1.5 rounded-xl bg-brand-50 dark:bg-brand-500/15 px-3 py-1.5 text-xs font-bold text-brand-600 dark:text-brand-400 group-hover:bg-brand-500 group-hover:text-white transition-colors shadow-sm">
-                            <span>View Piece</span>
-                            <ArrowRight className="h-3.5 w-3.5" />
-                          </span>
-                        </div>
-                      </div>
-                    </Card>
-                  </Link>
-                );
-              })}
-            </div>
+            <motion.div
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: '-60px' }}
+              className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
+            >
+              {bestSellers.map((product) => (
+                <motion.div key={product.id} variants={fadeInUp}>
+                  <ProductCard product={product} />
+                </motion.div>
+              ))}
+            </motion.div>
           )}
         </div>
       </section>
 
       {/* =====================================================
-          3. SHOP BY CATEGORY (VISUAL TILES)
+          4. SHOP BY COLLECTION
       ====================================================== */}
-      <section className="py-20 lg:py-24 bg-[#f4f2ef] dark:bg-[#0f172a] border-b border-zinc-200 dark:border-slate-800 transition-colors">
+      <section className="bg-[#FAF9F6] py-14 border-t border-line">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end mb-10">
             <div>
-              <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
                 Curated Collections
               </span>
-              <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight sm:text-4xl text-charcoal dark:text-slate-100">
+              <h2 className="mt-1 font-display text-3xl font-bold tracking-tight sm:text-4xl text-ink">
                 Shop by Category
               </h2>
-              <p className="mt-2 text-sm text-charcoal-light dark:text-slate-400">
-                Browse our specialized lines of lamps, desktop gear, customized gifts, and engineering parts.
-              </p>
             </div>
-
-            {categories.length > 0 && (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => scrollCategories('left')}
-                  aria-label="Scroll categories left"
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-charcoal dark:text-slate-200 shadow-sm transition-colors hover:border-brand-500 hover:text-brand-600"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => scrollCategories('right')}
-                  aria-label="Scroll categories right"
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-charcoal dark:text-slate-200 shadow-sm transition-colors hover:border-brand-500 hover:text-brand-600"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-              </div>
-            )}
+            <Link to="/catalog" className="font-display text-sm font-bold text-accent hover:underline">
+              View All Categories →
+            </Link>
           </div>
 
-          <div
-            ref={categoryScrollRef}
-            className="mt-10 flex gap-6 overflow-x-auto pb-4 pt-1 snap-x scrollbar-none"
-          >
-            {categories.map((category) => (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {categories.map((cat) => (
               <Link
-                key={category.name}
-                to={`/catalog?category=${encodeURIComponent(category.name)}`}
-                className="group flex-none w-[260px] sm:w-[290px] snap-start"
+                key={cat.name}
+                to={`/catalog?category=${encodeURIComponent(cat.name)}`}
+                className="group relative block overflow-hidden rounded-2xl border border-line bg-white shadow-soft transition-all hover:shadow-card hover:-translate-y-1"
               >
-                <Card className="overflow-hidden transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-xl group-hover:border-brand-300">
-                  <div className="relative aspect-[4/3] overflow-hidden bg-zinc-100 dark:bg-slate-800">
-                    <img
-                      src={
-                        category.image ||
-                        'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80'
-                      }
-                      alt={category.name}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
-
-                    <div className="absolute bottom-4 left-4 right-4 text-white">
-                      <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-brand-300">
-                        {category.productCount} {category.productCount === 1 ? 'Design' : 'Designs'}
-                      </span>
-                      <h3 className="mt-1 font-serif text-lg font-bold text-white group-hover:text-brand-300 transition-colors">
-                        {category.name}
-                      </h3>
-                    </div>
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-shell">
+                  <img
+                    src={cat.image || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80'}
+                    alt={cat.name}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#121212]/80 via-transparent to-transparent" />
+                  <div className="absolute bottom-4 left-4 right-4 text-white">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent bg-black/60 px-2 py-0.5 rounded">
+                      {cat.productCount} Items
+                    </span>
+                    <h3 className="mt-1 font-display text-lg font-bold text-white group-hover:text-accent transition-colors">
+                      {cat.name}
+                    </h3>
                   </div>
-                </Card>
+                </div>
               </Link>
             ))}
           </div>
@@ -606,148 +538,162 @@ export function Home() {
       </section>
 
       {/* =====================================================
-          4. SOCIAL PROOF & CUSTOMER REVIEWS
+          5. CUSTOM 3D PRINTING SPOTLIGHT (CORE CAPABILITY)
       ====================================================== */}
-      <section className="py-20 lg:py-24 bg-white dark:bg-slate-900 border-b border-zinc-200 dark:border-slate-800 transition-colors">
+      <section className="bg-[#FAF9F6] py-14">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-          <div className="mx-auto max-w-2xl text-center">
-            <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
-              Customer Love
-            </span>
-            <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight sm:text-4xl text-charcoal dark:text-slate-100">
-              Loved by 1000+ Makers & Creators
-            </h2>
-            <p className="mt-2 text-sm text-charcoal-light dark:text-slate-400">
-              Real reviews from customers who personalized their spaces and prototyped their ideas with us.
-            </p>
-          </div>
-
-          {/* Review Cards */}
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {CUSTOMER_REVIEWS.map((review) => (
-              <Card
-                key={review.id}
-                className="flex flex-col justify-between p-7 transition-all duration-300 hover:shadow-lg border-zinc-200 dark:border-slate-800"
-              >
-                <div className="space-y-4">
-                  {/* Stars */}
-                  <div className="flex items-center gap-1 text-amber-500">
-                    {[...Array(review.rating)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
-
-                  <p className="text-sm leading-relaxed text-charcoal dark:text-slate-300">
-                    "{review.text}"
-                  </p>
+          <div className="relative rounded-3xl overflow-hidden border border-zinc-800 bg-[#121212] p-8 sm:p-12 lg:p-16 text-white shadow-xl">
+            <div className="relative z-10 grid gap-8 lg:grid-cols-2 lg:items-center">
+              <div className="space-y-5">
+                <span className="inline-flex items-center gap-2 rounded-full bg-accent/20 border border-accent/30 px-3.5 py-1 font-mono text-xs font-bold text-accent-light">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Instant STL Slicer & Estimator
+                </span>
+                <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight">
+                  Have a 3D Model?<br />Upload your STL & get an instant quote.
+                </h2>
+                <p className="font-sans text-xs sm:text-sm text-zinc-300 max-w-lg leading-relaxed">
+                  Our interactive custom printing pipeline computes volume, estimates material weight, and generates transparent pricing in real time for PLA, PETG, ABS, and Resin.
+                </p>
+                <div className="flex flex-wrap gap-4 pt-2">
+                  <Link
+                    to="/custom-service"
+                    className="inline-flex items-center gap-2 rounded-full bg-accent px-8 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-accent/25 hover:bg-accent-dark transition-all"
+                  >
+                    <UploadCloud className="w-4 h-4" />
+                    <span>Upload 3D File</span>
+                  </Link>
+                  <a
+                    href={whatsappLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900 px-6 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-zinc-200 hover:border-accent hover:text-white transition-colors"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>Consult on WhatsApp</span>
+                  </a>
                 </div>
+              </div>
 
-                <div className="mt-6 pt-4 border-t border-zinc-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-serif text-sm font-bold text-charcoal dark:text-slate-100">
-                        {review.name}
-                      </p>
-                      <p className="text-xs text-charcoal-lighter dark:text-slate-400">
-                        {review.location}
-                      </p>
-                    </div>
-
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
-                      <CheckCircle2 className="h-3 w-3" />
-                      Verified
-                    </span>
-                  </div>
-
-                  <p className="mt-2 text-[11px] font-mono text-brand-600 dark:text-brand-400 truncate">
-                    {review.productName}
-                  </p>
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 space-y-4 font-mono text-xs">
+                <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                  <span className="text-zinc-400">Supported Formats</span>
+                  <span className="text-white font-bold">.STL / .OBJ / .3MF</span>
                 </div>
-              </Card>
-            ))}
-          </div>
-
-          {/* Social Stats Strip */}
-          <div className="mt-14 rounded-2xl border border-zinc-200 dark:border-slate-800 bg-[#f4f2ef] dark:bg-[#0f172a] p-6 sm:p-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div>
-              <p className="font-mono text-3xl font-bold text-charcoal dark:text-slate-100">4.9 ★</p>
-              <p className="text-xs text-charcoal-lighter dark:text-slate-400 mt-1">Average Store Rating</p>
-            </div>
-            <div>
-              <p className="font-mono text-3xl font-bold text-charcoal dark:text-slate-100">10k+</p>
-              <p className="text-xs text-charcoal-lighter dark:text-slate-400 mt-1">Hours 3D Printed</p>
-            </div>
-            <div>
-              <p className="font-mono text-3xl font-bold text-charcoal dark:text-slate-100">50µm</p>
-              <p className="text-xs text-charcoal-lighter dark:text-slate-400 mt-1">Calibrated Resolution</p>
-            </div>
-            <div>
-              <p className="font-mono text-3xl font-bold text-charcoal dark:text-slate-100">100%</p>
-              <p className="text-xs text-charcoal-lighter dark:text-slate-400 mt-1">Inspected & Safe Packed</p>
+                <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                  <span className="text-zinc-400">Available Materials</span>
+                  <span className="text-white font-bold">PLA, PETG, ABS, Resin</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                  <span className="text-zinc-400">Quality Calibration</span>
+                  <span className="text-white font-bold">0.12mm to 0.28mm</span>
+                </div>
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-zinc-400">Data Privacy</span>
+                  <span className="text-emerald-400 font-bold flex items-center gap-1">
+                    <ShieldCheck className="w-4 h-4" /> 100% Confidential
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* =====================================================
-          5. WHY SHOP WITH US (THE STUDIO ADVANTAGE)
+          6. CORPORATE & BULK MANUFACTURING SOLUTIONS
       ====================================================== */}
-      <section className="py-20 lg:py-24 bg-[#f4f2ef] dark:bg-[#0f172a] border-b border-zinc-200 dark:border-slate-800 transition-colors">
+      <section id="corporate" className="bg-[#FAF9F6] py-14 border-t border-line">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-          <div className="mx-auto max-w-2xl text-center">
-            <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500">
-              The Shilp Sahayak Difference
+          <div className="rounded-3xl border border-line bg-white p-8 sm:p-12 shadow-soft grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+            <div className="space-y-4">
+              <span className="inline-flex items-center gap-2 rounded-full bg-shell border border-line px-3.5 py-1 font-mono text-xs font-bold text-muted">
+                <Building2 className="w-3.5 h-3.5 text-accent" />
+                B2B & Bulk Production
+              </span>
+              <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-ink">
+                Corporate Merchandise & Custom Solutions
+              </h2>
+              <p className="font-sans text-xs sm:text-sm text-muted leading-relaxed max-w-xl">
+                We manufacture bespoke welcome kits, personalized branded desk accessories, commemorative trophies, and small-batch production runs for Indian startups, institutions, and creative agencies.
+              </p>
+              <div className="pt-2 flex flex-wrap gap-4">
+                <Link
+                  to="/contact?type=corporate"
+                  className="inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white hover:bg-accent transition-colors shadow-md"
+                >
+                  <span>Request Corporate Quote</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <a
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-line bg-shell px-6 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-ink hover:border-accent hover:text-accent transition-colors"
+                >
+                  <span>Discuss Project on WhatsApp</span>
+                </a>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-2xl border border-line bg-shell p-4 space-y-1">
+                <span className="font-mono text-xs font-bold text-accent">01. Welcome Kits</span>
+                <p className="font-sans text-xs text-muted">Custom branded desktop items & employee gifts</p>
+              </div>
+              <div className="rounded-2xl border border-line bg-shell p-4 space-y-1">
+                <span className="font-mono text-xs font-bold text-accent">02. Trophies & Awards</span>
+                <p className="font-sans text-xs text-muted">Bespoke geometric & 3D fabricated awards</p>
+              </div>
+              <div className="rounded-2xl border border-line bg-shell p-4 space-y-1">
+                <span className="font-mono text-xs font-bold text-accent">03. Event Merch</span>
+                <p className="font-sans text-xs text-muted">High-volume personalized keychains & badges</p>
+              </div>
+              <div className="rounded-2xl border border-line bg-shell p-4 space-y-1">
+                <span className="font-mono text-xs font-bold text-accent">04. Prototyping</span>
+                <p className="font-sans text-xs text-muted">Rapid functional iterations for engineering teams</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =====================================================
+          7. 4 VERIFIED STUDIO ADVANTAGES
+      ====================================================== */}
+      <section className="bg-[#FAF9F6] py-16 border-t border-line">
+        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
+          <div className="mx-auto max-w-2xl text-center mb-12">
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
+              The Studio Advantage
             </span>
-            <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight sm:text-4xl text-charcoal dark:text-slate-100">
-              Why Shop With Us
+            <h2 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl text-ink">
+              Why Shilp Sahayak
             </h2>
-            <p className="mt-2 text-sm text-charcoal-light dark:text-slate-400">
-              Every design is fabricated in-house with engineering precision and passion.
+            <p className="mt-2 font-sans text-xs sm:text-sm text-muted">
+              Engineered for precision, material flexibility, and commercial reliability.
             </p>
           </div>
 
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                icon: Sparkles,
-                title: 'Direct-from-Studio Value',
-                description:
-                  'No middleman retail markups. You get studio-grade fabrication directly from our Patiala makerspace.',
-              },
-              {
-                icon: Layers,
-                title: 'Industrial Tough Polymers',
-                description:
-                  'High-grade PLA+, heat-resistant PETG, and ultra-high-detail SLA resin built for daily longevity.',
-              },
-              {
-                icon: ShieldCheck,
-                title: 'Hand-Inspected Finish',
-                description:
-                  'Every piece is measured for dimensional tolerances and post-processed by hand before shipping.',
-              },
-              {
-                icon: Truck,
-                title: 'Pan-India Express Tracked',
-                description:
-                  'Bubble-wrapped multi-layer packaging dispatched via trusted express couriers with live tracking.',
-              },
-            ].map((feature) => {
-              const Icon = feature.icon;
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {STUDIO_ADVANTAGES.map((spec) => {
+              const Icon = spec.icon;
               return (
                 <Card
-                  key={feature.title}
-                  className="p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-brand-300"
+                  key={spec.title}
+                  className="p-6 h-full flex flex-col justify-between hover:-translate-y-1 hover:shadow-card transition-all border-line bg-white rounded-2xl"
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400">
-                    <Icon className="h-6 w-6" />
+                  <div className="space-y-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft text-accent">
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <h3 className="font-display text-base font-bold text-ink">
+                      {spec.title}
+                    </h3>
+                    <p className="font-sans text-xs leading-relaxed text-muted">
+                      {spec.description}
+                    </p>
                   </div>
-                  <h3 className="mt-5 font-serif text-lg font-bold text-charcoal dark:text-slate-100">
-                    {feature.title}
-                  </h3>
-                  <p className="mt-2 text-xs leading-relaxed text-charcoal-light dark:text-slate-400">
-                    {feature.description}
-                  </p>
                 </Card>
               );
             })}
@@ -756,172 +702,165 @@ export function Home() {
       </section>
 
       {/* =====================================================
-          6. CUSTOM 3D PRINTING BANNER (SECONDARY ORDER)
+          8. LIVE FIRESTORE REVIEWS & COMMUNITY FEEDBACK
       ====================================================== */}
-      <section className="relative overflow-hidden bg-[#0b0f17] py-20 lg:py-24 text-white">
-        <div className="absolute inset-0 grid-plate opacity-20 pointer-events-none" />
-        <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[450px] w-[600px] rounded-full bg-brand-500/15 blur-[130px]" />
-
-        <div className="relative mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 sm:p-12 lg:p-16 backdrop-blur-md shadow-2xl">
-            <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-              <div className="space-y-4">
-                <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-3.5 py-1 text-xs font-bold text-brand-400">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>Custom Fabrication Service</span>
-                </div>
-
-                <h2 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl text-white">
-                  Have your own 3D CAD model or custom idea?
-                </h2>
-
-                <p className="text-sm sm:text-base leading-relaxed text-slate-300 max-w-xl">
-                  Upload STL, OBJ, or 3MF files to calculate material volume, configure infill tolerances, and get instant pricing within minutes.
-                </p>
-
-                {/* 3 Step Visual */}
-                <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-800">
-                  <div>
-                    <span className="font-mono text-sm font-bold text-brand-400">01</span>
-                    <p className="text-xs font-bold text-white mt-0.5">Upload CAD</p>
-                    <p className="text-[11px] text-slate-400">STL, OBJ or 3MF</p>
-                  </div>
-                  <div>
-                    <span className="font-mono text-sm font-bold text-brand-400">02</span>
-                    <p className="text-xs font-bold text-white mt-0.5">Instant Slicing</p>
-                    <p className="text-[11px] text-slate-400">Live volume & quote</p>
-                  </div>
-                  <div>
-                    <span className="font-mono text-sm font-bold text-brand-400">03</span>
-                    <p className="text-xs font-bold text-white mt-0.5">Fast Dispatch</p>
-                    <p className="text-[11px] text-slate-400">Shipped in 24-48h</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Box */}
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-800 bg-[#0b0f17]/90 p-8 text-center space-y-4">
-                <div className="h-14 w-14 rounded-2xl bg-brand-500/15 text-brand-400 flex items-center justify-center">
-                  <Sparkles className="h-7 w-7" />
-                </div>
-
-                <div>
-                  <h3 className="font-serif text-xl font-bold text-white">
-                    Start Custom Print
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Transparent rates starting from ₹4.5/g
-                  </p>
-                </div>
-
-                <Link to="/custom-service" className="w-full">
-                  <Button size="lg" className="w-full font-bold shadow-md shadow-brand-500/20">
-                    <span>Upload 3D File & Quote</span>
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-
-                <a
-                  href={whatsappLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-semibold text-slate-400 hover:text-brand-400 transition-colors flex items-center gap-1.5"
-                >
-                  <MessageSquare className="h-3.5 w-3.5" />
-                  <span>Discuss design on WhatsApp</span>
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* =====================================================
-          7. WHY CHOOSE US — TRANSPARENT PRICING & TRUST
-      ====================================================== */}
-      <section className="border-y border-zinc-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors py-16 lg:py-24">
+      <section className="bg-[#FAF9F6] text-ink py-16 border-t border-line">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-          <div className="grid gap-12 lg:grid-cols-[1fr_1.2fr] lg:gap-20 lg:items-center">
-            {/* Left: Headline */}
-            <div className="space-y-5">
-              <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
-                Why Shilp Sahayak
-              </span>
-              <h2 className="font-serif text-3xl font-bold leading-tight text-charcoal dark:text-slate-100 sm:text-4xl">
-                Studio-Grade Quality.<br />
-                <span className="text-brand-500">No Middleman Markup.</span>
-              </h2>
-              <p className="text-sm text-charcoal-light dark:text-slate-400 leading-relaxed max-w-md">
-                We print in-house at our Patiala facility, so you pay exactly what the material, machine, and craft is worth — nothing more. Every order is manually QA-checked before packaging.
-              </p>
-
-              {/* Trust Pillars */}
-              <div className="space-y-3 pt-2">
-                {[
-                  { icon: ShieldCheck, text: 'Dimensional QA verification on every print before dispatch' },
-                  { icon: Truck, text: 'Free tracked shipping pan-India on orders ₹499 and above' },
-                  { icon: Layers, text: 'Application-specific material matching for each project' },
-                  { icon: CheckCircle2, text: '100% CAD confidentiality — your files, your IP, always' },
-                ].map(({ icon: Icon, text }) => (
-                  <div key={text} className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <span className="text-xs text-charcoal-light dark:text-slate-300 font-medium leading-snug">{text}</span>
-                  </div>
-                ))}
+          <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] items-start">
+            {/* Left: Testimonials from Firestore */}
+            <div className="space-y-8">
+              <div className="space-y-3">
+                <span className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1 border border-line font-mono text-[11px] font-bold uppercase tracking-widest text-muted">
+                  • COMMUNITY VOICES
+                </span>
+                <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-ink">
+                  Stories from <span className="font-serif italic text-accent">Indian Homes.</span>
+                </h2>
+                <p className="font-sans text-xs sm:text-sm text-muted max-w-md leading-relaxed">
+                  Discover how our 3D printed pieces are transforming spaces across the country.
+                </p>
               </div>
+
+              {/* Dynamic Testimonials List */}
+              {reviews.length > 0 ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {reviews.map((r, idx) => (
+                    <div
+                      key={r.id || idx}
+                      className="rounded-2xl bg-white p-5 border border-line shadow-2xs space-y-4 flex flex-col justify-between"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-1 text-amber-400">
+                          {[...Array(r.rating || 5)].map((_, i) => (
+                            <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                          ))}
+                        </div>
+                        <p className="font-sans text-xs text-ink leading-relaxed italic">
+                          "{r.quote}"
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 pt-3 border-t border-line">
+                        <div className="w-8 h-8 rounded-full bg-ink text-white font-mono text-xs font-bold flex items-center justify-center">
+                          {r.name?.[0] || 'U'}
+                        </div>
+                        <span className="font-sans text-xs font-bold text-ink">{r.name}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 rounded-2xl bg-white border border-line text-center space-y-3">
+                  <Star className="w-8 h-8 text-amber-400 mx-auto fill-amber-400" />
+                  <p className="font-display font-bold text-base text-ink">Be the first to share your story!</p>
+                  <p className="font-sans text-xs text-muted">Submit your feedback using the form to have your review featured here.</p>
+                </div>
+              )}
             </div>
 
-            {/* Right: Stat Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              {WHY_US_STATS.map((stat) => (
-                <div
-                  key={stat.label}
-                  className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-[#f4f2ef] dark:bg-slate-800/60 p-6 space-y-1 hover:border-brand-300 dark:hover:border-brand-500/50 transition-colors"
-                >
-                  <span className="font-mono text-2xl sm:text-3xl font-bold text-charcoal dark:text-slate-100">
-                    {stat.value}
-                  </span>
-                  <p className="font-bold text-xs text-charcoal dark:text-slate-200">{stat.label}</p>
-                  <p className="text-[11px] text-charcoal-lighter dark:text-slate-400">{stat.note}</p>
+            {/* Right: Live Share your thought Form */}
+            <div className="rounded-2xl bg-white p-6 sm:p-8 border border-line shadow-card space-y-6">
+              <div>
+                <h3 className="font-serif text-2xl font-bold text-ink">Share your thought</h3>
+                <p className="font-sans text-xs text-muted mt-1">We truly value your feedback.</p>
+              </div>
+
+              {reviewSubmitted ? (
+                <div className="p-6 rounded-xl bg-emerald-50 text-emerald-800 text-center space-y-2">
+                  <p className="font-display font-bold text-base">Thank you for your feedback! 🎉</p>
+                  <p className="font-sans text-xs">Your review has been saved to our database.</p>
                 </div>
-              ))}
+              ) : (
+                <form onSubmit={handleReviewSubmit} className="space-y-4">
+                  <div>
+                    <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block mb-1">
+                      NAME *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Full Name"
+                      value={reviewForm.name}
+                      onChange={(e) => setReviewForm({ ...reviewForm, name: e.target.value })}
+                      className="w-full h-11 rounded-xl border border-line bg-[#FAF9F6] px-4 font-sans text-xs text-ink outline-none focus:border-accent"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
+                        EXPERIENCE
+                      </label>
+                      <span className="font-mono text-[10px] font-bold text-accent">AMAZING</span>
+                    </div>
+                    <div className="flex justify-between items-center bg-[#FAF9F6] p-2 rounded-xl border border-line">
+                      {['😠', '🙁', '😐', '😊', '🤩'].map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => setReviewForm({ ...reviewForm, experience: emoji })}
+                          className={`w-9 h-9 rounded-lg text-base flex items-center justify-center transition-transform ${
+                            reviewForm.experience === emoji ? 'bg-white shadow-sm scale-110 border border-line' : 'hover:scale-105'
+                          }`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block mb-1">
+                      YOUR REVIEW *
+                    </label>
+                    <textarea
+                      required
+                      rows={3}
+                      placeholder="Describe your experience with our 3D printed products..."
+                      value={reviewForm.text}
+                      onChange={(e) => setReviewForm({ ...reviewForm, text: e.target.value })}
+                      className="w-full rounded-xl border border-line bg-[#FAF9F6] p-3.5 font-sans text-xs text-ink outline-none focus:border-accent"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={addReviewMutation.isPending}
+                    className="w-full py-3.5 rounded-xl bg-ink hover:bg-accent text-white font-mono text-xs font-bold tracking-widest uppercase transition-colors shadow-md disabled:opacity-50"
+                  >
+                    {addReviewMutation.isPending ? 'POSTING...' : 'POST REVIEW'}
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         </div>
       </section>
 
       {/* =====================================================
-          8. FAQ ACCORDION
+          9. FAQ ACCORDION
       ====================================================== */}
-      <section className="py-16 lg:py-24">
+      <section className="bg-[#FAF9F6] py-16 border-t border-line">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
           <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20 lg:items-start">
-            {/* Left: Header */}
-            <div className="lg:sticky lg:top-24 space-y-4">
-              <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
+            <div className="space-y-4">
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent block">
                 Common Questions
               </span>
-              <h2 className="font-serif text-3xl font-bold text-charcoal dark:text-slate-100 sm:text-4xl leading-tight">
+              <h2 className="font-display text-3xl font-bold text-ink sm:text-4xl leading-tight">
                 Everything you need to know.
               </h2>
-              <p className="text-sm text-charcoal-light dark:text-slate-400 leading-relaxed">
-                Can't find the answer here? Our studio team responds to WhatsApp queries within 30 minutes during business hours.
-              </p>
               <a
                 href={whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 font-semibold text-sm text-brand-600 dark:text-brand-400 hover:text-brand-700 underline underline-offset-4 transition-colors"
+                className="inline-flex items-center gap-2 font-display font-bold text-sm text-accent hover:underline transition-colors pt-2"
               >
                 <MessageSquare className="h-4 w-4" />
-                <span>Ask on WhatsApp</span>
+                <span>Ask Maker on WhatsApp →</span>
               </a>
             </div>
 
-            {/* Right: FAQ list */}
-            <div className="divide-y divide-zinc-200 dark:divide-slate-800">
+            <div className="divide-y divide-line">
               {FAQ_ITEMS.map((item, index) => {
                 const isOpen = faqOpen === index;
                 return (
@@ -931,29 +870,18 @@ export function Home() {
                       onClick={() => setFaqOpen(isOpen ? null : index)}
                       className="flex w-full items-center justify-between gap-4 py-5 text-left group"
                     >
-                      <span className={`font-serif text-sm font-bold sm:text-base transition-colors ${isOpen ? 'text-brand-600 dark:text-brand-400' : 'text-charcoal dark:text-slate-100 group-hover:text-brand-600 dark:group-hover:text-brand-400'}`}>
+                      <span className={`font-display text-base font-bold transition-colors ${isOpen ? 'text-accent' : 'text-ink group-hover:text-accent'}`}>
                         {item.q}
                       </span>
                       <ChevronDown
-                        className={`h-5 w-5 shrink-0 text-charcoal-lighter dark:text-slate-500 transition-transform duration-300 ${isOpen ? 'rotate-180 text-brand-500' : ''}`}
+                        className={`h-5 w-5 shrink-0 text-muted transition-transform duration-300 ${isOpen ? 'rotate-180 text-accent' : ''}`}
                       />
                     </button>
-                    <AnimatePresence initial={false}>
-                      {isOpen && (
-                        <motion.div
-                          key="faq-answer"
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.28, ease: 'easeInOut' }}
-                          className="overflow-hidden"
-                        >
-                          <p className="pb-5 text-sm text-charcoal-light dark:text-slate-400 leading-relaxed max-w-2xl">
-                            {item.a}
-                          </p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    {isOpen && (
+                      <p className="pb-5 font-sans text-sm text-muted leading-relaxed max-w-2xl">
+                        {item.a}
+                      </p>
+                    )}
                   </div>
                 );
               })}
@@ -963,45 +891,38 @@ export function Home() {
       </section>
 
       {/* =====================================================
-          9. COMMUNITY / NEWSLETTER STRIP
+          10. FINAL MEMORABLE CTA SECTION
       ====================================================== */}
-      <section className="border-t border-zinc-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors py-14">
+      <section className="py-20 bg-white border-t border-line text-center">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-          <div className="flex flex-col items-center text-center gap-4 sm:gap-5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-brand-200 dark:border-brand-500/30 bg-brand-50 dark:bg-brand-500/10 px-3.5 py-1 text-xs font-bold text-brand-700 dark:text-brand-400">
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>Shilp Studio Community</span>
-            </div>
-
-            <h2 className="font-serif text-2xl font-bold text-charcoal dark:text-slate-100 sm:text-3xl max-w-xl">
-              Join the community. Get new drops,<br className="hidden sm:block" /> behind-the-print stories, and exclusive deals.
+          <div className="max-w-2xl mx-auto space-y-6">
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
+              Let's Create Together
+            </span>
+            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-ink">
+              Have an idea?<br />Let's make it real.
             </h2>
-
-            <p className="text-xs text-charcoal-light dark:text-slate-400 max-w-sm">
-              No spam. Just curated updates from our Patiala studio — new product launches, print tips, and early-access sales.
+            <p className="font-sans text-sm text-muted max-w-md mx-auto leading-relaxed">
+              Explore our ready-to-ship 3D printed catalog or upload your CAD file for custom fabrication.
             </p>
-
-            <div className="flex w-full max-w-md flex-col gap-3 sm:flex-row">
-              <input
-                type="email"
-                placeholder="Enter your email address"
-                className="h-12 flex-1 rounded-2xl border border-zinc-200 dark:border-slate-700 bg-[#f4f2ef] dark:bg-slate-800 px-4 text-sm text-charcoal dark:text-slate-100 placeholder:text-charcoal-lighter dark:placeholder:text-slate-500 outline-none focus:border-brand-500 dark:focus:border-brand-400 transition-colors"
-              />
-              <button
-                type="button"
-                className="h-12 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm px-6 transition-colors shadow-md shadow-brand-500/20 shrink-0"
+            <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+              <Link
+                to="/catalog"
+                className="inline-flex items-center gap-2 rounded-full bg-accent px-8 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-accent/25 hover:bg-accent-dark transition-all"
               >
-                Subscribe
-              </button>
+                <span>Shop Products</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                to="/custom-service"
+                className="inline-flex items-center gap-2 rounded-full bg-ink px-8 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white hover:bg-zinc-800 transition-all"
+              >
+                <span>Start a Custom Print</span>
+              </Link>
             </div>
-
-            <p className="text-[11px] text-charcoal-lighter dark:text-slate-500">
-              By subscribing you agree to our privacy policy. Unsubscribe anytime.
-            </p>
           </div>
         </div>
       </section>
     </div>
   );
 }
-

@@ -42,26 +42,23 @@ import {
   Badge,
 } from '../../components/ui';
 
-/* -------------------------------------------------------------------------- */
-/* Status styling                                                             */
-/* -------------------------------------------------------------------------- */
-
+/* Status styling */
 const STATUS_STYLES: Record<string, { bg: string; text: string; border: string }> = {
-  Pending: { bg: 'bg-amber-50 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800' },
-  Quoted: { bg: 'bg-sky-50 dark:bg-sky-950/40', text: 'text-sky-700 dark:text-sky-300', border: 'border-sky-200 dark:border-sky-800' },
-  Accepted: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800' },
-  Rejected: { bg: 'bg-rose-50 dark:bg-rose-950/40', text: 'text-rose-700 dark:text-rose-300', border: 'border-rose-200 dark:border-rose-800' },
-  Completed: { bg: 'bg-purple-50 dark:bg-purple-950/40', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-200 dark:border-purple-800' },
-  Confirmed: { bg: 'bg-sky-50 dark:bg-sky-950/40', text: 'text-sky-700 dark:text-sky-300', border: 'border-sky-200 dark:border-sky-800' },
-  Printing: { bg: 'bg-brand-50 dark:bg-brand-950/40', text: 'text-brand-700 dark:text-brand-300', border: 'border-brand-200 dark:border-brand-800' },
-  'Quality Check': { bg: 'bg-indigo-50 dark:bg-indigo-950/40', text: 'text-indigo-700 dark:text-indigo-300', border: 'border-indigo-200 dark:border-indigo-800' },
-  Shipped: { bg: 'bg-cyan-50 dark:bg-cyan-950/40', text: 'text-cyan-700 dark:text-cyan-300', border: 'border-cyan-200 dark:border-cyan-800' },
-  Delivered: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800' },
-  Cancelled: { bg: 'bg-rose-50 dark:bg-rose-950/40', text: 'text-rose-700 dark:text-rose-300', border: 'border-rose-200 dark:border-rose-800' },
+  Pending: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+  Quoted: { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
+  Accepted: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  Rejected: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+  Completed: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
+  Confirmed: { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
+  Printing: { bg: 'bg-accent-soft', text: 'text-accent', border: 'border-accent/30' },
+  'Quality Check': { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
+  Shipped: { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200' },
+  Delivered: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  Cancelled: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
 };
 
 function getStatusBadge(status: string) {
-  const style = STATUS_STYLES[status] || { bg: 'bg-zinc-50 dark:bg-slate-800', text: 'text-zinc-700 dark:text-slate-300', border: 'border-zinc-200 dark:border-slate-700' };
+  const style = STATUS_STYLES[status] || { bg: 'bg-shell', text: 'text-ink', border: 'border-line' };
   return (
     <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${style.bg} ${style.text} ${style.border}`}>
       {status}
@@ -360,10 +357,10 @@ export function Account() {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-[#f4f2ef] dark:bg-[#0f172a] transition-colors duration-200">
+      <div className="flex min-h-[70vh] items-center justify-center bg-paper">
         <div className="text-center">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
-          <p className="mt-4 font-mono text-xs font-bold uppercase tracking-wider text-charcoal-lighter dark:text-slate-400">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          <p className="mt-4 font-mono text-xs font-bold uppercase tracking-wider text-muted">
             Authenticating account...
           </p>
         </div>
@@ -373,26 +370,26 @@ export function Account() {
 
   if (!user) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-[#f4f2ef] dark:bg-[#0f172a] px-5 py-20 transition-colors duration-200">
-        <div className="max-w-md rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center shadow-lg">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400">
+      <div className="flex min-h-[70vh] items-center justify-center bg-paper px-5 py-20">
+        <div className="max-w-md rounded-3xl border border-line bg-white p-8 text-center shadow-card">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-soft text-accent">
             <User className="h-7 w-7" />
           </div>
 
-          <h1 className="mt-5 font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
+          <h1 className="mt-5 font-display text-2xl font-bold text-ink">
             You are signed out
           </h1>
 
-          <p className="mt-2 text-sm text-charcoal-light dark:text-slate-400 leading-relaxed">
+          <p className="mt-2 font-sans text-sm text-muted leading-relaxed">
             Sign in to track orders, review 3D print quotes, and manage your delivery address.
           </p>
 
-          <div className="mt-6 flex justify-center gap-3">
+          <div className="mt-6 flex justify-center gap-3 font-display">
             <Link to="/login">
-              <Button className="font-bold">Sign in</Button>
+              <Button className="font-bold bg-accent hover:bg-accent-dark text-white border-accent">Sign in</Button>
             </Link>
             <Link to="/catalog">
-              <Button variant="outline" className="font-semibold">Browse Catalogue</Button>
+              <Button variant="outline" className="font-semibold">Browse Catalog</Button>
             </Link>
           </div>
         </div>
@@ -405,30 +402,30 @@ export function Account() {
   );
 
   return (
-    <div className="min-h-screen bg-[#f4f2ef] dark:bg-[#0f172a] text-charcoal dark:text-slate-100 transition-colors duration-200">
+    <div className="min-h-screen bg-paper text-ink">
       {/* Account Hero Header */}
-      <section className="border-b border-zinc-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
+      <section className="border-b border-line bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10">
           <div className="flex flex-wrap items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-brand-500 font-mono text-xl font-bold text-white shadow-md shadow-brand-500/20">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-accent font-mono text-xl font-bold text-white shadow-md shadow-accent/20">
                 {getInitials(user?.displayName)}
               </div>
 
               <div>
-                <span className="font-mono text-xs font-bold uppercase tracking-wider text-brand-500 block">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent block">
                   Studio Member Account
                 </span>
-                <h1 className="mt-1 font-serif text-2xl font-bold text-charcoal dark:text-slate-100 sm:text-3xl">
+                <h1 className="mt-1 font-display text-2xl font-bold text-ink sm:text-3xl">
                   {user?.displayName || 'My Account'}
                 </h1>
-                <p className="text-xs text-charcoal-light dark:text-slate-400">{user?.email}</p>
+                <p className="font-mono text-xs text-muted">{user?.email}</p>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 font-display">
               <Link to="/custom-service">
-                <Button size="sm" className="font-bold">
+                <Button size="sm" className="font-bold bg-accent hover:bg-accent-dark text-white border-accent">
                   <Sparkles className="mr-1.5 h-3.5 w-3.5" />
                   New Custom Print
                 </Button>
@@ -439,7 +436,7 @@ export function Account() {
                 size="sm"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                className="font-semibold text-rose-600 hover:bg-rose-50"
               >
                 <LogOut className="mr-1.5 h-3.5 w-3.5" />
                 {isLoggingOut ? 'Signing out...' : 'Sign out'}
@@ -449,23 +446,23 @@ export function Account() {
 
           {/* Active Order Alert Bar */}
           {activeOrder && (
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-brand-200 dark:border-brand-500/30 bg-brand-50/60 dark:bg-brand-500/10 p-4">
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-accent/30 bg-accent-soft p-4">
               <div className="flex items-center gap-3">
                 <span className="relative flex h-3 w-3">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
-                  <span className="relative inline-flex h-3 w-3 rounded-full bg-brand-500" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                  <span className="relative inline-flex h-3 w-3 rounded-full bg-accent" />
                 </span>
-                <p className="text-xs text-charcoal dark:text-slate-100">
-                  <span className="font-bold">Active Order #{activeOrder.id.slice(0, 8).toUpperCase()}</span>
+                <p className="font-sans text-xs text-ink">
+                  <span className="font-bold font-mono">Active Order #{activeOrder.id.slice(0, 8).toUpperCase()}</span>
                   {' is currently '}
-                  <span className="font-bold text-brand-600 dark:text-brand-400 uppercase">{activeOrder.status}</span>
+                  <span className="font-bold text-accent uppercase font-mono">{activeOrder.status}</span>
                 </p>
               </div>
 
               <button
                 type="button"
                 onClick={() => setSelectedOrder(activeOrder)}
-                className="inline-flex items-center gap-1 font-mono text-xs font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700"
+                className="inline-flex items-center gap-1 font-mono text-xs font-bold text-accent hover:underline"
               >
                 <span>Track Progress</span>
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -478,7 +475,7 @@ export function Account() {
       {/* Main Tabs Container */}
       <main className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10">
         {/* Navigation Tabs */}
-        <div className="flex overflow-x-auto border-b border-zinc-200 dark:border-slate-800 gap-2 pb-px">
+        <div className="flex overflow-x-auto border-b border-line gap-2 pb-px scrollbar-none">
           {[
             { id: 'orders', label: 'Orders', count: myOrders.length, icon: Package },
             { id: 'quotes', label: 'CAD Quotes', count: myQuotes.length, icon: FileText },
@@ -494,14 +491,14 @@ export function Account() {
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`flex items-center gap-2 rounded-t-2xl px-5 py-3 font-mono text-xs font-bold uppercase tracking-wider transition-all ${
                   active
-                    ? 'border-b-2 border-brand-500 bg-white dark:bg-slate-900 text-brand-600 dark:text-brand-400 shadow-sm'
-                    : 'text-charcoal-light dark:text-slate-400 hover:text-charcoal dark:hover:text-slate-100 hover:bg-zinc-100/60 dark:hover:bg-slate-800/60'
+                    ? 'border-b-2 border-accent bg-white text-accent shadow-sm'
+                    : 'text-muted hover:text-ink hover:bg-shell'
                 }`}
               >
                 <Icon className="h-4 w-4" />
                 <span>{tab.label}</span>
                 {tab.count !== undefined && (
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] ${active ? 'bg-brand-100 dark:bg-brand-500/20 text-brand-700 dark:text-brand-300' : 'bg-zinc-200/60 dark:bg-slate-800 text-charcoal-lighter dark:text-slate-400'}`}>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] ${active ? 'bg-accent-soft text-accent' : 'bg-shell text-muted'}`}>
                     {tab.count}
                   </span>
                 )}
@@ -510,17 +507,15 @@ export function Account() {
           })}
         </div>
 
-        {/* ================================================================= */}
-        {/* ORDERS TAB                                                        */}
-        {/* ================================================================= */}
+        {/* ORDERS TAB */}
         {activeTab === 'orders' && (
           <div className="mt-8 space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
+                <h2 className="font-display text-2xl font-bold text-ink">
                   Your Orders
                 </h2>
-                <p className="text-xs text-charcoal-light dark:text-slate-400">
+                <p className="font-sans text-xs text-muted">
                   Track fabrication stages and pan-India courier dispatch.
                 </p>
               </div>
@@ -530,7 +525,7 @@ export function Account() {
                 size="sm"
                 onClick={handleRefreshOrders}
                 disabled={ordersLoading}
-                className="font-bold text-xs"
+                className="font-mono font-bold text-xs"
               >
                 <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${ordersLoading ? 'animate-spin' : ''}`} />
                 Refresh
@@ -539,18 +534,18 @@ export function Account() {
 
             {ordersLoading ? (
               <div className="py-20 text-center">
-                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
-                <p className="mt-4 text-xs font-semibold text-charcoal-light dark:text-slate-400">Loading orders...</p>
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                <p className="mt-4 font-mono text-xs font-semibold text-muted">Loading orders...</p>
               </div>
             ) : myOrders.length === 0 ? (
-              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center shadow-sm">
-                <Package className="mx-auto h-12 w-12 text-zinc-300 dark:text-slate-600" />
-                <h3 className="mt-4 font-serif text-xl font-bold text-charcoal dark:text-slate-100">No orders yet</h3>
-                <p className="mt-1 text-xs text-charcoal-light dark:text-slate-400">
+              <div className="rounded-3xl border border-line bg-white p-12 text-center shadow-soft">
+                <Package className="mx-auto h-12 w-12 text-muted" />
+                <h3 className="mt-4 font-display text-xl font-bold text-ink">No orders yet</h3>
+                <p className="mt-1 font-sans text-xs text-muted">
                   Browse our catalog or submit custom 3D files to start your first order.
                 </p>
                 <Link to="/catalog" className="mt-5 inline-block">
-                  <Button className="font-bold">Browse Catalogue</Button>
+                  <Button className="font-display font-bold">Browse Catalog</Button>
                 </Link>
               </div>
             ) : (
@@ -558,17 +553,17 @@ export function Account() {
                 {myOrders.map((order) => (
                   <div
                     key={order.id}
-                    className="flex flex-col gap-5 rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-5 rounded-3xl border border-line bg-white p-6 shadow-soft sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-3">
-                        <span className="font-mono text-sm font-bold text-charcoal dark:text-slate-100">
+                        <span className="font-mono text-sm font-bold text-ink">
                           #{order.id.slice(0, 8).toUpperCase()}
                         </span>
                         {getStatusBadge(order.status)}
                       </div>
 
-                      <p className="text-xs text-charcoal-light dark:text-slate-400">
+                      <p className="font-sans text-xs text-muted">
                         {order.items.length} {order.items.length === 1 ? 'item' : 'items'} •{' '}
                         {new Date(order.date).toLocaleDateString('en-IN', {
                           day: 'numeric',
@@ -579,9 +574,9 @@ export function Account() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-4">
-                      <div className="sm:text-right">
-                        <span className="font-mono text-[10px] text-charcoal-lighter dark:text-slate-400 uppercase block">Total</span>
-                        <span className="font-mono text-base font-bold text-charcoal dark:text-slate-100">
+                      <div className="sm:text-right font-mono">
+                        <span className="text-[10px] text-muted uppercase block">Total</span>
+                        <span className="text-base font-bold text-ink">
                           ₹{order.total.toLocaleString('en-IN')}
                         </span>
                       </div>
@@ -590,7 +585,7 @@ export function Account() {
                         size="sm"
                         variant="outline"
                         onClick={() => setSelectedOrder(order)}
-                        className="font-bold text-xs"
+                        className="font-display font-bold text-xs"
                       >
                         View Details
                       </Button>
@@ -599,7 +594,7 @@ export function Account() {
                         size="sm"
                         onClick={() => handleOrderAgain(order)}
                         disabled={reorderOrder.isPending}
-                        className="font-bold text-xs"
+                        className="font-display font-bold text-xs bg-accent hover:bg-accent-dark text-white border-accent"
                       >
                         <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
                         {reorderOrder.isPending ? 'Adding...' : 'Order Again'}
@@ -612,23 +607,21 @@ export function Account() {
           </div>
         )}
 
-        {/* ================================================================= */}
-        {/* QUOTES TAB                                                        */}
-        {/* ================================================================= */}
+        {/* QUOTES TAB */}
         {activeTab === 'quotes' && (
           <div className="mt-8 space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
+                <h2 className="font-display text-2xl font-bold text-ink">
                   Custom Print Quotes
                 </h2>
-                <p className="text-xs text-charcoal-light dark:text-slate-400">
+                <p className="font-sans text-xs text-muted">
                   Engineer reviews, slicing feasibility, and price confirmations for your CAD uploads.
                 </p>
               </div>
 
               <Link to="/custom-service">
-                <Button size="sm" className="font-bold text-xs">
+                <Button size="sm" className="font-display font-bold text-xs bg-accent hover:bg-accent-dark text-white border-accent">
                   Upload New Model
                 </Button>
               </Link>
@@ -636,25 +629,25 @@ export function Account() {
 
             {quotesLoading ? (
               <div className="py-20 text-center">
-                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
-                <p className="mt-4 text-xs font-semibold text-charcoal-light dark:text-slate-400">Loading quotes...</p>
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                <p className="mt-4 font-mono text-xs font-semibold text-muted">Loading quotes...</p>
               </div>
             ) : myQuotes.length === 0 ? (
-              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center shadow-sm">
-                <FileText className="mx-auto h-12 w-12 text-zinc-300 dark:text-slate-600" />
-                <h3 className="mt-4 font-serif text-xl font-bold text-charcoal dark:text-slate-100">No quotes requested</h3>
-                <p className="mt-1 text-xs text-charcoal-light dark:text-slate-400">
+              <div className="rounded-3xl border border-line bg-white p-12 text-center shadow-soft">
+                <FileText className="mx-auto h-12 w-12 text-muted" />
+                <h3 className="mt-4 font-display text-xl font-bold text-ink">No quotes requested</h3>
+                <p className="mt-1 font-sans text-xs text-muted">
                   Upload an STL/OBJ model or share reference images for an instant or engineer-verified quote.
                 </p>
-                <Link to="/custom-service" className="mt-5 inline-block">
+                <Link to="/custom-service" className="mt-5 inline-block font-display">
                   <Button className="font-bold">Request Custom Quote</Button>
                 </Link>
               </div>
             ) : (
-              <div className="overflow-hidden rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+              <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-soft">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-zinc-50 dark:bg-slate-800 border-b border-zinc-200 dark:border-slate-700 font-mono text-[10px] uppercase text-charcoal-lighter dark:text-slate-400">
+                    <thead className="bg-shell border-b border-line font-mono text-[10px] uppercase text-muted">
                       <tr>
                         <th className="px-6 py-4">Quote ID</th>
                         <th className="px-6 py-4">File Name</th>
@@ -664,17 +657,17 @@ export function Account() {
                         <th className="px-6 py-4 text-right">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-line font-sans">
                       {myQuotes.map((quote) => (
-                        <tr key={quote.id} className="hover:bg-zinc-50/50 dark:hover:bg-slate-800/50">
-                          <td className="px-6 py-4 font-mono font-bold text-charcoal dark:text-slate-100">
+                        <tr key={quote.id} className="hover:bg-shell/50">
+                          <td className="px-6 py-4 font-mono font-bold text-ink">
                             #{quote.id.slice(0, 8).toUpperCase()}
                           </td>
                           <td className="px-6 py-4">
-                            <p className="max-w-[200px] truncate font-bold text-charcoal dark:text-slate-100">
+                            <p className="max-w-[200px] truncate font-bold text-ink font-display">
                               {quote.fileName}
                             </p>
-                            <span className="font-mono text-[10px] text-charcoal-lighter dark:text-slate-400">
+                            <span className="font-mono text-[10px] text-muted">
                               {new Date(quote.date).toLocaleDateString('en-IN', {
                                 day: 'numeric',
                                 month: 'short',
@@ -682,33 +675,33 @@ export function Account() {
                             </span>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="font-semibold text-charcoal dark:text-slate-100">{quote.material}</span> • {quote.color}
-                            <p className="font-mono text-[10px] text-charcoal-lighter dark:text-slate-400">{quote.infill}% Infill</p>
+                            <span className="font-semibold text-ink">{quote.material}</span> • {quote.color}
+                            <p className="font-mono text-[10px] text-muted">{quote.infill}% Infill</p>
                           </td>
                           <td className="px-6 py-4">
                             {getStatusBadge(quote.status)}
                           </td>
-                          <td className="px-6 py-4 font-mono font-bold text-charcoal dark:text-slate-100">
+                          <td className="px-6 py-4 font-mono font-bold text-ink">
                             {quote.adminPrice ? (
                               <div>
                                 <span>₹{quote.adminPrice.toLocaleString('en-IN')}</span>
-                                <span className="block text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Final Price</span>
+                                <span className="block text-[10px] font-bold text-emerald-600 font-sans">Final Price</span>
                               </div>
                             ) : (
                               <div>
                                 <span>₹{(quote.estimatedPrice ?? 0).toLocaleString('en-IN')}</span>
-                                <span className="block text-[10px] text-charcoal-lighter dark:text-slate-400">Estimate</span>
+                                <span className="block text-[10px] text-muted font-sans">Estimate</span>
                               </div>
                             )}
                           </td>
-                          <td className="px-6 py-4 text-right">
+                          <td className="px-6 py-4 text-right font-display">
                             {quote.status === 'Quoted' && quote.adminPrice ? (
                               <div className="flex justify-end gap-2">
                                 <Button
                                   size="sm"
                                   onClick={() => handleAcceptQuote(quote.id)}
                                   disabled={updateQuote.isPending}
-                                  className="font-bold text-xs"
+                                  className="font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
                                 >
                                   <CheckCircle className="mr-1 h-3.5 w-3.5" />
                                   Accept
@@ -742,23 +735,21 @@ export function Account() {
           </div>
         )}
 
-        {/* ================================================================= */}
-        {/* ADDRESS TAB                                                       */}
-        {/* ================================================================= */}
+        {/* ADDRESS TAB */}
         {activeTab === 'addresses' && (
           <div className="mt-8 grid gap-8 lg:grid-cols-12">
             <div className="lg:col-span-7">
-              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm">
-                <div className="flex items-center justify-between border-b border-zinc-100 dark:border-slate-800 pb-4">
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
+                <div className="flex items-center justify-between border-b border-line pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-soft text-accent">
                       <MapPin className="h-5 w-5" />
                     </div>
                     <div>
-                      <h2 className="font-serif text-xl font-bold text-charcoal dark:text-slate-100">
+                      <h2 className="font-display text-xl font-bold text-ink">
                         Primary Delivery Address
                       </h2>
-                      <span className="text-xs text-charcoal-light dark:text-slate-400">Used to auto-populate checkout.</span>
+                      <span className="font-sans text-xs text-muted">Used to auto-populate checkout.</span>
                     </div>
                   </div>
                   <Badge variant="brand">Active</Badge>
@@ -766,12 +757,12 @@ export function Account() {
 
                 {profileLoading ? (
                   <div className="py-8 text-center">
-                    <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+                    <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
                   </div>
                 ) : (
-                  <div className="mt-5 space-y-4">
+                  <div className="mt-5 space-y-4 font-sans">
                     {profile?.address && Object.values(profile.address).some(Boolean) ? (
-                      <p className="text-sm text-charcoal-light dark:text-slate-300 leading-relaxed">
+                      <p className="text-sm text-ink leading-relaxed font-sans">
                         {profile.address.line1}
                         {profile.address.line2 ? `, ${profile.address.line2}` : ''}
                         <br />
@@ -780,21 +771,21 @@ export function Account() {
                         {profile.address.pincode ? ` - ${profile.address.pincode}` : ''}
                       </p>
                     ) : (
-                      <p className="text-xs text-charcoal-lighter dark:text-slate-400">
+                      <p className="text-xs text-muted">
                         No saved delivery address yet. Add your address for faster 1-click checkout.
                       </p>
                     )}
 
                     {!isAddressEditing ? (
-                      <div className="pt-2">
-                        <Button size="sm" onClick={startAddressEditing} className="font-bold">
+                      <div className="pt-2 font-display">
+                        <Button size="sm" onClick={startAddressEditing} className="font-bold bg-accent hover:bg-accent-dark text-white border-accent">
                           {profile?.address && Object.values(profile.address).some(Boolean)
                             ? 'Edit Address'
                             : 'Add Address'}
                         </Button>
                       </div>
                     ) : (
-                      <form onSubmit={handleSaveAddress} className="border-t border-zinc-100 dark:border-slate-800 pt-5 space-y-4">
+                      <form onSubmit={handleSaveAddress} className="border-t border-line pt-5 space-y-4">
                         <Input
                           name="addressLine1"
                           label="Flat / House / Building *"
@@ -848,13 +839,13 @@ export function Account() {
                             required
                           />
                           {profileAddress.pincode.length === 6 && (
-                            <p className="mt-1 text-[11px]">
+                            <p className="mt-1 font-mono text-[11px]">
                               {isPincodeLookingUp ? (
-                                <span className="text-charcoal-lighter dark:text-slate-400">Auto-detecting postal circle...</span>
+                                <span className="text-muted">Auto-detecting postal circle...</span>
                               ) : pincodeLookupError ? (
-                                <span className="text-rose-600 dark:text-rose-400">{pincodeLookupError}</span>
+                                <span className="text-rose-600">{pincodeLookupError}</span>
                               ) : pincodeLocation ? (
-                                <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                                <span className="text-emerald-700 font-bold">
                                   ✓ {pincodeLocation.city}, {pincodeLocation.state}
                                 </span>
                               ) : null}
@@ -863,19 +854,19 @@ export function Account() {
                         </div>
 
                         {addressError && (
-                          <div className="rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 p-3 text-xs font-semibold text-rose-700 dark:text-rose-300">
+                          <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 font-sans text-xs font-semibold text-rose-700">
                             {addressError}
                           </div>
                         )}
 
                         {addressMessage && (
-                          <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 p-3 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 font-sans text-xs font-bold text-emerald-700">
                             {addressMessage}
                           </div>
                         )}
 
-                        <div className="flex gap-2 pt-2">
-                          <Button type="submit" isLoading={saveUserProfile.isPending} className="font-bold">
+                        <div className="flex gap-2 pt-2 font-display">
+                          <Button type="submit" isLoading={saveUserProfile.isPending} className="font-bold bg-accent hover:bg-accent-dark text-white border-accent">
                             Save Address
                           </Button>
                           <Button
@@ -893,24 +884,24 @@ export function Account() {
                 )}
               </div>
 
-              {/* Address Change History */}
-              <div className="mt-8 rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm">
-                <h3 className="font-serif text-lg font-bold text-charcoal dark:text-slate-100">
+              {/* Address History */}
+              <div className="mt-8 rounded-3xl border border-line bg-white p-7 shadow-soft">
+                <h3 className="font-display text-lg font-bold text-ink">
                   Address History
                 </h3>
-                <p className="text-xs text-charcoal-lighter dark:text-slate-400">
+                <p className="font-sans text-xs text-muted">
                   Previous delivery destinations logged for your account.
                 </p>
 
                 {profile?.addressHistory && profile.addressHistory.length > 0 ? (
-                  <div className="mt-4 divide-y divide-zinc-100 dark:divide-slate-800">
+                  <div className="mt-4 divide-y divide-line">
                     {profile.addressHistory.map((item, idx) => (
-                      <div key={item.id || idx} className="flex items-center justify-between py-3 text-xs">
+                      <div key={item.id || idx} className="flex items-center justify-between py-3 font-sans text-xs">
                         <div>
-                          <p className="font-medium text-charcoal dark:text-slate-200">
+                          <p className="font-medium text-ink">
                             {item.address.line1}, {item.address.city}, {item.address.state} - {item.address.pincode}
                           </p>
-                          <span className="font-mono text-[10px] text-charcoal-lighter dark:text-slate-400">
+                          <span className="font-mono text-[10px] text-muted">
                             {new Date(item.updatedAt).toLocaleDateString('en-IN')}
                           </span>
                         </div>
@@ -921,7 +912,7 @@ export function Account() {
                             setProfileAddress({ ...item.address });
                             setIsAddressEditing(true);
                           }}
-                          className="font-bold text-xs"
+                          className="font-display font-bold text-xs"
                         >
                           Use
                         </Button>
@@ -929,18 +920,18 @@ export function Account() {
                     ))}
                   </div>
                 ) : (
-                  <p className="mt-3 text-xs text-charcoal-lighter dark:text-slate-400">No prior addresses recorded.</p>
+                  <p className="mt-3 font-sans text-xs text-muted">No prior addresses recorded.</p>
                 )}
               </div>
             </div>
 
             <aside className="lg:col-span-5">
-              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 text-charcoal dark:text-slate-100 font-bold text-sm">
-                  <ShieldCheck className="h-4 w-4 text-brand-500" />
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft space-y-4">
+                <div className="flex items-center gap-2 text-ink font-display font-bold text-sm">
+                  <ShieldCheck className="h-4 w-4 text-accent" />
                   <span>Pan-India Delivery Guarantee</span>
                 </div>
-                <p className="text-xs text-charcoal-light dark:text-slate-400 leading-relaxed">
+                <p className="font-sans text-xs text-muted leading-relaxed">
                   We verify pin codes directly with Indian Postal & courier databases to prevent dispatch errors and transit delays.
                 </p>
               </div>
@@ -948,26 +939,24 @@ export function Account() {
           </div>
         )}
 
-        {/* ================================================================= */}
-        {/* PROFILE TAB                                                       */}
-        {/* ================================================================= */}
+        {/* PROFILE TAB */}
         {activeTab === 'profile' && (
           <div className="mt-8 grid gap-8 lg:grid-cols-12">
             <div className="lg:col-span-7">
-              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm">
-                <h2 className="font-serif text-xl font-bold text-charcoal dark:text-slate-100">
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
+                <h2 className="font-display text-xl font-bold text-ink">
                   Account Details
                 </h2>
-                <p className="text-xs text-charcoal-light dark:text-slate-400">
+                <p className="font-sans text-xs text-muted">
                   Update your contact details for order notifications and invoices.
                 </p>
 
                 {profileLoading ? (
                   <div className="py-8 text-center">
-                    <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+                    <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
                   </div>
                 ) : (
-                  <form onSubmit={handleSaveProfile} className="mt-6 space-y-4">
+                  <form onSubmit={handleSaveProfile} className="mt-6 space-y-4 font-sans">
                     <Input
                       name="profileName"
                       label="Full Name *"
@@ -999,25 +988,25 @@ export function Account() {
                     />
 
                     {profileError && (
-                      <div className="rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 p-3 text-xs font-semibold text-rose-700 dark:text-rose-300">
+                      <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 font-sans text-xs font-semibold text-rose-700">
                         {profileError}
                       </div>
                     )}
 
                     {profileMessage && (
-                      <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 p-3 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 font-sans text-xs font-bold text-emerald-700">
                         {profileMessage}
                       </div>
                     )}
 
-                    <div className="pt-2">
+                    <div className="pt-2 font-display">
                       {!isProfileEditing ? (
-                        <Button type="button" onClick={startProfileEditing} className="font-bold">
+                        <Button type="button" onClick={startProfileEditing} className="font-bold bg-accent hover:bg-accent-dark text-white border-accent">
                           Edit Profile
                         </Button>
                       ) : (
                         <div className="flex gap-2">
-                          <Button type="submit" isLoading={saveUserProfile.isPending} className="font-bold">
+                          <Button type="submit" isLoading={saveUserProfile.isPending} className="font-bold bg-accent hover:bg-accent-dark text-white border-accent">
                             Save Changes
                           </Button>
                           <Button
@@ -1037,22 +1026,22 @@ export function Account() {
             </div>
 
             <aside className="lg:col-span-5">
-              <div className="rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-7 shadow-sm space-y-4">
-                <h3 className="font-serif text-lg font-bold text-charcoal dark:text-slate-100">
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft space-y-4">
+                <h3 className="font-display text-lg font-bold text-ink">
                   Account Overview
                 </h3>
-                <dl className="divide-y divide-zinc-100 dark:divide-slate-800 text-xs">
+                <dl className="divide-y divide-line text-xs font-sans">
                   <div className="flex justify-between py-2.5">
-                    <span className="text-charcoal-lighter dark:text-slate-400">Total Orders</span>
-                    <span className="font-mono font-bold text-charcoal dark:text-slate-100">{myOrders.length}</span>
+                    <span className="text-muted">Total Orders</span>
+                    <span className="font-mono font-bold text-ink">{myOrders.length}</span>
                   </div>
                   <div className="flex justify-between py-2.5">
-                    <span className="text-charcoal-lighter dark:text-slate-400">CAD Quotes</span>
-                    <span className="font-mono font-bold text-charcoal dark:text-slate-100">{myQuotes.length}</span>
+                    <span className="text-muted">CAD Quotes</span>
+                    <span className="font-mono font-bold text-ink">{myQuotes.length}</span>
                   </div>
                   <div className="flex justify-between py-2.5">
-                    <span className="text-charcoal-lighter dark:text-slate-400">Account Email</span>
-                    <span className="font-mono font-medium text-charcoal dark:text-slate-100 truncate max-w-[160px]">{user.email}</span>
+                    <span className="text-muted">Account Email</span>
+                    <span className="font-mono font-medium text-ink truncate max-w-[160px]">{user.email}</span>
                   </div>
                 </dl>
               </div>
@@ -1061,9 +1050,7 @@ export function Account() {
         )}
       </main>
 
-      {/* ================================================================== */}
-      {/* ORDER DETAILS MODAL                                                */}
-      {/* ================================================================== */}
+      {/* ORDER DETAILS MODAL */}
       {selectedOrder && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-8"
@@ -1072,19 +1059,19 @@ export function Account() {
           onClick={() => setSelectedOrder(null)}
         >
           <div
-            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-zinc-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl"
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-line bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-slate-800 p-6">
+            <div className="flex items-center justify-between border-b border-line p-6">
               <div>
-                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-brand-500 block">
+                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent block">
                   Order Details
                 </span>
-                <h2 className="font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
+                <h2 className="font-display text-2xl font-bold text-ink">
                   #{selectedOrder.id.slice(0, 8).toUpperCase()}
                 </h2>
-                <p className="text-xs text-charcoal-lighter dark:text-slate-400">
+                <p className="font-mono text-xs text-muted">
                   {new Date(selectedOrder.date).toLocaleDateString('en-IN', {
                     day: 'numeric',
                     month: 'long',
@@ -1096,7 +1083,7 @@ export function Account() {
               <button
                 type="button"
                 onClick={() => setSelectedOrder(null)}
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 dark:bg-slate-800 text-charcoal-light dark:text-slate-400 hover:bg-zinc-200 dark:hover:bg-slate-700"
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-shell text-muted hover:text-ink transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1104,27 +1091,27 @@ export function Account() {
 
             {/* Modal Body */}
             <div className="p-6 space-y-6">
-              <div className="flex items-center justify-between rounded-2xl bg-zinc-50 dark:bg-slate-800/80 p-4">
-                <span className="font-mono text-xs font-bold text-charcoal-lighter dark:text-slate-400 uppercase">Fabrication Status</span>
+              <div className="flex items-center justify-between rounded-2xl bg-shell p-4">
+                <span className="font-mono text-xs font-bold text-muted uppercase">Fabrication Status</span>
                 {getStatusBadge(selectedOrder.status)}
               </div>
 
               {/* Items List */}
-              <div className="divide-y divide-zinc-100 dark:divide-slate-800 border-y border-zinc-100 dark:border-slate-800">
+              <div className="divide-y divide-line border-y border-line">
                 {selectedOrder.items.map((item, index) => (
-                  <div key={`${item.productId}-${index}`} className="flex items-center gap-4 py-3">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400">
+                  <div key={`${item.productId}-${index}`} className="flex items-center gap-4 py-3 font-sans">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
                       <Package className="h-5 w-5" />
                     </div>
 
                     <div className="min-w-0 flex-1 text-xs">
-                      <p className="font-bold text-charcoal dark:text-slate-100">{item.productName}</p>
-                      <p className="font-mono text-[11px] text-charcoal-lighter dark:text-slate-400">
+                      <p className="font-bold text-ink font-display">{item.productName}</p>
+                      <p className="font-mono text-[11px] text-muted">
                         Qty {item.quantity} {item.variantLabel && `• ${item.variantLabel}`}
                       </p>
                     </div>
 
-                    <span className="font-mono text-xs font-bold text-charcoal dark:text-slate-100">
+                    <span className="font-mono text-xs font-bold text-ink">
                       ₹{(item.price * item.quantity).toLocaleString('en-IN')}
                     </span>
                   </div>
@@ -1132,14 +1119,14 @@ export function Account() {
               </div>
 
               {/* Price Breakdown */}
-              <div className="space-y-2 text-xs divide-y divide-zinc-100 dark:divide-slate-800">
+              <div className="space-y-2 text-xs divide-y divide-line font-sans">
                 <div className="flex justify-between pt-2">
-                  <span className="text-charcoal-lighter dark:text-slate-400">Delivery</span>
-                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">Pan-India Tracked</span>
+                  <span className="text-muted">Delivery</span>
+                  <span className="font-mono font-bold text-emerald-600">Pan-India Tracked</span>
                 </div>
                 <div className="flex items-baseline justify-between pt-3">
-                  <span className="font-serif text-base font-bold text-charcoal dark:text-slate-100">Total Amount</span>
-                  <span className="font-serif text-2xl font-bold text-charcoal dark:text-slate-100">
+                  <span className="font-display text-base font-bold text-ink">Total Amount</span>
+                  <span className="font-mono text-2xl font-bold text-accent">
                     ₹{selectedOrder.total.toLocaleString('en-IN')}
                   </span>
                 </div>
@@ -1147,14 +1134,14 @@ export function Account() {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex justify-end gap-3 border-t border-zinc-100 dark:border-slate-800 bg-zinc-50/60 dark:bg-slate-800/60 p-4 rounded-b-3xl">
+            <div className="flex justify-end gap-3 border-t border-line bg-shell p-4 rounded-b-3xl font-display">
               <Button variant="ghost" onClick={() => setSelectedOrder(null)} className="font-semibold text-xs">
                 Close
               </Button>
               <Button
                 onClick={() => handleOrderAgain(selectedOrder)}
                 disabled={reorderOrder.isPending}
-                className="font-bold text-xs"
+                className="font-bold text-xs bg-accent hover:bg-accent-dark text-white border-accent"
               >
                 <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
                 {reorderOrder.isPending ? 'Adding...' : 'Order Again'}
