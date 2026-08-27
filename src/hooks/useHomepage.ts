@@ -24,6 +24,12 @@ export type HomepageSettings = {
   announcementText: string;
   announcementMessages: string[];
   announcementDuration: number;
+  featuredTitle?: string;
+  featuredSubtitle?: string;
+  customPromoTitle?: string;
+  customPromoSubtitle?: string;
+  customPromoButtonText?: string;
+  customPromoButtonLink?: string;
 };
 
 export const DEFAULT_HERO_SLIDES: HomepageHeroSlide[] = [
@@ -31,21 +37,21 @@ export const DEFAULT_HERO_SLIDES: HomepageHeroSlide[] = [
     id: 'hero-1',
     enabled: true,
     eyebrow: 'Bespoke Craftsmanship',
-    title: 'Luminous Memories & Custom Lithophane Lamps',
+    title: 'Turn Ideas Into Something Real.',
     description:
-      'Transform cherished photos and personal moments into glowing 3D-fabricated art pieces, personalized anniversary trophies, and desk decor.',
+      'Precision custom 3D printing, bespoke interior lighting, and made-to-order physical goods crafted in our dedicated Indian makerspace.',
     image:
-      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80',
-    buttonText: 'Explore Workshop Pieces',
+      'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&w=2000&q=80',
+    buttonText: 'Explore Products',
     buttonLink: '/catalog',
   },
   {
     id: 'hero-2',
     enabled: true,
     eyebrow: 'Precision Engineering',
-    title: 'Rapid Prototypes & Robotics Enclosures',
+    title: 'Rapid Prototypes & Custom Enclosures',
     description:
-      'Industrial-grade PETG, ABS, and high-detail SLA resin fabrication with 50µm dimensional tolerances for makers, IoT startups, and engineering teams.',
+      'High-detail FDM and SLA additive manufacturing across PLA, PETG, ABS, and UV resins for creators, startups, and engineering teams.',
     image:
       'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?auto=format&fit=crop&w=1200&q=80',
     buttonText: 'Upload CAD for Quote',
@@ -54,13 +60,13 @@ export const DEFAULT_HERO_SLIDES: HomepageHeroSlide[] = [
   {
     id: 'hero-3',
     enabled: true,
-    eyebrow: 'Zero Setup Delays',
+    eyebrow: 'Makerspace Fabrication',
     title: 'If You Can Imagine It, We Can Print It.',
     description:
-      'Turn concept sketches, CAD models, or replacement part ideas into finished, production-grade physical objects in 24–48 hours.',
+      'Turn concept sketches, CAD models, or replacement part ideas into finished, production-grade physical objects.',
     image:
       'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=1200&q=80',
-    buttonText: 'Get Instant 3D Quote',
+    buttonText: 'Get Custom 3D Quote',
     buttonLink: '/custom-service',
   },
 ];
@@ -78,6 +84,13 @@ export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
   announcementText: '',
   announcementMessages: [],
   announcementDuration: 24,
+
+  featuredTitle: 'Featured 3D Creations',
+  featuredSubtitle: 'Handcrafted 3D printed lighting, desk accessories, and customized keepsakes.',
+  customPromoTitle: 'Have a 3D Model? Upload your STL & get an instant quote.',
+  customPromoSubtitle: 'Our interactive custom printing pipeline computes volume, estimates material weight, and generates transparent pricing in real time for PLA, PETG, ABS, and Resin.',
+  customPromoButtonText: 'Upload 3D File',
+  customPromoButtonLink: '/custom-service',
 };
 
 const HOMEPAGE_DOCUMENT_ID = 'homepage';
@@ -264,12 +277,39 @@ export function useHomepage() {
             ? data.announcementEnabled
             : DEFAULT_HOMEPAGE_SETTINGS.announcementEnabled,
 
-        announcementText:
-          announcementMessages[0] || '',
-
         announcementMessages,
 
         announcementDuration,
+
+        featuredTitle:
+          typeof data.featuredTitle === 'string'
+            ? data.featuredTitle
+            : DEFAULT_HOMEPAGE_SETTINGS.featuredTitle,
+
+        featuredSubtitle:
+          typeof data.featuredSubtitle === 'string'
+            ? data.featuredSubtitle
+            : DEFAULT_HOMEPAGE_SETTINGS.featuredSubtitle,
+
+        customPromoTitle:
+          typeof data.customPromoTitle === 'string'
+            ? data.customPromoTitle
+            : DEFAULT_HOMEPAGE_SETTINGS.customPromoTitle,
+
+        customPromoSubtitle:
+          typeof data.customPromoSubtitle === 'string'
+            ? data.customPromoSubtitle
+            : DEFAULT_HOMEPAGE_SETTINGS.customPromoSubtitle,
+
+        customPromoButtonText:
+          typeof data.customPromoButtonText === 'string'
+            ? data.customPromoButtonText
+            : DEFAULT_HOMEPAGE_SETTINGS.customPromoButtonText,
+
+        customPromoButtonLink:
+          typeof data.customPromoButtonLink === 'string'
+            ? data.customPromoButtonLink
+            : DEFAULT_HOMEPAGE_SETTINGS.customPromoButtonLink,
       };
     },
 

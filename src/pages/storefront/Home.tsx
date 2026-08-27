@@ -310,11 +310,17 @@ export function Home() {
                 transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
                 className="space-y-4"
               >
+                {currentSlide.eyebrow && (
+                  <span className="font-mono text-xs font-semibold tracking-wider text-accent uppercase block">
+                    {currentSlide.eyebrow}
+                  </span>
+                )}
                 <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white leading-[1.08]">
-                  Turn Ideas Into Something Real.
+                  {currentSlide.title || 'Turn Ideas Into Something Real.'}
                 </h1>
                 <p className="font-sans text-sm sm:text-base text-zinc-300 max-w-lg leading-relaxed">
-                  Precision custom 3D printing, bespoke interior lighting, and made-to-order physical goods crafted in our dedicated Indian makerspace.
+                  {currentSlide.description ||
+                    'Precision custom 3D printing, bespoke interior lighting, and made-to-order physical goods crafted in our dedicated Indian makerspace.'}
                 </p>
               </motion.div>
             </AnimatePresence>
@@ -322,10 +328,10 @@ export function Home() {
             {/* Dual CTA Buttons */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Link
-                to="/catalog"
+                to={currentSlide.buttonLink || '/catalog'}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-7 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-accent/25 transition-all hover:bg-accent-dark hover:scale-[1.02]"
               >
-                <span>Explore Products</span>
+                <span>{currentSlide.buttonText || 'Explore Products'}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
@@ -452,10 +458,10 @@ export function Home() {
               Flagship Collection
             </span>
             <h2 className="mt-1 font-display text-3xl font-bold tracking-tight sm:text-4xl text-ink">
-              Featured 3D Creations
+              {homepageSettings?.featuredTitle || 'Featured 3D Creations'}
             </h2>
             <p className="mt-1 font-sans text-xs sm:text-sm text-muted">
-              Handcrafted 3D printed lighting, desk accessories, and customized keepsakes.
+              {homepageSettings?.featuredSubtitle || 'Handcrafted 3D printed lighting, desk accessories, and customized keepsakes.'}
             </p>
           </div>
           <Link
@@ -550,18 +556,18 @@ export function Home() {
                   Instant STL Slicer & Estimator
                 </span>
                 <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight">
-                  Have a 3D Model?<br />Upload your STL & get an instant quote.
+                  {homepageSettings?.customPromoTitle || 'Have a 3D Model? Upload your STL & get an instant quote.'}
                 </h2>
                 <p className="font-sans text-xs sm:text-sm text-zinc-300 max-w-lg leading-relaxed">
-                  Our interactive custom printing pipeline computes volume, estimates material weight, and generates transparent pricing in real time for PLA, PETG, ABS, and Resin.
+                  {homepageSettings?.customPromoSubtitle || 'Our interactive custom printing pipeline computes volume, estimates material weight, and generates transparent pricing in real time for PLA, PETG, ABS, and Resin.'}
                 </p>
                 <div className="flex flex-wrap gap-4 pt-2">
                   <Link
-                    to="/custom-service"
+                    to={homepageSettings?.customPromoButtonLink || '/custom-service'}
                     className="inline-flex items-center gap-2 rounded-full bg-accent px-8 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-accent/25 hover:bg-accent-dark transition-all"
                   >
                     <UploadCloud className="w-4 h-4" />
-                    <span>Upload 3D File</span>
+                    <span>{homepageSettings?.customPromoButtonText || 'Upload 3D File'}</span>
                   </Link>
                   <a
                     href={whatsappLink}

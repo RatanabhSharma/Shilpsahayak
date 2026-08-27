@@ -809,6 +809,112 @@ export function AdminHome() {
           )}
         </div>
       </div>
+
+      {/* Homepage Section Headlines & Promo Banner Manager */}
+      <div className="rounded-xl border border-line bg-white p-6 shadow-xs space-y-5">
+        <div>
+          <h2 className="font-display text-base font-bold text-ink">Section Headlines & Custom STL Promo Banner</h2>
+          <p className="mt-0.5 text-xs text-muted">
+            Configure section titles and custom 3D printing spotlight copy displayed across the storefront homepage.
+          </p>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Featured Collection Copy */}
+          <div className="rounded-lg border border-line bg-shell p-4 space-y-3">
+            <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-accent block">
+              Featured Products Section
+            </span>
+            <div>
+              <label className="block text-xs font-semibold text-ink mb-1" htmlFor="featured-title">
+                Section Heading Title
+              </label>
+              <input
+                id="featured-title"
+                type="text"
+                value={form.featuredTitle || ''}
+                onChange={(e) => setForm((current) => ({ ...current, featuredTitle: e.target.value }))}
+                placeholder="Featured 3D Creations"
+                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-ink outline-none focus:border-accent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-ink mb-1" htmlFor="featured-subtitle">
+                Section Subtitle
+              </label>
+              <input
+                id="featured-subtitle"
+                type="text"
+                value={form.featuredSubtitle || ''}
+                onChange={(e) => setForm((current) => ({ ...current, featuredSubtitle: e.target.value }))}
+                placeholder="Handcrafted 3D printed lighting, desk accessories, and customized keepsakes."
+                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs text-ink outline-none focus:border-accent"
+              />
+            </div>
+          </div>
+
+          {/* Custom STL Promo Spotlight Copy */}
+          <div className="rounded-lg border border-line bg-shell p-4 space-y-3">
+            <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-accent block">
+              Custom 3D Printing Spotlight Banner
+            </span>
+            <div>
+              <label className="block text-xs font-semibold text-ink mb-1" htmlFor="promo-title">
+                Banner Headline
+              </label>
+              <input
+                id="promo-title"
+                type="text"
+                value={form.customPromoTitle || ''}
+                onChange={(e) => setForm((current) => ({ ...current, customPromoTitle: e.target.value }))}
+                placeholder="Have a 3D Model? Upload your STL & get an instant quote."
+                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-ink outline-none focus:border-accent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-ink mb-1" htmlFor="promo-subtitle">
+                Banner Subtitle
+              </label>
+              <textarea
+                id="promo-subtitle"
+                rows={2}
+                value={form.customPromoSubtitle || ''}
+                onChange={(e) => setForm((current) => ({ ...current, customPromoSubtitle: e.target.value }))}
+                placeholder="Our interactive custom printing pipeline computes volume..."
+                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs text-ink outline-none focus:border-accent"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-mono text-muted mb-1" htmlFor="promo-btn-text">
+                  Button Text
+                </label>
+                <input
+                  id="promo-btn-text"
+                  type="text"
+                  value={form.customPromoButtonText || ''}
+                  onChange={(e) => setForm((current) => ({ ...current, customPromoButtonText: e.target.value }))}
+                  placeholder="Upload 3D File"
+                  className="w-full rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs text-ink outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-mono text-muted mb-1" htmlFor="promo-btn-link">
+                  Button Link
+                </label>
+                <input
+                  id="promo-btn-link"
+                  type="text"
+                  value={form.customPromoButtonLink || ''}
+                  onChange={(e) => setForm((current) => ({ ...current, customPromoButtonLink: e.target.value }))}
+                  placeholder="/custom-service"
+                  className="w-full rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs text-ink outline-none"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </form>
   );
 }

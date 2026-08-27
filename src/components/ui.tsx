@@ -4,7 +4,7 @@ import React, {
   useRef,
   useState
 } from 'react';
-import { Check, ChevronDown, Layers } from 'lucide-react';
+import { Check, ChevronDown } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -23,10 +23,11 @@ export function cn(...inputs: ClassValue[]) {
 interface BrandLogoProps {
   className?: string;
   theme?: 'light' | 'dark';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   showTagline?: boolean;
   taglineText?: string;
   isDarkTheme?: boolean;
+  showText?: boolean;
 }
 
 export function BrandLogo({
@@ -34,63 +35,69 @@ export function BrandLogo({
   size = 'md',
   showTagline = false,
   taglineText = 'If you can imagine it, we can print it.',
-  isDarkTheme = false
+  isDarkTheme = false,
+  showText = true,
 }: BrandLogoProps) {
   const markSizes = {
-    sm: 'h-8 w-8 text-xs',
-    md: 'h-10 w-10 text-sm',
-    lg: 'h-12 w-12 text-base'
+    sm: 'h-8 w-8 rounded-lg',
+    md: 'h-10 w-10 sm:h-11 sm:w-11 rounded-xl',
+    lg: 'h-12 w-12 sm:h-14 sm:w-14 rounded-2xl',
+    xl: 'h-16 w-16 sm:h-20 sm:w-20 rounded-2xl',
   };
 
   const titleSizes = {
-    sm: 'text-base',
-    md: 'text-lg',
-    lg: 'text-xl'
+    sm: 'text-sm font-bold',
+    md: 'text-base sm:text-lg font-bold',
+    lg: 'text-lg sm:text-xl font-bold',
+    xl: 'text-2xl font-bold',
   };
 
   return (
-    <div className={cn('flex items-center gap-3 select-none', className)}>
-      {/* Geometric Stacked Cube Mark */}
+    <div className={cn('flex items-center gap-2.5 sm:gap-3 select-none group', className)}>
+      {/* Official Company Logo Emblem */}
       <div
         className={cn(
-          'relative flex items-center justify-center rounded-xl font-display font-bold transition-transform duration-300 group-hover:scale-105 shadow-sm',
+          'relative flex items-center justify-center overflow-hidden border shadow-soft transition-transform duration-300 group-hover:scale-105 shrink-0',
           markSizes[size],
-          'bg-accent text-white shadow-accent/25'
+          isDarkTheme ? 'border-zinc-800 bg-white/95 ring-1 ring-white/10' : 'bg-white border-line'
         )}
         aria-hidden="true"
       >
-        <span className="tracking-[-0.05em] font-extrabold flex items-center gap-0.5">
-          <Layers className="w-4 h-4 text-white" />
-        </span>
-        {/* Glowing corner accent */}
-        <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-light opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent-light"></span>
-        </span>
+        <img
+          src="/logo.png"
+          alt="Shilp Sahayak Logo"
+          className="h-full w-full object-contain p-0.5"
+          onError={(e) => {
+            const target = e.currentTarget;
+            target.style.display = 'none';
+          }}
+        />
       </div>
 
-      <div className="flex flex-col">
-        <span
-          className={cn(
-            'font-display font-bold tracking-tight leading-none',
-            isDarkTheme ? 'text-white' : 'text-ink',
-            titleSizes[size]
-          )}
-        >
-          SHILP <span className="text-accent">SAHAYAK</span>
-        </span>
-
-        {showTagline && (
+      {showText && (
+        <div className="flex flex-col">
           <span
             className={cn(
-              'font-sans text-[11px] font-medium tracking-wide mt-1 leading-tight',
-              isDarkTheme ? 'text-zinc-400' : 'text-muted'
+              'font-display tracking-tight leading-none',
+              isDarkTheme ? 'text-white' : 'text-ink',
+              titleSizes[size]
             )}
           >
-            {taglineText}
+            SHILP <span className="text-accent">SAHAYAK</span>
           </span>
-        )}
-      </div>
+
+          {showTagline && (
+            <span
+              className={cn(
+                'font-sans text-[11px] font-medium tracking-wide mt-1 leading-tight',
+                isDarkTheme ? 'text-zinc-400' : 'text-muted'
+              )}
+            >
+              {taglineText}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

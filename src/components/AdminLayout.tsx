@@ -89,7 +89,7 @@ export function AdminLayout() {
         {/* Sidebar Header */}
         <div className="h-16 flex items-center justify-between px-5 border-b border-line">
           <Link to="/admin/dashboard" className="flex items-center gap-2.5">
-            <BrandLogo size="sm" />
+            <BrandLogo size="sm" showText={false} />
             <div>
               <span className="font-display text-base font-bold text-ink block leading-tight tracking-tight">
                 Shilp Sahayak

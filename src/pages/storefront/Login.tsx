@@ -270,7 +270,7 @@ export function Login() {
           </p>
 
           <div className="pt-4 border-t border-zinc-800 flex items-center gap-4 text-xs font-mono text-zinc-400">
-            <span>⚡ ₹4.5/g Custom 3D Printing</span>
+            <span>⚡ Volume-Based CAD Pricing</span>
             <span>•</span>
             <span>🛡️ 256-Bit SSL Auth</span>
           </div>

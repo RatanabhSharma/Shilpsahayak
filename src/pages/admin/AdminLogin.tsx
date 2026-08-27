@@ -73,7 +73,7 @@ export function AdminLogin() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <BrandLogo size="md" />
+            <BrandLogo size="md" showText={false} />
             <div>
               <span className="font-display text-xl font-bold tracking-tight text-white block">
                 Shilp Sahayak
