@@ -51,7 +51,7 @@ export function ProductDetail() {
   } = useProducts();
 
   const { data: settings } = useSettings();
-  const whatsappNumber = settings?.whatsappNumber || '919876543210';
+  const whatsappNumber = settings?.whatsappNumber || '';
   const navigate = useNavigate();
 
   const addToCart = useStore((state) => state.addToCart);
@@ -113,11 +113,12 @@ export function ProductDetail() {
   const outOfStock = currentStock <= 0;
 
   const whatsappInquiryLink = useMemo(() => {
+    if (!whatsappNumber) return '#';
     const text = encodeURIComponent(
-      `Hello Shilp Sahayak! I have a question regarding "${product?.name || 'this piece'}" (₹${currentPrice}). Can you help?`
+      `Hello ${settings?.businessName || 'Shilp Sahayak'}! I have a question regarding "${product?.name || 'this piece'}" (₹${currentPrice}). Can you help?`
     );
     return `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${text}`;
-  }, [product?.name, currentPrice, whatsappNumber]);
+  }, [product?.name, currentPrice, whatsappNumber, settings?.businessName]);
 
   /* Related Products */
   const relatedProducts = useMemo(() => {
@@ -577,20 +578,22 @@ export function ProductDetail() {
                     Buy Now
                   </Button>
 
-                  <a
-                    href={whatsappInquiryLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block"
-                  >
-                    <Button
-                      size="md"
-                      variant="outline"
-                      className="w-full font-sans font-semibold border-line hover:border-emerald-500 hover:text-emerald-700"
+                  {whatsappNumber && (
+                    <a
+                      href={whatsappInquiryLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
                     >
-                      Ask about this piece on WhatsApp
-                    </Button>
-                  </a>
+                      <Button
+                        size="md"
+                        variant="outline"
+                        className="w-full font-sans font-semibold border-line hover:border-emerald-500 hover:text-emerald-700"
+                      >
+                        Ask about this piece on WhatsApp
+                      </Button>
+                    </a>
+                  )}
                 </div>
 
                 {/* Pincode Delivery Estimator Widget */}

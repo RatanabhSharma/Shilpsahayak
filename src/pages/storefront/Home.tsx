@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -134,8 +134,10 @@ export function Home() {
   const { data: reviews = [] } = useReviews();
   const addReviewMutation = useAddReview();
 
-  const whatsappNumber = settings?.whatsappNumber || '919876543210';
-  const whatsappLink = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}`;
+  const whatsappNumber = settings?.whatsappNumber || '';
+  const whatsappLink = whatsappNumber
+    ? `https://wa.me/${whatsappNumber.replace(/\D/g, '')}`
+    : '#';
 
   const activeProducts = useMemo(
     () => products.filter((product) => product.active !== false),
@@ -205,25 +207,44 @@ export function Home() {
       }
     }
     const configuredNames = homepageSettings?.categoryNames ?? [];
-    if (configuredNames.length === 0) {
-      return Array.from(categoryMap.entries()).slice(0, 4).map(([name, data]) => ({
-        name,
-        image: data.image,
-        productCount: data.count,
-      }));
+    if (configuredNames.length > 0) {
+      const result = configuredNames
+        .map((name) => {
+          const data = categoryMap.get(name);
+          return data ? { name, image: data.image, productCount: data.count } : null;
+        })
+        .filter(Boolean) as { name: string; image: string; productCount: number }[];
+      if (result.length > 0) return result;
     }
-    const result = configuredNames
-      .map((name) => {
-        const data = categoryMap.get(name);
-        return data ? { name, image: data.image, productCount: data.count } : null;
-      })
-      .filter(Boolean) as { name: string; image: string; productCount: number }[];
-    return result.length > 0 ? result.slice(0, 4) : Array.from(categoryMap.entries()).slice(0, 4).map(([name, data]) => ({
+    return Array.from(categoryMap.entries()).map(([name, data]) => ({
       name,
       image: data.image,
       productCount: data.count,
     }));
   }, [activeProducts, homepageSettings?.categoryNames]);
+
+  /* Category Carousel Navigation & Scroll State */
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScrollButtons = () => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 10);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
+  };
+
+  const scrollCategories = (direction: -1 | 1) => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    const scrollAmount = el.clientWidth * 0.75;
+    el.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    checkScrollButtons();
+  }, [categories]);
 
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
@@ -496,11 +517,11 @@ export function Home() {
       </section>
 
       {/* =====================================================
-          4. SHOP BY COLLECTION
+          4. SHOP BY COLLECTION (CAROUSEL WITH ROTATION EFFECT & BUTTONS)
       ====================================================== */}
       <section className="bg-[#FAF9F6] py-14 border-t border-line">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end mb-10">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end mb-8">
             <div>
               <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
                 Curated Collections
@@ -509,28 +530,59 @@ export function Home() {
                 Shop by Category
               </h2>
             </div>
-            <Link to="/catalog" className="font-display text-sm font-bold text-accent hover:underline">
-              View All Categories →
-            </Link>
+
+            {/* Navigation Buttons & View All */}
+            <div className="flex items-center gap-4">
+              <Link to="/catalog" className="font-display text-sm font-bold text-accent hover:underline hidden sm:inline-block">
+                View All Categories →
+              </Link>
+
+              {categories.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => scrollCategories(-1)}
+                    disabled={!canScrollLeft}
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-soft transition-all hover:bg-accent hover:text-white hover:border-accent disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-ink disabled:hover:border-line cursor-pointer disabled:cursor-not-allowed"
+                    aria-label="Previous categories"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollCategories(1)}
+                    disabled={!canScrollRight}
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-soft transition-all hover:bg-accent hover:text-white hover:border-accent disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-ink disabled:hover:border-line cursor-pointer disabled:cursor-not-allowed"
+                    aria-label="Next categories"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div
+            ref={categoryScrollRef}
+            onScroll={checkScrollButtons}
+            className="flex gap-6 overflow-x-auto pb-4 scrollbar-none snap-x snap-mandatory scroll-smooth"
+          >
             {categories.map((cat) => (
               <Link
                 key={cat.name}
                 to={`/catalog?category=${encodeURIComponent(cat.name)}`}
-                className="group relative block overflow-hidden rounded-2xl border border-line bg-white shadow-soft transition-all hover:shadow-card hover:-translate-y-1"
+                className="group relative block w-[260px] sm:w-[300px] lg:w-[320px] shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-white shadow-soft transition-all duration-300 hover:shadow-card hover:-translate-y-1.5 hover:rotate-[0.8deg] hover:border-accent/40"
               >
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-shell">
                   <img
                     src={cat.image || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80'}
                     alt={cat.name}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="h-full w-full object-cover transition-all duration-500 group-hover:scale-105 group-hover:-rotate-1"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#121212]/80 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#121212]/85 via-transparent to-transparent" />
                   <div className="absolute bottom-4 left-4 right-4 text-white">
                     <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent bg-black/60 px-2 py-0.5 rounded">
-                      {cat.productCount} Items
+                      {cat.productCount} {cat.productCount === 1 ? 'Item' : 'Items'}
                     </span>
                     <h3 className="mt-1 font-display text-lg font-bold text-white group-hover:text-accent transition-colors">
                       {cat.name}
@@ -539,6 +591,12 @@ export function Home() {
                 </div>
               </Link>
             ))}
+          </div>
+
+          <div className="mt-4 sm:hidden text-center">
+            <Link to="/catalog" className="font-display text-xs font-bold text-accent hover:underline">
+              View All Categories →
+            </Link>
           </div>
         </div>
       </section>

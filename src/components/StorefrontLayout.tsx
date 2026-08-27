@@ -53,10 +53,6 @@ const NAV_ITEMS: NavItem[] = [
     path: '/custom-service',
   },
   {
-    name: 'Corporate',
-    path: '/about#corporate',
-  },
-  {
     name: 'About Studio',
     path: '/about',
   },
@@ -212,14 +208,14 @@ export function StorefrontLayout() {
      ---------------------------------------------------------- */
 
   const businessName = settings?.businessName || 'Shilp Sahayak';
-  const businessEmail = settings?.email || 'hello@shilpsahayak.com';
-  const whatsappNumber = settings?.whatsappNumber || '919876543210';
-  const businessPhone = settings?.phone || '+91 98765 43210';
-  const businessAddress = settings?.address || 'Patiala, Punjab 147001';
+  const businessEmail = settings?.email || '';
+  const whatsappNumber = settings?.whatsappNumber || '';
+  const businessPhone = settings?.phone || '';
+  const businessAddress = settings?.address || '';
 
   const whatsappLink = whatsappNumber
     ? `https://wa.me/${whatsappNumber.replace(/\D/g, '')}`
-    : 'https://wa.me/919876543210';
+    : '#';
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -618,22 +614,33 @@ export function StorefrontLayout() {
                 Workshop & Studio
               </h3>
               <ul className="space-y-3 text-sm text-zinc-400 font-sans">
-                <li className="flex items-start gap-2.5">
-                  <MapPin className="h-4 w-4 shrink-0 text-accent mt-0.5" />
-                  <span>{businessAddress}</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Mail className="h-4 w-4 shrink-0 text-accent" />
-                  <a href={`mailto:${businessEmail}`} className="hover:text-white transition-colors font-mono text-xs">
-                    {businessEmail}
-                  </a>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Phone className="h-4 w-4 shrink-0 text-accent" />
-                  <a href={`tel:${businessPhone.replace(/\s+/g, '')}`} className="hover:text-white transition-colors font-mono text-xs">
-                    {businessPhone}
-                  </a>
-                </li>
+                {businessAddress && (
+                  <li className="flex items-start gap-2.5">
+                    <MapPin className="h-4 w-4 shrink-0 text-accent mt-0.5" />
+                    <span>{businessAddress}</span>
+                  </li>
+                )}
+                {businessEmail && (
+                  <li className="flex items-center gap-2.5">
+                    <Mail className="h-4 w-4 shrink-0 text-accent" />
+                    <a href={`mailto:${businessEmail}`} className="hover:text-white transition-colors font-mono text-xs">
+                      {businessEmail}
+                    </a>
+                  </li>
+                )}
+                {businessPhone && (
+                  <li className="flex items-center gap-2.5">
+                    <Phone className="h-4 w-4 shrink-0 text-accent" />
+                    <a href={`tel:${businessPhone.replace(/\s+/g, '')}`} className="hover:text-white transition-colors font-mono text-xs">
+                      {businessPhone}
+                    </a>
+                  </li>
+                )}
+                {!businessAddress && !businessEmail && !businessPhone && (
+                  <li className="flex items-center gap-2 text-zinc-500 text-xs">
+                    <span>Maker Studio · Patiala, Punjab</span>
+                  </li>
+                )}
               </ul>
             </div>
           </div>

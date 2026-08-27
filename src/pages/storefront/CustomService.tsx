@@ -69,8 +69,10 @@ export function CustomService() {
   const { data: profile, isLoading: profileLoading } = useUserProfile();
   const { data: settings } = useSettings();
 
-  const whatsappNumber = settings?.whatsappNumber || '919876543210';
-  const whatsappLink = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}`;
+  const whatsappNumber = settings?.whatsappNumber || '';
+  const whatsappLink = whatsappNumber
+    ? `https://wa.me/${whatsappNumber.replace(/\D/g, '')}`
+    : '#';
 
   const addToCart = useStore((state) => state.addToCart);
   const products = useStore((state) => state.products);
