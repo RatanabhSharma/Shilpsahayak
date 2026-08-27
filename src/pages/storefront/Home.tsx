@@ -108,6 +108,168 @@ const FAQ_ITEMS = [
   },
 ];
 
+/* ============================================================
+   UNIFIED CIRCULAR CAROUSEL HOOK
+   ============================================================ */
+interface UseCircularCarouselProps {
+  itemCount: number;
+  autoplayInterval?: number;
+  enableAutoplay?: boolean;
+  resumeDelay?: number;
+}
+
+function useCircularCarousel({
+  itemCount,
+  autoplayInterval = 5500,
+  enableAutoplay = true,
+  resumeDelay = 4000,
+}: UseCircularCarouselProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isInteracting, setIsInteracting] = useState(false);
+  const touchStartXRef = useRef<number | null>(null);
+  const isNormalizingRef = useRef(false);
+  const autoplayTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isCircular = itemCount > 4;
+
+  const initializePosition = useCallback(() => {
+    const el = containerRef.current;
+    if (!el || !isCircular) return;
+    const singleSetWidth = el.scrollWidth / 3;
+    if (singleSetWidth > 0 && Math.abs(el.scrollLeft - singleSetWidth) > 5) {
+      el.scrollLeft = singleSetWidth;
+    }
+  }, [isCircular]);
+
+  useEffect(() => {
+    const t = setTimeout(initializePosition, 100);
+    return () => clearTimeout(t);
+  }, [initializePosition]);
+
+  const handleScroll = useCallback(() => {
+    const el = containerRef.current;
+    if (!el || !isCircular || isNormalizingRef.current) return;
+
+    const singleSetWidth = el.scrollWidth / 3;
+    if (singleSetWidth <= 0) return;
+
+    if (el.scrollLeft >= singleSetWidth * 2) {
+      isNormalizingRef.current = true;
+      el.scrollLeft -= singleSetWidth;
+      requestAnimationFrame(() => {
+        isNormalizingRef.current = false;
+      });
+    } else if (el.scrollLeft <= singleSetWidth * 0.1) {
+      isNormalizingRef.current = true;
+      el.scrollLeft += singleSetWidth;
+      requestAnimationFrame(() => {
+        isNormalizingRef.current = false;
+      });
+    }
+  }, [isCircular]);
+
+  const getStepWidth = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return 300;
+    const firstChild = el.firstElementChild as HTMLElement | null;
+    if (firstChild) {
+      const style = window.getComputedStyle(el);
+      const gap = parseFloat(style.columnGap || style.gap || '24') || 24;
+      return firstChild.offsetWidth + gap;
+    }
+    return el.clientWidth * 0.75;
+  }, []);
+
+  const step = useCallback(
+    (direction: -1 | 1) => {
+      const el = containerRef.current;
+      if (!el || itemCount === 0) return;
+      const stepWidth = getStepWidth();
+      el.scrollBy({ left: direction * stepWidth, behavior: 'smooth' });
+    },
+    [itemCount, getStepWidth]
+  );
+
+  const handleUserAction = useCallback(() => {
+    setIsInteracting(true);
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    resumeTimerRef.current = setTimeout(() => {
+      setIsInteracting(false);
+    }, resumeDelay);
+  }, [resumeDelay]);
+
+  const stepNext = useCallback(() => {
+    step(1);
+    handleUserAction();
+  }, [step, handleUserAction]);
+
+  const stepPrev = useCallback(() => {
+    step(-1);
+    handleUserAction();
+  }, [step, handleUserAction]);
+
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      touchStartXRef.current = e.touches[0].clientX;
+      setIsInteracting(true);
+    },
+    []
+  );
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      if (touchStartXRef.current !== null) {
+        const diff = touchStartXRef.current - e.changedTouches[0].clientX;
+        if (Math.abs(diff) > 40) {
+          if (diff > 0) {
+            step(1);
+          } else {
+            step(-1);
+          }
+        }
+      }
+      touchStartXRef.current = null;
+      handleUserAction();
+    },
+    [step, handleUserAction]
+  );
+
+  useEffect(() => {
+    if (!enableAutoplay || !isCircular || isHovered || isInteracting) {
+      if (autoplayTimerRef.current) clearInterval(autoplayTimerRef.current);
+      return;
+    }
+
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return;
+    }
+
+    autoplayTimerRef.current = setInterval(() => {
+      step(1);
+    }, autoplayInterval);
+
+    return () => {
+      if (autoplayTimerRef.current) clearInterval(autoplayTimerRef.current);
+    };
+  }, [enableAutoplay, isCircular, isHovered, isInteracting, autoplayInterval, step]);
+
+  return {
+    containerRef,
+    stepNext,
+    stepPrev,
+    handleScroll,
+    handleTouchStart,
+    handleTouchEnd,
+    setIsHovered,
+    isCircular,
+  };
+}
+
 export function Home() {
   const { data: products = [], isLoading } = useProducts();
   const { data: homepageSettings } = useHomepage();
@@ -218,81 +380,6 @@ export function Home() {
     return featured.length >= 4 ? featured : activeProducts.slice(0, 12);
   }, [activeProducts, homepageSettings?.featuredProductIds]);
 
-  /* Featured Products Auto-Rotating Carousel Controller */
-  const productScrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollProductsLeft, setCanScrollProductsLeft] = useState(false);
-  const [canScrollProductsRight, setCanScrollProductsRight] = useState(true);
-  const [isProductsHovered, setIsProductsHovered] = useState(false);
-  const [isProductsInteracting, setIsProductsInteracting] = useState(false);
-  const autoRotateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const checkProductScrollButtons = useCallback(() => {
-    if (!productScrollRef.current) return;
-    const { scrollLeft, scrollWidth, clientWidth } = productScrollRef.current;
-    setCanScrollProductsLeft(scrollLeft > 10);
-    setCanScrollProductsRight(scrollLeft + clientWidth < scrollWidth - 10);
-  }, []);
-
-  useEffect(() => {
-    checkProductScrollButtons();
-  }, [featuredProducts, checkProductScrollButtons]);
-
-  const scrollProducts = (direction: -1 | 1) => {
-    if (!productScrollRef.current) return;
-    const el = productScrollRef.current;
-    const firstChild = el.firstElementChild as HTMLElement | null;
-    const step = firstChild ? firstChild.offsetWidth + 24 : el.clientWidth * 0.75;
-    el.scrollBy({ left: direction * step, behavior: 'smooth' });
-  };
-
-  const handleProductUserInteraction = () => {
-    setIsProductsInteracting(true);
-    if (autoRotateTimerRef.current) clearInterval(autoRotateTimerRef.current);
-    setTimeout(() => {
-      setIsProductsInteracting(false);
-    }, 4000);
-  };
-
-  /* Auto-Rotation Engine (5.5s interval with smooth 600ms native step) */
-  useEffect(() => {
-    if (
-      featuredProducts.length <= 4 ||
-      isProductsHovered ||
-      isProductsInteracting
-    ) {
-      if (autoRotateTimerRef.current) clearInterval(autoRotateTimerRef.current);
-      return;
-    }
-
-    if (
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    ) {
-      return;
-    }
-
-    const intervalTime = 5500;
-    autoRotateTimerRef.current = setInterval(() => {
-      if (!productScrollRef.current) return;
-      const el = productScrollRef.current;
-      const maxScroll = el.scrollWidth - el.clientWidth;
-      if (maxScroll <= 10) return;
-
-      const firstChild = el.firstElementChild as HTMLElement | null;
-      const step = firstChild ? firstChild.offsetWidth + 24 : el.clientWidth * 0.75;
-
-      if (el.scrollLeft >= maxScroll - 20) {
-        el.scrollTo({ left: 0, behavior: 'smooth' });
-      } else {
-        el.scrollBy({ left: step, behavior: 'smooth' });
-      }
-    }, intervalTime);
-
-    return () => {
-      if (autoRotateTimerRef.current) clearInterval(autoRotateTimerRef.current);
-    };
-  }, [featuredProducts.length, isProductsHovered, isProductsInteracting]);
-
   const categories = useMemo(() => {
     const categoryMap = new Map<string, { image: string; count: number }>();
     for (const product of activeProducts) {
@@ -316,26 +403,18 @@ export function Home() {
     }));
   }, [activeProducts]);
 
-  const categoryScrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
+  /* Unified Circular Carousels for Featured Products & Categories */
+  const featuredCarousel = useCircularCarousel({
+    itemCount: featuredProducts.length,
+    autoplayInterval: 5500,
+    enableAutoplay: true,
+  });
 
-  const checkScrollButtons = () => {
-    if (!categoryScrollRef.current) return;
-    const { scrollLeft, scrollWidth, clientWidth } = categoryScrollRef.current;
-    setCanScrollLeft(scrollLeft > 10);
-    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 10);
-  };
-
-  useEffect(() => {
-    checkScrollButtons();
-  }, [categories]);
-
-  const scrollCategories = (direction: -1 | 1) => {
-    if (!categoryScrollRef.current) return;
-    const amount = direction * (categoryScrollRef.current.clientWidth * 0.75);
-    categoryScrollRef.current.scrollBy({ left: amount, behavior: 'smooth' });
-  };
+  const categoryCarousel = useCircularCarousel({
+    itemCount: categories.length,
+    autoplayInterval: 8000,
+    enableAutoplay: true,
+  });
 
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
@@ -561,7 +640,7 @@ export function Home() {
       </section>
 
       {/* =====================================================
-          3. FEATURED PRODUCTS (AUTO-ROTATING PRODUCT CAROUSEL)
+          3. FEATURED PRODUCTS (UNIFIED CIRCULAR CAROUSEL)
       ====================================================== */}
       <section className="bg-[#FAF9F6] py-14">
         {/* Section Header */}
@@ -587,29 +666,21 @@ export function Home() {
               <ArrowRight className="w-4 h-4" />
             </Link>
 
-            {featuredProducts.length > 4 && (
+            {featuredCarousel.isCircular && (
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    scrollProducts(-1);
-                    handleProductUserInteraction();
-                  }}
-                  disabled={!canScrollProductsLeft}
-                  className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-soft transition-all hover:bg-accent hover:text-white hover:border-accent disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-ink disabled:hover:border-line cursor-pointer disabled:cursor-not-allowed"
-                  aria-label="Previous products"
+                  onClick={featuredCarousel.stepPrev}
+                  className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-soft transition-all hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer"
+                  aria-label="Previous featured products"
                 >
                   <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    scrollProducts(1);
-                    handleProductUserInteraction();
-                  }}
-                  disabled={!canScrollProductsRight}
-                  className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-soft transition-all hover:bg-accent hover:text-white hover:border-accent disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-ink disabled:hover:border-line cursor-pointer disabled:cursor-not-allowed"
-                  aria-label="Next products"
+                  onClick={featuredCarousel.stepNext}
+                  className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-soft transition-all hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer"
+                  aria-label="Next featured products"
                 >
                   <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
@@ -622,7 +693,7 @@ export function Home() {
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10 pb-4">
           {isLoading ? (
             <FeaturedProductSkeleton />
-          ) : featuredProducts.length <= 4 ? (
+          ) : !featuredCarousel.isCircular ? (
             <div className="grid gap-3.5 sm:gap-6 grid-cols-2 lg:grid-cols-4">
               {featuredProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
@@ -630,33 +701,33 @@ export function Home() {
             </div>
           ) : (
             <div
-              ref={productScrollRef}
-              onScroll={checkProductScrollButtons}
-              onMouseEnter={() => setIsProductsHovered(true)}
-              onMouseLeave={() => setIsProductsHovered(false)}
-              onTouchStart={() => setIsProductsInteracting(true)}
-              onTouchEnd={() => {
-                setTimeout(() => setIsProductsInteracting(false), 3000);
-              }}
-              onFocusCapture={() => setIsProductsHovered(true)}
-              onBlurCapture={() => setIsProductsHovered(false)}
+              ref={featuredCarousel.containerRef}
+              onScroll={featuredCarousel.handleScroll}
+              onMouseEnter={() => featuredCarousel.setIsHovered(true)}
+              onMouseLeave={() => featuredCarousel.setIsHovered(false)}
+              onTouchStart={featuredCarousel.handleTouchStart}
+              onTouchEnd={featuredCarousel.handleTouchEnd}
+              onFocusCapture={() => featuredCarousel.setIsHovered(true)}
+              onBlurCapture={() => featuredCarousel.setIsHovered(false)}
               className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-none snap-x snap-mandatory scroll-smooth"
             >
-              {featuredProducts.map((product) => (
-                <div
-                  key={product.id}
-                  className="w-[240px] xs:w-[260px] sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)] shrink-0 snap-start"
-                >
-                  <ProductCard product={product} />
-                </div>
-              ))}
+              {[0, 1, 2].flatMap((setIdx) =>
+                featuredProducts.map((product, idx) => (
+                  <div
+                    key={`feat-${product.id || idx}-set-${setIdx}`}
+                    className="w-[240px] xs:w-[260px] sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)] shrink-0 snap-start"
+                  >
+                    <ProductCard product={product} />
+                  </div>
+                ))
+              )}
             </div>
           )}
         </div>
       </section>
 
       {/* =====================================================
-          4. SHOP BY COLLECTION (CAROUSEL WITH ROTATION EFFECT & BUTTONS)
+          4. SHOP BY COLLECTION (UNIFIED CIRCULAR CAROUSEL)
       ====================================================== */}
       <section className="bg-[#FAF9F6] py-12 sm:py-14 border-t border-line">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
@@ -676,22 +747,20 @@ export function Home() {
                 View All Categories →
               </Link>
 
-              {categories.length > 1 && (
+              {categoryCarousel.isCircular && (
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => scrollCategories(-1)}
-                    disabled={!canScrollLeft}
-                    className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-soft transition-all hover:bg-accent hover:text-white hover:border-accent disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-ink disabled:hover:border-line cursor-pointer disabled:cursor-not-allowed"
+                    onClick={categoryCarousel.stepPrev}
+                    className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-soft transition-all hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer"
                     aria-label="Previous categories"
                   >
                     <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                   </button>
                   <button
                     type="button"
-                    onClick={() => scrollCategories(1)}
-                    disabled={!canScrollRight}
-                    className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-soft transition-all hover:bg-accent hover:text-white hover:border-accent disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-ink disabled:hover:border-line cursor-pointer disabled:cursor-not-allowed"
+                    onClick={categoryCarousel.stepNext}
+                    className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-soft transition-all hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer"
                     aria-label="Next categories"
                   >
                     <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -701,36 +770,77 @@ export function Home() {
             </div>
           </div>
 
-          <div
-            ref={categoryScrollRef}
-            onScroll={checkScrollButtons}
-            className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-none snap-x snap-mandatory scroll-smooth"
-          >
-            {categories.map((cat) => (
-              <Link
-                key={cat.name}
-                to={`/catalog?category=${encodeURIComponent(cat.name)}`}
-                className="group relative block w-[230px] sm:w-[280px] lg:w-[320px] shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-white shadow-soft transition-all duration-300 hover:shadow-card hover:-translate-y-1.5 hover:rotate-[0.8deg] hover:border-accent/40"
-              >
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-shell">
-                  <img
-                    src={cat.image || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80'}
-                    alt={cat.name}
-                    className="h-full w-full object-cover transition-all duration-500 group-hover:scale-105 group-hover:-rotate-1"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#121212]/85 via-transparent to-transparent" />
-                  <div className="absolute bottom-4 left-4 right-4 text-white">
-                    <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent bg-black/60 px-2 py-0.5 rounded">
-                      {cat.productCount} {cat.productCount === 1 ? 'Item' : 'Items'}
-                    </span>
-                    <h3 className="mt-1 font-display text-lg font-bold text-white group-hover:text-accent transition-colors">
-                      {cat.name}
-                    </h3>
+          {!categoryCarousel.isCircular ? (
+            <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-4">
+              {categories.map((cat) => (
+                <Link
+                  key={cat.name}
+                  to={`/catalog?category=${encodeURIComponent(cat.name)}`}
+                  className="group relative block overflow-hidden rounded-2xl border border-line bg-white shadow-soft transition-all duration-300 hover:shadow-card hover:-translate-y-1.5 hover:border-accent/40"
+                >
+                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-shell">
+                    <img
+                      src={cat.image || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80'}
+                      alt={cat.name}
+                      className="h-full w-full object-cover transition-all duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#121212]/85 via-transparent to-transparent" />
+                    <div className="absolute bottom-4 left-4 right-4 text-white">
+                      <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent bg-black/60 px-2 py-0.5 rounded">
+                        {cat.productCount} {cat.productCount === 1 ? 'Item' : 'Items'}
+                      </span>
+                      <h3 className="mt-1 font-display text-lg font-bold text-white group-hover:text-accent transition-colors">
+                        {cat.name}
+                      </h3>
+                    </div>
                   </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div
+              ref={categoryCarousel.containerRef}
+              onScroll={categoryCarousel.handleScroll}
+              onMouseEnter={() => categoryCarousel.setIsHovered(true)}
+              onMouseLeave={() => categoryCarousel.setIsHovered(false)}
+              onTouchStart={categoryCarousel.handleTouchStart}
+              onTouchEnd={categoryCarousel.handleTouchEnd}
+              onFocusCapture={() => categoryCarousel.setIsHovered(true)}
+              onBlurCapture={() => categoryCarousel.setIsHovered(false)}
+              className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-none snap-x snap-mandatory scroll-smooth"
+            >
+              {[0, 1, 2].flatMap((setIdx) =>
+                categories.map((cat, idx) => (
+                  <div
+                    key={`cat-${cat.name || idx}-set-${setIdx}`}
+                    className="w-[230px] sm:w-[280px] lg:w-[320px] shrink-0 snap-start"
+                  >
+                    <Link
+                      to={`/catalog?category=${encodeURIComponent(cat.name)}`}
+                      className="group relative block w-full overflow-hidden rounded-2xl border border-line bg-white shadow-soft transition-all duration-300 hover:shadow-card hover:-translate-y-1.5 hover:border-accent/40"
+                    >
+                      <div className="relative aspect-[4/3] w-full overflow-hidden bg-shell">
+                        <img
+                          src={cat.image || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80'}
+                          alt={cat.name}
+                          className="h-full w-full object-cover transition-all duration-500 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#121212]/85 via-transparent to-transparent" />
+                        <div className="absolute bottom-4 left-4 right-4 text-white">
+                          <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent bg-black/60 px-2 py-0.5 rounded">
+                            {cat.productCount} {cat.productCount === 1 ? 'Item' : 'Items'}
+                          </span>
+                          <h3 className="mt-1 font-display text-lg font-bold text-white group-hover:text-accent transition-colors">
+                            {cat.name}
+                          </h3>
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
 
           <div className="mt-4 sm:hidden text-center">
             <Link to="/catalog" className="font-display text-xs font-bold text-accent hover:underline">
