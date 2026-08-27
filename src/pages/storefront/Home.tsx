@@ -1,6 +1,5 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronDown,
   ChevronLeft,
@@ -109,24 +108,6 @@ const FAQ_ITEMS = [
   },
 ];
 
-/* Helper Organic Wave Divider Component */
-function OrganicWaveDivider({ fill = '#FAF9F6', flip = false }: { fill?: string; flip?: boolean }) {
-  return (
-    <div className={`w-full overflow-hidden leading-none select-none -mb-1 ${flip ? 'rotate-180' : ''}`}>
-      <svg
-        className="relative block w-full h-[40px] sm:h-[70px] lg:h-[90px]"
-        viewBox="0 0 1440 180"
-        preserveAspectRatio="none"
-      >
-        <path
-          d="M0,64L48,80C96,96,192,128,288,128C384,128,480,96,576,85.3C672,75,768,85,864,106.7C960,128,1056,160,1152,160C1248,160,1344,128,1392,112L1440,96L1440,180L1392,180C1344,180,1248,180,1152,180C1056,180,960,180,864,180C768,180,672,180,576,180C480,180,384,180,288,180C192,180,96,180,48,180L0,180Z"
-          fill={fill}
-        />
-      </svg>
-    </div>
-  );
-}
-
 export function Home() {
   const { data: products = [], isLoading } = useProducts();
   const { data: homepageSettings } = useHomepage();
@@ -144,107 +125,158 @@ export function Home() {
     [products]
   );
 
-  /* Dynamic Hero Slides from Firestore Settings (Max 3 slides) */
-  const heroSlides = useMemo(() => {
-    const configuredSlides = (homepageSettings?.heroSlides || []).filter((s) => s.enabled).slice(0, 3);
-    if (configuredSlides.length > 0) {
-      return configuredSlides;
+  /* Curated Hero Content with Safe Fallbacks */
+  const heroContent = useMemo(() => {
+    const configuredSlide = (homepageSettings?.heroSlides || []).find((s) => s.enabled);
+    if (configuredSlide) {
+      return configuredSlide;
     }
-    return activeProducts.slice(0, 3).map((product, idx) => ({
-      id: product.id || `slide-${idx}`,
-      eyebrow: 'CUSTOM 3D FABRICATION & STUDIO GOODS',
-      title: product.name,
-      description: product.description,
-      image: product.image,
-      buttonText: 'EXPLORE CATALOG',
-      buttonLink: `/product/${product.id}`,
-    }));
+    const firstProduct = activeProducts[0];
+    return {
+      id: 'default-hero',
+      eyebrow: 'BESPOKE 3D FABRICATION & STUDIO GOODS',
+      title: firstProduct?.name || 'Turn Ideas Into Something Real.',
+      description:
+        firstProduct?.description ||
+        'Precision custom 3D printing, bespoke interior lighting, and made-to-order physical goods crafted in our Indian makerspace.',
+      image:
+        firstProduct?.image ||
+        'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&w=2000&q=80',
+      buttonText: 'Explore Catalog',
+      buttonLink: '/catalog',
+    };
   }, [homepageSettings?.heroSlides, activeProducts]);
 
-  /* Hero Slideshow State & Accessible Timer */
-  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  const featuredProducts = useMemo(() => {
+    const configuredIds = homepageSettings?.featuredProductIds ?? [];
+    if (configuredIds.length > 0) {
+      const matched = configuredIds
+        .map((id) => activeProducts.find((product) => product.id === id))
+        .filter(Boolean) as typeof activeProducts;
+      if (matched.length > 0) return matched;
+    }
+    const featured = activeProducts.filter((product) => product.featured);
+    return featured.length >= 4 ? featured : activeProducts.slice(0, 12);
+  }, [activeProducts, homepageSettings?.featuredProductIds]);
+
+  /* Featured Products Auto-Rotating Carousel Controller */
+  const productScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollProductsLeft, setCanScrollProductsLeft] = useState(false);
+  const [canScrollProductsRight, setCanScrollProductsRight] = useState(true);
+  const [isProductsHovered, setIsProductsHovered] = useState(false);
+  const [isProductsInteracting, setIsProductsInteracting] = useState(false);
+  const autoRotateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const checkProductScrollButtons = useCallback(() => {
+    if (!productScrollRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = productScrollRef.current;
+    setCanScrollProductsLeft(scrollLeft > 10);
+    setCanScrollProductsRight(scrollLeft + clientWidth < scrollWidth - 10);
+  }, []);
 
   useEffect(() => {
-    if (!homepageSettings?.heroAutoplay || heroSlides.length <= 1 || isPaused) return;
-    const intervalTime = Math.max(5000, Math.min(homepageSettings?.heroInterval || 6000, 8000));
-    const interval = setInterval(() => {
-      setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length);
-    }, intervalTime);
-    return () => clearInterval(interval);
-  }, [heroSlides.length, homepageSettings?.heroAutoplay, homepageSettings?.heroInterval, isPaused]);
+    checkProductScrollButtons();
+  }, [featuredProducts, checkProductScrollButtons]);
 
-  const currentSlide = heroSlides[currentSlideIndex] || heroSlides[0] || {
-    eyebrow: 'CUSTOM 3D FABRICATION & STUDIO GOODS',
-    title: 'Turn Ideas Into Something Real.',
-    description: 'Precision custom 3D printing, bespoke interior accents, and made-to-order physical goods designed and fabricated in India.',
-    image: 'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&w=2000&q=80',
-    buttonText: 'EXPLORE CATALOG',
-    buttonLink: '/catalog',
+  const scrollProducts = (direction: -1 | 1) => {
+    if (!productScrollRef.current) return;
+    const el = productScrollRef.current;
+    const firstChild = el.firstElementChild as HTMLElement | null;
+    const step = firstChild ? firstChild.offsetWidth + 24 : el.clientWidth * 0.75;
+    el.scrollBy({ left: direction * step, behavior: 'smooth' });
   };
 
-  const bestSellers = useMemo(() => {
-    const configuredIds = homepageSettings?.featuredProductIds ?? [];
-    if (configuredIds.length === 0) {
-      return activeProducts.filter((product) => product.featured).slice(0, 8);
+  const handleProductUserInteraction = () => {
+    setIsProductsInteracting(true);
+    if (autoRotateTimerRef.current) clearInterval(autoRotateTimerRef.current);
+    setTimeout(() => {
+      setIsProductsInteracting(false);
+    }, 4000);
+  };
+
+  /* Auto-Rotation Engine (5.5s interval with smooth 600ms native step) */
+  useEffect(() => {
+    if (
+      featuredProducts.length <= 4 ||
+      isProductsHovered ||
+      isProductsInteracting
+    ) {
+      if (autoRotateTimerRef.current) clearInterval(autoRotateTimerRef.current);
+      return;
     }
-    const matched = configuredIds
-      .map((id) => activeProducts.find((product) => product.id === id))
-      .filter(Boolean) as typeof activeProducts;
-    return matched.length > 0 ? matched : activeProducts.slice(0, 8);
-  }, [activeProducts, homepageSettings?.featuredProductIds]);
+
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return;
+    }
+
+    const intervalTime = 5500;
+    autoRotateTimerRef.current = setInterval(() => {
+      if (!productScrollRef.current) return;
+      const el = productScrollRef.current;
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if (maxScroll <= 10) return;
+
+      const firstChild = el.firstElementChild as HTMLElement | null;
+      const step = firstChild ? firstChild.offsetWidth + 24 : el.clientWidth * 0.75;
+
+      if (el.scrollLeft >= maxScroll - 20) {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        el.scrollBy({ left: step, behavior: 'smooth' });
+      }
+    }, intervalTime);
+
+    return () => {
+      if (autoRotateTimerRef.current) clearInterval(autoRotateTimerRef.current);
+    };
+  }, [featuredProducts.length, isProductsHovered, isProductsInteracting]);
 
   const categories = useMemo(() => {
     const categoryMap = new Map<string, { image: string; count: number }>();
     for (const product of activeProducts) {
       if (product.category) {
         const existing = categoryMap.get(product.category);
-        if (!existing) {
-          categoryMap.set(product.category, { image: product.image, count: 1 });
-        } else {
+        if (existing) {
           existing.count += 1;
+        } else {
+          categoryMap.set(product.category, {
+            image: product.image || '',
+            count: 1,
+          });
         }
       }
     }
-    const configuredNames = homepageSettings?.categoryNames ?? [];
-    if (configuredNames.length > 0) {
-      const result = configuredNames
-        .map((name) => {
-          const data = categoryMap.get(name);
-          return data ? { name, image: data.image, productCount: data.count } : null;
-        })
-        .filter(Boolean) as { name: string; image: string; productCount: number }[];
-      if (result.length > 0) return result;
-    }
+
     return Array.from(categoryMap.entries()).map(([name, data]) => ({
       name,
       image: data.image,
       productCount: data.count,
     }));
-  }, [activeProducts, homepageSettings?.categoryNames]);
+  }, [activeProducts]);
 
-  /* Category Carousel Navigation & Scroll State */
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
   const checkScrollButtons = () => {
-    const el = categoryScrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 10);
-    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
-  };
-
-  const scrollCategories = (direction: -1 | 1) => {
-    const el = categoryScrollRef.current;
-    if (!el) return;
-    const scrollAmount = el.clientWidth * 0.75;
-    el.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+    if (!categoryScrollRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = categoryScrollRef.current;
+    setCanScrollLeft(scrollLeft > 10);
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 10);
   };
 
   useEffect(() => {
     checkScrollButtons();
   }, [categories]);
+
+  const scrollCategories = (direction: -1 | 1) => {
+    if (!categoryScrollRef.current) return;
+    const amount = direction * (categoryScrollRef.current.clientWidth * 0.75);
+    categoryScrollRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+  };
 
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
@@ -265,123 +297,64 @@ export function Home() {
     setReviewSubmitted(true);
   };
 
-  /* Touch Swipe Handling for Hero Slides */
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStartX(e.touches[0].clientX);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX === null || heroSlides.length <= 1) return;
-    const touchEndX = e.changedTouches[0].clientX;
-    const diff = touchStartX - touchEndX;
-
-    if (Math.abs(diff) > 40) {
-      if (diff > 0) {
-        setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length);
-      } else {
-        setCurrentSlideIndex((prev) => (prev === 0 ? heroSlides.length - 1 : prev - 1));
-      }
-    }
-    setTouchStartX(null);
-  };
-
-  /* Animation variants */
-  const staggerContainer = {
-    hidden: {},
-    show: { transition: { staggerChildren: 0.08 } },
-  };
-
-  const fadeInUp = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1] } },
-  };
-
   return (
     <div className="bg-[#FAF9F6] text-ink selection:bg-accent-soft selection:text-accent overflow-x-hidden">
       {/* =====================================================
-          1. HERO SECTION (STATIC-FIRST WITH CONTROLLED SLIDESHOW)
+          1. RESPONSIVE HERO SECTION (SINGLE VISUAL PRIORITY)
       ====================================================== */}
-      <section
-        className="relative overflow-hidden bg-[#121212] min-h-[540px] sm:min-h-[640px] lg:min-h-[700px] flex flex-col justify-between text-white touch-pan-y select-none"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-        onFocus={() => setIsPaused(true)}
-        onBlur={() => setIsPaused(false)}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
-        {/* Dynamic Background Image with Smooth Crossfade */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentSlide.id || currentSlideIndex}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.75 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6, ease: 'easeInOut' }}
-            className="absolute inset-0 z-0"
-          >
-            <img
-              src={currentSlide.image}
-              alt={currentSlide.title}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#121212]/95 via-[#121212]/60 to-transparent" />
-            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#121212]/80 to-transparent" />
-          </motion.div>
-        </AnimatePresence>
+      <section className="relative overflow-hidden bg-[#121212] min-h-[520px] sm:min-h-[620px] lg:min-h-[700px] flex flex-col justify-end text-white select-none">
+        {/* Background Visual Scene */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src={heroContent.image}
+            alt={heroContent.title}
+            className="w-full h-full object-cover object-center"
+          />
+          {/* Responsive Gradient Scrim: Bottom-up on mobile, left-to-right on desktop */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-[#121212]/60 to-transparent sm:bg-gradient-to-r sm:from-[#121212]/95 sm:via-[#121212]/50 sm:to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#121212]/80 to-transparent" />
+        </div>
 
         {/* Hero Copy Content */}
-        <div className="relative z-10 mx-auto max-w-[1440px] px-5 sm:px-10 lg:px-16 pt-20 sm:pt-32 pb-12 w-full flex-1 flex flex-col justify-center">
-          <div className="max-w-2xl space-y-4 sm:space-y-5">
-            {/* Verified Trust Badges Strip */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-md px-3 py-1 font-mono text-[10px] sm:text-[11px] font-semibold text-zinc-200 border border-white/15">
-                <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+        <div className="relative z-10 mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-12 pb-10 sm:pb-16 pt-24 sm:pt-32 w-full">
+          <div className="max-w-2xl space-y-3 sm:space-y-4">
+            {/* Verified Trust Badges */}
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-md px-2.5 py-0.5 sm:px-3 sm:py-1 font-mono text-[10px] sm:text-[11px] font-semibold text-zinc-200 border border-white/15">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
                 Modern 3D Fabrication Studio
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/20 backdrop-blur-md px-3 py-1 font-mono text-[10px] sm:text-[11px] font-semibold text-accent-light border border-accent/30">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/20 backdrop-blur-md px-2.5 py-0.5 sm:px-3 sm:py-1 font-mono text-[10px] sm:text-[11px] font-semibold text-accent-light border border-accent/30">
                 Pan-India Delivery
               </span>
             </div>
 
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentSlide.id || currentSlideIndex}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -16 }}
-                transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-                className="space-y-3 sm:space-y-4"
-              >
-                {currentSlide.eyebrow && (
-                  <span className="font-mono text-[11px] sm:text-xs font-semibold tracking-wider text-accent uppercase block">
-                    {currentSlide.eyebrow}
-                  </span>
-                )}
-                <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white leading-[1.1]">
-                  {currentSlide.title || 'Turn Ideas Into Something Real.'}
-                </h1>
-                <p className="font-sans text-xs sm:text-base text-zinc-300 max-w-lg leading-relaxed">
-                  {currentSlide.description ||
-                    'Precision custom 3D printing, bespoke interior lighting, and made-to-order physical goods crafted in our dedicated Indian makerspace.'}
-                </p>
-              </motion.div>
-            </AnimatePresence>
+            <div className="space-y-2 sm:space-y-3">
+              {heroContent.eyebrow && (
+                <span className="font-mono text-[10px] sm:text-xs font-semibold tracking-wider text-accent uppercase block">
+                  {heroContent.eyebrow}
+                </span>
+              )}
+              <h1 className="font-display text-2xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight text-white leading-[1.15]">
+                {heroContent.title}
+              </h1>
+              <p className="font-sans text-xs sm:text-sm lg:text-base text-zinc-300 max-w-lg leading-relaxed line-clamp-2 sm:line-clamp-none">
+                {heroContent.description}
+              </p>
+            </div>
 
-            {/* Dual CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 pt-2 w-full sm:w-auto">
+            {/* Responsive Dual Action CTAs */}
+            <div className="flex items-center gap-2.5 sm:gap-3 pt-2">
               <Link
-                to={currentSlide.buttonLink || '/catalog'}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-6 sm:px-7 py-3 sm:py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-accent/25 transition-all hover:bg-accent-dark hover:scale-[1.02] text-center"
+                to={heroContent.buttonLink || '/catalog'}
+                className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-full bg-accent px-5 sm:px-7 py-2.5 sm:py-3.5 font-display text-xs sm:text-sm font-bold uppercase tracking-wider text-white shadow-lg shadow-accent/25 hover:bg-accent-dark transition-all hover:scale-[1.02] touch-manipulation"
               >
-                <span>{currentSlide.buttonText || 'Explore Products'}</span>
-                <ArrowRight className="w-4 h-4" />
+                <span>{heroContent.buttonText || 'Explore Catalog'}</span>
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </Link>
               <Link
                 to="/custom-service"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 px-6 sm:px-7 py-3 sm:py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white transition-all hover:bg-white hover:text-black text-center"
+                className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-full bg-white/10 hover:bg-white hover:text-black backdrop-blur-md border border-white/20 px-4 sm:px-6 py-2.5 sm:py-3.5 font-display text-xs sm:text-sm font-bold uppercase tracking-wider text-white transition-all touch-manipulation"
               >
                 <span>Get Custom Print</span>
               </Link>
@@ -389,45 +362,23 @@ export function Home() {
           </div>
         </div>
 
-        {/* Slideshow Controls (If Multiple Slides Configured) */}
-        {heroSlides.length > 1 && (
-          <div className="relative z-20 mx-auto max-w-[1440px] px-6 sm:px-10 lg:px-16 w-full flex items-center justify-between pb-4">
-            <div className="flex items-center gap-2">
-              {heroSlides.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentSlideIndex(idx)}
-                  className={`h-2 rounded-full transition-all ${
-                    currentSlideIndex === idx ? 'w-8 bg-accent' : 'w-2 bg-white/40 hover:bg-white'
-                  }`}
-                  aria-label={`Go to slide ${idx + 1}`}
-                />
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() =>
-                  setCurrentSlideIndex((prev) => (prev === 0 ? heroSlides.length - 1 : prev - 1))
-                }
-                className="w-9 h-9 rounded-full bg-white/10 border border-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-accent transition-colors"
-                aria-label="Previous Slide"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length)}
-                className="w-9 h-9 rounded-full bg-white/10 border border-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-accent transition-colors"
-                aria-label="Next Slide"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
+        {/* Floating Specs Badges on Tablet/Desktop */}
+        <div className="hidden lg:flex absolute right-12 bottom-16 z-10 flex-col gap-3 pointer-events-none">
+          <div className="rounded-2xl border border-white/15 bg-black/40 backdrop-blur-md px-4 py-2.5 text-white shadow-xl flex items-center gap-3">
+            <div className="h-2 w-2 rounded-full bg-accent animate-ping" />
+            <div className="font-mono text-xs">
+              <span className="text-zinc-400 block text-[10px] uppercase">Layer Precision</span>
+              <strong className="text-white font-bold">±50µm Calibration</strong>
             </div>
           </div>
-        )}
-
-        {/* Seamless Organic Wave Divider to Base Paper (#FAF9F6) */}
-        <OrganicWaveDivider fill="#FAF9F6" />
+          <div className="rounded-2xl border border-white/15 bg-black/40 backdrop-blur-md px-4 py-2.5 text-white shadow-xl flex items-center gap-3">
+            <Sparkles className="h-4 w-4 text-emerald-400" />
+            <div className="font-mono text-xs">
+              <span className="text-zinc-400 block text-[10px] uppercase">Material Origin</span>
+              <strong className="text-white font-bold">100% Plant PLA+ & Bio-Resin</strong>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* =====================================================
@@ -479,63 +430,96 @@ export function Home() {
       </section>
 
       {/* =====================================================
-          3. FEATURED PRODUCTS & BEST SELLERS CATALOG
+          3. FEATURED PRODUCTS (AUTO-ROTATING PRODUCT CAROUSEL)
       ====================================================== */}
       <section className="bg-[#FAF9F6] py-14">
-        {/* Dynamic Announcement Ticker Strip */}
-        {homepageSettings?.announcementMessages && homepageSettings.announcementMessages.length > 0 && (
-          <div className="border-y border-line bg-white py-3 overflow-hidden select-none mb-12">
-            <div className="animate-marquee space-x-8 font-mono text-xs font-bold tracking-wider uppercase text-ink">
-              {homepageSettings.announcementMessages.map((msg, idx) => (
-                <span key={idx} className="inline-flex items-center gap-4">
-                  <span>{msg}</span>
-                  <span className="text-accent">•</span>
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Section Header */}
-        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10 mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10 mb-8 sm:mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
-              Flagship Collection
+              FEATURED PRODUCTS
             </span>
-            <h2 className="mt-1 font-display text-3xl font-bold tracking-tight sm:text-4xl text-ink">
-              {homepageSettings?.featuredTitle || 'Featured 3D Creations'}
+            <h2 className="mt-1 font-display text-2xl sm:text-4xl font-bold tracking-tight text-ink">
+              {homepageSettings?.featuredTitle || 'Featured Products'}
             </h2>
             <p className="mt-1 font-sans text-xs sm:text-sm text-muted">
               {homepageSettings?.featuredSubtitle || 'Handcrafted 3D printed lighting, desk accessories, and customized keepsakes.'}
             </p>
           </div>
-          <Link
-            to="/catalog"
-            className="inline-flex items-center gap-1.5 font-display text-sm font-bold text-accent hover:underline"
-          >
-            <span>View Complete Catalog</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+
+          <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
+            <Link
+              to="/catalog"
+              className="inline-flex items-center gap-1.5 font-display text-xs sm:text-sm font-bold text-accent hover:underline"
+            >
+              <span>View Complete Catalog</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+
+            {featuredProducts.length > 4 && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    scrollProducts(-1);
+                    handleProductUserInteraction();
+                  }}
+                  disabled={!canScrollProductsLeft}
+                  className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-soft transition-all hover:bg-accent hover:text-white hover:border-accent disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-ink disabled:hover:border-line cursor-pointer disabled:cursor-not-allowed"
+                  aria-label="Previous products"
+                >
+                  <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    scrollProducts(1);
+                    handleProductUserInteraction();
+                  }}
+                  disabled={!canScrollProductsRight}
+                  className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-soft transition-all hover:bg-accent hover:text-white hover:border-accent disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-ink disabled:hover:border-line cursor-pointer disabled:cursor-not-allowed"
+                  aria-label="Next products"
+                >
+                  <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Product Cards Grid */}
-        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10 pb-6">
+        {/* Product Cards Carousel / Grid */}
+        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10 pb-4">
           {isLoading ? (
             <FeaturedProductSkeleton />
-          ) : (
-            <motion.div
-              variants={staggerContainer}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, margin: '-60px' }}
-              className="grid gap-3.5 sm:gap-6 grid-cols-2 lg:grid-cols-4"
-            >
-              {bestSellers.map((product) => (
-                <motion.div key={product.id} variants={fadeInUp}>
-                  <ProductCard product={product} />
-                </motion.div>
+          ) : featuredProducts.length <= 4 ? (
+            <div className="grid gap-3.5 sm:gap-6 grid-cols-2 lg:grid-cols-4">
+              {featuredProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
               ))}
-            </motion.div>
+            </div>
+          ) : (
+            <div
+              ref={productScrollRef}
+              onScroll={checkProductScrollButtons}
+              onMouseEnter={() => setIsProductsHovered(true)}
+              onMouseLeave={() => setIsProductsHovered(false)}
+              onTouchStart={() => setIsProductsInteracting(true)}
+              onTouchEnd={() => {
+                setTimeout(() => setIsProductsInteracting(false), 3000);
+              }}
+              onFocusCapture={() => setIsProductsHovered(true)}
+              onBlurCapture={() => setIsProductsHovered(false)}
+              className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-none snap-x snap-mandatory scroll-smooth"
+            >
+              {featuredProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="w-[240px] xs:w-[260px] sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)] shrink-0 snap-start"
+                >
+                  <ProductCard product={product} />
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </section>

@@ -40,13 +40,13 @@ export function CartDrawer() {
         onClick={closeCart}
       />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <aside className="w-screen max-w-md bg-paper shadow-2xl flex flex-col border-l border-line cart-drawer-enter">
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
+        <aside className="w-screen max-w-full sm:max-w-md bg-paper shadow-2xl flex flex-col border-l border-line cart-drawer-enter">
           {/* Top Bar */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-line bg-white">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-line bg-white">
             <div className="flex items-center gap-2.5">
               <ShoppingBag className="w-5 h-5 text-accent" />
-              <h2 className="font-display font-bold text-lg text-ink uppercase tracking-tight">Your Cart</h2>
+              <h2 className="font-display font-bold text-base sm:text-lg text-ink uppercase tracking-tight">Your Cart</h2>
               <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-full bg-accent-soft text-accent">
                 {cart.reduce((sum, i) => sum + i.quantity, 0)} items
               </span>
@@ -56,14 +56,14 @@ export function CartDrawer() {
               type="button"
               onClick={closeCart}
               aria-label="Close cart"
-              className="p-2 text-muted hover:text-ink rounded-lg hover:bg-shell transition-colors"
+              className="p-2 text-muted hover:text-ink rounded-lg hover:bg-shell transition-colors touch-manipulation"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Free Shipping Progress */}
-          <div className="px-6 py-3 bg-shell border-b border-line">
+          <div className="px-4 sm:px-6 py-3 bg-shell border-b border-line">
             <div className="flex items-center justify-between text-xs font-sans mb-1.5">
               {remainingForFree > 0 ? (
                 <span>Add <strong className="font-mono font-semibold text-accent">₹{remainingForFree.toFixed(0)}</strong> more for FREE shipping</span>
@@ -185,8 +185,8 @@ export function CartDrawer() {
 
           {/* Footer / Summary */}
           {cart.length > 0 && (
-            <div className="p-6 border-t border-line bg-white space-y-4">
-              <div className="space-y-2 font-sans text-xs">
+            <div className="p-4 sm:p-6 border-t border-line bg-white space-y-3.5">
+              <div className="space-y-1.5 font-sans text-xs">
                 <div className="flex justify-between text-muted">
                   <span>Subtotal</span>
                   <span className="font-mono font-semibold text-ink">₹{subtotal.toFixed(2)}</span>
@@ -208,14 +208,14 @@ export function CartDrawer() {
               <button
                 type="button"
                 onClick={handleCheckout}
-                className="w-full py-3.5 px-6 rounded-xl bg-accent text-white font-sans text-sm font-bold shadow-md shadow-accent/20 hover:bg-accent-dark transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-3 sm:py-3.5 px-4 sm:px-6 rounded-xl bg-accent text-white font-sans text-xs sm:text-sm font-bold shadow-md shadow-accent/20 hover:bg-accent-dark transition-all flex items-center justify-center gap-2 group touch-manipulation"
               >
                 <span>Proceed to Checkout</span>
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </button>
 
-              <div className="flex items-center justify-center gap-4 text-2xs text-muted pt-1">
-                <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 text-accent" /> Safe & Secure UPI / Card</span>
+              <div className="flex items-center justify-center gap-3 sm:gap-4 text-[10px] text-muted pt-1">
+                <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 text-accent" /> Safe & Secure UPI</span>
                 <span className="flex items-center gap-1"><Truck className="w-3.5 h-3.5 text-accent" /> Pan-India Dispatch</span>
               </div>
             </div>
