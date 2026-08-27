@@ -451,7 +451,8 @@ export function Login() {
               <Button
                 type="submit"
                 size="lg"
-                className="w-full font-display font-bold shadow-md shadow-accent/20 bg-accent hover:bg-accent-dark text-white border-accent"
+                variant="primary"
+                className="w-full font-semibold"
                 isLoading={isSubmitting}
               >
                 {isForgot

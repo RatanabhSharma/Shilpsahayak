@@ -203,7 +203,7 @@ export function Contact() {
                 Skip the contact form and upload your STL directly to our automated slicing calculator for instant transparent pricing.
               </p>
               <Link to="/custom-service" className="inline-block">
-                <Button size="sm" className="font-display font-bold text-xs bg-accent hover:bg-accent-dark text-white border-accent">
+                <Button size="sm" variant="primary">
                   Launch 3D File Uploader
                   <ArrowRight className="ml-1 h-3.5 w-3.5" />
                 </Button>
@@ -235,7 +235,8 @@ export function Contact() {
                   <Button
                     onClick={() => setSubmitted(false)}
                     variant="outline"
-                    className="mt-6 font-display font-bold text-xs"
+                    size="md"
+                    className="mt-6"
                   >
                     Send Another Message
                   </Button>
@@ -249,44 +250,37 @@ export function Contact() {
                     <h2 className="mt-1 font-display text-2xl font-bold text-ink">
                       Send Us an Inquiry
                     </h2>
-                    <p className="mt-1 font-sans text-xs text-muted">
-                      Tell us about your print concept, required strength, timeline, and delivery pin code.
-                    </p>
                   </div>
 
-                  <form onSubmit={handleSubmit} className="space-y-5">
-                    <div className="grid gap-5 sm:grid-cols-2">
+                  <form onSubmit={handleSubmit} className="space-y-4 font-sans">
+                    <div className="grid gap-4 sm:grid-cols-2">
                       <Input
                         name="name"
-                        label="Your Full Name *"
-                        placeholder="e.g. Gurpreet Singh"
-                        autoComplete="name"
+                        label="Full Name *"
+                        placeholder="e.g. Aditi Sharma"
                         required
                       />
-
                       <Input
                         name="email"
-                        label="Email Address *"
                         type="email"
-                        placeholder="you@example.com"
-                        autoComplete="email"
+                        label="Email Address *"
+                        placeholder="aditi@example.com"
                         required
                       />
                     </div>
 
-                    <div className="grid gap-5 sm:grid-cols-2">
+                    <div className="grid gap-4 sm:grid-cols-2">
                       <Input
                         name="phone"
-                        label="Mobile / WhatsApp Number *"
                         type="tel"
-                        placeholder="10-digit mobile number"
+                        label="Phone / WhatsApp Number *"
+                        placeholder="+91 98765 43210"
                         required
                       />
-
                       <Input
                         name="subject"
-                        label="Inquiry Subject *"
-                        placeholder="e.g. Custom Lithophane Lamp / CAD Prototyping"
+                        label="Subject / Topic *"
+                        placeholder="Custom Order / Bulk Production"
                         required
                       />
                     </div>
@@ -304,9 +298,9 @@ export function Contact() {
                         🔒 Shilp Sahayak respects your IP. All CAD concepts and designs remain 100% confidential.
                       </p>
 
-                      <Button type="submit" size="lg" className="font-display font-bold shadow-md shadow-accent/20 bg-accent hover:bg-accent-dark text-white border-accent">
-                        Send Inquiry
-                        <ArrowRight className="ml-1.5 h-4 w-4" />
+                      <Button type="submit" size="md" variant="primary">
+                        <span>Send Inquiry</span>
+                        <ArrowRight className="w-4 h-4" />
                       </Button>
                     </div>
                   </form>
@@ -334,9 +328,9 @@ export function Contact() {
             </div>
 
             <Link to="/custom-service">
-              <Button size="lg" className="font-display font-bold bg-accent hover:bg-accent-dark text-white shadow-lg shadow-accent/20 border-accent">
-                Explore Custom Studio
-                <ArrowRight className="ml-1.5 h-4 w-4" />
+              <Button size="lg" variant="primary">
+                <span>Explore Custom Studio</span>
+                <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
           </div>

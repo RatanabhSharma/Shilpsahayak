@@ -228,16 +228,16 @@ export function About() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3 shrink-0 font-display">
+            <div className="flex flex-wrap gap-3 shrink-0">
               <Link to="/custom-service">
-                <Button size="lg" className="font-bold shadow-md shadow-accent/20 bg-accent hover:bg-accent-dark text-white border-accent">
-                  Upload 3D Model
-                  <ArrowRight className="ml-1.5 h-4 w-4" />
+                <Button size="lg" variant="primary">
+                  <span>Upload 3D Model</span>
+                  <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
               <Link to="/contact">
-                <Button size="lg" variant="outline" className="font-bold">
-                  Contact Studio
+                <Button size="lg" variant="secondary">
+                  <span>Contact Studio</span>
                 </Button>
               </Link>
             </div>

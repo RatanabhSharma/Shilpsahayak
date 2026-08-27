@@ -647,7 +647,9 @@ export function Checkout() {
               <Button
                 type="submit"
                 size="lg"
-                className="w-full font-display font-bold shadow-xl shadow-accent/20 bg-accent hover:bg-accent-dark text-white border-accent"
+                variant="primary"
+                disabled={isSubmitting}
+                className="w-full font-semibold"
                 isLoading={isSubmitting}
               >
                 {isSubmitting

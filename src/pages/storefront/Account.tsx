@@ -423,11 +423,11 @@ export function Account() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 font-display">
+            <div className="flex flex-wrap items-center gap-3">
               <Link to="/custom-service">
-                <Button size="sm" className="font-bold bg-accent hover:bg-accent-dark text-white border-accent">
-                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                  New Custom Print
+                <Button size="sm" variant="primary">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>New Custom Print</span>
                 </Button>
               </Link>
 
@@ -436,10 +436,10 @@ export function Account() {
                 size="sm"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="font-semibold text-rose-600 hover:bg-rose-50"
+                className="text-rose-600 hover:bg-rose-50"
               >
-                <LogOut className="mr-1.5 h-3.5 w-3.5" />
-                {isLoggingOut ? 'Signing out...' : 'Sign out'}
+                <LogOut className="w-3.5 h-3.5" />
+                <span>{isLoggingOut ? 'Signing out...' : 'Sign out'}</span>
               </Button>
             </div>
           </div>
@@ -573,7 +573,7 @@ export function Account() {
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-3">
                       <div className="sm:text-right font-mono">
                         <span className="text-[10px] text-muted uppercase block">Total</span>
                         <span className="text-base font-bold text-ink">
@@ -585,19 +585,19 @@ export function Account() {
                         size="sm"
                         variant="outline"
                         onClick={() => setSelectedOrder(order)}
-                        className="font-display font-bold text-xs"
                       >
                         View Details
                       </Button>
 
                       <Button
                         size="sm"
+                        variant="primary"
                         onClick={() => handleOrderAgain(order)}
                         disabled={reorderOrder.isPending}
-                        className="font-display font-bold text-xs bg-accent hover:bg-accent-dark text-white border-accent"
+                        isLoading={reorderOrder.isPending}
                       >
-                        <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
-                        {reorderOrder.isPending ? 'Adding...' : 'Order Again'}
+                        <ShoppingCart className="w-3.5 h-3.5" />
+                        <span>Order Again</span>
                       </Button>
                     </div>
                   </div>
@@ -621,7 +621,7 @@ export function Account() {
               </div>
 
               <Link to="/custom-service">
-                <Button size="sm" className="font-display font-bold text-xs bg-accent hover:bg-accent-dark text-white border-accent">
+                <Button size="sm" variant="primary">
                   Upload New Model
                 </Button>
               </Link>
@@ -639,8 +639,8 @@ export function Account() {
                 <p className="mt-1 font-sans text-xs text-muted">
                   Upload an STL/OBJ model or share reference images for an instant or engineer-verified quote.
                 </p>
-                <Link to="/custom-service" className="mt-5 inline-block font-display">
-                  <Button className="font-bold">Request Custom Quote</Button>
+                <Link to="/custom-service" className="mt-5 inline-block">
+                  <Button variant="primary">Request Custom Quote</Button>
                 </Link>
               </div>
             ) : (
@@ -694,32 +694,31 @@ export function Account() {
                               </div>
                             )}
                           </td>
-                          <td className="px-6 py-4 text-right font-display">
+                          <td className="px-6 py-4 text-right">
                             {quote.status === 'Quoted' && quote.adminPrice ? (
                               <div className="flex justify-end gap-2">
                                 <Button
                                   size="sm"
                                   onClick={() => handleAcceptQuote(quote.id)}
                                   disabled={updateQuote.isPending}
-                                  className="font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
                                 >
-                                  <CheckCircle className="mr-1 h-3.5 w-3.5" />
-                                  Accept
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                  <span>Accept</span>
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleRejectQuote(quote.id)}
                                   disabled={updateQuote.isPending}
-                                  className="font-bold text-xs"
                                 >
-                                  <XCircle className="mr-1 h-3.5 w-3.5" />
-                                  Decline
+                                  <XCircle className="w-3.5 h-3.5" />
+                                  <span>Decline</span>
                                 </Button>
                               </div>
                             ) : (
                               <Link to="/custom-service">
-                                <Button size="sm" variant="ghost" className="font-bold text-xs">
+                                <Button size="sm" variant="ghost">
                                   New Quote
                                 </Button>
                               </Link>
@@ -777,8 +776,8 @@ export function Account() {
                     )}
 
                     {!isAddressEditing ? (
-                      <div className="pt-2 font-display">
-                        <Button size="sm" onClick={startAddressEditing} className="font-bold bg-accent hover:bg-accent-dark text-white border-accent">
+                      <div className="pt-2">
+                        <Button size="sm" variant="primary" onClick={startAddressEditing}>
                           {profile?.address && Object.values(profile.address).some(Boolean)
                             ? 'Edit Address'
                             : 'Add Address'}
@@ -865,12 +864,13 @@ export function Account() {
                           </div>
                         )}
 
-                        <div className="flex gap-2 pt-2 font-display">
-                          <Button type="submit" isLoading={saveUserProfile.isPending} className="font-bold bg-accent hover:bg-accent-dark text-white border-accent">
+                        <div className="flex gap-2 pt-2">
+                          <Button type="submit" size="md" variant="primary" isLoading={saveUserProfile.isPending}>
                             Save Address
                           </Button>
                           <Button
                             type="button"
+                            size="md"
                             variant="outline"
                             onClick={cancelAddressEditing}
                             disabled={saveUserProfile.isPending}
@@ -912,7 +912,6 @@ export function Account() {
                             setProfileAddress({ ...item.address });
                             setIsAddressEditing(true);
                           }}
-                          className="font-display font-bold text-xs"
                         >
                           Use
                         </Button>
@@ -999,18 +998,19 @@ export function Account() {
                       </div>
                     )}
 
-                    <div className="pt-2 font-display">
+                    <div className="pt-2">
                       {!isProfileEditing ? (
-                        <Button type="button" onClick={startProfileEditing} className="font-bold bg-accent hover:bg-accent-dark text-white border-accent">
+                        <Button type="button" size="md" variant="primary" onClick={startProfileEditing}>
                           Edit Profile
                         </Button>
                       ) : (
                         <div className="flex gap-2">
-                          <Button type="submit" isLoading={saveUserProfile.isPending} className="font-bold bg-accent hover:bg-accent-dark text-white border-accent">
+                          <Button type="submit" size="md" variant="primary" isLoading={saveUserProfile.isPending}>
                             Save Changes
                           </Button>
                           <Button
                             type="button"
+                            size="md"
                             variant="outline"
                             onClick={cancelProfileEditing}
                             disabled={saveUserProfile.isPending}
@@ -1134,17 +1134,19 @@ export function Account() {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex justify-end gap-3 border-t border-line bg-shell p-4 rounded-b-3xl font-display">
-              <Button variant="ghost" onClick={() => setSelectedOrder(null)} className="font-semibold text-xs">
+            <div className="flex justify-end gap-3 border-t border-line bg-shell p-4 rounded-b-3xl">
+              <Button variant="ghost" size="sm" onClick={() => setSelectedOrder(null)}>
                 Close
               </Button>
               <Button
+                size="sm"
+                variant="primary"
                 onClick={() => handleOrderAgain(selectedOrder)}
                 disabled={reorderOrder.isPending}
-                className="font-bold text-xs bg-accent hover:bg-accent-dark text-white border-accent"
+                isLoading={reorderOrder.isPending}
               >
-                <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
-                {reorderOrder.isPending ? 'Adding...' : 'Order Again'}
+                <ShoppingCart className="w-3.5 h-3.5" />
+                <span>Order Again</span>
               </Button>
             </div>
           </div>

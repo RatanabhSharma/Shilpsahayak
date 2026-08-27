@@ -21,7 +21,7 @@ import { useProducts } from '../../hooks/useProducts';
 import { useHomepage } from '../../hooks/useHomepage';
 import { useSettings } from '../../hooks/useSettings';
 import { useReviews, useAddReview } from '../../hooks/useReviews';
-import { Card } from '../../components/ui';
+import { Card, Button, buttonVariants } from '../../components/ui';
 import { ProductCard } from '../../components/product/ProductCard';
 import { FeaturedProductSkeleton } from '../../components/loading/ProductSkeleton';
 
@@ -532,19 +532,19 @@ export function Home() {
             </div>
 
             {/* Responsive Dual Action CTAs */}
-            <div className="flex items-center gap-2.5 sm:gap-3.5 pt-2">
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               <Link
                 to={currentSlide.buttonLink || '/catalog'}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-5 sm:px-7 py-2.5 sm:py-3.5 font-display text-xs sm:text-sm font-bold uppercase tracking-wider text-white shadow-lg shadow-accent/30 hover:bg-accent-dark transition-all hover:scale-[1.02] touch-manipulation"
+                className={buttonVariants({ variant: 'primary', size: 'lg' })}
               >
-                <span>{currentSlide.buttonText || 'EXPLORE WORKSHOP PIECES'}</span>
-                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span>{currentSlide.buttonText || 'Explore Workshop Pieces'}</span>
+                <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 to="/custom-service"
-                className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-full bg-white/10 hover:bg-white hover:text-black backdrop-blur-md border border-white/20 px-4 sm:px-6 py-2.5 sm:py-3.5 font-display text-xs sm:text-sm font-bold uppercase tracking-wider text-white transition-all touch-manipulation"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 text-white hover:bg-white hover:text-ink transition-all duration-200 ease-out active:scale-[0.98] h-12 sm:h-13 px-6 sm:px-7 text-sm sm:text-base font-semibold"
               >
-                <span>GET CUSTOM PRINT</span>
+                <span>Get Custom Print</span>
               </Link>
             </div>
           </div>
@@ -868,10 +868,10 @@ export function Home() {
                 <p className="font-sans text-xs sm:text-sm text-zinc-300 max-w-lg leading-relaxed">
                   {homepageSettings?.customPromoSubtitle || 'Our interactive custom printing pipeline computes volume, estimates material weight, and generates transparent pricing in real time for PLA, PETG, ABS, and Resin.'}
                 </p>
-                <div className="flex flex-wrap gap-4 pt-2">
+                <div className="flex flex-wrap gap-3 pt-2">
                   <Link
                     to={homepageSettings?.customPromoButtonLink || '/custom-service'}
-                    className="inline-flex items-center gap-2 rounded-full bg-accent px-8 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-accent/25 hover:bg-accent-dark transition-all"
+                    className={buttonVariants({ variant: 'primary', size: 'md' })}
                   >
                     <UploadCloud className="w-4 h-4" />
                     <span>{homepageSettings?.customPromoButtonText || 'Upload 3D File'}</span>
@@ -880,7 +880,7 @@ export function Home() {
                     href={whatsappLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900 px-6 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-zinc-200 hover:border-accent hover:text-white transition-colors"
+                    className={buttonVariants({ variant: 'whatsapp', size: 'md' })}
                   >
                     <MessageSquare className="w-4 h-4" />
                     <span>Consult on WhatsApp</span>
@@ -930,10 +930,10 @@ export function Home() {
               <p className="font-sans text-xs sm:text-sm text-muted leading-relaxed max-w-xl">
                 We manufacture bespoke welcome kits, personalized branded desk accessories, commemorative trophies, and small-batch production runs for Indian startups, institutions, and creative agencies.
               </p>
-              <div className="pt-2 flex flex-wrap gap-4">
+              <div className="pt-2 flex flex-wrap gap-3">
                 <Link
                   to="/contact?type=corporate"
-                  className="inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white hover:bg-accent transition-colors shadow-md"
+                  className={buttonVariants({ variant: 'primary', size: 'md' })}
                 >
                   <span>Request Corporate Quote</span>
                   <ArrowRight className="w-4 h-4" />
@@ -942,7 +942,7 @@ export function Home() {
                   href={whatsappLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-line bg-shell px-6 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-ink hover:border-accent hover:text-accent transition-colors"
+                  className={buttonVariants({ variant: 'secondary', size: 'md' })}
                 >
                   <span>Discuss Project on WhatsApp</span>
                 </a>
@@ -1135,13 +1135,16 @@ export function Home() {
                     />
                   </div>
 
-                  <button
+                  <Button
                     type="submit"
                     disabled={addReviewMutation.isPending}
-                    className="w-full py-3.5 rounded-xl bg-ink hover:bg-accent text-white font-mono text-xs font-bold tracking-widest uppercase transition-colors shadow-md disabled:opacity-50"
+                    isLoading={addReviewMutation.isPending}
+                    variant="primary"
+                    size="md"
+                    className="w-full font-semibold uppercase tracking-wider text-xs"
                   >
-                    {addReviewMutation.isPending ? 'POSTING...' : 'POST REVIEW'}
-                  </button>
+                    Post Review
+                  </Button>
                 </form>
               )}
             </div>
@@ -1166,7 +1169,7 @@ export function Home() {
                 href={whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 font-display font-bold text-sm text-accent hover:underline transition-colors pt-2"
+                className="inline-flex items-center gap-2 font-bold text-sm text-accent hover:underline transition-colors pt-2"
               >
                 <MessageSquare className="h-4 w-4" />
                 <span>Ask Maker on WhatsApp →</span>
@@ -1183,7 +1186,7 @@ export function Home() {
                       onClick={() => setFaqOpen(isOpen ? null : index)}
                       className="flex w-full items-center justify-between gap-4 py-5 text-left group"
                     >
-                      <span className={`font-display text-base font-bold transition-colors ${isOpen ? 'text-accent' : 'text-ink group-hover:text-accent'}`}>
+                      <span className={`text-base font-bold transition-colors ${isOpen ? 'text-accent' : 'text-ink group-hover:text-accent'}`}>
                         {item.q}
                       </span>
                       <ChevronDown
@@ -1218,17 +1221,17 @@ export function Home() {
             <p className="font-sans text-sm text-muted max-w-md mx-auto leading-relaxed">
               Explore our ready-to-ship 3D printed catalog or upload your CAD file for custom fabrication.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
               <Link
                 to="/catalog"
-                className="inline-flex items-center gap-2 rounded-full bg-accent px-8 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-accent/25 hover:bg-accent-dark transition-all"
+                className={buttonVariants({ variant: 'primary', size: 'lg' })}
               >
                 <span>Shop Products</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 to="/custom-service"
-                className="inline-flex items-center gap-2 rounded-full bg-ink px-8 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white hover:bg-zinc-800 transition-all"
+                className={buttonVariants({ variant: 'secondary', size: 'lg' })}
               >
                 <span>Start a Custom Print</span>
               </Link>

@@ -104,15 +104,67 @@ export function BrandLogo({
 }
 
 /* =========================================================
-   Button
+   Button System
    ========================================================= */
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'whatsapp';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive' | 'whatsapp';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
 }
+
+export const buttonVariants = ({
+  variant = 'primary',
+  size = 'md',
+  className = '',
+}: {
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive' | 'whatsapp';
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+} = {}) => {
+  const baseStyles =
+    'inline-flex items-center justify-center gap-2 ' +
+    'font-medium tracking-tight ' +
+    'rounded-xl border transition-all duration-200 ease-out ' +
+    'focus-visible:outline-none focus-visible:ring-2 ' +
+    'focus-visible:ring-accent/40 focus-visible:ring-offset-2 ' +
+    'disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98] select-none';
+
+  const variants = {
+    primary:
+      'border-accent bg-accent text-white shadow-xs ' +
+      'hover:bg-accent-dark hover:border-accent-dark hover:shadow-accent/20',
+
+    secondary:
+      'border-line bg-white text-ink shadow-xs ' +
+      'hover:bg-shell hover:border-ink/20',
+
+    outline:
+      'border-line bg-transparent text-ink ' +
+      'hover:border-ink hover:bg-shell',
+
+    ghost:
+      'border-transparent bg-transparent text-ink ' +
+      'hover:bg-shell hover:text-accent',
+
+    destructive:
+      'border-red-600 bg-red-600 text-white shadow-xs ' +
+      'hover:bg-red-700 hover:border-red-700 hover:shadow-red-600/20',
+
+    whatsapp:
+      'border-[#25D366] bg-[#25D366] text-white shadow-xs ' +
+      'hover:bg-[#1EBE5D] hover:border-[#1EBE5D] hover:shadow-emerald-500/20'
+  };
+
+  const sizes = {
+    sm: 'h-9 px-3.5 text-xs font-semibold',
+    md: 'h-11 px-5 text-sm font-semibold',
+    lg: 'h-12 sm:h-13 px-6 sm:px-7 text-sm sm:text-base font-semibold'
+  };
+
+  return cn(baseStyles, variants[variant], sizes[size], className);
+};
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
@@ -128,52 +180,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const baseStyles =
-      'inline-flex items-center justify-center gap-2 ' +
-      'font-sans font-semibold tracking-[-0.01em] ' +
-      'rounded-xl border transition-all duration-200 ease-out ' +
-      'focus-visible:outline-none focus-visible:ring-2 ' +
-      'focus-visible:ring-accent/40 focus-visible:ring-offset-2 ' +
-      'disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]';
-
-    const variants = {
-      primary:
-        'border-accent bg-accent text-white shadow-sm ' +
-        'hover:bg-accent-dark hover:border-accent-dark hover:shadow-accent/25 hover:shadow-md',
-
-      secondary:
-        'border-dark bg-dark text-white ' +
-        'hover:bg-zinc-800 hover:border-zinc-800 hover:shadow-md',
-
-      outline:
-        'border-line bg-white text-ink ' +
-        'hover:border-accent hover:bg-accent-soft hover:text-accent',
-
-      ghost:
-        'border-transparent bg-transparent text-muted ' +
-        'hover:bg-accent-soft hover:text-accent',
-
-      whatsapp:
-        'border-[#25D366] bg-[#25D366] text-white shadow-sm ' +
-        'hover:bg-[#1EBE5D] hover:border-[#1EBE5D] hover:shadow-emerald-500/25 hover:shadow-md'
-    };
-
-    const sizes = {
-      sm: 'h-9 px-3.5 text-xs font-semibold',
-      md: 'h-11 px-5 text-sm font-semibold',
-      lg: 'h-13 px-7 text-base font-semibold'
-    };
-
     return (
       <button
         ref={ref}
         type={type}
-        className={cn(
-          baseStyles,
-          variants[variant],
-          sizes[size],
-          className
-        )}
+        className={buttonVariants({ variant, size, className })}
         disabled={isLoading || disabled}
         aria-busy={isLoading || undefined}
         {...props}
