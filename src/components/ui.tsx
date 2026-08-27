@@ -7,6 +7,7 @@ import React, {
 import { Check, ChevronDown } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import brandLogoImg from '../assets/pictures/logo.png';
 
 /* =========================================================
    Shared className utility
@@ -64,7 +65,7 @@ export function BrandLogo({
         aria-hidden="true"
       >
         <img
-          src="/logo.png"
+          src={brandLogoImg}
           alt="Shilp Sahayak Logo"
           className="h-full w-full object-contain p-0.5"
           onError={(e) => {
