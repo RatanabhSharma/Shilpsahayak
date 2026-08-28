@@ -16,6 +16,10 @@ import {
   Layers,
   Box,
   Zap,
+  Upload,
+  X,
+  Loader2,
+  FileBox,
 } from 'lucide-react';
 import {
   Link,
@@ -30,6 +34,8 @@ import {
 import { useStore } from '../../store';
 import { useSettings } from '../../hooks/useSettings';
 import { usePincodeLookup } from '../../hooks/usePincodeLookup';
+import { useAuth } from '../../hooks/useAuth';
+import { upload3DFile } from '../../utils/uploadFile';
 import {
   Button,
   Badge,
@@ -60,15 +66,21 @@ export function ProductDetail() {
   const product = products.find((item) => item.id === id);
 
   const hasVariants = Boolean(
-    product?.hasVariants &&
+    !product?.isCustomizable &&
+      product?.hasVariants &&
       product.variants &&
       product.variants.length > 0
   );
 
+  const { user } = useAuth();
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState('');
   const [customNotes, setCustomNotes] = useState('');
+  const [showCustomText, setShowCustomText] = useState(false);
+  const [customFile, setCustomFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [added, setAdded] = useState(false);
   const [pincodeCheck, setPincodeCheck] = useState('');
 
@@ -167,8 +179,40 @@ export function ProductDetail() {
     setQuantity((current) => Math.min(currentStock || 1, current + 1));
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product || outOfStock) return;
+
+    let fileUrl: string | undefined = undefined;
+
+    if (product.isCustomizable && customFile) {
+      if (!user) {
+        alert('Please sign in to upload reference files and purchase customizable products.');
+        navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+        return;
+      }
+
+      setUploading(true);
+      setUploadProgress(0);
+      try {
+        fileUrl = await upload3DFile(customFile, user.uid, (progress) => {
+          setUploadProgress(progress);
+        });
+      } catch (error: any) {
+        console.error('File upload failed:', error);
+        alert(error?.message || 'Failed to upload custom file. Please try again.');
+        setUploading(false);
+        setUploadProgress(null);
+        return;
+      }
+      setUploading(false);
+      setUploadProgress(null);
+    }
+
+    const customPrintData = (product.isCustomizable && customFile) ? {
+      fileName: customFile.name,
+      fileUrl: fileUrl,
+      customPrice: currentPrice,
+    } : undefined;
 
     addToCart(
       {
@@ -178,9 +222,10 @@ export function ProductDetail() {
         image: activeImage || product.image,
       },
       quantity,
-      customNotes || undefined,
+      (product.isCustomizable && showCustomText) ? customNotes || undefined : undefined,
       selectedVariant?.label,
-      selectedVariant?.id
+      selectedVariant?.id,
+      customPrintData
     );
 
     setAdded(true);
@@ -188,8 +233,40 @@ export function ProductDetail() {
     window.setTimeout(() => setAdded(false), 3000);
   };
 
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     if (!product || outOfStock) return;
+
+    let fileUrl: string | undefined = undefined;
+
+    if (product.isCustomizable && customFile) {
+      if (!user) {
+        alert('Please sign in to upload reference files and purchase customizable products.');
+        navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+        return;
+      }
+
+      setUploading(true);
+      setUploadProgress(0);
+      try {
+        fileUrl = await upload3DFile(customFile, user.uid, (progress) => {
+          setUploadProgress(progress);
+        });
+      } catch (error: any) {
+        console.error('File upload failed:', error);
+        alert(error?.message || 'Failed to upload custom file. Please try again.');
+        setUploading(false);
+        setUploadProgress(null);
+        return;
+      }
+      setUploading(false);
+      setUploadProgress(null);
+    }
+
+    const customPrintData = (product.isCustomizable && customFile) ? {
+      fileName: customFile.name,
+      fileUrl: fileUrl,
+      customPrice: currentPrice,
+    } : undefined;
 
     addToCart(
       {
@@ -199,9 +276,10 @@ export function ProductDetail() {
         image: activeImage || product.image,
       },
       quantity,
-      customNotes || undefined,
+      (product.isCustomizable && showCustomText) ? customNotes || undefined : undefined,
       selectedVariant?.label,
-      selectedVariant?.id
+      selectedVariant?.id,
+      customPrintData
     );
 
     navigate('/checkout');
@@ -287,7 +365,7 @@ export function ProductDetail() {
                 <img
                   src={activeImage || product.image}
                   alt={product.name}
-                  className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+                  className="h-full w-full object-contain bg-shell/50 transition-transform duration-500 hover:scale-105"
                   onError={(e) => {
                     const img = e.currentTarget;
                     if (img.dataset.fallbackApplied) return;
@@ -452,7 +530,7 @@ export function ProductDetail() {
                 </div>
 
                 {/* Variants */}
-                {hasVariants && product.variants && (
+                {!product.isCustomizable && hasVariants && product.variants && (
                   <div className="mt-6">
                     <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block mb-2.5">
                       Select Option / Variant
@@ -527,33 +605,109 @@ export function ProductDetail() {
 
                 {/* Customization Options Box */}
                 {product.isCustomizable && (
-                  <div className="mt-6 rounded-2xl border border-accent/30 bg-accent-soft p-4 sm:p-5">
-                    <div className="flex items-center gap-2">
+                  <div className="mt-6 rounded-2xl border border-accent/30 bg-accent-soft p-4 sm:p-5 space-y-4">
+                    <div className="flex items-center gap-2 border-b border-accent/20 pb-2.5">
                       <Sparkles className="h-4 w-4 text-accent" />
                       <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
-                        Personalization Available
+                        Customize Your Order
                       </span>
                     </div>
 
-                    <p className="mt-1 font-sans text-xs text-muted">
-                      Specify custom text, name engraving, or color notes below:
-                    </p>
 
-                    <div className="mt-3.5">
-                      <label
-                        htmlFor="custom-notes"
-                        className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block mb-1"
-                      >
-                        Custom Text / Inscription Note
+
+                    {/* Custom Text Option */}
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-2 cursor-pointer font-sans text-xs font-medium text-ink">
+                        <input
+                          type="checkbox"
+                          checked={showCustomText}
+                          onChange={(e) => setShowCustomText(e.target.checked)}
+                          className="h-4 w-4 rounded border-line text-accent focus:ring-accent accent-accent"
+                        />
+                        <span>I want to add a custom name/message</span>
                       </label>
-                      <Textarea
-                        id="custom-notes"
-                        value={customNotes}
-                        onChange={(e) => setCustomNotes(e.target.value)}
-                        placeholder="e.g. Inscribe 'Rahul & Priya · 2026' on bottom..."
-                        rows={2}
-                        className="text-xs bg-white"
+
+                      {showCustomText && (
+                        <div className="pt-1 animate-fadeIn">
+                          <label
+                            htmlFor="custom-notes"
+                            className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block mb-1"
+                          >
+                            Custom Engraving / Lettering Text
+                          </label>
+                          <Textarea
+                            id="custom-notes"
+                            value={customNotes}
+                            onChange={(e) => setCustomNotes(e.target.value)}
+                            placeholder="e.g. Inscribe 'Happy Birthday Riya'..."
+                            rows={2}
+                            className="text-xs bg-white border border-line focus:border-accent rounded-xl"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* File Upload Option */}
+                    <div className="space-y-2 border-t border-accent/15 pt-3">
+                      <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
+                        Upload Image or 3D CAD File (Max 5MB)
+                      </label>
+                      <input
+                        id="product-file-input"
+                        type="file"
+                        accept=".png,.jpg,.jpeg,.gif,.webp,.stl,.obj,.3mf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 5 * 1024 * 1024) {
+                            alert('File is too large. Maximum supported size is 5MB.');
+                            e.target.value = '';
+                            return;
+                          }
+                          setCustomFile(file);
+                        }}
+                        className="hidden"
                       />
+
+                      {customFile ? (
+                        <div className="flex items-center justify-between p-3 rounded-xl border border-accent/20 bg-white">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileBox className="h-5 w-5 text-accent shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-ink truncate font-mono">
+                                {customFile.name}
+                              </p>
+                              <p className="text-[10px] text-muted font-mono">
+                                {(customFile.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCustomFile(null)}
+                            className="p-1 rounded-lg text-muted hover:text-rose-600 hover:bg-rose-50"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label
+                          htmlFor="product-file-input"
+                          className="flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-accent/40 bg-white hover:bg-white/80 transition-colors"
+                        >
+                          <Upload className="h-4 w-4 text-accent" />
+                          <span className="font-sans text-xs font-semibold text-ink">
+                            Choose Image / 3D File
+                          </span>
+                        </label>
+                      )}
+
+                      {uploading && (
+                        <div className="flex items-center gap-2 font-mono text-[10px] text-accent mt-1 bg-accent-soft p-2 rounded-lg border border-accent/10">
+                          <Loader2 className="h-3 w-3 animate-spin shrink-0" />
+                          <span>Uploading custom file to studio: {uploadProgress}%</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

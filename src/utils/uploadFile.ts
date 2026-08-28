@@ -428,6 +428,107 @@ export async function upload3DFile(
 }
 
 /**
+ * Upload a product image to Cloudflare R2 through the Cloudflare Worker.
+ *
+ * @param file Selected image file (PNG, JPG, JPEG, WEBP)
+ * @param onProgress Optional upload progress callback (0-100)
+ * @returns Deployed R2 image public download URL
+ */
+export async function uploadProductImage(
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<string> {
+  if (!file) {
+    throw new Error('No file selected.');
+  }
+
+  const fileName = file.name.toLowerCase();
+  const isAllowed = ['.png', '.jpg', '.jpeg', '.webp'].some(
+    (extension) => fileName.endsWith(extension)
+  );
+
+  if (!isAllowed) {
+    throw new Error(
+      'Unsupported image type. Please upload a PNG, JPG, JPEG, or WEBP file.'
+    );
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    throw new Error(
+      'Image file is too large. Maximum allowed size is 10 MB.'
+    );
+  }
+
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('You must be logged in to upload product images.');
+  }
+
+  const idToken = await user.getIdToken();
+
+  return new Promise<string>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable && onProgress) {
+        const percent = Math.round((e.loaded / e.total) * 100);
+        onProgress(percent);
+      }
+    });
+
+    xhr.addEventListener('load', () => {
+      let response: any = null;
+      try {
+        response = JSON.parse(xhr.responseText);
+      } catch {
+        response = null;
+      }
+
+      if (xhr.status !== 200 || !response?.success || !response.key) {
+        reject(
+          new Error(
+            response?.error ||
+              `Upload failed with status code ${xhr.status}`
+          )
+        );
+        return;
+      }
+
+      if (onProgress) {
+        onProgress(100);
+      }
+
+      const fullUrl = `${CLOUDFLARE_WORKER_URL}/file?key=${encodeURIComponent(
+        response.key
+      )}`;
+      resolve(fullUrl);
+    });
+
+    xhr.addEventListener('error', () => {
+      reject(new Error('Network upload failed.'));
+    });
+
+    xhr.addEventListener('abort', () => {
+      reject(new Error('Upload aborted by user.'));
+    });
+
+    xhr.open('POST', `${CLOUDFLARE_WORKER_URL}/upload`);
+    xhr.setRequestHeader('Authorization', `Bearer ${idToken}`);
+    xhr.setRequestHeader('X-File-Name', file.name);
+    xhr.setRequestHeader(
+      'Content-Type',
+      file.type || 'application/octet-stream'
+    );
+
+    if (onProgress) {
+      onProgress(0);
+    }
+
+    xhr.send(file);
+  });
+}
+
+/**
  * Delete a previously uploaded 3D model
  * from Cloudflare R2.
  *

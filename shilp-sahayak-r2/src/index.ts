@@ -21,6 +21,10 @@ const ALLOWED_EXTENSIONS = [
   ".stl",
   ".obj",
   ".3mf",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
 ];
 
 const ALLOWED_ORIGINS = [
@@ -380,6 +384,56 @@ export default {
                 : "Authentication or upload failed.",
           },
           401
+        );
+      }
+    }
+
+    /*
+     * -----------------------------
+     * GET FILE
+     * -----------------------------
+     */
+
+    if (
+      request.method === "GET" &&
+      url.pathname === "/file"
+    ) {
+      try {
+        const key = url.searchParams.get("key");
+        if (!key) {
+          return jsonResponse(
+            request,
+            { success: false, error: "File key is required." },
+            400
+          );
+        }
+
+        const object = await env.STORAGE.get(key);
+
+        if (!object) {
+          return jsonResponse(
+            request,
+            { success: false, error: "File not found." },
+            404
+          );
+        }
+
+        const headers = getCorsHeaders(request);
+        object.writeHttpMetadata(headers);
+        headers.set("etag", object.httpEtag);
+        headers.set("Cache-Control", "public, max-age=31536000");
+
+        return new Response(object.body, {
+          headers,
+        });
+      } catch (error) {
+        return jsonResponse(
+          request,
+          {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to retrieve file.",
+          },
+          500
         );
       }
     }

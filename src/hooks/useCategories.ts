@@ -5,7 +5,10 @@ import {
   getDocs,
   orderBy,
   query,
-  serverTimestamp
+  serverTimestamp,
+  updateDoc,
+  deleteDoc,
+  doc,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -92,5 +95,46 @@ export function useAddCategory() {
         queryKey: ['categories']
       });
     }
+  });
+}
+
+export function useUpdateCategory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const cleanName = name.trim();
+      if (!cleanName) {
+        throw new Error('Category name is required.');
+      }
+
+      const docRef = doc(db, 'categories', id);
+      await updateDoc(docRef, {
+        name: cleanName,
+        slug: slugify(cleanName),
+        updatedAt: serverTimestamp(),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['categories'],
+      });
+    },
+  });
+}
+
+export function useDeleteCategory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const docRef = doc(db, 'categories', id);
+      await deleteDoc(docRef);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['categories'],
+      });
+    },
   });
 }

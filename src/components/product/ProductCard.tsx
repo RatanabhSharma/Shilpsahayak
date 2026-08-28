@@ -41,8 +41,26 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
     mouseY.set(0);
   };
 
-  const regularPrice = Number(product.price) || 0;
-  const compareAtPrice = Number(product.originalPrice) || 0;
+  const getProductPrices = () => {
+    let price = Number(product.price) || 0;
+    let originalPrice = Number(product.originalPrice) || 0;
+    let hasVariantPrices = false;
+
+    if (product.hasVariants && product.variants && product.variants.length > 0) {
+      const activeVariants = product.variants.filter((v) => Number(v.price) > 0);
+      if (activeVariants.length > 0) {
+        const sortedVariants = [...activeVariants].sort((a, b) => a.price - b.price);
+        price = sortedVariants[0].price;
+        originalPrice = sortedVariants[0].originalPrice || price;
+        hasVariantPrices = true;
+      }
+    }
+
+    return { price, originalPrice, hasVariantPrices };
+  };
+
+  const { price: regularPrice, originalPrice: compareAtPrice, hasVariantPrices } = getProductPrices();
+
   const discountPercent =
     compareAtPrice > regularPrice && compareAtPrice > 0
       ? Math.round(((compareAtPrice - regularPrice) / compareAtPrice) * 100)
@@ -145,7 +163,7 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
             <div className="space-y-2.5 pt-1 border-t border-line/60">
               <div className="flex items-baseline gap-1.5 font-mono">
                 <span className="text-sm sm:text-base font-bold text-ink">
-                  ₹{regularPrice.toLocaleString('en-IN')}
+                  {hasVariantPrices ? 'From ' : ''}₹{regularPrice.toLocaleString('en-IN')}
                 </span>
                 {compareAtPrice > regularPrice && (
                   <span className="text-[11px] text-muted line-through">

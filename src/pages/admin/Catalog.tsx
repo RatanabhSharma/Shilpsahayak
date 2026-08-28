@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Pencil, Trash2, Loader2, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, X, Upload, Image as ImageIcon } from 'lucide-react';
 import {
   useProducts,
   useAddProduct,
@@ -11,7 +11,10 @@ import {
 import {
   useCategories,
   useAddCategory,
+  useUpdateCategory,
+  useDeleteCategory,
 } from '../../hooks/useCategories';
+import { uploadProductImage } from '../../utils/uploadFile';
 
 const emptyVariant = (): ProductVariant => ({
   id: crypto.randomUUID(),
@@ -31,6 +34,7 @@ const emptyForm = {
   price: 0,
   originalPrice: 0,
   category: '',
+  subcategory: '',
   image: '',
   stock: 0,
   material: 'PLA',
@@ -52,6 +56,9 @@ export function Catalog() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
   const [saving, setSaving] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageUploadProgress, setImageUploadProgress] = useState<number | null>(null);
+  const [showManualUrl, setShowManualUrl] = useState(false);
 
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -59,10 +66,16 @@ export function Catalog() {
 
   const { data: categories = [] } = useCategories();
   const addCategory = useAddCategory();
+  const updateCategory = useUpdateCategory();
+  const deleteCategory = useDeleteCategory();
+
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState('');
 
   const openCreate = () => {
     setEditingId(null);
     setForm({ ...emptyForm, variants: [] });
+    setShowManualUrl(false);
     setIsOpen(true);
   };
 
@@ -74,6 +87,7 @@ export function Catalog() {
       price: product.price || 0,
       originalPrice: product.originalPrice || 0,
       category: product.category || '',
+      subcategory: product.subcategory || '',
       image: product.image || '',
       stock: product.stock || 0,
       material: product.material || 'PLA',
@@ -84,6 +98,7 @@ export function Catalog() {
       hasVariants: !!product.hasVariants,
       variants: product.variants ? product.variants.map((v) => ({ ...v, originalPrice: v.originalPrice || 0 })) : [],
     });
+    setShowManualUrl(false);
     setIsOpen(true);
   };
 
@@ -118,9 +133,36 @@ export function Catalog() {
         category: newCategory.name,
       }));
       setNewCategoryName('');
-      setIsCategoryOpen(false);
     } catch (error: any) {
       setCategoryError(error?.message || 'Failed to add category.');
+    }
+  };
+
+  const handleUpdateCategory = async (id: string) => {
+    const name = editingCategoryName.trim();
+    if (!name) {
+      alert('Category name cannot be empty.');
+      return;
+    }
+    try {
+      await updateCategory.mutateAsync({ id, name });
+      setEditingCategoryId(null);
+      setEditingCategoryName('');
+    } catch (error: any) {
+      alert(error?.message || 'Failed to update category.');
+    }
+  };
+
+  const handleDeleteCategory = async (id: string, name: string) => {
+    if (confirm(`Are you sure you want to delete the category "${name}"? Products in this category will not be deleted, but their category link will be removed.`)) {
+      try {
+        await deleteCategory.mutateAsync(id);
+        if (form.category === name) {
+          setForm((current) => ({ ...current, category: '' }));
+        }
+      } catch (error: any) {
+        alert(error?.message || 'Failed to delete category.');
+      }
     }
   };
 
@@ -145,12 +187,25 @@ export function Catalog() {
             }))
         : [];
 
+      let calculatedPrice = Number(form.price) || 0;
+      let calculatedOriginalPrice = Number(form.originalPrice) || 0;
+
+      if (form.hasVariants && cleanVariants.length > 0) {
+        const activeVariants = cleanVariants.filter((v) => Number(v.price) > 0);
+        if (activeVariants.length > 0) {
+          const sorted = [...activeVariants].sort((a, b) => a.price - b.price);
+          calculatedPrice = sorted[0].price;
+          calculatedOriginalPrice = sorted[0].originalPrice || calculatedPrice;
+        }
+      }
+
       const payload: any = {
         name: form.name.trim(),
         description: form.description.trim(),
-        price: Number(form.price) || 0,
-        originalPrice: Number(form.originalPrice) || 0,
+        price: calculatedPrice,
+        originalPrice: calculatedOriginalPrice,
         category: form.category,
+        subcategory: form.subcategory.trim(),
         image: form.image.trim(),
         stock: form.hasVariants
           ? cleanVariants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
@@ -264,7 +319,7 @@ export function Catalog() {
                   {product.name}
                 </h3>
                 <p className="font-mono text-sm font-bold text-ink mt-1">
-                  ₹{product.price.toLocaleString('en-IN')}
+                  {product.hasVariants ? 'From ' : ''}₹{product.price.toLocaleString('en-IN')}
                 </p>
                 <p className="text-[11px] font-mono text-muted mt-0.5">
                   Stock: <span className="text-ink font-semibold">{product.stock} units</span>
@@ -349,8 +404,8 @@ export function Catalog() {
                 />
               </div>
 
-              {/* Category + Material */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Category + Subcategory + Material */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
@@ -361,11 +416,12 @@ export function Catalog() {
                       onClick={() => {
                         setNewCategoryName('');
                         setCategoryError('');
+                        setEditingCategoryId(null);
                         setIsCategoryOpen(true);
                       }}
                       className="font-mono text-[10px] font-bold text-accent hover:underline"
                     >
-                      + Add Category
+                      Manage Categories
                     </button>
                   </div>
                   <select
@@ -383,9 +439,26 @@ export function Catalog() {
                 </div>
 
                 <div>
-                  <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
-                    Print Material
-                  </label>
+                  <div className="mb-1 h-[15px] flex items-center">
+                    <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
+                      Subcategory (Optional)
+                    </label>
+                  </div>
+                  <input
+                    type="text"
+                    value={form.subcategory}
+                    onChange={(e) => setForm({ ...form, subcategory: e.target.value })}
+                    placeholder="e.g. Moonlight Lamps"
+                    className="w-full px-3 py-2 text-xs font-semibold text-ink bg-white border border-line rounded-lg outline-none focus:border-accent"
+                  />
+                </div>
+
+                <div>
+                  <div className="mb-1 h-[15px] flex items-center">
+                    <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
+                      Print Material
+                    </label>
+                  </div>
                   <input
                     type="text"
                     value={form.material}
@@ -396,19 +469,110 @@ export function Catalog() {
                 </div>
               </div>
 
-              {/* Image URL */}
-              <div>
-                <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
-                  Main Image URL *
-                </label>
-                <input
-                  type="url"
-                  value={form.image}
-                  onChange={(e) => setForm({ ...form, image: e.target.value })}
-                  placeholder="https://images.unsplash.com/..."
-                  required
-                  className="w-full px-3 py-2 text-xs font-mono text-ink bg-white border border-line rounded-lg outline-none focus:border-accent"
-                />
+              {/* Image Upload / URL Section */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
+                    Product Image *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowManualUrl(!showManualUrl)}
+                    className="font-mono text-[10px] font-bold text-accent hover:underline"
+                  >
+                    {showManualUrl ? 'Use Uploader' : 'Enter URL Manually'}
+                  </button>
+                </div>
+
+                {showManualUrl ? (
+                  <input
+                    type="url"
+                    value={form.image}
+                    onChange={(e) => setForm({ ...form, image: e.target.value })}
+                    placeholder="https://images.unsplash.com/..."
+                    required
+                    className="w-full px-3 py-2 text-xs font-mono text-ink bg-white border border-line rounded-lg outline-none focus:border-accent"
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    <input
+                      id="product-image-uploader"
+                      type="file"
+                      accept=".png,.jpg,.jpeg,.webp"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        
+                        setImageUploading(true);
+                        setImageUploadProgress(0);
+                        try {
+                          const uploadedUrl = await uploadProductImage(file, (progress) => {
+                            setImageUploadProgress(progress);
+                          });
+                          setForm({ ...form, image: uploadedUrl });
+                        } catch (error: any) {
+                          console.error('Image upload failed:', error);
+                          alert(error?.message || 'Failed to upload image. Please try again.');
+                        } finally {
+                          setImageUploading(false);
+                          setImageUploadProgress(null);
+                        }
+                      }}
+                      className="hidden"
+                    />
+
+                    {form.image ? (
+                      <div className="flex items-center justify-between p-3 rounded-xl border border-line bg-shell/50">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <img
+                            src={form.image}
+                            alt="Product preview"
+                            className="w-12 h-12 rounded-lg object-contain bg-white border border-line shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-ink truncate font-mono">
+                              {form.image.split('?key=')[1] ? decodeURIComponent(form.image.split('?key=')[1]) : 'Uploaded Image'}
+                            </p>
+                            <p className="text-[10px] text-emerald-600 font-semibold font-mono flex items-center gap-1">
+                              <span>Upload successful</span>
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setForm({ ...form, image: '' })}
+                          className="p-1 rounded-lg text-muted hover:text-rose-600 hover:bg-rose-50"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label
+                        htmlFor="product-image-uploader"
+                        className="flex h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-line bg-white hover:bg-shell/50 transition-colors"
+                      >
+                        {imageUploading ? (
+                          <div className="flex flex-col items-center gap-2">
+                            <Loader2 className="h-5 w-5 text-accent animate-spin" />
+                            <span className="font-mono text-[10px] text-accent">
+                              Uploading to workshop: {imageUploadProgress}%
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <Upload className="h-5 w-5 text-muted" />
+                            <span className="font-sans text-xs font-semibold text-ink">
+                              Choose or Drop Product Image
+                            </span>
+                            <span className="font-mono text-[9px] text-muted">
+                              PNG, JPG, JPEG or WEBP (Max 10MB)
+                            </span>
+                          </>
+                        )}
+                      </label>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Options Checkboxes */}
@@ -621,12 +785,12 @@ export function Catalog() {
         </div>
       )}
 
-      {/* Add Category Inline Modal */}
+      {/* Manage Categories Modal */}
       {isCategoryOpen && (
         <div className="fixed inset-0 z-[60] bg-ink/40 flex items-center justify-center p-4 backdrop-blur-xs">
           <div className="w-full max-w-md p-6 rounded-xl border border-line bg-white shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-line pb-3">
-              <h3 className="font-display text-base font-bold text-ink">Add New Category</h3>
+              <h3 className="font-display text-base font-bold text-ink">Manage Categories</h3>
               <button
                 type="button"
                 onClick={() => setIsCategoryOpen(false)}
@@ -636,14 +800,15 @@ export function Catalog() {
               </button>
             </div>
 
-            <div className="space-y-3 font-sans text-xs">
-              <div>
-                <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
-                  Category Name
-                </label>
+            {/* Add Category Section */}
+            <div className="space-y-2">
+              <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
+                Add New Category
+              </label>
+              <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="e.g. Lithophanes & Lighting"
+                  placeholder="e.g. Moonlight Lamps"
                   value={newCategoryName}
                   onChange={(e) => {
                     setNewCategoryName(e.target.value);
@@ -655,32 +820,110 @@ export function Catalog() {
                       handleAddCategory();
                     }
                   }}
-                  autoFocus
-                  className="w-full px-3 py-2 text-xs text-ink bg-white border border-line rounded-lg outline-none focus:border-accent"
+                  className="flex-1 px-3 py-1.5 text-xs text-ink bg-white border border-line rounded-lg outline-none focus:border-accent"
                 />
-              </div>
-
-              {categoryError && (
-                <p className="text-xs text-rose-600 font-semibold">{categoryError}</p>
-              )}
-
-              <div className="flex gap-2 pt-2">
                 <button
                   type="button"
                   onClick={handleAddCategory}
                   disabled={addCategory.isPending}
-                  className="flex-1 py-2 px-4 rounded-lg bg-accent text-white font-sans text-xs font-semibold hover:bg-accent-dark transition-colors shadow-xs"
+                  className="px-4 py-1.5 rounded-lg bg-accent text-white font-sans text-xs font-semibold hover:bg-accent-dark transition-colors shadow-xs disabled:opacity-50"
                 >
-                  {addCategory.isPending ? 'Adding...' : 'Add Category'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsCategoryOpen(false)}
-                  className="py-2 px-4 rounded-lg border border-line bg-white font-sans text-xs font-semibold text-ink hover:bg-shell"
-                >
-                  Cancel
+                  {addCategory.isPending ? 'Adding...' : 'Add'}
                 </button>
               </div>
+              {categoryError && (
+                <p className="text-xs text-rose-600 font-semibold">{categoryError}</p>
+              )}
+            </div>
+
+            {/* List and Manage Existing Categories */}
+            <div className="space-y-2.5 pt-3 border-t border-line">
+              <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
+                Existing Categories ({categories.length})
+              </label>
+              
+              <div className="max-h-56 overflow-y-auto border border-line rounded-xl divide-y divide-line bg-shell/20">
+                {categories.length === 0 ? (
+                  <p className="p-4 text-center text-xs font-mono text-muted">No categories created yet.</p>
+                ) : (
+                  categories.map((cat: any) => {
+                    const isEditing = editingCategoryId === cat.id;
+
+                    return (
+                      <div key={cat.id} className="flex items-center justify-between p-2.5 gap-2 bg-white">
+                        {isEditing ? (
+                          <div className="flex items-center gap-1.5 flex-1">
+                            <input
+                              type="text"
+                              value={editingCategoryName}
+                              onChange={(e) => setEditingCategoryName(e.target.value)}
+                              className="flex-1 px-2 py-1 text-xs text-ink bg-white border border-accent rounded outline-none"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleUpdateCategory(cat.id);
+                                } else if (e.key === 'Escape') {
+                                  setEditingCategoryId(null);
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateCategory(cat.id)}
+                              className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 font-sans text-[10px] font-bold hover:bg-emerald-100"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCategoryId(null)}
+                              className="px-2 py-1 rounded border border-line bg-white font-sans text-[10px] font-bold text-muted hover:bg-shell"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="text-xs text-ink font-semibold pl-1 font-sans">{cat.name}</span>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingCategoryId(cat.id);
+                                  setEditingCategoryName(cat.name);
+                                }}
+                                className="p-1 rounded text-muted hover:text-accent hover:bg-shell"
+                                title="Edit Name"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                                className="p-1 rounded text-muted hover:text-rose-600 hover:bg-rose-50"
+                                title="Delete Category"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-line">
+              <button
+                type="button"
+                onClick={() => setIsCategoryOpen(false)}
+                className="py-1.5 px-4 rounded-lg border border-line bg-white font-sans text-xs font-semibold text-ink hover:bg-shell transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

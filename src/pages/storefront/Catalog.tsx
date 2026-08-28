@@ -10,6 +10,8 @@ import {
   Sparkles,
   X,
   SlidersHorizontal,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import {
   Link,
@@ -32,7 +34,7 @@ type SortOption =
   | 'price-low'
   | 'price-high';
 
-const PRICE_STEP = 250;
+const PRICE_STEP = 50;
 
 function formatPrice(value: number) {
   return `₹${value.toLocaleString('en-IN')}`;
@@ -40,13 +42,22 @@ function formatPrice(value: number) {
 
 function getPriceCeiling(price: number) {
   if (price <= 0) {
-    return 15000;
+    return 3000;
   }
-  return Math.max(
-    15000,
-    Math.ceil(price / 1000) * 1000
-  );
+  if (price <= 1000) {
+    return Math.max(500, Math.ceil(price / 100) * 100);
+  }
+  return Math.ceil(price / 500) * 500;
 }
+
+const toTitleCase = (str: string) => {
+  return str
+    .trim()
+    .replace(/\s+/g, ' ')
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
 
 export function Catalog() {
   const {
@@ -62,10 +73,24 @@ export function Catalog() {
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
   const [inStockOnly, setInStockOnly] = useState(false);
   const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(15000);
+  const [maxPrice, setMaxPrice] = useState(3000);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+
+  const toggleExpandCategory = (categoryName: string) => {
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [categoryName]: !prev[categoryName],
+    }));
+  };
 
   const selectedCategories = useMemo(() => {
     const param = searchParams.get('category');
+    if (!param) return [];
+    return param.split(',').map((c) => decodeURIComponent(c.trim())).filter(Boolean);
+  }, [searchParams]);
+
+  const selectedSubcategories = useMemo(() => {
+    const param = searchParams.get('subcategory');
     if (!param) return [];
     return param.split(',').map((c) => decodeURIComponent(c.trim())).filter(Boolean);
   }, [searchParams]);
@@ -84,8 +109,16 @@ export function Catalog() {
   /* Price Ceiling */
   const priceMaximum = useMemo(() => {
     const highestProductPrice = activeProducts.reduce(
-      (highest, product) =>
-        Math.max(highest, Number(product.price) || 0),
+      (highest, product) => {
+        let maxProdPrice = Number(product.price) || 0;
+        if (product.hasVariants && product.variants && product.variants.length > 0) {
+          const varPrices = product.variants.map((v) => Number(v.price) || 0);
+          if (varPrices.length > 0) {
+            maxProdPrice = Math.max(maxProdPrice, ...varPrices);
+          }
+        }
+        return Math.max(highest, maxProdPrice);
+      },
       0
     );
 
@@ -98,21 +131,37 @@ export function Catalog() {
   }, [priceMaximum]);
 
   /* Filter Options */
-  const categories = useMemo(() => {
-    const counts = new Map<string, number>();
+  const categoryTree = useMemo(() => {
+    const tree = new Map<string, { count: number; subcategories: Map<string, number> }>();
 
     activeProducts.forEach((product) => {
       if (!product.category) return;
-      counts.set(
-        product.category,
-        (counts.get(product.category) || 0) + 1
-      );
+      const normalizedCat = toTitleCase(product.category);
+      const normalizedSubcat = product.subcategory ? toTitleCase(product.subcategory) : '';
+      
+      if (!tree.has(normalizedCat)) {
+        tree.set(normalizedCat, { count: 0, subcategories: new Map<string, number>() });
+      }
+      
+      const catData = tree.get(normalizedCat)!;
+      catData.count += 1;
+      
+      if (normalizedSubcat) {
+        catData.subcategories.set(
+          normalizedSubcat,
+          (catData.subcategories.get(normalizedSubcat) || 0) + 1
+        );
+      }
     });
 
-    return Array.from(counts.entries()).map(([name, count]) => ({
-      name,
-      count,
-    }));
+    return Array.from(tree.entries()).map(([catName, data]) => ({
+      name: catName,
+      count: data.count,
+      subcategories: Array.from(data.subcategories.entries()).map(([subName, subCount]) => ({
+        name: subName,
+        count: subCount,
+      })).sort((a, b) => a.name.localeCompare(b.name)),
+    })).sort((a, b) => a.name.localeCompare(b.name));
   }, [activeProducts]);
 
   const materials = useMemo(
@@ -150,12 +199,26 @@ export function Catalog() {
       });
     }
 
-    if (selectedCategories.length > 0) {
-      result = result.filter(
-        (product) =>
-          product.category &&
-          selectedCategories.includes(product.category)
-      );
+    if (selectedCategories.length > 0 || selectedSubcategories.length > 0) {
+      result = result.filter((product) => {
+        if (!product.category) return false;
+
+        const normalizedProdCat = toTitleCase(product.category);
+        const normalizedProdSubcat = product.subcategory ? toTitleCase(product.subcategory) : '';
+
+        const isCatSelected = selectedCategories.includes(normalizedProdCat);
+
+        const catInTree = categoryTree.find((c) => c.name === normalizedProdCat);
+        const activeSubcatsForThisCat = catInTree
+          ? catInTree.subcategories.filter((s) => selectedSubcategories.includes(s.name))
+          : [];
+
+        if (activeSubcatsForThisCat.length > 0) {
+          return !!(normalizedProdSubcat && selectedSubcategories.includes(normalizedProdSubcat));
+        }
+
+        return isCatSelected;
+      });
     }
 
     if (occasionFilter) {
@@ -172,8 +235,18 @@ export function Catalog() {
       );
     }
 
+    const getEffectivePrice = (p: typeof activeProducts[0]): number => {
+      if (p.hasVariants && p.variants && p.variants.length > 0) {
+        const prices = p.variants.map((v) => Number(v.price) || 0).filter((pr) => pr > 0);
+        if (prices.length > 0) {
+          return Math.min(...prices);
+        }
+      }
+      return Number(p.price) || 0;
+    };
+
     result = result.filter((product) => {
-      const price = Number(product.price) || 0;
+      const price = getEffectivePrice(product);
       return price >= minPrice && price <= maxPrice;
     });
 
@@ -183,11 +256,11 @@ export function Catalog() {
 
     switch (sortParam) {
       case 'price-low':
-        result.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+        result.sort((a, b) => getEffectivePrice(a) - getEffectivePrice(b));
         break;
 
       case 'price-high':
-        result.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+        result.sort((a, b) => getEffectivePrice(b) - getEffectivePrice(a));
         break;
 
       case 'newest':
@@ -226,15 +299,72 @@ export function Catalog() {
   };
 
   const toggleCategory = (category: string) => {
-    const current = selectedCategories;
-    const next = current.includes(category)
-      ? current.filter((c) => c !== category)
-      : [...current, category];
+    const currentCats = selectedCategories;
+    const isChecking = !currentCats.includes(category);
+    const nextCats = currentCats.includes(category)
+      ? currentCats.filter((c) => c !== category)
+      : [...currentCats, category];
 
-    updateSearchParam(
-      'category',
-      next.length > 0 ? next.join(',') : null
-    );
+    // If we uncheck a category, also uncheck all its subcategories
+    let nextSubcats = selectedSubcategories;
+    if (currentCats.includes(category)) {
+      const catData = categoryTree.find((c) => c.name === category);
+      if (catData) {
+        const subNames = catData.subcategories.map((s) => s.name);
+        nextSubcats = nextSubcats.filter((s) => !subNames.includes(s));
+      }
+    }
+
+    if (isChecking) {
+      setExpandedCategories((prev) => ({ ...prev, [category]: true }));
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextCats.length > 0) {
+      nextParams.set('category', nextCats.join(','));
+    } else {
+      nextParams.delete('category');
+    }
+
+    if (nextSubcats.length > 0) {
+      nextParams.set('subcategory', nextSubcats.join(','));
+    } else {
+      nextParams.delete('subcategory');
+    }
+
+    setSearchParams(nextParams);
+  };
+
+  const toggleSubcategory = (category: string, subcategory: string) => {
+    const isChecking = !selectedSubcategories.includes(subcategory);
+    const nextSubcats = selectedSubcategories.includes(subcategory)
+      ? selectedSubcategories.filter((s) => s !== subcategory)
+      : [...selectedSubcategories, subcategory];
+
+    // If we check a subcategory, make sure its parent category is also checked
+    let nextCats = selectedCategories;
+    if (!selectedSubcategories.includes(subcategory) && !nextCats.includes(category)) {
+      nextCats = [...nextCats, category];
+    }
+
+    if (isChecking) {
+      setExpandedCategories((prev) => ({ ...prev, [category]: true }));
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextCats.length > 0) {
+      nextParams.set('category', nextCats.join(','));
+    } else {
+      nextParams.delete('category');
+    }
+
+    if (nextSubcats.length > 0) {
+      nextParams.set('subcategory', nextSubcats.join(','));
+    } else {
+      nextParams.delete('subcategory');
+    }
+
+    setSearchParams(nextParams);
   };
 
   const handleOccasionChange = (occasion: string | null) => {
@@ -254,18 +384,19 @@ export function Catalog() {
   };
 
   const handleMinPriceChange = (value: number) => {
-    const nextValue = Math.min(value, maxPrice - PRICE_STEP);
+    const nextValue = Math.min(value, maxPrice);
     setMinPrice(Math.max(0, nextValue));
   };
 
   const handleMaxPriceChange = (value: number) => {
-    const nextValue = Math.max(value, minPrice + PRICE_STEP);
+    const nextValue = Math.max(value, minPrice);
     setMaxPrice(Math.min(priceMaximum, nextValue));
   };
 
   const clearFilters = () => {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete('category');
+    nextParams.delete('subcategory');
     nextParams.delete('occasion');
     nextParams.delete('sort');
     setSearchParams(nextParams);
@@ -284,9 +415,29 @@ export function Catalog() {
     }> = [];
 
     selectedCategories.forEach((category) => {
+      // Only show category chip if no subcategories of this category are selected
+      const catInTree = categoryTree.find((c) => c.name === category);
+      const activeSubcats = catInTree
+        ? catInTree.subcategories.filter((s) => selectedSubcategories.includes(s.name))
+        : [];
+
+      if (activeSubcats.length === 0) {
+        chips.push({
+          label: `Category: ${category}`,
+          remove: () => toggleCategory(category),
+        });
+      }
+    });
+
+    selectedSubcategories.forEach((subcategory) => {
       chips.push({
-        label: `Category: ${category}`,
-        remove: () => toggleCategory(category),
+        label: `Subcategory: ${subcategory}`,
+        remove: () => {
+          const cat = categoryTree.find((c) => c.subcategories.some((s) => s.name === subcategory));
+          if (cat) {
+            toggleSubcategory(cat.name, subcategory);
+          }
+        },
       });
     });
 
@@ -335,6 +486,8 @@ export function Catalog() {
     return chips;
   }, [
     selectedCategories,
+    selectedSubcategories,
+    categoryTree,
     occasionFilter,
     selectedMaterials,
     minPrice,
@@ -395,27 +548,75 @@ export function Catalog() {
       {/* Categories */}
       <div className="space-y-3">
         <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-ink">Categories</h3>
-        <div className="space-y-2">
-          {categories.map((category) => {
+        <div className="space-y-3">
+          {categoryTree.map((category) => {
             const isChecked = selectedCategories.includes(category.name);
+            const isExpanded = !!expandedCategories[category.name];
+            const hasSubs = category.subcategories.length > 0;
+
             return (
-              <label
-                key={category.name}
-                className="flex items-center justify-between text-xs font-medium text-ink cursor-pointer hover:text-accent transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() => toggleCategory(category.name)}
-                    className="h-4 w-4 rounded border-line text-accent focus:ring-accent"
-                  />
-                  <span>{category.name}</span>
+              <div key={category.name} className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-semibold text-ink hover:text-accent transition-colors">
+                  <label className="flex items-center gap-2 cursor-pointer flex-1 py-0.5 min-w-0 pr-2">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => toggleCategory(category.name)}
+                      className="h-4 w-4 rounded border-line text-accent focus:ring-accent shrink-0"
+                    />
+                    <span className="truncate">{category.name}</span>
+                  </label>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="font-mono text-2xs text-muted bg-shell px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                      {category.count}
+                    </span>
+                    {hasSubs ? (
+                      <button
+                        type="button"
+                        aria-label={isExpanded ? 'Collapse subcategories' : 'Expand subcategories'}
+                        onClick={() => toggleExpandCategory(category.name)}
+                        className="p-1 text-muted hover:text-accent hover:bg-shell rounded-md transition-colors shrink-0"
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    ) : (
+                      <div className="w-5" />
+                    )}
+                  </div>
                 </div>
-                <span className="font-mono text-2xs text-muted bg-shell px-2 py-0.5 rounded-full">
-                  {category.count}
-                </span>
-              </label>
+
+                {hasSubs && isExpanded && (
+                  <div className="pl-6 space-y-1.5 border-l border-line ml-2">
+                    {category.subcategories.map((sub) => {
+                      const isSubChecked = selectedSubcategories.includes(sub.name);
+                      return (
+                        <label
+                          key={sub.name}
+                          className="flex items-center justify-between text-xs font-medium text-muted cursor-pointer hover:text-accent transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={isSubChecked}
+                              onChange={() => toggleSubcategory(category.name, sub.name)}
+                              className="h-3.5 w-3.5 rounded border-line text-accent focus:ring-accent"
+                            />
+                            <span>{sub.name}</span>
+                          </div>
+                          <span className="font-mono text-[10px] text-muted bg-shell px-2 py-0.5 rounded-full">
+                            {sub.count}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
@@ -488,6 +689,47 @@ export function Catalog() {
               aria-label="Maximum price"
               className="catalog-range pointer-events-none absolute inset-0 z-30 h-6 w-full appearance-none bg-transparent"
             />
+          </div>
+
+          {/* Direct Min / Max Input Fields */}
+          <div className="mt-4 flex items-center gap-2">
+            <div className="flex-1 relative">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted font-mono text-xs select-none">
+                ₹
+              </span>
+              <input
+                type="number"
+                min={0}
+                max={maxPrice}
+                value={minPrice === 0 ? '' : minPrice}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? 0 : Number(e.target.value);
+                  handleMinPriceChange(isNaN(val) ? 0 : val);
+                }}
+                placeholder="0"
+                className="w-full pl-6 pr-2 py-1.5 bg-white border border-line rounded-lg text-xs font-mono font-medium text-ink focus:border-accent outline-none"
+              />
+            </div>
+
+            <span className="text-muted text-xs font-mono font-medium select-none">—</span>
+
+            <div className="flex-1 relative">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted font-mono text-xs select-none">
+                ₹
+              </span>
+              <input
+                type="number"
+                min={minPrice}
+                max={priceMaximum}
+                value={maxPrice === priceMaximum ? '' : maxPrice}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? priceMaximum : Number(e.target.value);
+                  handleMaxPriceChange(isNaN(val) ? priceMaximum : val);
+                }}
+                placeholder={priceMaximum.toString()}
+                className="w-full pl-6 pr-2 py-1.5 bg-white border border-line rounded-lg text-xs font-mono font-medium text-ink focus:border-accent outline-none"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -574,39 +816,7 @@ export function Catalog() {
             </div>
           </div>
 
-          {/* Category Filter Pills Horizontal Strip */}
-          {categories.length > 0 && (
-            <div className="mt-8 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-              <button
-                type="button"
-                onClick={() => updateSearchParam('category', null)}
-                className={`px-4 py-2 rounded-full font-mono text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-colors border ${
-                  selectedCategories.length === 0
-                    ? 'bg-accent text-white border-accent'
-                    : 'bg-shell text-ink border-line hover:border-accent hover:text-accent'
-                }`}
-              >
-                All Products ({activeProducts.length})
-              </button>
-              {categories.map((cat) => {
-                const isSelected = selectedCategories.includes(cat.name);
-                return (
-                  <button
-                    key={cat.name}
-                    type="button"
-                    onClick={() => toggleCategory(cat.name)}
-                    className={`px-4 py-2 rounded-full font-mono text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-colors border ${
-                      isSelected
-                        ? 'bg-accent text-white border-accent'
-                        : 'bg-shell text-ink border-line hover:border-accent hover:text-accent'
-                    }`}
-                  >
-                    {cat.name} ({cat.count})
-                  </button>
-                );
-              })}
-            </div>
-          )}
+
         </div>
       </section>
 
@@ -758,15 +968,7 @@ export function Catalog() {
                 </button>
               ))}
 
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="ml-auto font-mono text-xs font-bold text-accent hover:underline"
-                >
-                  Clear All
-                </button>
-              )}
+
             </div>
 
             {/* Product Cards Grid */}

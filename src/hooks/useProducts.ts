@@ -28,6 +28,7 @@ export type Product = {
   price: number;
   originalPrice?: number;
   category: string;
+  subcategory?: string;
   image: string;
   images?: string[];
   stock: number;
