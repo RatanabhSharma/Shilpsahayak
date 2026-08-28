@@ -356,12 +356,12 @@ export function ProductDetail() {
           <span>Back to Catalog</span>
         </Link>
 
-        <div className="grid gap-12 lg:grid-cols-12 lg:gap-14">
-          {/* Left Column: Gallery & Details */}
-          <section className="lg:col-span-7 space-y-8">
+        <div className="grid gap-8 lg:grid-cols-12 lg:gap-14">
+          {/* IMAGE COLUMN — always first visually */}
+          <section className="lg:col-span-7 lg:row-span-2">
             {/* Main Featured Image */}
-            <div className="overflow-hidden rounded-3xl border border-line bg-white p-3 shadow-soft">
-              <div className="relative aspect-square overflow-hidden rounded-2xl bg-shell">
+            <div className="overflow-hidden rounded-2xl sm:rounded-3xl border border-line bg-white p-2 sm:p-3 shadow-soft">
+              <div className="relative aspect-[4/3] sm:aspect-square overflow-hidden rounded-xl sm:rounded-2xl bg-shell">
                 <img
                   src={activeImage || product.image}
                   alt={product.name}
@@ -376,7 +376,7 @@ export function ProductDetail() {
                 />
 
                 {product.isCustomizable && (
-                  <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-dark/90 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm shadow-md">
+                  <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-dark/90 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm shadow-md">
                     <Sparkles className="h-3.5 w-3.5 text-accent" />
                     Personalizable Piece
                   </span>
@@ -386,7 +386,7 @@ export function ProductDetail() {
 
             {/* Gallery Thumbnails */}
             {galleryImages.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+              <div className="mt-3 flex gap-2 sm:gap-3 overflow-x-auto pb-1 scrollbar-none">
                 {galleryImages.map((img, index) => {
                   const isSelected = activeImage === img;
                   return (
@@ -394,7 +394,7 @@ export function ProductDetail() {
                       key={`${img}-${index}`}
                       type="button"
                       onClick={() => setActiveImage(img)}
-                      className={`h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-2 transition-all shadow-sm ${
+                      className={`h-14 w-14 sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-xl sm:rounded-2xl border-2 transition-all shadow-sm ${
                         isSelected
                           ? 'border-accent ring-2 ring-accent/20'
                           : 'border-line hover:border-accent/50'
@@ -407,8 +407,8 @@ export function ProductDetail() {
               </div>
             )}
 
-            {/* Product Details & Specs */}
-            <div className="rounded-3xl border border-line bg-white p-7 shadow-soft space-y-6">
+            {/* Product Details & Specs — hidden on mobile, shows after cart on lg */}
+            <div className="hidden lg:block mt-8 rounded-3xl border border-line bg-white p-7 shadow-soft space-y-6">
               <div>
                 <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
                   Design & Crafting Notes
@@ -829,6 +829,50 @@ export function ProductDetail() {
               </div>
             </div>
           </section>
+
+          {/* Mobile-only: Description & Specs (shown after cart on small screens) */}
+          <div className="lg:hidden rounded-2xl border border-line bg-white p-5 space-y-6">
+            <div>
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
+                Design & Crafting Notes
+              </span>
+              <h3 className="mt-1 font-display text-lg font-bold text-ink">
+                About this Piece
+              </h3>
+              <p className="mt-3 whitespace-pre-line font-sans text-sm leading-relaxed text-muted">
+                {product.description || 'No description available for this workshop piece.'}
+              </p>
+            </div>
+
+            <div className="border-t border-line pt-5">
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
+                Engineering Specifications
+              </span>
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <div className="rounded-xl border border-line bg-shell p-3">
+                  <div className="flex items-center gap-1 text-muted mb-1">
+                    <Layers className="h-3 w-3 text-accent" />
+                    <span className="font-mono text-[10px] uppercase">Material</span>
+                  </div>
+                  <p className="font-mono text-xs font-bold text-ink">{product.material || 'PLA'}</p>
+                </div>
+                <div className="rounded-xl border border-line bg-shell p-3">
+                  <div className="flex items-center gap-1 text-muted mb-1">
+                    <Box className="h-3 w-3 text-accent" />
+                    <span className="font-mono text-[10px] uppercase">Category</span>
+                  </div>
+                  <p className="font-mono text-xs font-bold text-ink truncate">{product.category || 'Standard'}</p>
+                </div>
+                <div className="rounded-xl border border-line bg-shell p-3">
+                  <div className="flex items-center gap-1 text-muted mb-1">
+                    <ShieldCheck className="h-3 w-3 text-accent" />
+                    <span className="font-mono text-[10px] uppercase">Quality</span>
+                  </div>
+                  <p className="font-mono text-xs font-bold text-ink">Inspected</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
 
