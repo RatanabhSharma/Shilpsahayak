@@ -15,7 +15,6 @@ import { Link } from 'react-router-dom';
 import { useProducts, Product } from '../../hooks/useProducts';
 import {
   DEFAULT_HOMEPAGE_SETTINGS,
-  HomepageHeroSlide,
   HomepageSettings,
   useHomepage,
   useUpdateHomepage,
@@ -29,47 +28,6 @@ function moveItem<T>(items: T[], index: number, direction: -1 | 1) {
   [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
   return next;
 }
-
-function createHeroSlide(): HomepageHeroSlide {
-  return {
-    id: `hero-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    enabled: true,
-    eyebrow: 'STUDIO CRAFTSMANSHIP',
-    title: 'Custom 3D Fabrication & Prototyping',
-    description: 'Precision layered engineering and personalized creations delivered directly to your doorstep.',
-    image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80',
-    buttonText: 'Explore Collection',
-    buttonLink: '/catalog',
-  };
-}
-
-const CURATED_HERO_PRESETS = [
-  {
-    label: '3D Lamp & Lithophane',
-    tag: 'Bespoke Art',
-    url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80',
-  },
-  {
-    label: 'Robotics & Hardware Enclosure',
-    tag: 'Engineering',
-    url: 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?auto=format&fit=crop&w=1200&q=80',
-  },
-  {
-    label: 'Architectural Scale Model',
-    tag: 'Architecture',
-    url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=1200&q=80',
-  },
-  {
-    label: 'Desktop Organizer & Station',
-    tag: 'Home Decor',
-    url: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=1200&q=80',
-  },
-  {
-    label: 'High-Detail SLA Resin Part',
-    tag: 'SLA Resin',
-    url: 'https://images.unsplash.com/photo-1563770660941-20978e870e26?auto=format&fit=crop&w=1200&q=80',
-  },
-];
 
 export function AdminHome() {
   const { data: products = [], isLoading: productsLoading } = useProducts();
@@ -100,7 +58,7 @@ export function AdminHome() {
     setForm({
       ...DEFAULT_HOMEPAGE_SETTINGS,
       ...savedSettings,
-      heroSlides: [...savedSettings.heroSlides],
+      heroSlides: savedSettings.heroSlides ? [...savedSettings.heroSlides] : [],
       featuredProductIds: [...savedSettings.featuredProductIds],
       selectedProductIds: [...savedSettings.selectedProductIds],
       categoryNames: [...savedSettings.categoryNames],
@@ -110,40 +68,6 @@ export function AdminHome() {
       announcementDuration: savedSettings.announcementDuration ?? DEFAULT_HOMEPAGE_SETTINGS.announcementDuration,
     });
   }, [savedSettings]);
-
-  const updateHeroSlide = (
-    id: string,
-    field: keyof HomepageHeroSlide,
-    value: string | boolean
-  ) => {
-    setForm((current) => ({
-      ...current,
-      heroSlides: current.heroSlides.map((slide) =>
-        slide.id === id ? { ...slide, [field]: value } : slide
-      ),
-    }));
-  };
-
-  const addHeroSlide = () => {
-    setForm((current) => ({
-      ...current,
-      heroSlides: [...current.heroSlides, createHeroSlide()],
-    }));
-  };
-
-  const removeHeroSlide = (id: string) => {
-    setForm((current) => ({
-      ...current,
-      heroSlides: current.heroSlides.filter((slide) => slide.id !== id),
-    }));
-  };
-
-  const moveHeroSlide = (index: number, direction: -1 | 1) => {
-    setForm((current) => ({
-      ...current,
-      heroSlides: moveItem(current.heroSlides, index, direction),
-    }));
-  };
 
   const toggleProduct = (
     field: 'featuredProductIds' | 'selectedProductIds',

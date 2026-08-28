@@ -100,8 +100,9 @@ export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
     laserRef.current = laserMesh;
     scene.add(laserMesh);
 
-    // Mouse Interaction
+    // Mouse Interaction (Ignore touch so mobile page scrolling is smooth)
     const handlePointerMove = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return;
       const rect = container.getBoundingClientRect();
       const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
@@ -109,7 +110,7 @@ export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
       mouseRef.current.targetY = y * 0.6;
     };
 
-    container.addEventListener('pointermove', handlePointerMove);
+    container.addEventListener('pointermove', handlePointerMove, { passive: true });
 
     // Resize Handler
     const handleResize = () => {
@@ -222,9 +223,13 @@ export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
   }, [activeShape, wireframeOnly]);
 
   return (
-    <div className={`relative flex flex-col items-center justify-center rounded-3xl overflow-hidden bg-gradient-to-b from-zinc-950 via-[#101012] to-zinc-950 border border-zinc-800 shadow-2xl ${className}`}>
+    <div className={`relative flex flex-col items-center justify-center rounded-3xl overflow-hidden bg-gradient-to-b from-zinc-950 via-[#101012] to-zinc-950 border border-zinc-800 shadow-2xl touch-pan-y ${className}`}>
       {/* Interactive 3D Canvas Mount */}
-      <div ref={mountRef} className="w-full h-full min-h-[320px] sm:min-h-[380px] cursor-grab active:cursor-grabbing" />
+      <div
+        ref={mountRef}
+        style={{ touchAction: 'pan-y' }}
+        className="w-full h-full min-h-[320px] sm:min-h-[380px] cursor-grab active:cursor-grabbing touch-pan-y"
+      />
 
       {/* Top Overlay Badge */}
       <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-white font-mono text-[10px]">

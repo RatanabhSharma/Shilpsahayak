@@ -182,6 +182,7 @@ function useInfiniteLoopCarousel({
   const [isHovered, setIsHovered] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
   const isNormalizingRef = useRef(false);
   const autoplayTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -284,28 +285,28 @@ function useInfiniteLoopCarousel({
     handleUserAction();
   }, [step, handleUserAction]);
 
-  const handleTouchStart = useCallback(
-    (e: React.TouchEvent) => {
-      touchStartXRef.current = e.touches[0].clientX;
-      setIsInteracting(true);
-    },
-    []
-  );
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    touchStartYRef.current = e.touches[0].clientY;
+  }, []);
 
   const handleTouchEnd = useCallback(
     (e: React.TouchEvent) => {
-      if (touchStartXRef.current !== null) {
-        const diff = touchStartXRef.current - e.changedTouches[0].clientX;
-        if (Math.abs(diff) > 35) {
-          if (diff > 0) {
+      if (touchStartXRef.current !== null && touchStartYRef.current !== null) {
+        const diffX = touchStartXRef.current - e.changedTouches[0].clientX;
+        const diffY = touchStartYRef.current - e.changedTouches[0].clientY;
+        // Only trigger horizontal swipe if movement is predominantly horizontal
+        if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.4) {
+          if (diffX > 0) {
             step(1);
           } else {
             step(-1);
           }
+          handleUserAction();
         }
       }
       touchStartXRef.current = null;
-      handleUserAction();
+      touchStartYRef.current = null;
     },
     [step, handleUserAction]
   );
@@ -374,8 +375,6 @@ export function Home() {
   const heroParallaxY = useTransform(scrollYProgress, [0, 1], ['0%', '32%']);
   const heroScale = useTransform(scrollYProgress, [0, 1], [1.0, 1.15]);
   const heroScrimOpacity = useTransform(scrollYProgress, [0, 0.7, 1], [0.55, 0.8, 0.98]);
-  const heroContentY = useTransform(scrollYProgress, [0, 1], ['0%', '24%']);
-  const heroContentOpacity = useTransform(scrollYProgress, [0, 0.6, 0.95], [1, 0.8, 0]);
 
   /* Hero Media & Content (Video / GIF with Poster fallback) */
   const heroMediaUrl = useMemo(() => {
@@ -407,14 +406,6 @@ export function Home() {
 
   const heroPosterImage =
     'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=2000&q=80';
-
-  const heroEyebrow = homepageSettings?.heroEyebrow || 'BESPOKE 3D FABRICATION STUDIO';
-  const heroTitle = homepageSettings?.heroTitle || 'Turn Ideas Into Something Real.';
-  const heroDescription =
-    homepageSettings?.heroSubtitle ||
-    'Precision 3D printed lighting, mechanical components, and bespoke goods crafted in India.';
-  const heroButtonText = homepageSettings?.heroButtonText || 'Explore Collection';
-  const heroButtonLink = homepageSettings?.heroButtonLink || '/catalog';
 
   const featuredProducts = useMemo(() => {
     const configuredIds = homepageSettings?.featuredProductIds ?? [];
@@ -515,13 +506,14 @@ export function Home() {
   );
 
   return (
-    <div className="bg-[#FAF9F6] text-ink selection:bg-accent-soft selection:text-accent overflow-x-hidden">
+    <div className="bg-[#FAF9F6] text-ink selection:bg-accent-soft selection:text-accent w-full min-h-screen">
       {/* =====================================================
           1. CINEMATIC FULL-BLEED VIDEO HERO WITH PARALLAX SCROLL
       ====================================================== */}
       <section
         ref={heroRef}
-        className="relative overflow-hidden bg-[#0d0d0f] h-[480px] sm:h-[580px] lg:h-[680px] w-full select-none"
+        style={{ touchAction: 'pan-y' }}
+        className="relative overflow-hidden bg-[#0d0d0f] h-[480px] sm:h-[580px] lg:h-[680px] w-full touch-pan-y"
       >
         {/* Parallax Background Stage (Video / GIF / High-Res Poster) */}
         <motion.div
@@ -655,8 +647,8 @@ export function Home() {
               onTouchEnd={featuredCarousel.handleTouchEnd}
               onFocusCapture={() => featuredCarousel.setIsHovered(true)}
               onBlurCapture={() => featuredCarousel.setIsHovered(false)}
-              className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-none"
-              style={{ WebkitOverflowScrolling: 'touch' }}
+              className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-none touch-pan-y"
+              style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
             >
               {extendedFeaturedProducts.map((product) => (
                 <div
@@ -731,8 +723,8 @@ export function Home() {
               onTouchEnd={categoryCarousel.handleTouchEnd}
               onFocusCapture={() => categoryCarousel.setIsHovered(true)}
               onBlurCapture={() => categoryCarousel.setIsHovered(false)}
-              className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-none"
-              style={{ WebkitOverflowScrolling: 'touch' }}
+              className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-none touch-pan-y"
+              style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
             >
               {extendedCategories.map((cat) => (
                 <div
