@@ -85,21 +85,32 @@ export function Account() {
     loading: authLoading,
     updateAccount,
     sendVerificationEmail,
+    reloadUser,
   } = useAuth();
 
   const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
   const [isSendingEmailVerification, setIsSendingEmailVerification] = useState(false);
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
+  const [isCheckingEmailStatus, setIsCheckingEmailStatus] = useState(false);
 
   const handleSendEmailVerification = async () => {
     setIsSendingEmailVerification(true);
     try {
       await sendVerificationEmail();
       setEmailVerificationSent(true);
-    } catch (err) {
+    } catch {
       alert('Unable to send verification email. Please try again later.');
     } finally {
       setIsSendingEmailVerification(false);
+    }
+  };
+
+  const handleCheckEmailStatus = async () => {
+    setIsCheckingEmailStatus(true);
+    try {
+      await reloadUser();
+    } finally {
+      setIsCheckingEmailStatus(false);
     }
   };
 
@@ -465,15 +476,27 @@ export function Account() {
                       Email Verified
                     </span>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={handleSendEmailVerification}
-                      disabled={isSendingEmailVerification}
-                      className="inline-flex items-center gap-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 px-2 py-0.5 font-mono text-[10px] font-bold transition-colors cursor-pointer"
-                    >
-                      <Mail className="w-3 h-3 text-amber-600" />
-                      {emailVerificationSent ? 'Verification Link Sent ✓' : 'Send Email Verification Link'}
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={handleSendEmailVerification}
+                        disabled={isSendingEmailVerification}
+                        className="inline-flex items-center gap-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 px-2 py-0.5 font-mono text-[10px] font-bold transition-colors cursor-pointer"
+                      >
+                        <Mail className="w-3 h-3 text-amber-600" />
+                        {emailVerificationSent ? 'Verification Link Sent ✓' : 'Send Verification Link'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCheckEmailStatus}
+                        disabled={isCheckingEmailStatus}
+                        className="inline-flex items-center gap-1 rounded-md bg-white text-muted hover:text-ink border border-line px-2 py-0.5 font-mono text-[10px] font-bold transition-colors cursor-pointer"
+                        title="Check if verified"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${isCheckingEmailStatus ? 'animate-spin' : ''}`} />
+                        <span>Refresh</span>
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

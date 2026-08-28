@@ -8,6 +8,7 @@ import {
   MapPin,
   FileBox,
   ShieldCheck,
+  AlertCircle,
 } from 'lucide-react';
 
 import { useStore } from '../../store';
@@ -74,7 +75,7 @@ function normalizePhone(value: string): string {
 }
 
 export function Checkout() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, reloadUser, sendVerificationEmail } = useAuth();
   const { data: profile, isLoading: profileLoading } = useUserProfile();
   const { data: settings } = useSettings();
   const navigate = useNavigate();
@@ -88,6 +89,31 @@ export function Checkout() {
   const [orderId, setOrderId] = useState('');
   const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
   const [pendingOrderData, setPendingOrderData] = useState<any>(null);
+
+  const [isSendingEmailVerification, setIsSendingEmailVerification] = useState(false);
+  const [emailVerificationSent, setEmailVerificationSent] = useState(false);
+  const [isCheckingEmailStatus, setIsCheckingEmailStatus] = useState(false);
+
+  const handleSendEmailVerification = async () => {
+    setIsSendingEmailVerification(true);
+    try {
+      await sendVerificationEmail();
+      setEmailVerificationSent(true);
+    } catch {
+      alert('Failed to send verification email. Please try again.');
+    } finally {
+      setIsSendingEmailVerification(false);
+    }
+  };
+
+  const handleCheckEmailStatus = async () => {
+    setIsCheckingEmailStatus(true);
+    try {
+      await reloadUser();
+    } finally {
+      setIsCheckingEmailStatus(false);
+    }
+  };
 
   const [stateValue, setStateValue] = useState('');
   const [phone, setPhone] = useState('');
@@ -431,6 +457,37 @@ export function Checkout() {
           {/* Checkout Form */}
           <div id="checkout-form" className="lg:col-span-7">
             <form onSubmit={handleSubmit} noValidate className="space-y-8">
+              {/* Email Verification Banner */}
+              {!user.emailVerified && !profile?.emailVerified && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-2 text-xs text-amber-900 shadow-2xs">
+                  <div className="flex items-center gap-2 font-bold font-display text-sm text-amber-900">
+                    <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                    <span>Email Verification Notice</span>
+                  </div>
+                  <p className="font-sans leading-relaxed text-amber-800">
+                    We sent a verification link to <strong className="font-bold text-amber-950">{user.email}</strong>. Please check your inbox and click the link to confirm your email.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 pt-1 font-display font-semibold">
+                    <button
+                      type="button"
+                      onClick={handleSendEmailVerification}
+                      disabled={isSendingEmailVerification}
+                      className="rounded-lg bg-amber-200/80 hover:bg-amber-300 px-3 py-1.5 transition-colors cursor-pointer text-amber-900"
+                    >
+                      {emailVerificationSent ? 'Verification Link Sent ✓' : 'Resend Verification Email'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCheckEmailStatus}
+                      disabled={isCheckingEmailStatus}
+                      className="rounded-lg bg-white border border-amber-300 hover:bg-amber-100 px-3 py-1.5 transition-colors cursor-pointer text-amber-900"
+                    >
+                      {isCheckingEmailStatus ? 'Checking...' : "I've Clicked the Link (Refresh)"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Step 1: Contact Details */}
               <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
                 <div className="flex items-center gap-2.5 mb-5">

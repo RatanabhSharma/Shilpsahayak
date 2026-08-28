@@ -1,12 +1,10 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
     // =========================================================
     // AUTHENTICATION HELPERS
     // =========================================================
-
     function isSignedIn() {
       return request.auth != null;
     }
@@ -21,24 +19,16 @@ service cloud.firestore {
         ).data.role == 'admin';
     }
 
-
     // =========================================================
     // USERS
     // =========================================================
-
     match /users/{userId} {
-
-      // Customers can read their own profile.
-      // Admins can read all customer profiles.
       allow read: if isAdmin() ||
         (
           isSignedIn() &&
           request.auth.uid == userId
         );
 
-      // Customers can create only their own profile.
-      // Customers cannot create themselves as admin.
-      // Admins can create user profiles.
       allow create: if
         isAdmin()
         ||
@@ -48,10 +38,6 @@ service cloud.firestore {
           request.resource.data.get('role', 'customer') == 'customer'
         );
 
-      // Customers can update their own profile,
-      // but cannot change their role.
-      //
-      // Admins can update user profiles.
       allow update: if
         isAdmin()
         ||
@@ -62,47 +48,29 @@ service cloud.firestore {
             resource.data.get('role', 'customer')
         );
 
-      // Only admins can delete users.
       allow delete: if isAdmin();
     }
-
 
     // =========================================================
     // PRODUCTS
     // =========================================================
-
     match /products/{productId} {
-
-      // Products are publicly readable.
       allow read: if true;
-
-      // Only admins can modify products.
       allow create, update, delete: if isAdmin();
     }
-
 
     // =========================================================
     // CATEGORIES
     // =========================================================
-
     match /categories/{categoryId} {
-
-      // Categories are publicly readable.
       allow read: if true;
-
-      // Only admins can modify categories.
       allow create, update, delete: if isAdmin();
     }
-
 
     // =========================================================
     // ORDERS
     // =========================================================
-
     match /orders/{orderId} {
-
-      // Admins can read all orders.
-      // Customers can read only their own orders.
       allow read: if
         isAdmin()
         ||
@@ -111,24 +79,17 @@ service cloud.firestore {
           resource.data.customerId == request.auth.uid
         );
 
-      // Customers can create only their own orders.
       allow create: if
         isSignedIn() &&
         request.resource.data.customerId == request.auth.uid;
 
-      // Only admins can modify or delete orders.
       allow update, delete: if isAdmin();
     }
-
 
     // =========================================================
     // QUOTES
     // =========================================================
-
     match /quotes/{quoteId} {
-
-      // Admins can read all quotes.
-      // Customers can read only their own quotes.
       allow read: if
         isAdmin()
         ||
@@ -137,16 +98,10 @@ service cloud.firestore {
           resource.data.customerId == request.auth.uid
         );
 
-      // Customers can create only their own quotes.
       allow create: if
         isSignedIn() &&
         request.resource.data.customerId == request.auth.uid;
 
-      // Admins can update anything.
-      //
-      // Customers can only change:
-      // Quoted -> Accepted
-      // Quoted -> Rejected
       allow update: if
         isAdmin()
         ||
@@ -154,44 +109,62 @@ service cloud.firestore {
           isSignedIn() &&
           resource.data.customerId == request.auth.uid &&
           resource.data.status == 'Quoted' &&
-          request.resource.data.status in [
-            'Accepted',
-            'Rejected'
-          ] &&
+          request.resource.data.status in ['Accepted', 'Rejected'] &&
           request.resource.data
             .diff(resource.data)
             .affectedKeys()
-            .hasOnly([
-              'status'
-            ])
+            .hasOnly(['status'])
         );
 
-      // Only admins can delete quotes.
       allow delete: if isAdmin();
     }
-
 
     // =========================================================
     // FILAMENTS
     // =========================================================
-
     match /filaments/{filamentId} {
-
-      // Only admins can read/write filament data.
       allow read, write: if isAdmin();
     }
 
+   // =========================================================
+// PHONE VERIFICATIONS (EMAIL OTP) - Production Ready
+// =========================================================
+match /phone_verifications/{verificationId} {
+  // Only signed-in users can create a verification request for themselves
+  allow create: if isSignedIn()
+                && request.resource.data.userId == request.auth.uid
+                && request.resource.data.keys().hasOnly(['userId', 'email', 'otp', 'createdAt', 'expiresAt', 'verified'])
+                && request.resource.data.email is string
+                && request.resource.data.otp is string
+                && request.resource.data.createdAt is timestamp
+                && request.resource.data.expiresAt is timestamp
+                && request.resource.data.verified == false;
+
+  // Users can only read their own verification documents
+  allow read: if isSignedIn()
+              && resource.data.userId == request.auth.uid;
+
+  // Only admins (or preferably a Cloud Function) can update/delete
+  allow update, delete: if isAdmin();
+}
+
+// =========================================================
+// MAIL QUEUE (Trigger Email Extension)
+// =========================================================
+match /mail/{mailId} {
+  // Only signed-in users can queue emails
+  allow create: if isSignedIn()
+                && request.resource.data.keys().hasAll(['to', 'message']);
+
+  // Only admins can read / update / delete
+  allow read, update, delete: if isAdmin();
+}
 
     // =========================================================
     // SETTINGS
     // =========================================================
-
     match /settings/{settingId} {
-
-      // Settings are publicly readable.
       allow read: if true;
-
-      // Only admins can modify settings.
       allow write: if isAdmin();
     }
   }

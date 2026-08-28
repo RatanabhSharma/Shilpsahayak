@@ -8,8 +8,9 @@ import {
   CheckCircle2,
   RefreshCw,
   ArrowRight,
+  Mail,
+  Clock,
 } from 'lucide-react';
-import { type ConfirmationResult } from 'firebase/auth';
 import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../ui';
 
@@ -18,6 +19,7 @@ interface PhoneVerificationModalProps {
   onClose: () => void;
   onVerified?: () => void;
   initialPhone?: string;
+  userEmail?: string;
   title?: string;
   description?: string;
 }
@@ -27,18 +29,18 @@ export function PhoneVerificationModal({
   onClose,
   onVerified,
   initialPhone = '',
+  userEmail = '',
   title = 'Verify Your Mobile Number',
-  description = 'To ensure your order is securely tracked and prevent spam orders, please verify your 10-digit mobile number with a quick SMS OTP.',
+  description = 'To ensure your order is securely tracked and prevent spam orders, we will send a 6-digit verification code to your registered email address.',
 }: PhoneVerificationModalProps) {
-  const { sendPhoneOtp, verifyAndLinkPhoneForUser } = useAuth();
+  const { user, requestPhoneOtp, confirmPhoneOtp } = useAuth();
 
+  const targetEmail = userEmail || user?.email || '';
   const [step, setStep] = useState<'input' | 'otp' | 'success'>('input');
   const [phoneNumber, setPhoneNumber] = useState(
     initialPhone.replace(/\D/g, '').slice(-10)
   );
   const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
-  const [confirmationResult, setConfirmationResult] =
-    useState<ConfirmationResult | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -52,7 +54,7 @@ export function PhoneVerificationModal({
     }
   }, [initialPhone]);
 
-  // Countdown timer for Resend OTP
+  // Countdown timer for Resend OTP (60 seconds)
   useEffect(() => {
     if (countdown <= 0) return;
     const timer = setInterval(() => {
@@ -71,19 +73,23 @@ export function PhoneVerificationModal({
       return;
     }
 
+    if (!targetEmail) {
+      setError('No registered email found. Please ensure you are logged in.');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const result = await sendPhoneOtp(clean, 'modal-recaptcha-container');
-      setConfirmationResult(result);
+      await requestPhoneOtp(targetEmail, clean);
       setStep('otp');
-      setCountdown(30);
+      setCountdown(60);
       setOtpValues(['', '', '', '', '', '']);
       setTimeout(() => {
         otpInputsRef.current[0]?.focus();
       }, 150);
     } catch (err: unknown) {
       const msg =
-        err instanceof Error ? err.message : 'Failed to send OTP SMS. Please try again.';
+        err instanceof Error ? err.message : 'Failed to dispatch OTP code. Please try again.';
       setError(msg);
     } finally {
       setIsLoading(false);
@@ -141,15 +147,9 @@ export function PhoneVerificationModal({
       return;
     }
 
-    if (!confirmationResult) {
-      setError('Session expired. Please request a new OTP.');
-      setStep('input');
-      return;
-    }
-
     setIsLoading(true);
     try {
-      await verifyAndLinkPhoneForUser(confirmationResult, code, phoneNumber);
+      await confirmPhoneOtp(targetEmail, phoneNumber, code);
       setStep('success');
       setTimeout(() => {
         if (onVerified) onVerified();
@@ -157,7 +157,7 @@ export function PhoneVerificationModal({
       }, 1400);
     } catch (err: unknown) {
       const msg =
-        err instanceof Error ? err.message : 'Invalid OTP code. Please check and try again.';
+        err instanceof Error ? err.message : 'Invalid OTP code. Please check your email and try again.';
       setError(msg);
     } finally {
       setIsLoading(false);
@@ -196,9 +196,6 @@ export function PhoneVerificationModal({
             <X className="h-5 w-5" />
           </button>
 
-          {/* Invisible Recaptcha Anchor */}
-          <div id="modal-recaptcha-container" className="hidden" />
-
           {/* STEP 1: Phone Input */}
           {step === 'input' && (
             <div className="space-y-5">
@@ -215,6 +212,15 @@ export function PhoneVerificationModal({
                 </p>
               </div>
 
+              {/* Delivery Email Preview Note */}
+              <div className="flex items-center gap-2 rounded-xl border border-line bg-shell/70 p-3 text-xs text-ink font-sans">
+                <Mail className="h-4 w-4 text-accent shrink-0" />
+                <span>
+                  OTP will be sent to:{' '}
+                  <strong className="font-mono text-ink">{targetEmail || 'your email'}</strong>
+                </span>
+              </div>
+
               {error && (
                 <div className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
                   <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />
@@ -225,7 +231,7 @@ export function PhoneVerificationModal({
               <form onSubmit={handleSendOtp} className="space-y-4">
                 <div>
                   <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block mb-1.5">
-                    MOBILE NUMBER
+                    INDIAN MOBILE NUMBER
                   </label>
                   <div className="flex items-center rounded-xl border border-line bg-shell/50 px-3.5 focus-within:border-accent focus-within:bg-white transition-colors">
                     <span className="font-mono text-sm font-bold text-ink mr-2">
@@ -254,7 +260,7 @@ export function PhoneVerificationModal({
                   disabled={isLoading || phoneNumber.length !== 10}
                   className="w-full font-bold uppercase tracking-wider text-xs"
                 >
-                  <span>Send 6-Digit SMS OTP</span>
+                  <span>Send 6-Digit OTP to Email</span>
                   <ArrowRight className="w-4 h-4 ml-1.5" />
                 </Button>
               </form>
@@ -273,7 +279,8 @@ export function PhoneVerificationModal({
                   Enter Verification Code
                 </h3>
                 <p className="font-sans text-xs text-muted leading-relaxed">
-                  We sent a 6-digit SMS OTP to{' '}
+                  We sent a 6-digit code to{' '}
+                  <strong className="text-ink font-semibold">{targetEmail}</strong> to verify mobile{' '}
                   <strong className="font-mono font-bold text-ink">+91 {phoneNumber}</strong>.{' '}
                   <button
                     type="button"
@@ -286,6 +293,12 @@ export function PhoneVerificationModal({
                     Change
                   </button>
                 </p>
+              </div>
+
+              {/* Expiry Banner */}
+              <div className="flex items-center gap-1.5 text-[11px] font-mono text-muted bg-shell/60 px-3 py-1.5 rounded-lg border border-line">
+                <Clock className="w-3.5 h-3.5 text-accent" />
+                <span>Code expires in 10 minutes</span>
               </div>
 
               {error && (
@@ -330,7 +343,7 @@ export function PhoneVerificationModal({
 
               {/* Resend OTP Bar */}
               <div className="flex items-center justify-between font-mono text-xs text-muted pt-1">
-                <span>Didn't receive SMS?</span>
+                <span>Didn't receive email?</span>
                 {countdown > 0 ? (
                   <span className="text-muted">Resend in {countdown}s</span>
                 ) : (
@@ -363,7 +376,7 @@ export function PhoneVerificationModal({
                   Mobile Number Verified!
                 </h3>
                 <p className="font-sans text-xs text-muted">
-                  Your mobile number has been securely linked to your account.
+                  +91 {phoneNumber} has been securely verified and linked to your account.
                 </p>
               </div>
             </motion.div>

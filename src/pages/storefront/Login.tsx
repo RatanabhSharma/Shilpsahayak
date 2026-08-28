@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
+  Clock,
   Eye,
   EyeOff,
   Lock,
@@ -14,7 +15,6 @@ import {
   ShieldCheck,
   User as UserIcon,
 } from 'lucide-react';
-import { type ConfirmationResult } from 'firebase/auth';
 
 import { useAuth } from '../../hooks/useAuth';
 import { Button, BrandLogo } from '../../components/ui';
@@ -28,7 +28,6 @@ type LoginLocationState = {
 };
 
 type AuthMainTab = 'signin' | 'signup' | 'forgot';
-type SignInMethod = 'email' | 'phone';
 type SignUpStep = 'form' | 'otp' | 'success';
 
 function getFirebaseErrorMessage(error: unknown): string {
@@ -53,12 +52,6 @@ function getFirebaseErrorMessage(error: unknown): string {
       return 'This account has been disabled. Please contact support.';
     case 'auth/popup-closed-by-user':
       return 'Sign-in popup was closed before completing.';
-    case 'auth/invalid-verification-code':
-      return 'The 6-digit OTP code you entered is invalid. Please check and re-enter.';
-    case 'auth/code-expired':
-      return 'The SMS OTP has expired. Please click Resend OTP to receive a new code.';
-    case 'auth/billing-not-enabled':
-      return 'Phone SMS Authentication requires upgrading to the Firebase Blaze Plan (which includes 10,000 free SMS/month). In the meantime, you can also sign in with Google, Microsoft, or Email!';
     default:
       return firebaseError.message || 'Something went wrong. Please try again.';
   }
@@ -89,8 +82,8 @@ export function Login() {
     resetPassword,
     signInWithGoogle,
     signInWithMicrosoft,
-    sendPhoneOtp,
-    verifyPhoneOtp,
+    requestPhoneOtp,
+    confirmPhoneOtp,
   } = useAuth();
 
   const navigate = useNavigate();
@@ -107,7 +100,6 @@ export function Login() {
 
   /* State Management */
   const [tab, setTab] = useState<AuthMainTab>('signin');
-  const [signInMethod, setSignInMethod] = useState<SignInMethod>('email');
   const [signUpStep, setSignUpStep] = useState<SignUpStep>('form');
 
   const [isLoading, setIsLoading] = useState(false);
@@ -126,7 +118,6 @@ export function Login() {
 
   /* OTP State */
   const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [otpCountdown, setOtpCountdown] = useState(0);
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -134,10 +125,10 @@ export function Login() {
 
   /* Auto Redirect if already logged in */
   useEffect(() => {
-    if (!authLoading && user && !isLoading && !socialLoading) {
+    if (!authLoading && user && !isLoading && !socialLoading && signUpStep !== 'otp') {
       navigate(from, { replace: true });
     }
-  }, [authLoading, user, isLoading, socialLoading, navigate, from]);
+  }, [authLoading, user, isLoading, socialLoading, signUpStep, navigate, from]);
 
   /* OTP Countdown Timer */
   useEffect(() => {
@@ -158,7 +149,6 @@ export function Login() {
     setTab(newTab);
     setSignUpStep('form');
     setOtpValues(['', '', '', '', '', '']);
-    setConfirmationResult(null);
   };
 
   /* ----------------------------------------------------
@@ -221,37 +211,7 @@ export function Login() {
   };
 
   /* ----------------------------------------------------
-     SIGN IN: PHONE SMS OTP
-  ----------------------------------------------------- */
-  const handlePhoneSignInSendOtp = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    clearMessages();
-
-    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
-    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
-      setError('Please enter a valid 10-digit Indian mobile number.');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const result = await sendPhoneOtp(cleanPhone, 'auth-recaptcha-container');
-      setConfirmationResult(result);
-      setSignUpStep('otp');
-      setOtpCountdown(30);
-      setOtpValues(['', '', '', '', '', '']);
-      setTimeout(() => {
-        otpInputsRef.current[0]?.focus();
-      }, 150);
-    } catch (err: unknown) {
-      setError(getFirebaseErrorMessage(err));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  /* ----------------------------------------------------
-     SIGN UP: STEP 1 (DISPATCH SMS OTP TO VERIFY PHONE)
+     SIGN UP: REGISTER + SEND EMAIL LINK + SEND EMAIL OTP
   ----------------------------------------------------- */
   const handleSignUpInitiate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -284,49 +244,18 @@ export function Login() {
 
     setIsLoading(true);
     try {
-      const result = await sendPhoneOtp(cleanPhone, 'auth-recaptcha-container');
-      setConfirmationResult(result);
+      // 1. Create account & dispatch official Firebase verification email
+      await register(cleanEmail, password, cleanName, cleanPhone, false);
+
+      // 2. Generate and send 6-digit Phone OTP to user's email
+      await requestPhoneOtp(cleanEmail, cleanPhone);
+
       setSignUpStep('otp');
-      setOtpCountdown(30);
+      setOtpCountdown(60);
       setOtpValues(['', '', '', '', '', '']);
       setTimeout(() => {
         otpInputsRef.current[0]?.focus();
       }, 150);
-    } catch (err: unknown) {
-      setError(getFirebaseErrorMessage(err));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  /* Direct Email Signup Fallback (When phone billing is not yet enabled) */
-  const handleDirectEmailSignUp = async () => {
-    clearMessages();
-    const cleanName = name.trim();
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
-
-    if (cleanName.length < 2) {
-      setError('Please enter your full name.');
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      setError('Please enter a valid email address.');
-      return;
-    }
-    if (password.length < 6) {
-      setError('Password must contain at least 6 characters.');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await register(cleanEmail, password, cleanName, cleanPhone, false);
-      setSignUpStep('success');
-      setSuccess('Account created! Verification link sent to your email.');
-      setTimeout(() => {
-        navigate(from, { replace: true });
-      }, 2000);
     } catch (err: unknown) {
       setError(getFirebaseErrorMessage(err));
     } finally {
@@ -378,7 +307,7 @@ export function Login() {
   };
 
   /* ----------------------------------------------------
-     VERIFY OTP & COMPLETE SIGNIN / SIGNUP
+     VERIFY EMAIL OTP & COMPLETE PHONE VERIFICATION
   ----------------------------------------------------- */
   const handleVerifyOtp = async (codeToVerify?: string) => {
     const code = codeToVerify || otpValues.join('');
@@ -389,35 +318,40 @@ export function Login() {
       return;
     }
 
-    if (!confirmationResult) {
-      setError('Verification session expired. Please request a new OTP.');
-      setSignUpStep('form');
-      return;
-    }
-
     setIsLoading(true);
     try {
-      if (tab === 'signin') {
-        // Phone OTP Sign In
-        await verifyPhoneOtp(confirmationResult, code);
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+
+      await confirmPhoneOtp(cleanEmail, cleanPhone, code);
+
+      setSignUpStep('success');
+      setSuccess('Phone number verified! Official verification link sent to your email.');
+
+      setTimeout(() => {
         navigate(from, { replace: true });
-      } else {
-        // Sign Up: Validate Phone OTP -> Then Register Firebase Auth & Create Firestore Record
-        // We verify the OTP code first:
-        await confirmationResult.confirm(code);
-
-        // Now register user account with Email + Password, flagging Phone as pre-verified
-        await register(email, password, name, phone, true);
-
-        setSignUpStep('success');
-        setSuccess('Mobile verified & Account created! Verification link sent to your email.');
-
-        setTimeout(() => {
-          navigate(from, { replace: true });
-        }, 2200);
-      }
+      }, 2200);
     } catch (err: unknown) {
-      setError(getFirebaseErrorMessage(err));
+      setError(err instanceof Error ? err.message : 'Invalid OTP code. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /* ----------------------------------------------------
+     RESEND OTP
+  ----------------------------------------------------- */
+  const handleResendOtp = async () => {
+    clearMessages();
+    setIsLoading(true);
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+      await requestPhoneOtp(cleanEmail, cleanPhone);
+      setOtpCountdown(60);
+      setSuccess('A new 6-digit verification code has been dispatched to your email.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to resend code.');
     } finally {
       setIsLoading(false);
     }
@@ -448,9 +382,6 @@ export function Login() {
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-ink py-10 sm:py-16 px-4 sm:px-6 flex flex-col justify-center select-none">
-      {/* Invisible Recaptcha Anchor */}
-      <div id="auth-recaptcha-container" className="hidden" />
-
       <div className="mx-auto w-full max-w-md">
         {/* Brand Header */}
         <div className="text-center mb-8 space-y-2">
@@ -528,7 +459,7 @@ export function Login() {
             </div>
           )}
 
-          {/* Social Sign-In Buttons (Available on Sign In & Sign Up) */}
+          {/* Social Sign-In Buttons (Available on Sign In & Sign Up Form Step) */}
           {tab !== 'forgot' && signUpStep === 'form' && (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2.5">
@@ -606,15 +537,6 @@ export function Login() {
                 <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />
                 <span className="leading-relaxed">{error}</span>
               </div>
-              {tab === 'signup' && error.includes('Blaze Plan') && (
-                <button
-                  type="button"
-                  onClick={handleDirectEmailSignUp}
-                  className="mt-2 w-full py-2 px-3 rounded-xl bg-ink text-white font-display text-xs font-bold shadow-xs hover:bg-zinc-800 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <span>Create Account with Email Directly →</span>
-                </button>
-              )}
             </motion.div>
           )}
 
@@ -630,231 +552,76 @@ export function Login() {
           )}
 
           {/* =====================================================
-              TAB 1: SIGN IN MODE
+              TAB 1: SIGN IN MODE (EMAIL + PASSWORD)
           ====================================================== */}
           {tab === 'signin' && (
-            <div className="space-y-4">
-              {/* Method Switcher: Email vs Phone */}
-              {signUpStep === 'form' && (
-                <div className="flex items-center justify-between text-xs pb-1">
-                  <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
-                    Sign in with:
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSignInMethod('email');
-                        clearMessages();
-                      }}
-                      className={`font-display text-xs font-bold transition-colors ${
-                        signInMethod === 'email' ? 'text-accent underline' : 'text-muted hover:text-ink'
-                      }`}
-                    >
-                      Email & Password
-                    </button>
-                    <span className="text-muted/40">•</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSignInMethod('phone');
-                        clearMessages();
-                      }}
-                      className={`font-display text-xs font-bold transition-colors ${
-                        signInMethod === 'phone' ? 'text-accent underline' : 'text-muted hover:text-ink'
-                      }`}
-                    >
-                      Quick Phone OTP
-                    </button>
-                  </div>
+            <form onSubmit={handleEmailSignIn} className="space-y-4">
+              <div>
+                <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block mb-1">
+                  EMAIL ADDRESS
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                  <input
+                    type="email"
+                    required
+                    placeholder="you@domain.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full h-11 rounded-xl border border-line bg-shell/40 pl-10 pr-4 font-sans text-xs text-ink outline-none focus:border-accent focus:bg-white transition-colors"
+                  />
                 </div>
-              )}
+              </div>
 
-              {/* A. Sign in with Email & Password */}
-              {signInMethod === 'email' && (
-                <form onSubmit={handleEmailSignIn} className="space-y-4">
-                  <div>
-                    <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block mb-1">
-                      EMAIL ADDRESS
-                    </label>
-                    <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                      <input
-                        type="email"
-                        required
-                        placeholder="you@domain.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full h-11 rounded-xl border border-line bg-shell/40 pl-10 pr-4 font-sans text-xs text-ink outline-none focus:border-accent focus:bg-white transition-colors"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
-                        PASSWORD
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => handleTabSwitch('forgot')}
-                        className="font-display text-[11px] font-bold text-accent hover:underline cursor-pointer"
-                      >
-                        Forgot Password?
-                      </button>
-                    </div>
-                    <div className="relative">
-                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        required
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full h-11 rounded-xl border border-line bg-shell/40 pl-10 pr-10 font-sans text-xs text-ink outline-none focus:border-accent focus:bg-white transition-colors"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink cursor-pointer"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    size="lg"
-                    isLoading={isLoading}
-                    disabled={isLoading}
-                    className="w-full font-bold uppercase tracking-wider text-xs"
-                  >
-                    <span>Sign In</span>
-                    <ArrowRight className="w-4 h-4 ml-1.5" />
-                  </Button>
-                </form>
-              )}
-
-              {/* B. Sign in with Phone OTP */}
-              {signInMethod === 'phone' && signUpStep === 'form' && (
-                <form onSubmit={handlePhoneSignInSendOtp} className="space-y-4">
-                  <div>
-                    <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block mb-1">
-                      10-DIGIT MOBILE NUMBER
-                    </label>
-                    <div className="flex items-center rounded-xl border border-line bg-shell/40 px-3.5 focus-within:border-accent focus-within:bg-white transition-colors">
-                      <span className="font-mono text-sm font-bold text-ink mr-2">
-                        🇮🇳 +91
-                      </span>
-                      <input
-                        type="tel"
-                        required
-                        maxLength={10}
-                        placeholder="98765 43210"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                        className="w-full h-11 bg-transparent font-mono text-sm font-bold text-ink placeholder:font-sans placeholder:font-normal placeholder:text-muted outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    size="lg"
-                    isLoading={isLoading}
-                    disabled={isLoading || phone.length !== 10}
-                    className="w-full font-bold uppercase tracking-wider text-xs"
-                  >
-                    <span>Send Login OTP</span>
-                    <ArrowRight className="w-4 h-4 ml-1.5" />
-                  </Button>
-                </form>
-              )}
-
-              {/* C. Phone OTP Verification Stage */}
-              {signInMethod === 'phone' && signUpStep === 'otp' && (
-                <div className="space-y-5">
-                  <div className="space-y-1">
-                    <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent">
-                      VERIFICATION REQUIRED
-                    </span>
-                    <h3 className="font-display text-lg font-bold text-ink">
-                      Enter 6-Digit SMS Code
-                    </h3>
-                    <p className="font-sans text-xs text-muted">
-                      Sent to <strong className="font-mono font-bold text-ink">+91 {phone}</strong>.{' '}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSignUpStep('form');
-                          clearMessages();
-                        }}
-                        className="font-bold text-accent hover:underline cursor-pointer ml-1"
-                      >
-                        Change
-                      </button>
-                    </p>
-                  </div>
-
-                  {/* 6 Split Digit Boxes */}
-                  <div className="flex justify-between gap-1.5 sm:gap-2">
-                    {otpValues.map((digit, idx) => (
-                      <input
-                        key={idx}
-                        ref={(el) => {
-                          otpInputsRef.current[idx] = el;
-                        }}
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleOtpChange(idx, e.target.value)}
-                        onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                        onPaste={idx === 0 ? handleOtpPaste : undefined}
-                        className="h-11 w-11 sm:h-12 sm:w-12 rounded-xl border border-line bg-shell/40 text-center font-mono text-lg font-bold text-ink outline-none focus:border-accent focus:bg-white focus:ring-2 focus:ring-accent/20 transition-all"
-                      />
-                    ))}
-                  </div>
-
-                  <Button
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
+                    PASSWORD
+                  </label>
+                  <button
                     type="button"
-                    onClick={() => handleVerifyOtp()}
-                    variant="primary"
-                    size="lg"
-                    isLoading={isLoading}
-                    disabled={isLoading || otpValues.some((d) => !d)}
-                    className="w-full font-bold uppercase tracking-wider text-xs"
+                    onClick={() => handleTabSwitch('forgot')}
+                    className="font-display text-[11px] font-bold text-accent hover:underline cursor-pointer"
                   >
-                    <span>Verify & Sign In</span>
-                    <CheckCircle2 className="w-4 h-4 ml-1.5" />
-                  </Button>
-
-                  <div className="flex items-center justify-between font-mono text-xs text-muted pt-1">
-                    <span>Didn't get SMS?</span>
-                    {otpCountdown > 0 ? (
-                      <span>Resend in {otpCountdown}s</span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handlePhoneSignInSendOtp()}
-                        disabled={isLoading}
-                        className="inline-flex items-center gap-1 font-bold text-accent hover:underline cursor-pointer"
-                      >
-                        <RefreshCw className="w-3 h-3" />
-                        <span>Resend OTP</span>
-                      </button>
-                    )}
-                  </div>
+                    Forgot Password?
+                  </button>
                 </div>
-              )}
-            </div>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full h-11 rounded-xl border border-line bg-shell/40 pl-10 pr-10 font-sans text-xs text-ink outline-none focus:border-accent focus:bg-white transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                isLoading={isLoading}
+                disabled={isLoading}
+                className="w-full font-bold uppercase tracking-wider text-xs"
+              >
+                <span>Sign In</span>
+                <ArrowRight className="w-4 h-4 ml-1.5" />
+              </Button>
+            </form>
           )}
 
           {/* =====================================================
-              TAB 2: CREATE ACCOUNT (ANTI-FRAUD DUAL VERIFICATION)
+              TAB 2: CREATE ACCOUNT (DUAL EMAIL & EMAIL-OTP FLOW)
           ====================================================== */}
           {tab === 'signup' && (
             <div className="space-y-4">
@@ -903,7 +670,7 @@ export function Login() {
                       <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
                         INDIAN MOBILE NUMBER *
                       </label>
-                      <span className="font-mono text-[9px] text-accent font-bold">SMS OTP VERIFIED</span>
+                      <span className="font-mono text-[9px] text-accent font-bold">EMAIL OTP VERIFIED</span>
                     </div>
                     <div className="flex items-center rounded-xl border border-line bg-shell/40 px-3.5 focus-within:border-accent focus-within:bg-white transition-colors">
                       <span className="font-mono text-xs font-bold text-ink mr-2">
@@ -992,25 +759,25 @@ export function Login() {
                       disabled={isLoading}
                       className="w-full font-bold uppercase tracking-wider text-xs"
                     >
-                      <span>Verify Phone via SMS OTP</span>
+                      <span>Create Account & Verify</span>
                       <ArrowRight className="w-4 h-4 ml-1.5" />
                     </Button>
                   </div>
                 </form>
               )}
 
-              {/* STEP 2: Phone SMS OTP Verification */}
+              {/* STEP 2: Enter 6-Digit Email OTP to verify Mobile */}
               {signUpStep === 'otp' && (
                 <div className="space-y-5">
                   <div className="space-y-1.5">
                     <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent">
-                      STEP 2 OF 2 · ANTI-FRAUD VERIFICATION
+                      STEP 2 OF 2 · EMAIL OTP VERIFICATION
                     </span>
                     <h3 className="font-display text-xl font-bold text-ink">
                       Verify Your Phone Number
                     </h3>
                     <p className="font-sans text-xs text-muted leading-relaxed">
-                      We sent a 6-digit SMS OTP to{' '}
+                      We sent a 6-digit OTP to <strong className="text-ink font-semibold">{email}</strong> to verify mobile{' '}
                       <strong className="font-mono font-bold text-ink">+91 {phone}</strong>.{' '}
                       <button
                         type="button"
@@ -1023,6 +790,12 @@ export function Login() {
                         Change details
                       </button>
                     </p>
+                  </div>
+
+                  {/* Expiration Notice */}
+                  <div className="flex items-center gap-1.5 text-[11px] font-mono text-muted bg-shell/60 px-3 py-1.5 rounded-lg border border-line">
+                    <Clock className="w-3.5 h-3.5 text-accent" />
+                    <span>OTP code is valid for 10 minutes</span>
                   </div>
 
                   {/* 6 Split Digit Boxes */}
@@ -1054,18 +827,18 @@ export function Login() {
                     disabled={isLoading || otpValues.some((d) => !d)}
                     className="w-full font-bold uppercase tracking-wider text-xs"
                   >
-                    <span>Confirm OTP & Create Account</span>
+                    <span>Confirm OTP & Verify Mobile</span>
                     <CheckCircle2 className="w-4 h-4 ml-1.5" />
                   </Button>
 
                   <div className="flex items-center justify-between font-mono text-xs text-muted pt-1">
-                    <span>Didn't receive SMS?</span>
+                    <span>Didn't receive email?</span>
                     {otpCountdown > 0 ? (
                       <span>Resend in {otpCountdown}s</span>
                     ) : (
                       <button
                         type="button"
-                        onClick={() => handleSignUpInitiate({ preventDefault: () => {} } as React.FormEvent)}
+                        onClick={handleResendOtp}
                         disabled={isLoading}
                         className="inline-flex items-center gap-1 font-bold text-accent hover:underline cursor-pointer"
                       >
@@ -1089,11 +862,11 @@ export function Login() {
                   </div>
                   <div className="space-y-1.5">
                     <h3 className="font-display text-xl font-bold text-ink">
-                      Account Created & Verified!
+                      Account Created & Mobile Verified!
                     </h3>
                     <p className="font-sans text-xs text-muted leading-relaxed max-w-sm mx-auto">
-                      Your phone number is confirmed. A verification link has also been sent to{' '}
-                      <strong className="text-ink font-bold">{email}</strong>.
+                      Your mobile number has been verified. We also sent an official verification link to{' '}
+                      <strong className="text-ink font-bold">{email}</strong>. Please check your inbox!
                     </p>
                   </div>
                 </motion.div>
@@ -1140,7 +913,7 @@ export function Login() {
           {/* Studio Guarantee Badge */}
           <div className="pt-2 border-t border-line/60 flex items-center justify-center gap-2 text-muted font-mono text-[10px]">
             <ShieldCheck className="w-3.5 h-3.5 text-accent" />
-            <span>256-Bit Encrypted · Zero Spam Guarantee</span>
+            <span>256-Bit Encrypted · Verified Customer Studio</span>
           </div>
         </div>
       </div>

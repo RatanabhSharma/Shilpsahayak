@@ -15,15 +15,12 @@ import {
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
-  signInWithPhoneNumber,
   GoogleAuthProvider,
   OAuthProvider,
-  RecaptchaVerifier,
   signOut,
   updateEmail,
   updateProfile,
   type User,
-  type ConfirmationResult,
   type UserCredential,
 } from 'firebase/auth';
 
@@ -35,19 +32,13 @@ import {
 } from 'firebase/firestore';
 
 import { auth, db } from '../lib/firebase';
-
-/* Extended window interface for Firebase RecaptchaVerifier */
-declare global {
-  interface Window {
-    recaptchaVerifier?: RecaptchaVerifier;
-    confirmationResult?: ConfirmationResult;
-  }
-}
+import { sendPhoneOtpToEmail, verifyPhoneEmailOtp } from '../services/otpService';
 
 export interface AuthContextValue {
   user: User | null;
   loading: boolean;
   isLoggedIn: boolean;
+  isEmailVerified: boolean;
 
   /* Email & Password Methods */
   login: (email: string, password: string) => Promise<UserCredential>;
@@ -60,23 +51,15 @@ export interface AuthContextValue {
   ) => Promise<UserCredential>;
   resetPassword: (email: string) => Promise<void>;
   sendVerificationEmail: () => Promise<void>;
+  reloadUser: () => Promise<User | null>;
 
   /* Social Auth Methods */
   signInWithGoogle: () => Promise<UserCredential>;
   signInWithMicrosoft: () => Promise<UserCredential>;
 
-  /* Phone SMS OTP Auth Methods */
-  sendPhoneOtp: (phoneNumber: string, containerId?: string) => Promise<ConfirmationResult>;
-  verifyPhoneOtp: (
-    confirmationResult: ConfirmationResult,
-    otpCode: string,
-    userData?: { name?: string; email?: string }
-  ) => Promise<UserCredential>;
-  verifyAndLinkPhoneForUser: (
-    confirmationResult: ConfirmationResult,
-    otpCode: string,
-    phoneNumber: string
-  ) => Promise<void>;
+  /* Phone Verification via Email OTP */
+  requestPhoneOtp: (email: string, phone: string) => Promise<{ success: boolean; message: string; expiresAt: number; devOtp?: string }>;
+  confirmPhoneOtp: (email: string, phone: string, otpCode: string) => Promise<{ success: boolean; message: string }>;
 
   /* Account Management */
   logout: () => Promise<void>;
@@ -113,6 +96,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
       user,
       loading,
       isLoggedIn: !!user,
+      isEmailVerified: !!user?.emailVerified,
+
+      // --------------------------------------------------
+      // RELOAD USER (Checks emailVerified in real-time)
+      // --------------------------------------------------
+      reloadUser: async () => {
+        if (auth.currentUser) {
+          await auth.currentUser.reload();
+          setUser({ ...auth.currentUser });
+          return auth.currentUser;
+        }
+        return null;
+      },
 
       // --------------------------------------------------
       // EMAIL / PASSWORD LOGIN
@@ -121,7 +117,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password),
 
       // --------------------------------------------------
-      // REGISTRATION (WITH OPTIONAL DUAL VERIFICATION SYNC)
+      // REGISTRATION WITH OFFICIAL FIREBASE EMAIL VERIFICATION
       // --------------------------------------------------
       register: async (email, password, name, phone, isPhonePreVerified = false) => {
         const cleanEmail = email.trim().toLowerCase();
@@ -147,11 +143,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
           displayName: cleanName,
         });
 
-        // Automatically dispatch Email Verification link to customer inbox
+        // Automatically dispatch Official Firebase Email Verification link
         try {
           await sendEmailVerification(result.user);
         } catch {
-          // If sending email fails, do not block registration
+          // If sending email link fails, do not block registration
         }
 
         // Create user document in Firestore with verification flags
@@ -201,8 +197,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
               name: result.user.displayName || 'Customer',
               email: result.user.email || '',
               phone: result.user.phoneNumber || '',
-              phoneVerified: !!result.user.phoneNumber,
-              emailVerified: true,
+              phoneVerified: false,
+              emailVerified: true, // Google accounts have pre-verified emails
               role: 'customer',
               address: { line1: '', line2: '', city: '', state: '', pincode: '' },
               createdAt: serverTimestamp(),
@@ -235,8 +231,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
               name: result.user.displayName || 'Customer',
               email: result.user.email || '',
               phone: result.user.phoneNumber || '',
-              phoneVerified: !!result.user.phoneNumber,
-              emailVerified: true,
+              phoneVerified: false,
+              emailVerified: true, // Microsoft accounts have pre-verified emails
               role: 'customer',
               address: { line1: '', line2: '', city: '', state: '', pincode: '' },
               createdAt: serverTimestamp(),
@@ -251,144 +247,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
       },
 
       // --------------------------------------------------
-      // SEND PHONE SMS OTP (CLEAN INVISIBLE RECAPTCHA LIFECYCLE)
+      // PHONE VERIFICATION VIA EMAIL OTP
       // --------------------------------------------------
-      sendPhoneOtp: async (phoneNumber: string, containerId: string = 'auth-recaptcha-container') => {
-        const cleanDigits = phoneNumber.replace(/\D/g, '');
-        const last10 = cleanDigits.slice(-10);
-
-        if (!/^[6-9]\d{9}$/.test(last10)) {
-          throw new Error('Please enter a valid 10-digit Indian mobile number.');
-        }
-
-        const formattedPhone = `+91${last10}`;
-
-        if (typeof window !== 'undefined') {
-          // Clear any existing verifier and DOM container to prevent "already rendered" collision
-          if (window.recaptchaVerifier) {
-            try {
-              window.recaptchaVerifier.clear();
-            } catch {
-              // Ignore cleanup error
-            }
-            window.recaptchaVerifier = undefined;
-          }
-
-          const container = document.getElementById(containerId);
-          if (container) {
-            container.innerHTML = '';
-          }
-
-          window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
-            size: 'invisible',
-            callback: () => {
-              // reCAPTCHA solved automatically in background
-            },
-            'expired-callback': () => {
-              if (window.recaptchaVerifier) {
-                try {
-                  window.recaptchaVerifier.clear();
-                } catch {
-                  // ignore
-                }
-                window.recaptchaVerifier = undefined;
-              }
-            },
-          });
-        }
-
-        const appVerifier = window.recaptchaVerifier;
-        if (!appVerifier) {
-          throw new Error('Verification service could not be initialized.');
-        }
-
-        const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
-        window.confirmationResult = confirmationResult;
-        return confirmationResult;
+      requestPhoneOtp: async (email: string, phone: string) => {
+        const currentUser = auth.currentUser;
+        return sendPhoneOtpToEmail({
+          email: email || currentUser?.email || '',
+          phone,
+          userId: currentUser?.uid,
+        });
       },
 
-      // --------------------------------------------------
-      // VERIFY PHONE SMS OTP & LOG IN / REGISTER
-      // --------------------------------------------------
-      verifyPhoneOtp: async (confirmationResult, otpCode, userData) => {
-        const cleanCode = otpCode.trim();
-        if (!/^\d{6}$/.test(cleanCode)) {
-          throw new Error('Please enter the 6-digit OTP code sent to your phone.');
-        }
-
-        const result = await confirmationResult.confirm(cleanCode);
-        const signedInUser = result.user;
-
-        const userRef = doc(db, 'users', signedInUser.uid);
-        const snap = await getDoc(userRef);
-        const existingData = snap.exists() ? snap.data() : {};
-
-        const cleanName = userData?.name?.trim() || existingData.name || signedInUser.displayName || 'Customer';
-        const cleanEmail = userData?.email?.trim().toLowerCase() || existingData.email || signedInUser.email || '';
-
-        await setDoc(
-          userRef,
-          {
-            uid: signedInUser.uid,
-            name: cleanName,
-            email: cleanEmail,
-            phone: signedInUser.phoneNumber || existingData.phone || '',
-            phoneVerified: true,
-            emailVerified: signedInUser.emailVerified || !!existingData.emailVerified,
-            role: existingData.role || 'customer',
-            address: existingData.address || { line1: '', line2: '', city: '', state: '', pincode: '' },
-            updatedAt: serverTimestamp(),
-            ...(snap.exists() ? {} : { createdAt: serverTimestamp() }),
-          },
-          { merge: true }
-        );
-
-        if (cleanName && cleanName !== 'Customer' && !signedInUser.displayName) {
-          try {
-            await updateProfile(signedInUser, { displayName: cleanName });
-          } catch {
-            // Ignore profile update error
-          }
-        }
-
-        setUser(auth.currentUser);
+      confirmPhoneOtp: async (email: string, phone: string, otpCode: string) => {
+        const currentUser = auth.currentUser;
+        const result = await verifyPhoneEmailOtp({
+          email: email || currentUser?.email || '',
+          phone,
+          enteredOtp: otpCode,
+          userId: currentUser?.uid,
+        });
         return result;
       },
 
       // --------------------------------------------------
-      // VERIFY & LINK PHONE FOR EXISTING LOGGED-IN USER
-      // --------------------------------------------------
-      verifyAndLinkPhoneForUser: async (confirmationResult, otpCode, phoneNumber) => {
-        const currentUser = auth.currentUser;
-        if (!currentUser) {
-          throw new Error('You must be signed in to verify your phone number.');
-        }
-
-        const cleanCode = otpCode.trim();
-        if (!/^\d{6}$/.test(cleanCode)) {
-          throw new Error('Please enter the 6-digit OTP code sent to your phone.');
-        }
-
-        await confirmationResult.confirm(cleanCode);
-
-        const cleanPhone = phoneNumber.replace(/\D/g, '').slice(-10);
-        const userRef = doc(db, 'users', currentUser.uid);
-
-        await setDoc(
-          userRef,
-          {
-            phone: cleanPhone,
-            phoneVerified: true,
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
-
-        setUser(auth.currentUser);
-      },
-
-      // --------------------------------------------------
-      // DISPATCH EMAIL VERIFICATION
+      // DISPATCH OFFICIAL FIREBASE EMAIL VERIFICATION
       // --------------------------------------------------
       sendVerificationEmail: async () => {
         const currentUser = auth.currentUser;
