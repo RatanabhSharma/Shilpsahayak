@@ -19,6 +19,11 @@ export type HomepageSettings = {
   heroAutoplay: boolean;
   heroInterval: number;
   heroVideoUrl?: string;
+  heroEyebrow?: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  heroButtonText?: string;
+  heroButtonLink?: string;
   featuredProductIds: string[];
   selectedProductIds: string[];
   categoryNames: string[];
