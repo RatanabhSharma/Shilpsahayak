@@ -9,6 +9,7 @@ export type HomepageHeroSlide = {
   title: string;
   description: string;
   image: string;
+  videoUrl?: string;
   buttonText: string;
   buttonLink: string;
 };
@@ -17,6 +18,7 @@ export type HomepageSettings = {
   heroSlides: HomepageHeroSlide[];
   heroAutoplay: boolean;
   heroInterval: number;
+  heroVideoUrl?: string;
   featuredProductIds: string[];
   selectedProductIds: string[];
   categoryNames: string[];
@@ -75,6 +77,12 @@ export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
   heroSlides: DEFAULT_HERO_SLIDES,
   heroAutoplay: true,
   heroInterval: 6000,
+  heroVideoUrl: '/videos/demo_video.mp4',
+  heroEyebrow: 'BESPOKE 3D FABRICATION STUDIO',
+  heroTitle: 'Turn Ideas Into Something Real.',
+  heroSubtitle: 'Precision 3D printed lighting, mechanical components, and bespoke goods crafted in India.',
+  heroButtonText: 'Explore Collection',
+  heroButtonLink: '/catalog',
 
   featuredProductIds: [],
   selectedProductIds: [],
@@ -131,6 +139,11 @@ function normaliseHeroSlides(value: unknown): HomepageHeroSlide[] {
         typeof slide.image === 'string'
           ? slide.image
           : '',
+
+      videoUrl:
+        typeof slide.videoUrl === 'string'
+          ? slide.videoUrl
+          : undefined,
 
       buttonText:
         typeof slide.buttonText === 'string'
@@ -249,6 +262,11 @@ export function useHomepage() {
         heroSlides: normaliseHeroSlides(
           data.heroSlides
         ),
+
+        heroVideoUrl:
+          typeof data.heroVideoUrl === 'string'
+            ? data.heroVideoUrl
+            : DEFAULT_HOMEPAGE_SETTINGS.heroVideoUrl,
 
         heroAutoplay:
           typeof data.heroAutoplay === 'boolean'

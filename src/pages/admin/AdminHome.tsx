@@ -461,213 +461,155 @@ export function AdminHome() {
         </div>
       </div>
 
-      {/* Hero Carousel Slideshow Manager */}
-      <div className="rounded-xl border border-line bg-white p-6 shadow-xs space-y-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h2 className="font-display text-base font-bold text-ink">Hero Carousel Slides</h2>
-            <p className="mt-0.5 text-xs text-muted">
-              Customize promotional hero banners, campaign graphics, and feature launches.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={addHeroSlide}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 font-sans text-xs font-semibold text-white hover:bg-accent-dark transition-colors shadow-xs shadow-accent/20"
-          >
-            <Plus className="h-3.5 w-3.5" /> Add Slide
-          </button>
+      {/* Hero Section & Background Video / GIF Manager */}
+      <div className="rounded-xl border border-line bg-white p-6 shadow-xs space-y-6">
+        <div>
+          <h2 className="font-display text-base font-bold text-ink">Hero Section & Video Background</h2>
+          <p className="mt-0.5 text-xs text-muted">
+            Configure the continuous looping background video or GIF, typography, and primary storefront CTAs.
+          </p>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="flex items-center justify-between rounded-lg border border-line bg-shell px-4 py-3">
+        {/* Hero Background Video / GIF Controller */}
+        <div className="rounded-lg border border-line bg-shell p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-              <p className="text-xs font-semibold text-ink">Autoplay Slideshow</p>
-              <p className="text-[11px] text-muted">Automatically cycle through enabled slides.</p>
+              <p className="text-xs font-semibold text-ink">Hero Looping Video or Animated GIF URL</p>
+              <p className="text-[11px] text-muted">
+                Paste a direct .mp4 video link, webm link, or animated .gif link. It will loop continuously with smooth parallax scroll.
+              </p>
             </div>
+            {form.heroVideoUrl && (
+              <span className="font-mono text-[10px] font-bold text-accent bg-accent/10 px-2.5 py-1 rounded-full border border-accent/20">
+                Active Looping Stream
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              value={form.heroVideoUrl || ''}
+              onChange={(e) => setForm((curr) => ({ ...curr, heroVideoUrl: e.target.value }))}
+              placeholder="https://.../video.mp4 or https://.../animation.gif"
+              className="flex-1 rounded-lg border border-line bg-white px-3 py-2 text-xs font-mono text-ink outline-none focus:border-accent"
+            />
             <button
               type="button"
-              onClick={() => setForm((current) => ({ ...current, heroAutoplay: !current.heroAutoplay }))}
-              className={`rounded-full px-3 py-1 font-mono text-[10px] font-bold ${
-                form.heroAutoplay ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-white text-muted border border-line'
-              }`}
+              onClick={() =>
+                setForm((curr) => ({
+                  ...curr,
+                  heroVideoUrl: '/videos/demo_video.mp4',
+                }))
+              }
+              className="px-3.5 py-2 text-xs font-semibold text-ink hover:text-accent bg-white border border-line rounded-lg hover:border-accent/40 transition-colors shadow-xs"
             >
-              {form.heroAutoplay ? 'Enabled' : 'Disabled'}
+              Use Demo Video Loop
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setForm((curr) => ({
+                  ...curr,
+                  heroVideoUrl: '/hero-print.gif',
+                }))
+              }
+              className="px-3.5 py-2 text-xs font-semibold text-ink hover:text-accent bg-white border border-line rounded-lg hover:border-accent/40 transition-colors shadow-xs"
+            >
+              Use 3D Print GIF Loop
             </button>
           </div>
 
-          <div className="rounded-lg border border-line bg-shell px-4 py-3">
-            <label className="block text-xs font-semibold text-ink" htmlFor="hero-interval">
-              Slide Transition Interval
-            </label>
-            <div className="mt-1 flex items-center gap-3">
-              <input
-                id="hero-interval"
-                type="range"
-                min={2500}
-                max={15000}
-                step={500}
-                value={form.heroInterval}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    heroInterval: Number(event.target.value),
-                  }))
-                }
-                className="w-full accent-[#ff4d00]"
+          {/* Live Admin Video / GIF Preview */}
+          <div className="mt-3 overflow-hidden rounded-lg border border-line bg-black relative max-h-56 flex items-center justify-center">
+            {form.heroVideoUrl && (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(form.heroVideoUrl) || form.heroVideoUrl.includes('video') || form.heroVideoUrl.endsWith('.webm')) ? (
+              <video
+                key={form.heroVideoUrl}
+                src={form.heroVideoUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-56 object-cover object-center opacity-85"
               />
-              <span className="font-mono text-xs font-bold text-ink w-12 text-right">
-                {(form.heroInterval / 1000).toFixed(1)}s
-              </span>
+            ) : form.heroVideoUrl ? (
+              <img
+                src={form.heroVideoUrl}
+                alt="Hero Background Preview"
+                className="w-full h-56 object-cover object-center opacity-85"
+              />
+            ) : (
+              <div className="py-10 text-xs font-mono text-zinc-400">No background video specified</div>
+            )}
+            <div className="absolute bottom-2 right-2 rounded bg-black/70 px-2 py-0.5 font-mono text-[10px] text-white">
+              Live Background Canvas
             </div>
           </div>
         </div>
 
-        {form.heroSlides.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-line bg-shell px-6 py-10 text-center font-mono text-xs text-muted">
-            No hero slides created yet. Click "Add Slide" to begin.
+        {/* Hero Copy & Typography Fields */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
+              Hero Eyebrow Tagline
+            </label>
+            <input
+              type="text"
+              value={form.heroEyebrow || ''}
+              onChange={(e) => setForm((curr) => ({ ...curr, heroEyebrow: e.target.value }))}
+              placeholder="BESPOKE 3D FABRICATION STUDIO"
+              className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-ink outline-none focus:border-accent"
+            />
           </div>
-        ) : (
-          <div className="space-y-4">
-            {form.heroSlides.map((slide, index) => (
-              <div key={slide.id} className="rounded-lg border border-line bg-paper p-5 space-y-4">
-                <div className="flex items-center justify-between border-b border-line pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-accent">
-                      Slide #{index + 1}
-                    </span>
-                    <span className="text-xs font-semibold text-ink truncate max-w-[200px]">
-                      {slide.title || `Banner Visual #${index + 1}`}
-                    </span>
-                  </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      disabled={index === 0}
-                      onClick={() => moveHeroSlide(index, -1)}
-                      className="p-1 rounded border border-line text-muted disabled:opacity-30 hover:bg-white hover:text-ink"
-                      aria-label="Move slide up"
-                    >
-                      <ArrowUp className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      disabled={index === form.heroSlides.length - 1}
-                      onClick={() => moveHeroSlide(index, 1)}
-                      className="p-1 rounded border border-line text-muted disabled:opacity-30 hover:bg-white hover:text-ink"
-                      aria-label="Move slide down"
-                    >
-                      <ArrowDown className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeHeroSlide(slide.id)}
-                      className="p-1 rounded border border-rose-200 text-rose-600 hover:bg-rose-50"
-                      aria-label="Delete slide"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
-                        Banner Name / Internal Label
-                      </label>
-                      <input
-                        type="text"
-                        value={slide.title}
-                        onChange={(event) => updateHeroSlide(slide.id, 'title', event.target.value)}
-                        placeholder="e.g. Lithophane Lighting Banner"
-                        className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-ink outline-none focus:border-accent"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
-                        Click Destination Link (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        value={slide.buttonLink}
-                        onChange={(event) => updateHeroSlide(slide.id, 'buttonLink', event.target.value)}
-                        placeholder="/catalog or /custom-service"
-                        className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs font-mono text-ink outline-none focus:border-accent"
-                      />
-                      <span className="text-[10px] text-muted font-sans mt-0.5 block">
-                        Users clicking anywhere on this banner slide will navigate to this link.
-                      </span>
-                    </div>
-
-                    <div className="pt-2">
-                      <button
-                        type="button"
-                        onClick={() => updateHeroSlide(slide.id, 'enabled', !slide.enabled)}
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-[10px] font-bold ${
-                          slide.enabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-shell text-muted border border-line'
-                        }`}
-                      >
-                        {slide.enabled ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                        {slide.enabled ? 'Visible on Storefront' : 'Hidden on Storefront'}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
-                        Banner Image URL *
-                      </label>
-                      <input
-                        type="url"
-                        value={slide.image}
-                        onChange={(event) => updateHeroSlide(slide.id, 'image', event.target.value)}
-                        placeholder="https://..."
-                        className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs font-mono text-ink outline-none focus:border-accent"
-                      />
-
-                      {/* Curated quick preset picker */}
-                      <div className="mt-2 space-y-1">
-                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted">
-                          Curated Presets:
-                        </span>
-                        <div className="flex flex-wrap gap-1">
-                          {CURATED_HERO_PRESETS.map((preset) => (
-                            <button
-                              key={preset.label}
-                              type="button"
-                              onClick={() => updateHeroSlide(slide.id, 'image', preset.url)}
-                              className={`rounded border px-2 py-0.5 text-[10px] font-medium transition-colors ${
-                                slide.image === preset.url
-                                  ? 'border-accent bg-accent/10 text-accent font-bold'
-                                  : 'border-line bg-white text-muted hover:border-accent/40'
-                              }`}
-                            >
-                              {preset.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {slide.image ? (
-                      <div className="overflow-hidden rounded-lg border border-line bg-shell">
-                        <img src={slide.image} alt="" className="aspect-[21/9] w-full object-cover" />
-                      </div>
-                    ) : (
-                      <div className="flex aspect-[21/9] items-center justify-center rounded-lg border border-dashed border-line bg-shell text-[11px] text-muted font-mono">
-                        No image preview available
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div>
+            <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
+              Primary Button Text & Destination
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={form.heroButtonText || ''}
+                onChange={(e) => setForm((curr) => ({ ...curr, heroButtonText: e.target.value }))}
+                placeholder="Explore Collection"
+                className="w-1/2 rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-ink outline-none focus:border-accent"
+              />
+              <input
+                type="text"
+                value={form.heroButtonLink || ''}
+                onChange={(e) => setForm((curr) => ({ ...curr, heroButtonLink: e.target.value }))}
+                placeholder="/catalog"
+                className="w-1/2 rounded-lg border border-line bg-white px-3 py-2 text-xs font-mono text-ink outline-none focus:border-accent"
+              />
+            </div>
           </div>
-        )}
+
+          <div className="sm:col-span-2">
+            <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
+              Hero Main Headline
+            </label>
+            <input
+              type="text"
+              value={form.heroTitle || ''}
+              onChange={(e) => setForm((curr) => ({ ...curr, heroTitle: e.target.value }))}
+              placeholder="Turn Ideas Into Something Real."
+              className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm font-bold text-ink outline-none focus:border-accent"
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
+              Hero Subtitle / Description
+            </label>
+            <textarea
+              rows={2}
+              value={form.heroSubtitle || ''}
+              onChange={(e) => setForm((curr) => ({ ...curr, heroSubtitle: e.target.value }))}
+              placeholder="Precision 3D printed lighting, mechanical components, and bespoke goods crafted in India."
+              className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs font-sans text-ink outline-none focus:border-accent"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Featured Products & Shop Categories Sections */}

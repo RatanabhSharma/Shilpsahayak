@@ -14,10 +14,12 @@ import {
   Sparkles,
   ChevronRight,
   ShieldCheck,
+  Mail,
 } from 'lucide-react';
 
 import { useAuth } from '../../hooks/useAuth';
 import { usePincodeLookup } from '../../hooks/usePincodeLookup';
+import { PhoneVerificationModal } from '../../components/auth/PhoneVerificationModal';
 
 import {
   emptyAddress,
@@ -82,11 +84,29 @@ export function Account() {
     logout,
     loading: authLoading,
     updateAccount,
+    sendVerificationEmail,
   } = useAuth();
+
+  const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
+  const [isSendingEmailVerification, setIsSendingEmailVerification] = useState(false);
+  const [emailVerificationSent, setEmailVerificationSent] = useState(false);
+
+  const handleSendEmailVerification = async () => {
+    setIsSendingEmailVerification(true);
+    try {
+      await sendVerificationEmail();
+      setEmailVerificationSent(true);
+    } catch (err) {
+      alert('Unable to send verification email. Please try again later.');
+    } finally {
+      setIsSendingEmailVerification(false);
+    }
+  };
 
   const {
     data: profile,
     isLoading: profileLoading,
+    refetch: refetchProfile,
   } = useUserProfile();
 
   const saveUserProfile = useSaveUserProfile();
@@ -420,6 +440,42 @@ export function Account() {
                   {user?.displayName || 'My Account'}
                 </h1>
                 <p className="font-mono text-xs text-muted">{user?.email}</p>
+
+                {/* Verification Badges */}
+                <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                  {profile?.phoneVerified || user?.phoneNumber ? (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 font-mono text-[10px] font-bold">
+                      <CheckCircle className="w-3 h-3 text-emerald-600" />
+                      Phone Verified ({profile?.phone || user?.phoneNumber?.slice(-10)})
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsPhoneModalOpen(true)}
+                      className="inline-flex items-center gap-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 px-2 py-0.5 font-mono text-[10px] font-bold transition-colors cursor-pointer"
+                    >
+                      <ShieldCheck className="w-3 h-3 text-amber-600" />
+                      Verify Phone via OTP
+                    </button>
+                  )}
+
+                  {profile?.emailVerified || user?.emailVerified ? (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 font-mono text-[10px] font-bold">
+                      <CheckCircle className="w-3 h-3 text-emerald-600" />
+                      Email Verified
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendEmailVerification}
+                      disabled={isSendingEmailVerification}
+                      className="inline-flex items-center gap-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 px-2 py-0.5 font-mono text-[10px] font-bold transition-colors cursor-pointer"
+                    >
+                      <Mail className="w-3 h-3 text-amber-600" />
+                      {emailVerificationSent ? 'Verification Link Sent ✓' : 'Send Email Verification Link'}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1152,6 +1208,18 @@ export function Account() {
           </div>
         </div>
       )}
+
+      {/* Phone OTP Verification Modal */}
+      <PhoneVerificationModal
+        isOpen={isPhoneModalOpen}
+        onClose={() => setIsPhoneModalOpen(false)}
+        initialPhone={profile?.phone || ''}
+        title="Verify Your Phone Number"
+        description="Verify your Indian mobile number with a quick 6-digit SMS OTP to unlock verified status and fast checkout."
+        onVerified={() => {
+          refetchProfile();
+        }}
+      />
     </div>
   );
 }

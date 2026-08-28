@@ -28,6 +28,8 @@ export type UserProfile = {
   name: string;
   email: string;
   phone: string;
+  phoneVerified?: boolean;
+  emailVerified?: boolean;
   address: UserAddress;
   addressHistory?: AddressHistoryItem[];
   role: 'customer' | 'admin';
@@ -35,7 +37,7 @@ export type UserProfile = {
   updatedAt?: unknown;
 };
 
-const emptyAddress: UserAddress = {
+export const emptyAddress: UserAddress = {
   line1: '',
   line2: '',
   city: '',
@@ -59,89 +61,61 @@ export function useUserProfile() {
         return null;
       }
 
-      return {
+      const data = snapshot.data();
+      const profile: UserProfile = {
         uid: user.uid,
-        ...snapshot.data(),
-      } as UserProfile;
+        name: data.name || user.displayName || '',
+        email: data.email || user.email || '',
+        phone: data.phone || user.phoneNumber || '',
+        phoneVerified: !!data.phoneVerified || !!user.phoneNumber,
+        emailVerified: !!data.emailVerified || !!user.emailVerified,
+        address: data.address || emptyAddress,
+        addressHistory: data.addressHistory || [],
+        role: data.role === 'admin' ? 'admin' : 'customer',
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt,
+      };
+
+      return profile;
     },
   });
 }
 
-export type EditableCustomerProfile = {
-  name: string;
-  email: string;
-  phone: string;
-  address: UserAddress;
-  addressHistory?: AddressHistoryItem[];
-};
-
-export function useSaveUserProfile() {
-  const { user } = useAuth();
+export function useUpdateUserProfile() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (profile: EditableCustomerProfile) => {
+    mutationFn: async (
+      payload: Partial<
+        Pick<UserProfile, 'name' | 'email' | 'phone' | 'address' | 'phoneVerified' | 'emailVerified'>
+      >
+    ) => {
       if (!user) {
-        throw new Error('You must be logged in.');
+        throw new Error('You must be signed in to update your profile.');
       }
 
       const ref = doc(db, 'users', user.uid);
-      const existing = await getDoc(ref);
-      const existingData = existing.exists() ? existing.data() : null;
+      const updateData: Record<string, unknown> = {
+        updatedAt: serverTimestamp(),
+      };
 
-      let history: AddressHistoryItem[] =
-        profile.addressHistory ||
-        (Array.isArray(existingData?.addressHistory)
-          ? (existingData?.addressHistory as AddressHistoryItem[])
-          : []);
-
-      if (existingData?.address?.line1 && existingData?.address?.city) {
-        const oldAddr = existingData.address as UserAddress;
-        const newAddr = profile.address;
-        const isDifferent =
-          oldAddr.line1 !== newAddr.line1 ||
-          oldAddr.line2 !== newAddr.line2 ||
-          oldAddr.city !== newAddr.city ||
-          oldAddr.state !== newAddr.state ||
-          oldAddr.pincode !== newAddr.pincode;
-
-        if (isDifferent && !profile.addressHistory) {
-          const newHistoryItem: AddressHistoryItem = {
-            id: `addr-${Date.now()}`,
-            address: { ...oldAddr },
-            updatedAt: new Date().toISOString(),
-            label: `${oldAddr.city}, ${oldAddr.state}`,
-          };
-          history = [newHistoryItem, ...history.slice(0, 9)];
-        }
+      if (payload.name !== undefined) updateData.name = payload.name;
+      if (payload.email !== undefined) updateData.email = payload.email;
+      if (payload.phone !== undefined) updateData.phone = payload.phone;
+      if (payload.phoneVerified !== undefined) updateData.phoneVerified = payload.phoneVerified;
+      if (payload.emailVerified !== undefined) updateData.emailVerified = payload.emailVerified;
+      if (payload.address !== undefined) {
+        updateData.address = payload.address;
       }
 
-      await setDoc(
-        ref,
-        {
-          ...profile,
-          addressHistory: history,
-          uid: user.uid,
-          role: existingData?.role || 'customer',
-          updatedAt: serverTimestamp(),
-          ...(existing.exists() ? {} : { createdAt: serverTimestamp() }),
-        },
-        { merge: true }
-      );
-
-      return {
-        uid: user.uid,
-        ...profile,
-        addressHistory: history,
-      };
+      await setDoc(ref, updateData, { merge: true });
     },
-
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['userProfile', user?.uid],
-      });
+      queryClient.invalidateQueries({ queryKey: ['userProfile', user?.uid] });
+      queryClient.invalidateQueries({ queryKey: ['userRole', user?.uid] });
     },
   });
 }
 
-export { emptyAddress };
+export const useSaveUserProfile = useUpdateUserProfile;

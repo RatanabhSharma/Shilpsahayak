@@ -24,6 +24,7 @@ import {
   Select,
   Badge,
 } from '../../components/ui';
+import { PhoneVerificationModal } from '../../components/auth/PhoneVerificationModal';
 
 const INDIAN_STATES = [
   { value: 'Andhra Pradesh', label: 'Andhra Pradesh' },
@@ -85,6 +86,8 @@ export function Checkout() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [orderId, setOrderId] = useState('');
+  const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
+  const [pendingOrderData, setPendingOrderData] = useState<any>(null);
 
   const [stateValue, setStateValue] = useState('');
   const [phone, setPhone] = useState('');
@@ -255,8 +258,21 @@ export function Checkout() {
       notes,
     };
 
+    // Anti-Fraud Guard: Ensure phone is verified via SMS OTP before allowing order placement
+    if (!profile?.phoneVerified && !user.phoneNumber) {
+      setPendingOrderData(orderData);
+      setIsPhoneModalOpen(true);
+      setIsSubmitting(false);
+      return;
+    }
+
+    await executePlaceOrder(orderData);
+  };
+
+  const executePlaceOrder = async (orderDataToPlace: any) => {
+    setIsSubmitting(true);
     try {
-      const newOrder = await createOrder.mutateAsync(orderData);
+      const newOrder = await createOrder.mutateAsync(orderDataToPlace);
       setOrderId(newOrder.id);
       clearCart();
       setIsSuccess(true);
@@ -765,6 +781,23 @@ export function Checkout() {
           </aside>
         </div>
       </main>
+
+      {/* Anti-Fraud SMS OTP Phone Verification Modal */}
+      <PhoneVerificationModal
+        isOpen={isPhoneModalOpen}
+        onClose={() => {
+          setIsPhoneModalOpen(false);
+          setIsSubmitting(false);
+        }}
+        initialPhone={phone}
+        title="Verify Mobile Number to Complete Order"
+        description="To ensure your parcel is delivered smoothly and protect against automated spam orders, please verify your mobile number with a quick 6-digit SMS OTP."
+        onVerified={() => {
+          if (pendingOrderData) {
+            executePlaceOrder(pendingOrderData);
+          }
+        }}
+      />
     </div>
   );
 }

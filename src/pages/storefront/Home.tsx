@@ -28,6 +28,7 @@ import { Card, Button, buttonVariants } from '../../components/ui';
 import { ProductCard } from '../../components/product/ProductCard';
 import { FeaturedProductSkeleton } from '../../components/loading/ProductSkeleton';
 import { Hero3DCanvas } from '../../components/3d/Hero3DCanvas';
+import demoVideo from '../../assets/videos/demo_video.mp4';
 
 /* ============================================================
    MOTION VARIANTS FOR REFINED SCROLL & HOVER INTERACTIONS
@@ -39,38 +40,6 @@ const fadeInUp = {
     y: 0,
     transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
   },
-};
-
-/* ============================================================
-   HERO SLIDE HORIZONTAL SLIDE TRANSITION VARIANTS
-   ============================================================ */
-const heroSlideVariants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? '100%' : direction < 0 ? '-100%' : '0%',
-    opacity: 0.25,
-    scale: 1.04,
-  }),
-  center: {
-    zIndex: 1,
-    x: '0%',
-    opacity: 1,
-    scale: 1,
-    transition: {
-      x: { type: 'spring', stiffness: 280, damping: 32 },
-      opacity: { duration: 0.4 },
-      scale: { duration: 0.7, ease: [0.25, 1, 0.5, 1] },
-    },
-  },
-  exit: (direction: number) => ({
-    zIndex: 0,
-    x: direction < 0 ? '100%' : '-100%',
-    opacity: 0.1,
-    scale: 0.96,
-    transition: {
-      x: { type: 'spring', stiffness: 280, damping: 32 },
-      opacity: { duration: 0.35 },
-    },
-  }),
 };
 
 /* ============================================================
@@ -395,101 +364,57 @@ export function Home() {
     [products]
   );
 
-  /* Scroll-Linked Hero Parallax */
+  /* Scroll-Linked Hero Parallax & Depth Transitions */
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ['start start', 'end start'],
   });
-  const heroParallaxY = useTransform(scrollYProgress, [0, 1], ['0%', '16%']);
 
-  /* Hero Slides with Dynamic Admin Slides or Product Fallbacks */
-  const heroSlides = useMemo(() => {
-    const configuredSlides = (homepageSettings?.heroSlides || []).filter((s) => s.enabled);
-    if (configuredSlides.length > 0) {
-      return configuredSlides;
+  const heroParallaxY = useTransform(scrollYProgress, [0, 1], ['0%', '32%']);
+  const heroScale = useTransform(scrollYProgress, [0, 1], [1.0, 1.15]);
+  const heroScrimOpacity = useTransform(scrollYProgress, [0, 0.7, 1], [0.55, 0.8, 0.98]);
+  const heroContentY = useTransform(scrollYProgress, [0, 1], ['0%', '24%']);
+  const heroContentOpacity = useTransform(scrollYProgress, [0, 0.6, 0.95], [1, 0.8, 0]);
+
+  /* Hero Media & Content (Video / GIF with Poster fallback) */
+  const heroMediaUrl = useMemo(() => {
+    const custom = homepageSettings?.heroVideoUrl?.trim();
+    if (custom && !custom.includes('mixkit.co') && custom !== '/hero-print.webm') {
+      return custom;
     }
-    if (activeProducts.length > 0) {
-      return activeProducts.slice(0, 4).map((product, idx) => ({
-        id: product.id || `slide-${idx}`,
-        eyebrow: idx === 0 ? 'BESPOKE 3D FABRICATION STUDIO' : 'PRECISION ADDITIVE MANUFACTURING',
-        title: product.name,
-        description:
-          product.description ||
-          'Precision 3D printed lighting, mechanical components, and bespoke goods crafted in India.',
-        image: product.image,
-        buttonText: 'Explore Collection',
-        buttonLink: `/product/${product.id}`,
-      }));
-    }
-    return [
-      {
-        id: 'default-hero',
-        eyebrow: 'BESPOKE 3D FABRICATION STUDIO',
-        title: 'Turn Ideas Into Something Real.',
-        description:
-          'Precision 3D printed lighting, desk accessories, and custom fabrication crafted in India.',
-        image:
-          'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&w=2000&q=80',
-        buttonText: 'Explore Collection',
-        buttonLink: '/catalog',
-      },
-    ];
-  }, [homepageSettings?.heroSlides, activeProducts]);
+    return demoVideo;
+  }, [homepageSettings?.heroVideoUrl]);
 
-  /* Direction-Aware Slide State: [currentIndex, direction] */
-  const [[slideIndex, slideDirection], setSlideState] = useState([0, 0]);
-  const [isHeroPaused, setIsHeroPaused] = useState(false);
+  const isHeroVideo = useMemo(() => {
+    return (
+      heroMediaUrl === demoVideo ||
+      /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(heroMediaUrl) ||
+      heroMediaUrl.includes('video') ||
+      heroMediaUrl.endsWith('.webm') ||
+      heroMediaUrl.startsWith('data:video')
+    );
+  }, [heroMediaUrl]);
 
-  const currentSlide = heroSlides[slideIndex] || heroSlides[0];
-
-  const paginate = useCallback(
-    (newDirection: number) => {
-      if (heroSlides.length <= 1) return;
-      setSlideState(([prevIndex]) => {
-        let nextIndex = prevIndex + newDirection;
-        if (nextIndex < 0) nextIndex = heroSlides.length - 1;
-        if (nextIndex >= heroSlides.length) nextIndex = 0;
-        return [nextIndex, newDirection];
-      });
-      setIsHeroPaused(true);
-      setTimeout(() => setIsHeroPaused(false), 5000);
-    },
-    [heroSlides.length]
-  );
-
-  const goToSlide = useCallback(
-    (targetIndex: number) => {
-      if (heroSlides.length <= 1) return;
-      setSlideState(([prevIndex]) => {
-        if (targetIndex === prevIndex) return [prevIndex, 0];
-        const dir = targetIndex > prevIndex ? 1 : -1;
-        return [targetIndex, dir];
-      });
-      setIsHeroPaused(true);
-      setTimeout(() => setIsHeroPaused(false), 5000);
-    },
-    [heroSlides.length]
-  );
-
-  /* Auto-Rotation Engine for Hero Slideshow */
+  const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
-    if (heroSlides.length <= 1 || isHeroPaused) return;
-
-    if (
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    ) {
-      return;
+    if (videoRef.current) {
+      videoRef.current.defaultMuted = true;
+      videoRef.current.muted = true;
+      videoRef.current.play().catch(() => {});
     }
+  }, [heroMediaUrl]);
 
-    const intervalTime = Math.max(4500, homepageSettings?.heroInterval || 5500);
-    const interval = setInterval(() => {
-      paginate(1);
-    }, intervalTime);
+  const heroPosterImage =
+    'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=2000&q=80';
 
-    return () => clearInterval(interval);
-  }, [heroSlides.length, homepageSettings?.heroInterval, isHeroPaused, paginate]);
+  const heroEyebrow = homepageSettings?.heroEyebrow || 'BESPOKE 3D FABRICATION STUDIO';
+  const heroTitle = homepageSettings?.heroTitle || 'Turn Ideas Into Something Real.';
+  const heroDescription =
+    homepageSettings?.heroSubtitle ||
+    'Precision 3D printed lighting, mechanical components, and bespoke goods crafted in India.';
+  const heroButtonText = homepageSettings?.heroButtonText || 'Explore Collection';
+  const heroButtonLink = homepageSettings?.heroButtonLink || '/catalog';
 
   const featuredProducts = useMemo(() => {
     const configuredIds = homepageSettings?.featuredProductIds ?? [];
@@ -592,181 +517,55 @@ export function Home() {
   return (
     <div className="bg-[#FAF9F6] text-ink selection:bg-accent-soft selection:text-accent overflow-x-hidden">
       {/* =====================================================
-          1. VISUAL HERO SLIDESHOW WITH DIRECTIONAL SLIDE ANIMATION
+          1. CINEMATIC FULL-BLEED VIDEO HERO WITH PARALLAX SCROLL
       ====================================================== */}
       <section
         ref={heroRef}
-        className="group/hero relative overflow-hidden bg-[#0d0d0f] min-h-[560px] sm:min-h-[640px] lg:min-h-[700px] flex flex-col justify-end text-white select-none touch-pan-y"
-        onMouseEnter={() => setIsHeroPaused(true)}
-        onMouseLeave={() => setIsHeroPaused(false)}
+        className="relative overflow-hidden bg-[#0d0d0f] h-[480px] sm:h-[580px] lg:h-[680px] w-full select-none"
       >
-        {/* Direction-Aware Sliding Stage */}
-        <div className="absolute inset-0 w-full h-full overflow-hidden">
-          <AnimatePresence custom={slideDirection} initial={false}>
-            <motion.div
-              key={slideIndex}
-              custom={slideDirection}
-              variants={heroSlideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.25}
-              onDragEnd={(_, { offset, velocity }) => {
-                const swipe = Math.abs(offset.x) * velocity.x;
-                if (swipe < -10000 || offset.x < -70) {
-                  paginate(1);
-                } else if (swipe > 10000 || offset.x > 70) {
-                  paginate(-1);
-                }
-              }}
-              className="absolute inset-0 w-full h-full flex flex-col justify-end overflow-hidden cursor-grab active:cursor-grabbing"
-            >
-              {/* Slide Background Image with Parallax & Ken Burns motion */}
-              <motion.div
-                style={{ y: prefersReducedMotion ? '0%' : heroParallaxY }}
-                className="absolute inset-0 z-0 h-[118%] -top-[9%]"
-              >
-                <img
-                  src={currentSlide.image}
-                  alt={currentSlide.title || 'Shilp Sahayak Hero'}
-                  className="w-full h-full object-cover object-center"
-                />
-              </motion.div>
-
-              {/* Responsive Multi-Stop Gradient Scrim */}
-              <div className="absolute inset-0 z-[1] bg-gradient-to-t from-[#0d0d0f] via-[#0d0d0f]/65 to-transparent sm:bg-gradient-to-r sm:from-[#0d0d0f]/95 sm:via-[#0d0d0f]/60 sm:to-transparent pointer-events-none" />
-              <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#0d0d0f]/80 to-transparent z-[1] pointer-events-none" />
-
-              {/* Slide Copy Content */}
-              <div className="relative z-10 mx-auto max-w-[1440px] px-6 sm:px-14 lg:px-20 pb-12 sm:pb-16 pt-24 sm:pt-32 w-full">
-                <motion.div
-                  initial={{ opacity: 0, y: 22 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.12, duration: 0.45 }}
-                  className="max-w-2xl space-y-4"
-                >
-                  {/* Verified Studio Badges */}
-                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-md px-3 py-1 font-mono text-[10px] sm:text-[11px] font-semibold text-zinc-200 border border-white/15">
-                      <span className="h-2 w-2 rounded-full bg-accent animate-ping" />
-                      3D Fabrication Studio · Patiala Workshop
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/20 backdrop-blur-md px-3 py-1 font-mono text-[10px] sm:text-[11px] font-semibold text-accent-light border border-accent/30">
-                      Pan-India Express Dispatch
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 sm:space-y-3">
-                    {currentSlide.eyebrow && (
-                      <span className="font-mono text-[10px] sm:text-xs font-bold tracking-widest text-accent uppercase block">
-                        {currentSlide.eyebrow}
-                      </span>
-                    )}
-                    <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white leading-[1.12]">
-                      {currentSlide.title}
-                    </h1>
-                    <p className="font-sans text-xs sm:text-sm lg:text-base text-zinc-300 max-w-lg leading-relaxed line-clamp-2 sm:line-clamp-none">
-                      {currentSlide.description}
-                    </p>
-                  </div>
-
-                  {/* Action CTAs */}
-                  <div className="flex flex-wrap items-center gap-3 pt-2">
-                    <Link
-                      to={currentSlide.buttonLink || '/catalog'}
-                      className={buttonVariants({ variant: 'primary', size: 'lg' })}
-                    >
-                      <span>{currentSlide.buttonText || 'Explore Collection'}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
-                    <Link
-                      to="/custom-service"
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 text-white hover:bg-white hover:text-ink transition-all duration-200 ease-out active:scale-[0.98] h-12 sm:h-13 px-6 sm:px-7 text-sm sm:text-base font-semibold"
-                    >
-                      <Sparkles className="w-4 h-4 text-accent" />
-                      <span>Instant 3D Print Quote</span>
-                    </Link>
-                  </div>
-                </motion.div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        {/* Fixed Side Navigation Arrows (Left & Right Centered) */}
-        {heroSlides.length > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={() => paginate(-1)}
-              className="absolute left-3 sm:left-6 lg:left-8 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white backdrop-blur-md shadow-2xl transition-all hover:scale-110 hover:bg-accent hover:border-accent active:scale-95 focus:outline-none cursor-pointer"
-              aria-label="Previous slide"
-            >
-              <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => paginate(1)}
-              className="absolute right-3 sm:right-6 lg:right-8 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white backdrop-blur-md shadow-2xl transition-all hover:scale-110 hover:bg-accent hover:border-accent active:scale-95 focus:outline-none cursor-pointer"
-              aria-label="Next slide"
-            >
-              <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
-            </button>
-          </>
-        )}
-
-        {/* Floating Live Studio Telemetry Badge */}
+        {/* Parallax Background Stage (Video / GIF / High-Res Poster) */}
         <motion.div
-          animate={{ y: [0, -8, 0] }}
-          transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
-          className="hidden xl:flex absolute right-16 bottom-16 z-10 flex-col gap-3 pointer-events-none"
+          style={{
+            y: prefersReducedMotion ? '0%' : heroParallaxY,
+            scale: prefersReducedMotion ? 1 : heroScale,
+          }}
+          className="absolute inset-0 z-0 h-[126%] -top-[13%] w-full overflow-hidden pointer-events-none"
         >
-          <div className="rounded-2xl border border-white/15 bg-black/60 backdrop-blur-md px-4 py-2.5 text-white shadow-2xl flex items-center gap-3">
-            <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <div className="font-mono text-xs">
-              <span className="text-zinc-400 block text-[10px] uppercase">Active Fleet Status</span>
-              <strong className="text-white font-bold">4 Bambu & Voron Active</strong>
-            </div>
-          </div>
-          <div className="rounded-2xl border border-white/15 bg-black/60 backdrop-blur-md px-4 py-2.5 text-white shadow-2xl flex items-center gap-3">
-            <Sparkles className="h-4 w-4 text-accent" />
-            <div className="font-mono text-xs">
-              <span className="text-zinc-400 block text-[10px] uppercase">Layer Resolution</span>
-              <strong className="text-white font-bold">±50µm Ultra-Fine</strong>
-            </div>
-          </div>
+          {isHeroVideo ? (
+            <video
+              ref={videoRef}
+              key={heroMediaUrl}
+              autoPlay
+              loop
+              muted
+              playsInline
+              preload="auto"
+              poster={heroPosterImage}
+              className="w-full h-full object-cover object-center pointer-events-none"
+            >
+              <source src={heroMediaUrl} type="video/webm" />
+              <source src={heroMediaUrl} type="video/mp4" />
+              <img
+                src={heroPosterImage}
+                alt="Shilp Sahayak 3D Fabrication Studio"
+                className="w-full h-full object-cover object-center"
+              />
+            </video>
+          ) : (
+            <img
+              src={heroMediaUrl || heroPosterImage}
+              alt="Shilp Sahayak 3D Fabrication Studio"
+              className="w-full h-full object-cover object-center"
+            />
+          )}
         </motion.div>
 
-        {/* Centered Bottom Indicator Pills with Animated Countdown Line */}
-        {heroSlides.length > 1 && (
-          <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-black/50 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15">
-            {heroSlides.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => goToSlide(idx)}
-                className="relative h-2 rounded-full overflow-hidden transition-all duration-300 bg-white/25 hover:bg-white/50 cursor-pointer"
-                style={{ width: slideIndex === idx ? '36px' : '8px' }}
-                aria-label={`Go to hero slide ${idx + 1}`}
-              >
-                {slideIndex === idx && (
-                  <motion.div
-                    key={`progress-${slideIndex}-${isHeroPaused}`}
-                    initial={{ width: 0 }}
-                    animate={{ width: '100%' }}
-                    transition={{
-                      duration: (homepageSettings?.heroInterval || 5500) / 1000,
-                      ease: 'linear',
-                    }}
-                    className="h-full bg-accent rounded-full"
-                  />
-                )}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Multi-Stop Cinematic Scrim Overlays for Depth Transition */}
+        <motion.div
+          style={{ opacity: heroScrimOpacity }}
+          className="absolute inset-0 z-[1] bg-gradient-to-t from-[#0d0d0f] via-transparent to-transparent pointer-events-none"
+        />
+        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#0d0d0f]/60 to-transparent z-[1] pointer-events-none" />
       </section>
 
       {/* =====================================================
