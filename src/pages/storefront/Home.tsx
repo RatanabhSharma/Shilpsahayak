@@ -2,17 +2,14 @@ import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence, useScroll, useTransform, useReducedMotion } from 'framer-motion';
 import {
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Layers,
   MessageSquare,
   ShieldCheck,
   Cpu,
   Sparkles,
   ArrowRight,
   UploadCloud,
-  Building2,
   Star,
   CheckCircle2,
   Box,
@@ -23,8 +20,8 @@ import {
 import { useProducts } from '../../hooks/useProducts';
 import { useHomepage } from '../../hooks/useHomepage';
 import { useSettings } from '../../hooks/useSettings';
-import { useReviews, useAddReview } from '../../hooks/useReviews';
-import { Card, Button, buttonVariants } from '../../components/ui';
+import { useReviews } from '../../hooks/useReviews';
+import { buttonVariants } from '../../components/ui';
 import { ProductCard } from '../../components/product/ProductCard';
 import { FeaturedProductSkeleton } from '../../components/loading/ProductSkeleton';
 import { Hero3DCanvas } from '../../components/3d/Hero3DCanvas';
@@ -57,33 +54,6 @@ const MARQUEE_ITEMS = [
 /* ============================================================
    VERIFIED STUDIO CRAFTSMANSHIP SPECS
    ============================================================ */
-const STUDIO_ADVANTAGES = [
-  {
-    icon: Cpu,
-    title: 'High-Precision 3D Fabrication',
-    tag: '±50µm Tolerance',
-    description: 'Clean layer resolution and dimensional accuracy across every custom piece.',
-  },
-  {
-    icon: Layers,
-    title: 'Versatile Engineering Materials',
-    tag: 'PLA · PETG · ABS · Resin',
-    description: 'Industrial-grade polymers tuned for aesthetic brilliance or structural strength.',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Hand-Inspected Quality',
-    tag: '100% Quality Checked',
-    description: 'Individual surface inspection, hand deburring, and protective packaging.',
-  },
-  {
-    icon: UploadCloud,
-    title: 'Instant CAD Slicing',
-    tag: 'Real-Time Pricing',
-    description: 'Upload your STL/OBJ file for immediate volume computation and custom fabrication.',
-  },
-];
-
 /* ============================================================
    INTERACTIVE MATERIAL SHOWCASE DATA
    ============================================================ */
@@ -123,42 +93,6 @@ const MATERIALS_PREVIEW = [
     finish: '50µm Injection-Like Finish',
     bestFor: 'Intricate Miniatures & Jewelry',
     badgeClass: 'text-purple-400 bg-purple-400/10 border-purple-400/30',
-  },
-];
-
-/* ============================================================
-   INFILL DENSITY SIMULATOR PRESETS
-   ============================================================ */
-const INFILL_PRESETS = [
-  { density: 15, label: '15% Lightweight', pattern: 'Honeycomb', weight: '38g', time: '1h 45m', best: 'Display pieces & decorative figurines' },
-  { density: 40, label: '40% Structural', pattern: 'Gyroid', weight: '65g', time: '2h 50m', best: 'Desk accessories, lamps & brackets' },
-  { density: 80, label: '80% Heavy Duty', pattern: 'Grid Lattice', weight: '105g', time: '4h 15m', best: 'Robotic mounts & impact tools' },
-  { density: 100, label: '100% Solidified', pattern: 'Concentric Solid', weight: '135g', time: '5h 30m', best: 'Threaded fixtures & industrial fittings' },
-];
-
-/* ============================================================
-   STREAMLINED FAQs
-   ============================================================ */
-const FAQ_ITEMS = [
-  {
-    q: 'What 3D file formats do you accept?',
-    a: 'We accept standard 3D CAD files (.STL, .OBJ, .3MF). Our instant slicer computes material weight and price the moment you upload.',
-  },
-  {
-    q: 'How is the custom 3D print quote calculated?',
-    a: 'Pricing is computed in real time from model volume, chosen infill factor, material density, and base setup fee.',
-  },
-  {
-    q: 'Which material should I choose?',
-    a: 'PLA+ is ideal for decor and lighting, PETG for functional mechanical strength, and UV Resin for ultra-fine miniatures.',
-  },
-  {
-    q: 'Do you deliver across India?',
-    a: 'Yes. We provide tracked courier delivery to all pin codes across India, with free shipping for qualifying orders.',
-  },
-  {
-    q: 'Are custom CAD files kept confidential?',
-    a: '100% confidential. Your designs are processed securely on encrypted servers and are never shared or reproduced.',
   },
 ];
 
@@ -349,11 +283,9 @@ export function Home() {
   const { data: homepageSettings } = useHomepage();
   const { data: settings } = useSettings();
   const { data: reviews = [] } = useReviews();
-  const addReviewMutation = useAddReview();
   const prefersReducedMotion = useReducedMotion();
 
   const [selectedMaterial, setSelectedMaterial] = useState('pla');
-  const [selectedInfill, setSelectedInfill] = useState(40);
 
   const whatsappNumber = settings?.whatsappNumber || '';
   const whatsappLink = whatsappNumber
@@ -476,33 +408,9 @@ export function Home() {
     enableAutoplay: true,
   });
 
-  const [faqOpen, setFaqOpen] = useState<number | null>(null);
-
-  /* Live Review Form state connected to Firestore */
-  const [reviewForm, setReviewForm] = useState({ name: '', experience: '🤩', text: '' });
-  const [reviewSubmitted, setReviewSubmitted] = useState(false);
-
-  const handleReviewSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reviewForm.name.trim() || !reviewForm.text.trim()) return;
-
-    addReviewMutation.mutate({
-      name: reviewForm.name.trim(),
-      rating: 5,
-      experience: reviewForm.experience,
-      quote: reviewForm.text.trim(),
-    });
-    setReviewSubmitted(true);
-  };
-
   const activeMaterialData = useMemo(
     () => MATERIALS_PREVIEW.find((m) => m.id === selectedMaterial) || MATERIALS_PREVIEW[0],
     [selectedMaterial]
-  );
-
-  const activeInfillData = useMemo(
-    () => INFILL_PRESETS.find((inf) => inf.density === selectedInfill) || INFILL_PRESETS[1],
-    [selectedInfill]
   );
 
   return (
@@ -885,437 +793,60 @@ export function Home() {
       </motion.section>
 
       {/* =====================================================
-          6. INTERACTIVE INFILL & INTERNAL STRUCTURE SLICER DEMO
+          6. SOCIAL PROOF (REVIEWS)
       ====================================================== */}
-      <motion.section
-        variants={fadeInUp}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-40px' }}
-        className="bg-[#FAF9F6] py-14 border-t border-line"
-      >
-        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-          <div className="rounded-3xl border border-line bg-white p-8 sm:p-12 shadow-soft grid gap-8 lg:grid-cols-2 lg:items-center">
-            <div className="space-y-4">
-              <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
-                Internal Geometry Calibration
-              </span>
-              <h2 className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-ink">
-                Tune your Infill Density & Strength
-              </h2>
-              <p className="font-sans text-xs sm:text-sm text-muted leading-relaxed max-w-lg">
-                Choose the exact balance of weight, structural rigidity, and print speed. Our slicer calculates volume dynamically.
-              </p>
-
-              {/* Infill Density Slider Selectors */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
-                {INFILL_PRESETS.map((preset) => (
-                  <button
-                    key={preset.density}
-                    type="button"
-                    onClick={() => setSelectedInfill(preset.density)}
-                    className={`p-3 rounded-2xl border text-left transition-all ${
-                      selectedInfill === preset.density
-                        ? 'border-accent bg-accent-soft/30 shadow-xs'
-                        : 'border-line bg-shell/50 hover:border-ink/20'
-                    }`}
-                  >
-                    <span className={`font-mono text-xs font-bold block ${selectedInfill === preset.density ? 'text-accent' : 'text-ink'}`}>
-                      {preset.density}% Infill
-                    </span>
-                    <span className="font-sans text-[10px] text-muted block mt-0.5">{preset.pattern}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="pt-2">
-                <Link to="/custom-service" className={buttonVariants({ variant: 'secondary', size: 'md' })}>
-                  <span>Test on your 3D CAD file →</span>
-                </Link>
-              </div>
-            </div>
-
-            {/* Infill Dynamic Stats Card with Animated Progress */}
-            <div className="rounded-2xl border border-line bg-shell/80 p-6 sm:p-8 space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted">CALCULATED CONFIG</span>
-                  <h3 className="font-display text-xl font-bold text-ink">{activeInfillData.label}</h3>
-                </div>
-                <span className="font-mono text-sm font-bold text-accent px-3 py-1 bg-white rounded-full border border-line shadow-2xs">
-                  {activeInfillData.pattern}
-                </span>
-              </div>
-
-              {/* Animated Infill Bar */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between font-mono text-[11px] text-muted">
-                  <span>Internal Lattice Density</span>
-                  <span className="font-bold text-ink">{selectedInfill}%</span>
-                </div>
-                <div className="h-3 w-full bg-white rounded-full overflow-hidden border border-line p-0.5">
-                  <motion.div
-                    className="h-full bg-accent rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${selectedInfill}%` }}
-                    transition={{ duration: 0.4, ease: 'easeOut' }}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 font-mono text-xs">
-                <div className="bg-white p-3.5 rounded-xl border border-line shadow-2xs">
-                  <span className="text-muted block text-[10px]">ESTIMATED WEIGHT</span>
-                  <strong className="text-ink text-sm">{activeInfillData.weight}</strong>
-                </div>
-                <div className="bg-white p-3.5 rounded-xl border border-line shadow-2xs">
-                  <span className="text-muted block text-[10px]">ESTIMATED PRINT TIME</span>
-                  <strong className="text-ink text-sm">{activeInfillData.time}</strong>
-                </div>
-              </div>
-
-              <div className="p-3 bg-white/70 rounded-xl border border-line text-xs font-sans text-muted">
-                <strong className="text-ink font-semibold">Recommended for: </strong>
-                {activeInfillData.best}
-              </div>
-            </div>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* =====================================================
-          7. B2B & CORPORATE SOLUTIONS (VISUAL 4-TIER GRID)
-      ====================================================== */}
-      <motion.section
-        id="corporate"
-        variants={fadeInUp}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-40px' }}
-        className="bg-[#FAF9F6] py-14 border-t border-line"
-      >
-        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-          <div className="rounded-3xl border border-line bg-white p-8 sm:p-12 shadow-soft grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-            <div className="space-y-4">
-              <span className="inline-flex items-center gap-2 rounded-full bg-shell border border-line px-3.5 py-1 font-mono text-xs font-bold text-muted">
-                <Building2 className="w-3.5 h-3.5 text-accent" />
-                B2B & Bulk Fabrication
+      {reviews.length > 0 && (
+        <motion.section
+          variants={fadeInUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-40px' }}
+          className="bg-[#FAF9F6] text-ink py-16 border-t border-line"
+        >
+          <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
+            <div className="text-center max-w-2xl mx-auto space-y-3 mb-12">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1 border border-line font-mono text-[11px] font-bold uppercase tracking-widest text-muted">
+                • COMMUNITY VOICES
               </span>
               <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-ink">
-                Corporate Merchandise & Custom Solutions
+                Stories from <span className="italic text-accent">Indian Homes.</span>
               </h2>
-              <p className="font-sans text-xs sm:text-sm text-muted leading-relaxed max-w-xl">
-                Bespoke welcome kits, branded desk accessories, commemorative trophies, and small-batch production runs for modern Indian brands.
+              <p className="font-sans text-xs sm:text-sm text-muted leading-relaxed">
+                Real feedback from creators, designers, and customers across India.
               </p>
-              <div className="pt-2 flex flex-wrap gap-3">
-                <Link
-                  to="/contact?type=corporate"
-                  className={buttonVariants({ variant: 'primary', size: 'md' })}
-                >
-                  <span>Request Corporate Quote</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-                <a
-                  href={whatsappLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={buttonVariants({ variant: 'secondary', size: 'md' })}
-                >
-                  <span>Discuss on WhatsApp</span>
-                </a>
-              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3.5">
-              <div className="rounded-2xl border border-line bg-shell/70 p-4 space-y-1 hover:border-accent/40 hover:bg-white hover:-translate-y-1 transition-all">
-                <span className="font-mono text-xs font-bold text-accent">01. Welcome Kits</span>
-                <p className="font-sans text-xs text-muted">Branded desk items & employee onboarding sets</p>
-              </div>
-              <div className="rounded-2xl border border-line bg-shell/70 p-4 space-y-1 hover:border-accent/40 hover:bg-white hover:-translate-y-1 transition-all">
-                <span className="font-mono text-xs font-bold text-accent">02. Trophies & Awards</span>
-                <p className="font-sans text-xs text-muted">Bespoke geometric 3D commemorative awards</p>
-              </div>
-              <div className="rounded-2xl border border-line bg-shell/70 p-4 space-y-1 hover:border-accent/40 hover:bg-white hover:-translate-y-1 transition-all">
-                <span className="font-mono text-xs font-bold text-accent">03. Event Merch</span>
-                <p className="font-sans text-xs text-muted">High-volume personalized keychains & badges</p>
-              </div>
-              <div className="rounded-2xl border border-line bg-shell/70 p-4 space-y-1 hover:border-accent/40 hover:bg-white hover:-translate-y-1 transition-all">
-                <span className="font-mono text-xs font-bold text-accent">04. Rapid Prototyping</span>
-                <p className="font-sans text-xs text-muted">Fast functional iterations for engineering teams</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* =====================================================
-          8. STUDIO ADVANTAGES (CRAFTSMANSHIP & CALIBRATION)
-      ====================================================== */}
-      <motion.section
-        variants={fadeInUp}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-40px' }}
-        className="bg-[#FAF9F6] py-16 border-t border-line"
-      >
-        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-          <div className="mx-auto max-w-2xl text-center mb-12">
-            <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
-              The Studio Advantage
-            </span>
-            <h2 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl text-ink">
-              Why Shilp Sahayak
-            </h2>
-            <p className="mt-2 font-sans text-xs sm:text-sm text-muted">
-              Engineered for precision, material flexibility, and commercial reliability.
-            </p>
-          </div>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {STUDIO_ADVANTAGES.map((spec) => {
-              const Icon = spec.icon;
-              return (
-                <Card
-                  key={spec.title}
-                  className="p-6 h-full flex flex-col justify-between hover:-translate-y-2 hover:shadow-card hover:border-accent/40 transition-all border-line bg-white rounded-2xl group"
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {reviews.slice(0, 6).map((r, idx) => (
+                <div
+                  key={r.id || idx}
+                  className="rounded-2xl bg-white p-6 border border-line shadow-2xs space-y-4 flex flex-col justify-between hover:shadow-card hover:-translate-y-1 transition-all duration-300"
                 >
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft text-accent group-hover:scale-110 group-hover:rotate-6 transition-transform">
-                        <Icon className="h-6 w-6" />
-                      </div>
-                      <span className="font-mono text-[10px] font-bold text-muted bg-shell px-2 py-0.5 rounded border border-line">
-                        {spec.tag}
-                      </span>
-                    </div>
-                    <h3 className="font-display text-base font-bold text-ink group-hover:text-accent transition-colors">
-                      {spec.title}
-                    </h3>
-                    <p className="font-sans text-xs leading-relaxed text-muted">
-                      {spec.description}
-                    </p>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      </motion.section>
-
-      {/* =====================================================
-          9. COMMUNITY FEEDBACK & LIVE FIRESTORE REVIEWS
-      ====================================================== */}
-      <motion.section
-        variants={fadeInUp}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-40px' }}
-        className="bg-[#FAF9F6] text-ink py-16 border-t border-line"
-      >
-        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-          <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] items-start">
-            {/* Left: Testimonials from Firestore */}
-            <div className="space-y-8">
-              <div className="space-y-3">
-                <span className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1 border border-line font-mono text-[11px] font-bold uppercase tracking-widest text-muted">
-                  • COMMUNITY VOICES
-                </span>
-                <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-ink">
-                  Stories from <span className="italic text-accent">Indian Homes.</span>
-                </h2>
-                <p className="font-sans text-xs sm:text-sm text-muted max-w-md leading-relaxed">
-                  Real feedback from customers and makers across the country.
-                </p>
-              </div>
-
-              {/* Dynamic Testimonials List */}
-              {reviews.length > 0 ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {reviews.map((r, idx) => (
-                    <div
-                      key={r.id || idx}
-                      className="rounded-2xl bg-white p-5 border border-line shadow-2xs space-y-4 flex flex-col justify-between hover:shadow-card hover:-translate-y-1 transition-all"
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-1 text-amber-400">
-                          {[...Array(r.rating || 5)].map((_, i) => (
-                            <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                          ))}
-                        </div>
-                        <p className="font-sans text-xs text-ink leading-relaxed italic">
-                          "{r.quote}"
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3 pt-3 border-t border-line">
-                        <div className="w-8 h-8 rounded-full bg-ink text-white font-mono text-xs font-bold flex items-center justify-center">
-                          {r.name?.[0] || 'U'}
-                        </div>
-                        <span className="font-sans text-xs font-bold text-ink">{r.name}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-8 rounded-2xl bg-white border border-line text-center space-y-3">
-                  <Star className="w-8 h-8 text-amber-400 mx-auto fill-amber-400" />
-                  <p className="font-display font-bold text-base text-ink">Be the first to share your story!</p>
-                  <p className="font-sans text-xs text-muted">Submit your feedback using the form to have your review featured here.</p>
-                </div>
-              )}
-            </div>
-
-            {/* Right: Live Share your thought Form */}
-            <div className="rounded-2xl bg-white p-6 sm:p-8 border border-line shadow-card space-y-6">
-              <div>
-                <h3 className="font-display text-xl font-bold text-ink">Share your experience</h3>
-                <p className="font-sans text-xs text-muted mt-1">We value honest feedback from our community.</p>
-              </div>
-
-              {reviewSubmitted ? (
-                <div className="p-6 rounded-xl bg-emerald-50 text-emerald-800 text-center space-y-2">
-                  <p className="font-display font-bold text-base">Thank you for your feedback! 🎉</p>
-                  <p className="font-sans text-xs">Your review has been saved and will appear shortly.</p>
-                </div>
-              ) : (
-                <form onSubmit={handleReviewSubmit} className="space-y-4">
-                  <div>
-                    <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block mb-1">
-                      NAME *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Your Full Name"
-                      value={reviewForm.name}
-                      onChange={(e) => setReviewForm({ ...reviewForm, name: e.target.value })}
-                      className="w-full h-11 rounded-xl border border-line bg-[#FAF9F6] px-4 font-sans text-xs text-ink outline-none focus:border-accent"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
-                        EXPERIENCE
-                      </label>
-                      <span className="font-mono text-[10px] font-bold text-accent">AMAZING</span>
-                    </div>
-                    <div className="flex justify-between items-center bg-[#FAF9F6] p-2 rounded-xl border border-line">
-                      {['😠', '🙁', '😐', '😊', '🤩'].map((emoji) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() => setReviewForm({ ...reviewForm, experience: emoji })}
-                          className={`w-9 h-9 rounded-lg text-base flex items-center justify-center transition-transform ${
-                            reviewForm.experience === emoji ? 'bg-white shadow-sm scale-110 border border-line' : 'hover:scale-105'
-                          }`}
-                        >
-                          {emoji}
-                        </button>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-1 text-amber-400">
+                      {[...Array(r.rating || 5)].map((_, i) => (
+                        <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                       ))}
                     </div>
+                    <p className="font-sans text-xs sm:text-sm text-ink leading-relaxed italic">
+                      &ldquo;{r.quote}&rdquo;
+                    </p>
                   </div>
-
-                  <div>
-                    <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block mb-1">
-                      YOUR REVIEW *
-                    </label>
-                    <textarea
-                      required
-                      rows={3}
-                      placeholder="Tell us about the print quality, finish, or design..."
-                      value={reviewForm.text}
-                      onChange={(e) => setReviewForm({ ...reviewForm, text: e.target.value })}
-                      className="w-full rounded-xl border border-line bg-[#FAF9F6] p-3.5 font-sans text-xs text-ink outline-none focus:border-accent"
-                    />
+                  <div className="flex items-center gap-3 pt-3 border-t border-line">
+                    <div className="w-8 h-8 rounded-full bg-ink text-white font-mono text-xs font-bold flex items-center justify-center">
+                      {r.name?.[0] || 'U'}
+                    </div>
+                    <span className="font-sans text-xs font-bold text-ink">{r.name}</span>
                   </div>
-
-                  <Button
-                    type="submit"
-                    disabled={addReviewMutation.isPending}
-                    isLoading={addReviewMutation.isPending}
-                    variant="primary"
-                    size="md"
-                    className="w-full font-semibold uppercase tracking-wider text-xs"
-                  >
-                    Submit Review
-                  </Button>
-                </form>
-              )}
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-      </motion.section>
+        </motion.section>
+      )}
 
       {/* =====================================================
-          10. FAQ ACCORDION (INTERACTIVE SPRING ANIMATIONS)
-      ====================================================== */}
-      <motion.section
-        variants={fadeInUp}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-40px' }}
-        className="bg-[#FAF9F6] py-16 border-t border-line"
-      >
-        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-          <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20 lg:items-start">
-            <div className="space-y-4">
-              <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent block">
-                Common Questions
-              </span>
-              <h2 className="font-display text-3xl font-bold text-ink sm:text-4xl leading-tight">
-                Everything you need to know.
-              </h2>
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 font-bold text-sm text-accent hover:underline transition-colors pt-2"
-              >
-                <MessageSquare className="h-4 w-4" />
-                <span>Ask Maker on WhatsApp →</span>
-              </a>
-            </div>
-
-            <div className="divide-y divide-line">
-              {FAQ_ITEMS.map((item, index) => {
-                const isOpen = faqOpen === index;
-                return (
-                  <div key={index}>
-                    <button
-                      type="button"
-                      onClick={() => setFaqOpen(isOpen ? null : index)}
-                      className="flex w-full items-center justify-between gap-4 py-5 text-left group"
-                    >
-                      <span className={`text-base font-bold transition-colors ${isOpen ? 'text-accent' : 'text-ink group-hover:text-accent'}`}>
-                        {item.q}
-                      </span>
-                      <ChevronDown
-                        className={`h-5 w-5 shrink-0 text-muted transition-transform duration-300 ${isOpen ? 'rotate-180 text-accent' : ''}`}
-                      />
-                    </button>
-                    <AnimatePresence>
-                      {isOpen && (
-                        <motion.p
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="pb-5 font-sans text-xs sm:text-sm text-muted leading-relaxed max-w-2xl overflow-hidden"
-                        >
-                          {item.a}
-                        </motion.p>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* =====================================================
-          11. FINAL MEMORABLE CTA SECTION
+          7. FINAL MEMORABLE CTA SECTION
       ====================================================== */}
       <motion.section
         variants={fadeInUp}

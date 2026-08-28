@@ -8,7 +8,7 @@ interface Hero3DCanvasProps {
 
 export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null);
-  const [activeShape, setActiveShape] = useState<'torus' | 'gem' | 'cylinder'>('torus');
+  const [activeShape, setActiveShape] = useState<'gear' | 'gem' | 'vase'>('gear');
   const [wireframeOnly, setWireframeOnly] = useState(false);
   const [isRotating, setIsRotating] = useState(true);
 
@@ -191,12 +191,52 @@ export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
     }
 
     let geometry: THREE.BufferGeometry;
-    if (activeShape === 'torus') {
-      geometry = new THREE.TorusKnotGeometry(0.85, 0.26, 128, 24);
+    if (activeShape === 'gear') {
+      const gearShape = new THREE.Shape();
+      const teeth = 12;
+      const innerRadius = 0.72;
+      const outerRadius = 0.95;
+      const angleStep = (Math.PI * 2) / (teeth * 2);
+
+      for (let i = 0; i < teeth * 2; i++) {
+        const angle = i * angleStep;
+        const r = i % 2 === 0 ? outerRadius : innerRadius;
+        const x = Math.cos(angle) * r;
+        const y = Math.sin(angle) * r;
+        if (i === 0) {
+          gearShape.moveTo(x, y);
+        } else {
+          gearShape.lineTo(x, y);
+        }
+      }
+      gearShape.closePath();
+
+      // Add a center hole for the gear
+      const holePath = new THREE.Path();
+      holePath.absarc(0, 0, 0.32, 0, Math.PI * 2, true);
+      gearShape.holes.push(holePath);
+
+      geometry = new THREE.ExtrudeGeometry(gearShape, {
+        depth: 0.3,
+        bevelEnabled: true,
+        bevelSegments: 3,
+        steps: 1,
+        bevelSize: 0.02,
+        bevelThickness: 0.02,
+      });
+      geometry.center();
     } else if (activeShape === 'gem') {
-      geometry = new THREE.IcosahedronGeometry(1.15, 1);
+      geometry = new THREE.IcosahedronGeometry(1.05, 1);
     } else {
-      geometry = new THREE.CylinderGeometry(0.75, 0.95, 1.7, 32, 16);
+      // Helix / Designer Vase Lathe
+      const points = [];
+      for (let i = 0; i < 24; i++) {
+        const t = i / 23;
+        const y = t * 1.8 - 0.9;
+        const x = 0.55 + Math.sin(t * Math.PI * 2.5) * 0.18 + t * 0.25;
+        points.push(new THREE.Vector2(x, y));
+      }
+      geometry = new THREE.LatheGeometry(points, 32);
     }
 
     if (!wireframeOnly) {
@@ -250,12 +290,12 @@ export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => setActiveShape('torus')}
+            onClick={() => setActiveShape('gear')}
             className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all ${
-              activeShape === 'torus' ? 'bg-accent text-white shadow-xs' : 'bg-zinc-800/80 text-zinc-400 hover:text-white'
+              activeShape === 'gear' ? 'bg-accent text-white shadow-xs' : 'bg-zinc-800/80 text-zinc-400 hover:text-white'
             }`}
           >
-            Torus
+            Gear Wheel
           </button>
           <button
             type="button"
@@ -268,12 +308,12 @@ export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
           </button>
           <button
             type="button"
-            onClick={() => setActiveShape('cylinder')}
+            onClick={() => setActiveShape('vase')}
             className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all ${
-              activeShape === 'cylinder' ? 'bg-accent text-white shadow-xs' : 'bg-zinc-800/80 text-zinc-400 hover:text-white'
+              activeShape === 'vase' ? 'bg-accent text-white shadow-xs' : 'bg-zinc-800/80 text-zinc-400 hover:text-white'
             }`}
           >
-            Vessel
+            Twisted Vase
           </button>
         </div>
 
