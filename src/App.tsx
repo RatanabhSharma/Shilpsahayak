@@ -91,7 +91,7 @@ export function App() {
         <Route
           path="*"
           element={
-            <div className="flex min-h-screen items-center justify-center bg-[#f4f2ef] dark:bg-[#0f172a] px-6 text-charcoal dark:text-slate-100 transition-colors duration-200">
+            <div className="flex min-h-screen items-center justify-center bg-[#F0F4F8] dark:bg-[#0f172a] px-6 text-charcoal dark:text-slate-100 transition-colors duration-200">
               <div className="text-center max-w-md">
                 <span className="font-mono text-xs font-bold uppercase tracking-widest text-brand-500 block mb-2">
                   404 · Dimension Missing

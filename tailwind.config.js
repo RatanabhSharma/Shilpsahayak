@@ -8,7 +8,7 @@ export default {
     extend: {
       colors: {
         ink: '#141414',
-        paper: '#FAF9F6',
+        paper: '#F0F4F8',
         shell: '#F0EFEA',
         line: '#EAE7E1',
         muted: '#6B675E',
@@ -57,7 +57,7 @@ export default {
           muted: '#888888',
         },
         surface: {
-          DEFAULT: '#FAF9F6',
+          DEFAULT: '#F0F4F8',
           card: '#FFFFFF',
           stone: '#F0EFEA',
           muted: '#EAE7E1',

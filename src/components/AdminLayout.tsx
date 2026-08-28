@@ -71,7 +71,7 @@ export function AdminLayout() {
   const currentNav = navItems.find((item) => location.pathname.startsWith(item.path));
 
   return (
-    <div className="min-h-screen bg-shell flex font-sans text-ink">
+    <div className="min-h-screen bg-paper flex font-sans text-ink">
       {/* Mobile sidebar overlay */}
       {isSidebarOpen && (
         <div
@@ -167,7 +167,7 @@ export function AdminLayout() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-shell">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-paper">
         {/* Topbar */}
         <header className="h-16 bg-white/90 backdrop-blur-md border-b border-line flex items-center justify-between px-5 sm:px-8 sticky top-0 z-30">
           <div className="flex items-center gap-3">

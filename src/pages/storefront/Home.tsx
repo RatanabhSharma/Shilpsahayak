@@ -414,7 +414,7 @@ export function Home() {
   );
 
   return (
-    <div className="bg-[#FAF9F6] text-ink selection:bg-accent-soft selection:text-accent w-full min-h-screen">
+    <div className="bg-[#F0F4F8] text-ink selection:bg-accent-soft selection:text-accent w-full min-h-screen">
       {/* =====================================================
           1. CINEMATIC FULL-BLEED VIDEO HERO WITH PARALLAX SCROLL
       ====================================================== */}
@@ -494,7 +494,7 @@ export function Home() {
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-40px' }}
-        className="bg-[#FAF9F6] py-14"
+        className="bg-[#F0F4F8] py-14"
       >
         {/* Section Header */}
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10 mb-8 sm:mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -579,7 +579,7 @@ export function Home() {
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-40px' }}
-        className="bg-[#FAF9F6] py-12 sm:py-14 border-t border-line"
+        className="bg-[#F0F4F8] py-12 sm:py-14 border-t border-line"
       >
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end mb-6 sm:mb-8">
@@ -675,7 +675,7 @@ export function Home() {
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-40px' }}
-        className="bg-[#FAF9F6] py-14"
+        className="bg-[#F0F4F8] py-14"
       >
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
           <div className="relative rounded-3xl overflow-hidden border border-zinc-800 bg-[#0e0e11] grid-plate p-6 sm:p-10 lg:p-14 text-white shadow-2xl">
@@ -801,7 +801,7 @@ export function Home() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-40px' }}
-          className="bg-[#FAF9F6] text-ink py-16 border-t border-line"
+          className="bg-[#F0F4F8] text-ink py-16 border-t border-line"
         >
           <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
             <div className="text-center max-w-2xl mx-auto space-y-3 mb-12">

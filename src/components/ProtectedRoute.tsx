@@ -15,7 +15,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   if (loading) {
     return (
       <div
-        className="flex min-h-screen items-center justify-center bg-[#f4f2ef] dark:bg-[#0f172a] transition-colors duration-200"
+        className="flex min-h-screen items-center justify-center bg-[#F0F4F8] dark:bg-[#0f172a] transition-colors duration-200"
         role="status"
         aria-live="polite"
         aria-label="Checking administrator access"

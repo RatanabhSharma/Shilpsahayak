@@ -381,7 +381,7 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-ink py-10 sm:py-16 px-4 sm:px-6 flex flex-col justify-center select-none">
+    <div className="min-h-screen bg-[#F0F4F8] text-ink py-10 sm:py-16 px-4 sm:px-6 flex flex-col justify-center select-none">
       <div className="mx-auto w-full max-w-md">
         {/* Brand Header */}
         <div className="text-center mb-8 space-y-2">

@@ -63,7 +63,7 @@ export function AdminLogin() {
   };
 
   return (
-    <div className="grid min-h-screen w-full lg:grid-cols-12 bg-shell text-ink">
+    <div className="grid min-h-screen w-full lg:grid-cols-12 bg-paper text-ink">
       {/* Left Dark Showcase Column */}
       <div className="relative hidden overflow-hidden bg-[#0b0f17] text-white lg:col-span-5 lg:flex lg:flex-col lg:justify-between p-12 xl:p-16 border-r border-zinc-800">
         <div className="absolute inset-0 opacity-20 pointer-events-none">
