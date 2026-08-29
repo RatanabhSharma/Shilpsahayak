@@ -414,14 +414,14 @@ export function Home() {
   );
 
   return (
-    <div className="bg-[#F0F4F8] text-ink selection:bg-accent-soft selection:text-accent w-full min-h-screen">
+    <div className="bg-[#F0F4F8] text-ink selection:bg-accent-soft selection:text-accent w-full min-h-screen overflow-x-hidden">
       {/* =====================================================
           1. CINEMATIC FULL-BLEED VIDEO HERO WITH PARALLAX SCROLL
       ====================================================== */}
       <section
         ref={heroRef}
         style={{ touchAction: 'pan-y' }}
-        className="relative overflow-hidden bg-[#0d0d0f] h-[480px] sm:h-[580px] lg:h-[680px] w-full touch-pan-y"
+        className="relative overflow-hidden bg-[#0d0d0f] aspect-video sm:aspect-auto sm:h-[580px] lg:h-[680px] w-full touch-pan-y"
       >
         {/* Parallax Background Stage (Video / GIF / High-Res Poster) */}
         <motion.div
@@ -429,7 +429,7 @@ export function Home() {
             y: prefersReducedMotion ? '0%' : heroParallaxY,
             scale: prefersReducedMotion ? 1 : heroScale,
           }}
-          className="absolute inset-0 z-0 h-[126%] -top-[13%] w-full overflow-hidden pointer-events-none"
+          className="absolute inset-0 z-0 w-full h-full overflow-hidden pointer-events-none"
         >
           {isHeroVideo ? (
             <video
