@@ -15,6 +15,7 @@ import {
   Info,
   Zap,
   HelpCircle,
+  MessageSquare,
 } from 'lucide-react';
 import {
   Link,
@@ -43,7 +44,11 @@ import {
 } from '../../store';
 import { Button, Card, Badge, Input, Textarea } from '../../components/ui';
 
-type ServiceMode = '3d-model' | 'image' | 'idea';
+// Two top-level modes: technical (3D file) vs assisted (idea or reference image)
+type ServiceMode = '3d-model' | 'assisted';
+
+// Sub-choice inside assisted mode
+type AssistedSubMode = 'has-reference' | 'idea-only' | null;
 
 type MaterialOption = {
   id: MaterialType;
@@ -60,6 +65,22 @@ const LAYER_HEIGHT_OPTIONS = [
   { value: '0.2', label: '0.20 mm — Standard (Recommended)' },
   { value: '0.28', label: '0.28 mm — Fast Prototype' },
 ];
+
+// The 3 simplified materials for assisted / idea users
+const ASSISTED_MATERIALS: MaterialType[] = ['PLA', 'PETG'];
+// TPU not in current MaterialType — keep PLA & PETG + a friendly label map
+const ASSISTED_MATERIAL_FRIENDLY: Record<string, { emoji: string; tagline: string; bestFor: string }> = {
+  PLA: {
+    emoji: '🌱',
+    tagline: 'Smooth & everyday',
+    bestFor: 'Decorative items, toys, models, gifts — great all-rounder for most ideas.',
+  },
+  PETG: {
+    emoji: '💪',
+    tagline: 'Strong & durable',
+    bestFor: 'Functional parts, brackets, enclosures, outdoor items. More impact-resistant than PLA.',
+  },
+};
 
 export function CustomService() {
   const navigate = useNavigate();
@@ -85,6 +106,7 @@ export function CustomService() {
 
   /* Service Mode & File State */
   const [mode, setMode] = useState<ServiceMode>('3d-model');
+  const [assistedSub, setAssistedSub] = useState<AssistedSubMode>(null);
   const [file, setFile] = useState<File | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -101,11 +123,6 @@ export function CustomService() {
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
   const [description, setDescription] = useState('');
-
-  /* Dimensions */
-  const [length, setLength] = useState('');
-  const [width, setWidth] = useState('');
-  const [height, setHeight] = useState('');
 
   /* Customer Details */
   const [customerName, setCustomerName] = useState('');
@@ -173,11 +190,16 @@ export function CustomService() {
 
   const handleModeChange = (newMode: ServiceMode) => {
     setMode(newMode);
+    setAssistedSub(null);
     resetFileState();
     setDescription('');
-    setLength('');
-    setWidth('');
-    setHeight('');
+    setMaterial('PLA');
+  };
+
+  const handleAssistedSubChange = (sub: AssistedSubMode) => {
+    setAssistedSub(sub);
+    resetFileState();
+    setDescription('');
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -238,12 +260,16 @@ export function CustomService() {
   };
 
   const validateRequest = () => {
-    if (mode !== 'idea' && !file) {
-      alert('Please upload a file before submitting.');
+    if (mode === '3d-model' && !file) {
+      alert('Please upload a 3D file before submitting.');
       return false;
     }
-    if (mode !== '3d-model' && !description.trim()) {
-      alert('Please describe what you would like us to make.');
+    if (mode === 'assisted' && assistedSub === 'has-reference' && !file) {
+      alert('Please upload your reference image before submitting.');
+      return false;
+    }
+    if (mode === 'assisted' && !description.trim()) {
+      alert('Please describe your idea or project.');
       return false;
     }
     if (!customerName.trim()) {
@@ -265,21 +291,22 @@ export function CustomService() {
     return true;
   };
 
+  // Map new mode to legacy QuoteRequestType for backend compatibility
+  const getRequestType = (): QuoteRequestType => {
+    if (mode === '3d-model') return '3d-model';
+    if (assistedSub === 'has-reference') return 'image';
+    return 'idea';
+  };
+
   const submitRequest = async () => {
     if (!user || !validateRequest()) return;
     setIsSubmitting(true);
 
     try {
       const fileUrl = file ? await uploadRequestFile() : undefined;
-      const dimensions = {
-        length: length ? Number(length) : undefined,
-        width: width ? Number(width) : undefined,
-        height: height ? Number(height) : undefined,
-        unit: 'mm' as const,
-      };
 
       await submitQuote.mutateAsync({
-        requestType: mode as QuoteRequestType,
+        requestType: getRequestType(),
         customerName,
         customerEmail,
         customerPhone,
@@ -290,13 +317,13 @@ export function CustomService() {
         fileUrl,
         material,
         color,
-        infill: mode === '3d-model' ? infill : undefined,
-        layerHeight: mode === '3d-model' ? layerHeight : undefined,
+        infill: mode === '3d-model' ? infill : 20,
+        layerHeight: mode === '3d-model' ? layerHeight : 0.2,
         quantity,
         volume: mode === '3d-model' ? volume ?? undefined : undefined,
         estimatedWeight: mode === '3d-model' ? estimatedWeight ?? undefined : undefined,
         estimatedPrice: mode === '3d-model' ? estimatedPrice ?? undefined : undefined,
-        dimensions: mode !== '3d-model' ? dimensions : undefined,
+        dimensions: undefined,
         description: description || undefined,
         notes: notes || undefined,
         adminPrice: undefined,
@@ -306,7 +333,7 @@ export function CustomService() {
       setSuccessMessage(
         mode === '3d-model'
           ? 'Your 3D model and specifications have been received! Our workshop engineers will review tolerances and confirm the final quote.'
-          : 'Your request has been received! Our makers will review your design brief and prepare an exact quotation.'
+          : 'Your request has been received! Our makers will review your brief and send you a custom quote within 4 hours.'
       );
       setIsSuccess(true);
     } catch (error) {
@@ -396,11 +423,11 @@ export function CustomService() {
           </div>
 
           <h1 className="mt-5 font-display text-2xl font-bold text-ink">
-            Sign In to Upload 3D Files
+            Sign In to Get a Quote
           </h1>
 
           <p className="mt-2.5 font-sans text-sm text-muted leading-relaxed">
-            Please sign in to your Shilp Sahayak account so we can link your 3D models and quotes to your dashboard.
+            Please sign in to your Shilp Sahayak account so we can link your requests and quotes to your dashboard.
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row justify-center font-display">
@@ -457,14 +484,12 @@ export function CustomService() {
                 resetFileState();
                 setDescription('');
                 setNotes('');
-                setLength('');
-                setWidth('');
-                setHeight('');
+                setAssistedSub(null);
                 setIsSuccess(false);
               }}
               className="font-semibold"
             >
-              Submit Another Print
+              Submit Another Request
             </Button>
 
             <Link to="/account">
@@ -495,7 +520,7 @@ export function CustomService() {
               </h1>
 
               <p className="mt-3 max-w-xl font-sans text-sm leading-relaxed text-muted sm:text-base">
-                Upload your 3D CAD model for live STL volume and pricing calculations. Our engineering makers verify tolerances before manufacturing.
+                Have a 3D file? Upload it for live pricing. Have an idea or a photo? Tell us — our makers will quote you within 4 hours.
               </p>
             </div>
 
@@ -532,7 +557,7 @@ export function CustomService() {
         </div>
       </section>
 
-      {/* 2. Transparent Pricing Comparison Banner */}
+      {/* 2. Transparent Pricing Banner */}
       <section className="bg-accent-soft border-b border-accent/20">
         <div className="mx-auto max-w-[1440px] px-5 py-4 sm:px-8 lg:px-10">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -582,8 +607,9 @@ export function CustomService() {
 
         <div className="grid gap-10 lg:grid-cols-12 lg:gap-14">
           {/* Left Column: Multi-Step Configuration */}
-          <div className="lg:col-span-7 space-y-10">
-            {/* STEP 01: Starting Method */}
+          <div className="lg:col-span-7 space-y-8">
+
+            {/* ── STEP 01: Starting Method (2 cards) ── */}
             <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
               <div className="flex items-center gap-2.5 mb-5">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
@@ -594,25 +620,21 @@ export function CustomService() {
                 </h2>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 {[
                   {
-                    id: '3d-model',
+                    id: '3d-model' as ServiceMode,
                     icon: Box,
                     title: '3D CAD Model',
-                    desc: 'STL, OBJ, 3MF, STEP',
+                    desc: 'STL, OBJ, 3MF, STEP — get instant live pricing',
+                    badge: 'Instant Quote',
                   },
                   {
-                    id: 'image',
-                    icon: ImageIcon,
-                    title: 'Reference Images',
-                    desc: 'Sketches or photos',
-                  },
-                  {
-                    id: 'idea',
+                    id: 'assisted' as ServiceMode,
                     icon: Lightbulb,
-                    title: 'Concept / Idea',
-                    desc: 'We assist with 3D design',
+                    title: 'Idea / Reference',
+                    desc: 'Have a photo, sketch, or just an idea? We handle the rest',
+                    badge: 'We Quote You',
                   },
                 ].map((item) => {
                   const Icon = item.icon;
@@ -621,22 +643,29 @@ export function CustomService() {
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => handleModeChange(item.id as ServiceMode)}
-                      className={`rounded-2xl border p-4 text-left transition-all ${
+                      onClick={() => handleModeChange(item.id)}
+                      className={`rounded-2xl border p-5 text-left transition-all ${
                         isActive
                           ? 'border-accent bg-accent-soft ring-2 ring-accent/20 shadow-sm'
                           : 'border-line bg-shell hover:border-accent/40'
                       }`}
                     >
-                      <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${
-                        isActive ? 'bg-accent text-white' : 'bg-line text-muted'
-                      }`}>
-                        <Icon className="h-5 w-5" />
+                      <div className="flex items-start justify-between gap-2">
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                          isActive ? 'bg-accent text-white' : 'bg-line text-muted'
+                        }`}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <span className={`mt-0.5 rounded-full px-2 py-0.5 font-mono text-[10px] font-bold ${
+                          isActive ? 'bg-accent text-white' : 'bg-line text-muted'
+                        }`}>
+                          {item.badge}
+                        </span>
                       </div>
                       <h3 className="mt-3 font-display text-sm font-bold text-ink">
                         {item.title}
                       </h3>
-                      <p className="mt-0.5 font-mono text-xs text-muted">
+                      <p className="mt-0.5 font-sans text-xs text-muted leading-relaxed">
                         {item.desc}
                       </p>
                     </button>
@@ -645,175 +674,337 @@ export function CustomService() {
               </div>
             </div>
 
-            {/* STEP 02: Upload or Description */}
-            <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
-              <div className="flex items-center gap-2.5 mb-5">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
-                  2
-                </span>
-                <h2 className="font-display text-xl font-bold text-ink">
-                  {mode === '3d-model'
-                    ? 'Upload 3D CAD Geometry'
-                    : mode === 'image'
-                    ? 'Upload Reference Images & Dimensions'
-                    : 'Describe Your Project Concept'}
-                </h2>
+            {/* ── STEP 02A: 3D Model Upload ── */}
+            {mode === '3d-model' && (
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
+                <div className="flex items-center gap-2.5 mb-5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
+                    2
+                  </span>
+                  <h2 className="font-display text-xl font-bold text-ink">
+                    Upload 3D CAD Geometry
+                  </h2>
+                </div>
+
+                <input
+                  id="custom-file-input"
+                  type="file"
+                  accept=".stl,.obj,.3mf,.step,.stp"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="custom-file-input"
+                  className={`flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all ${
+                    file
+                      ? 'border-accent bg-accent-soft'
+                      : 'border-line bg-shell hover:border-accent hover:bg-accent-soft/30'
+                  }`}
+                >
+                  {file ? (
+                    <div className="flex flex-col items-center">
+                      <FileBox className="h-10 w-10 text-accent" />
+                      <span className="mt-2 font-mono text-xs font-bold text-ink max-w-xs truncate">
+                        {file.name}
+                      </span>
+                      <span className="text-[11px] font-mono text-accent mt-0.5">
+                        Click to replace file
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      <Upload className="h-10 w-10 text-muted" />
+                      <span className="mt-2 font-display text-sm font-bold text-ink">
+                        Drop STL, OBJ, 3MF or STEP file
+                      </span>
+                      <span className="text-xs text-muted font-sans mt-1">
+                        Max file size: 100MB · Instant volume parsing for STL
+                      </span>
+                    </div>
+                  )}
+                </label>
               </div>
+            )}
 
-              {mode !== 'idea' && (
-                <div className="space-y-4">
-                  <input
-                    id="custom-file-input"
-                    type="file"
-                    accept={
-                      mode === '3d-model'
-                        ? '.stl,.obj,.3mf,.step,.stp'
-                        : '.jpg,.jpeg,.png,.webp,.pdf'
-                    }
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-
-                  <label
-                    htmlFor="custom-file-input"
-                    className={`flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all ${
-                      file
-                        ? 'border-accent bg-accent-soft'
-                        : 'border-line bg-shell hover:border-accent hover:bg-accent-soft/30'
-                    }`}
-                  >
-                    {file ? (
-                      <div className="flex flex-col items-center">
-                        <FileBox className="h-10 w-10 text-accent" />
-                        <span className="mt-2 font-mono text-xs font-bold text-ink max-w-xs truncate">
-                          {file.name}
-                        </span>
-                        <span className="text-[11px] font-mono text-accent mt-0.5">
-                          Click to replace file
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center">
-                        <Upload className="h-10 w-10 text-muted" />
-                        <span className="mt-2 font-display text-sm font-bold text-ink">
-                          {mode === '3d-model'
-                            ? 'Drop STL, OBJ, 3MF or STEP file'
-                            : 'Drop JPG, PNG, WEBP or PDF'}
-                        </span>
-                        <span className="text-xs text-muted font-sans mt-1">
-                          Max file size: 100MB · Instant volume parsing for STL
-                        </span>
-                      </div>
-                    )}
-                  </label>
-                </div>
-              )}
-
-              {mode !== '3d-model' && (
-                <div className="mt-5 space-y-2">
-                  <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block">
-                    {mode === 'image' ? 'Design Instructions & Desired Dimensions' : 'Detailed Project Idea'}
-                  </label>
-                  <Textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder={
-                      mode === 'image'
-                        ? 'e.g. Recreate this object at 120mm height with mounting brackets on the rear...'
-                        : 'Tell us what you would like to create, its intended function, desired dimensions, and use case...'
-                    }
-                    rows={4}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* STEP 03: Material Selection */}
-            <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
-              <div className="flex items-center justify-between mb-5">
+            {/* ── STEP 02B: Assisted — Sub-Question ── */}
+            {mode === 'assisted' && (
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft space-y-6">
                 <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
+                    2
+                  </span>
+                  <h2 className="font-display text-xl font-bold text-ink">
+                    Tell Us About Your Idea
+                  </h2>
+                </div>
+
+                {/* Sub-question */}
+                <div>
+                  <p className="font-display text-sm font-bold text-ink mb-3">
+                    Do you have a reference image or sketch?
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {[
+                      {
+                        id: 'has-reference' as AssistedSubMode,
+                        icon: ImageIcon,
+                        title: 'Yes, I have a photo / sketch',
+                        desc: "Upload your reference and we'll recreate it",
+                      },
+                      {
+                        id: 'idea-only' as AssistedSubMode,
+                        icon: MessageSquare,
+                        title: 'No, I just have an idea',
+                        desc: 'Describe it in words — our makers will design it',
+                      },
+                    ].map((item) => {
+                      const Icon = item.icon;
+                      const isActive = assistedSub === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleAssistedSubChange(item.id)}
+                          className={`rounded-2xl border p-4 text-left transition-all ${
+                            isActive
+                              ? 'border-accent bg-accent-soft ring-2 ring-accent/20 shadow-sm'
+                              : 'border-line bg-shell hover:border-accent/40'
+                          }`}
+                        >
+                          <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${
+                            isActive ? 'bg-accent text-white' : 'bg-line text-muted'
+                          }`}>
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          <h3 className="mt-3 font-display text-sm font-bold text-ink">
+                            {item.title}
+                          </h3>
+                          <p className="mt-0.5 font-sans text-xs text-muted">
+                            {item.desc}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Reference upload — only if has-reference */}
+                {assistedSub === 'has-reference' && (
+                  <div className="space-y-2">
+                    <p className="font-mono text-xs font-bold uppercase tracking-wider text-muted">
+                      Upload Reference Image
+                    </p>
+                    <input
+                      id="assisted-file-input"
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.webp,.pdf"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="assisted-file-input"
+                      className={`flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all ${
+                        file
+                          ? 'border-accent bg-accent-soft'
+                          : 'border-line bg-shell hover:border-accent hover:bg-accent-soft/30'
+                      }`}
+                    >
+                      {file ? (
+                        <div className="flex flex-col items-center">
+                          <FileBox className="h-9 w-9 text-accent" />
+                          <span className="mt-2 font-mono text-xs font-bold text-ink max-w-xs truncate">
+                            {file.name}
+                          </span>
+                          <span className="text-[11px] font-mono text-accent mt-0.5">
+                            Click to replace
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center">
+                          <Upload className="h-9 w-9 text-muted" />
+                          <span className="mt-2 font-display text-sm font-bold text-ink">
+                            Drop JPG, PNG, WEBP or PDF
+                          </span>
+                          <span className="text-xs text-muted font-sans mt-1">
+                            Max 100MB
+                          </span>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                )}
+
+                {/* Description textarea — shown once sub is chosen */}
+                {assistedSub !== null && (
+                  <div className="space-y-2">
+                    <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block">
+                      {assistedSub === 'has-reference'
+                        ? 'Describe What You Need'
+                        : 'Describe Your Idea'}
+                    </label>
+                    <Textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder={
+                        assistedSub === 'has-reference'
+                          ? 'e.g. Recreate this object at 120mm height, add mounting holes on the base...'
+                          : 'e.g. A small wall hook shaped like a leaf, about 80mm wide, to hang keys near the door...'
+                      }
+                      rows={4}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── STEP 03A: Full Material Selection (3D Model path) ── */}
+            {mode === '3d-model' && (
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
+                      3
+                    </span>
+                    <h2 className="font-display text-xl font-bold text-ink">
+                      Choose Material
+                    </h2>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setInfoMaterialModal('PLA')}
+                    className="inline-flex items-center gap-1 font-mono text-xs font-bold text-accent hover:underline"
+                  >
+                    <HelpCircle className="h-3.5 w-3.5" />
+                    <span>Material Guide</span>
+                  </button>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {materialOptions.map((opt) => {
+                    const isActive = material === opt.id;
+                    const meta = MATERIAL_CONFIG[opt.id];
+                    return (
+                      <div
+                        key={opt.id}
+                        className={`relative rounded-2xl border p-4 transition-all ${
+                          isActive
+                            ? 'border-accent bg-accent-soft ring-1 ring-accent shadow-sm'
+                            : 'border-line bg-white hover:border-accent'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setMaterial(opt.id)}
+                          className="w-full text-left"
+                        >
+                          <div className="flex items-baseline justify-between pr-7">
+                            <span className="font-display text-base font-bold text-ink">
+                              {opt.name}
+                            </span>
+                            <span className="font-mono text-xs font-bold text-accent">
+                              ₹{opt.rate}/g
+                            </span>
+                          </div>
+
+                          <p className="mt-1 font-sans text-xs text-muted line-clamp-1">
+                            {meta?.tagline || `Density ${opt.density} g/cc`}
+                          </p>
+
+                          <div className="mt-2.5 flex items-center gap-2 text-[11px] font-mono text-muted">
+                            <span>{meta?.strength.split('·')[0] || 'Standard'}</span>
+                            <span>•</span>
+                            <span>{meta?.heatResistance || '55°C'}</span>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setInfoMaterialModal(opt.id)}
+                          title={`View ${opt.name} details`}
+                          className="absolute top-3.5 right-3.5 flex h-6 w-6 items-center justify-center rounded-full bg-shell text-muted hover:bg-accent hover:text-white transition-colors"
+                        >
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 03B: Simplified Material (Assisted path) — shown after sub is chosen ── */}
+            {mode === 'assisted' && assistedSub !== null && (
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
+                <div className="flex items-center gap-2.5 mb-2">
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
                     3
                   </span>
                   <h2 className="font-display text-xl font-bold text-ink">
-                    Choose Material
+                    Preferred Material
+                  </h2>
+                </div>
+                <p className="font-sans text-xs text-muted mb-5 ml-9">
+                  Not sure? Our team will suggest the best option based on your idea.
+                </p>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {ASSISTED_MATERIALS.map((matId) => {
+                    const isActive = material === matId;
+                    const friendly = ASSISTED_MATERIAL_FRIENDLY[matId];
+                    return (
+                      <div
+                        key={matId}
+                        className={`relative rounded-2xl border p-4 transition-all ${
+                          isActive
+                            ? 'border-accent bg-accent-soft ring-1 ring-accent shadow-sm'
+                            : 'border-line bg-white hover:border-accent'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setMaterial(matId)}
+                          className="w-full text-left pr-8"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{friendly.emoji}</span>
+                            <span className="font-display text-base font-bold text-ink">
+                              {matId}
+                            </span>
+                          </div>
+                          <p className="mt-1.5 font-sans text-xs text-muted leading-relaxed">
+                            {friendly.tagline}
+                          </p>
+                        </button>
+
+                        {/* ⓘ info button — reuses existing material modal */}
+                        <button
+                          type="button"
+                          onClick={() => setInfoMaterialModal(matId)}
+                          title={`Learn about ${matId}`}
+                          className="absolute top-3.5 right-3.5 flex h-6 w-6 items-center justify-center rounded-full bg-shell text-muted hover:bg-accent hover:text-white transition-colors"
+                        >
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 04A: Full Print Parameters (3D Model path) ── */}
+            {mode === '3d-model' && (
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft space-y-6">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
+                    4
+                  </span>
+                  <h2 className="font-display text-xl font-bold text-ink">
+                    Print Parameters & Quantity
                   </h2>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setInfoMaterialModal('PLA')}
-                  className="inline-flex items-center gap-1 font-mono text-xs font-bold text-accent hover:underline"
-                >
-                  <HelpCircle className="h-3.5 w-3.5" />
-                  <span>Material Guide</span>
-                </button>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                {materialOptions.map((opt) => {
-                  const isActive = material === opt.id;
-                  const meta = MATERIAL_CONFIG[opt.id];
-                  return (
-                    <div
-                      key={opt.id}
-                      className={`relative rounded-2xl border p-4 transition-all ${
-                        isActive
-                          ? 'border-accent bg-accent-soft ring-1 ring-accent shadow-sm'
-                          : 'border-line bg-white hover:border-accent'
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setMaterial(opt.id)}
-                        className="w-full text-left"
-                      >
-                        <div className="flex items-baseline justify-between pr-7">
-                          <span className="font-display text-base font-bold text-ink">
-                            {opt.name}
-                          </span>
-                          <span className="font-mono text-xs font-bold text-accent">
-                            ₹{opt.rate}/g
-                          </span>
-                        </div>
-
-                        <p className="mt-1 font-sans text-xs text-muted line-clamp-1">
-                          {meta?.tagline || `Density ${opt.density} g/cc`}
-                        </p>
-
-                        <div className="mt-2.5 flex items-center gap-2 text-[11px] font-mono text-muted">
-                          <span>{meta?.strength.split('·')[0] || 'Standard'}</span>
-                          <span>•</span>
-                          <span>{meta?.heatResistance || '55°C'}</span>
-                        </div>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setInfoMaterialModal(opt.id)}
-                        title={`View ${opt.name} details`}
-                        className="absolute top-3.5 right-3.5 flex h-6 w-6 items-center justify-center rounded-full bg-shell text-muted hover:bg-accent hover:text-white transition-colors"
-                      >
-                        <Info className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* STEP 04: Slicing Parameters */}
-            <div className="rounded-3xl border border-line bg-white p-7 shadow-soft space-y-6">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
-                  4
-                </span>
-                <h2 className="font-display text-xl font-bold text-ink">
-                  Print Parameters & Quantity
-                </h2>
-              </div>
-
-              {mode === '3d-model' && (
                 <div className="grid gap-6 sm:grid-cols-2 border-b border-line pb-6">
                   {/* Infill */}
                   <div>
@@ -858,225 +1049,315 @@ export function CustomService() {
                     </select>
                   </div>
                 </div>
-              )}
 
-              {/* Color & Quantity */}
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div>
-                  <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block mb-2">
-                    Primary Filament Color
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="color"
-                      value={color}
-                      onChange={(e) => setColor(e.target.value)}
-                      className="h-10 w-12 rounded-xl border border-line p-1 cursor-pointer bg-white"
+                {/* Color & Quantity */}
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block mb-2">
+                      Primary Filament Color
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={color}
+                        onChange={(e) => setColor(e.target.value)}
+                        className="h-10 w-12 rounded-xl border border-line p-1 cursor-pointer bg-white"
+                      />
+                      <span className="font-mono text-xs font-bold text-ink">
+                        {color.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block mb-2">
+                      Print Quantity
+                    </label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={quantity}
+                      onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
                     />
-                    <span className="font-mono text-xs font-bold text-ink">
-                      {color.toUpperCase()}
-                    </span>
                   </div>
                 </div>
 
-                <div>
+                {/* Special Notes */}
+                <div className="border-t border-line pt-5">
                   <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block mb-2">
-                    Print Quantity
+                    Special Finishing or Engineering Instructions (Optional)
                   </label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="e.g. Brass threaded heat-set inserts required, critical 0.2mm tolerance on inner bore, matte finish..."
+                    rows={2}
                   />
                 </div>
               </div>
+            )}
 
-              {/* Dimensions for 2D/Idea mode */}
-              {mode !== '3d-model' && (
-                <div className="grid grid-cols-3 gap-3 border-t border-line pt-5">
-                  <Input
-                    label="Length (mm)"
-                    type="number"
-                    min={0}
-                    placeholder="e.g. 100"
-                    value={length}
-                    onChange={(e) => setLength(e.target.value)}
-                  />
-                  <Input
-                    label="Width (mm)"
-                    type="number"
-                    min={0}
-                    placeholder="e.g. 80"
-                    value={width}
-                    onChange={(e) => setWidth(e.target.value)}
-                  />
-                  <Input
-                    label="Height (mm)"
-                    type="number"
-                    min={0}
-                    placeholder="e.g. 50"
-                    value={height}
-                    onChange={(e) => setHeight(e.target.value)}
+            {/* ── STEP 04B: Color & Quantity (Assisted path) ── */}
+            {mode === 'assisted' && assistedSub !== null && (
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft space-y-6">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
+                    4
+                  </span>
+                  <h2 className="font-display text-xl font-bold text-ink">
+                    Color & Quantity
+                  </h2>
+                </div>
+
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block mb-2">
+                      Preferred Color
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={color}
+                        onChange={(e) => setColor(e.target.value)}
+                        className="h-10 w-12 rounded-xl border border-line p-1 cursor-pointer bg-white"
+                      />
+                      <span className="font-mono text-xs font-bold text-ink">
+                        {color.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block mb-2">
+                      Quantity
+                    </label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={quantity}
+                      onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
+                    />
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div className="border-t border-line pt-5">
+                  <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block mb-2">
+                    Anything Else We Should Know? (Optional)
+                  </label>
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="e.g. Needs to be food-safe, will be used outdoors, prefer matte finish..."
+                    rows={2}
                   />
                 </div>
-              )}
-
-              {/* Special Notes */}
-              <div className="border-t border-line pt-5">
-                <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block mb-2">
-                  Special Finishing or Engineering Instructions (Optional)
-                </label>
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="e.g. Brass threaded heat-set inserts required, critical 0.2mm tolerance on inner bore, matte finish..."
-                  rows={2}
-                />
               </div>
-            </div>
+            )}
 
-            {/* STEP 05: Contact Details */}
-            <div className="rounded-3xl border border-line bg-white p-7 shadow-soft space-y-5">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
-                  5
-                </span>
-                <h2 className="font-display text-xl font-bold text-ink">
-                  Your Contact Details
-                </h2>
-              </div>
+            {/* ── STEP 05: Contact Details ── */}
+            {(mode === '3d-model' || (mode === 'assisted' && assistedSub !== null)) && (
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft space-y-5">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
+                    5
+                  </span>
+                  <h2 className="font-display text-xl font-bold text-ink">
+                    Your Contact Details
+                  </h2>
+                </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Input
-                  label="Full Name *"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  required
-                />
-                <Input
-                  label="Phone / WhatsApp Number *"
-                  type="tel"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  required
-                />
-                <Input
-                  label="Email Address *"
-                  type="email"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                  required
-                  className="sm:col-span-2"
-                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Input
+                    label="Full Name *"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    required
+                  />
+                  <Input
+                    label="Phone / WhatsApp Number *"
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    required
+                  />
+                  <Input
+                    label="Email Address *"
+                    type="email"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    required
+                    className="sm:col-span-2"
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Right Column: Live Estimate Sidebar */}
           <aside className="lg:col-span-5">
             <div className="lg:sticky lg:top-28 space-y-6">
-              {/* Estimate Calculation Card */}
+              {/* Estimate / Quote Card */}
               <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
                 <div className="flex items-center justify-between border-b border-line pb-4">
                   <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
-                    Live Calculation
+                    {mode === '3d-model' ? 'Live Calculation' : 'Expert Quote'}
                   </span>
                   <Badge variant="default">Patiala Workshop</Badge>
                 </div>
 
-                {isCalculating ? (
-                  <div className="py-8 text-center space-y-3">
-                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-accent" />
-                    <p className="font-mono text-xs font-semibold text-ink">
-                      Analyzing 3D STL mesh & volume...
-                    </p>
-                  </div>
-                ) : mode === '3d-model' && estimatedPrice !== null ? (
-                  <div className="py-6 space-y-5">
-                    <div>
-                      <span className="font-mono text-4xl font-bold text-ink">
-                        ₹{estimatedPrice.toLocaleString('en-IN')}
-                      </span>
-                      <span className="font-sans text-xs text-muted block mt-1">
-                        Includes base slicing fee + {quantity} × {material} ({infill}% infill)
-                      </span>
-                    </div>
+                {/* 3D Model sidebar: live price */}
+                {mode === '3d-model' && (
+                  <>
+                    {isCalculating ? (
+                      <div className="py-8 text-center space-y-3">
+                        <Loader2 className="mx-auto h-8 w-8 animate-spin text-accent" />
+                        <p className="font-mono text-xs font-semibold text-ink">
+                          Analyzing 3D STL mesh & volume...
+                        </p>
+                      </div>
+                    ) : estimatedPrice !== null ? (
+                      <div className="py-6 space-y-5">
+                        <div>
+                          <span className="font-mono text-4xl font-bold text-ink">
+                            ₹{estimatedPrice.toLocaleString('en-IN')}
+                          </span>
+                          <span className="font-sans text-xs text-muted block mt-1">
+                            Includes base slicing fee + {quantity} × {material} ({infill}% infill)
+                          </span>
+                        </div>
 
-                    <div className="divide-y divide-line rounded-2xl border border-line bg-shell px-4 py-2 text-xs font-sans">
-                      <div className="flex justify-between py-2">
-                        <span className="text-muted">Volume</span>
-                        <span className="font-mono font-bold text-ink">
-                          {volume?.toFixed(2)} cm³
-                        </span>
+                        <div className="divide-y divide-line rounded-2xl border border-line bg-shell px-4 py-2 text-xs font-sans">
+                          <div className="flex justify-between py-2">
+                            <span className="text-muted">Volume</span>
+                            <span className="font-mono font-bold text-ink">
+                              {volume?.toFixed(2)} cm³
+                            </span>
+                          </div>
+                          <div className="flex justify-between py-2">
+                            <span className="text-muted">Est. Weight</span>
+                            <span className="font-mono font-bold text-ink">
+                              {estimatedWeight} g
+                            </span>
+                          </div>
+                          <div className="flex justify-between py-2">
+                            <span className="text-muted">Material Rate</span>
+                            <span className="font-mono font-bold text-ink">
+                              ₹{MATERIAL_CONFIG[material].pricePerGram}/g
+                            </span>
+                          </div>
+                          <div className="flex justify-between py-2">
+                            <span className="text-muted">Total Quantity</span>
+                            <span className="font-mono font-bold text-ink">
+                              {quantity} pcs
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex justify-between py-2">
-                        <span className="text-muted">Est. Weight</span>
-                        <span className="font-mono font-bold text-ink">
-                          {estimatedWeight} g
-                        </span>
+                    ) : (
+                      <div className="py-6 text-center space-y-2">
+                        <Box className="mx-auto h-8 w-8 text-accent/60" />
+                        <p className="font-display text-base font-bold text-ink">
+                          Upload an STL to calculate cost
+                        </p>
+                        <p className="font-sans text-xs text-muted">
+                          Live calculation computes per-gram weight and slicing tolerances.
+                        </p>
                       </div>
-                      <div className="flex justify-between py-2">
-                        <span className="text-muted">Material Rate</span>
-                        <span className="font-mono font-bold text-ink">
-                          ₹{MATERIAL_CONFIG[material].pricePerGram}/g
-                        </span>
-                      </div>
-                      <div className="flex justify-between py-2">
-                        <span className="text-muted">Total Quantity</span>
-                        <span className="font-mono font-bold text-ink">
-                          {quantity} pcs
-                        </span>
-                      </div>
+                    )}
+
+                    <div className="space-y-3 pt-2 font-display">
+                      <Button
+                        size="lg"
+                        disabled={!file || estimatedPrice === null || isCalculating || isSubmitting}
+                        onClick={handleAddToCart}
+                        className="w-full font-bold shadow-lg shadow-accent/20 bg-accent hover:bg-accent-dark text-white border-accent"
+                      >
+                        <ShoppingCart className="mr-2 h-4 w-4" />
+                        {isSubmitting
+                          ? uploadProgress !== null
+                            ? `Uploading ${uploadProgress}%...`
+                            : 'Adding...'
+                          : 'Add Print to Cart & Checkout'}
+                      </Button>
+
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        disabled={isSubmitting || isCalculating || !file}
+                        isLoading={isSubmitting}
+                        onClick={submitRequest}
+                        className="w-full font-bold"
+                      >
+                        Request Confirmed Engineering Review
+                      </Button>
                     </div>
-                  </div>
-                ) : (
-                  <div className="py-6 text-center space-y-2">
-                    <Box className="mx-auto h-8 w-8 text-accent/60" />
-                    <p className="font-display text-base font-bold text-ink">
-                      {mode === '3d-model'
-                        ? 'Upload an STL file to calculate cost'
-                        : 'Manual Engineering Review'}
-                    </p>
-                    <p className="font-sans text-xs text-muted">
-                      {mode === '3d-model'
-                        ? 'Live calculation computes per-gram weight and slicing tolerances.'
-                        : 'Our team will review your photos or brief and provide a quote within 4 hours.'}
-                    </p>
-                  </div>
+                  </>
                 )}
 
-                {/* Primary Action Buttons */}
-                <div className="space-y-3 pt-2 font-display">
-                  {mode === '3d-model' && (
-                    <Button
-                      size="lg"
-                      disabled={!file || estimatedPrice === null || isCalculating || isSubmitting}
-                      onClick={handleAddToCart}
-                      className="w-full font-bold shadow-lg shadow-accent/20 bg-accent hover:bg-accent-dark text-white border-accent"
-                    >
-                      <ShoppingCart className="mr-2 h-4 w-4" />
-                      {isSubmitting
-                        ? uploadProgress !== null
-                          ? `Uploading ${uploadProgress}%...`
-                          : 'Adding...'
-                        : 'Add Print to Cart & Checkout'}
-                    </Button>
-                  )}
+                {/* Assisted sidebar: "we'll quote you" */}
+                {mode === 'assisted' && (
+                  <>
+                    <div className="py-6 text-center space-y-3">
+                      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-soft text-accent">
+                        <MessageSquare className="h-7 w-7" />
+                      </div>
+                      <p className="font-display text-base font-bold text-ink">
+                        We'll Review & Quote You
+                      </p>
+                      <p className="font-sans text-xs text-muted leading-relaxed">
+                        Our makers will review your brief and send a detailed quote to your email within 4 hours.
+                      </p>
+                      <div className="rounded-2xl border border-line bg-shell px-4 py-3 text-xs font-sans text-left space-y-1.5">
+                        <div className="flex items-center gap-2 text-muted">
+                          <span className="text-emerald-500 font-bold">✓</span>
+                          Free design consultation
+                        </div>
+                        <div className="flex items-center gap-2 text-muted">
+                          <span className="text-emerald-500 font-bold">✓</span>
+                          No upfront payment required
+                        </div>
+                        <div className="flex items-center gap-2 text-muted">
+                          <span className="text-emerald-500 font-bold">✓</span>
+                          Quote sent within 4 hours
+                        </div>
+                      </div>
+                    </div>
 
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    disabled={isSubmitting || isCalculating || (mode !== 'idea' && !file)}
-                    isLoading={isSubmitting}
-                    onClick={submitRequest}
-                    className="w-full font-bold"
-                  >
-                    {mode === '3d-model'
-                      ? 'Request Confirmed Engineering Review'
-                      : 'Submit for Custom Quote'}
-                  </Button>
-                </div>
+                    <div className="space-y-3 pt-2 font-display">
+                      <Button
+                        size="lg"
+                        disabled={
+                          isSubmitting ||
+                          assistedSub === null ||
+                          (assistedSub === 'has-reference' && !file) ||
+                          !description.trim()
+                        }
+                        isLoading={isSubmitting}
+                        onClick={submitRequest}
+                        className="w-full font-bold bg-accent hover:bg-accent-dark text-white border-accent shadow-lg shadow-accent/20"
+                      >
+                        {isSubmitting
+                          ? uploadProgress !== null
+                            ? `Uploading ${uploadProgress}%...`
+                            : 'Submitting...'
+                          : 'Submit for Custom Quote'}
+                      </Button>
+
+                      {whatsappLink !== '#' && (
+                        <a
+                          href={whatsappLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex w-full items-center justify-center gap-2 rounded-xl border border-line bg-shell px-4 py-2.5 font-mono text-xs font-bold text-ink hover:border-accent hover:text-accent transition-colors"
+                        >
+                          <span>💬</span>
+                          Chat on WhatsApp Instead
+                        </a>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* NDA & Confidentiality Note */}
@@ -1086,7 +1367,7 @@ export function CustomService() {
                   <h4 className="font-display text-xs font-bold text-ink">Confidentiality Guaranteed</h4>
                 </div>
                 <p className="font-sans text-xs text-muted leading-relaxed">
-                  Working on proprietary hardware or an unreleased invention? We protect your CAD intellectual property with standard NDA agreements.{' '}
+                  Working on proprietary hardware or an unreleased invention? We protect your intellectual property with standard NDA agreements.{' '}
                   <Link to="/reach-us" className="font-bold text-accent hover:underline font-mono">
                     Request an NDA
                   </Link>
@@ -1141,7 +1422,7 @@ export function CustomService() {
         </div>
       </section>
 
-      {/* 5. Material Info Modal */}
+      {/* 5. Material Info Modal (reused for both paths) */}
       {infoMaterialModal && (
         <div
           role="dialog"
@@ -1180,6 +1461,16 @@ export function CustomService() {
             <p className="mt-4 font-sans text-xs leading-relaxed text-muted">
               {MATERIAL_CONFIG[infoMaterialModal].description}
             </p>
+
+            {/* Friendly use-case highlight for assisted users */}
+            {mode === 'assisted' && ASSISTED_MATERIAL_FRIENDLY[infoMaterialModal] && (
+              <div className="mt-4 rounded-2xl bg-accent-soft border border-accent/20 px-4 py-3">
+                <p className="font-sans text-xs text-ink leading-relaxed">
+                  <span className="font-bold text-accent">Great for: </span>
+                  {ASSISTED_MATERIAL_FRIENDLY[infoMaterialModal].bestFor}
+                </p>
+              </div>
+            )}
 
             <div className="mt-5 divide-y divide-line rounded-2xl border border-line bg-shell px-4 py-1 text-xs font-sans">
               <div className="flex justify-between py-2.5">
@@ -1240,5 +1531,3 @@ export function CustomService() {
     </div>
   );
 }
-
-
