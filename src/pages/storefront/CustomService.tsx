@@ -479,7 +479,7 @@ export function CustomService() {
   }
 
   return (
-    <div className="min-h-screen bg-paper text-ink">
+    <div className="min-h-screen bg-paper text-ink pt-16 lg:pt-20">
       {/* 1. Header Section */}
       <section className="border-b border-line bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8 lg:px-10 lg:py-12">
@@ -1087,7 +1087,7 @@ export function CustomService() {
                 </div>
                 <p className="font-sans text-xs text-muted leading-relaxed">
                   Working on proprietary hardware or an unreleased invention? We protect your CAD intellectual property with standard NDA agreements.{' '}
-                  <Link to="/contact" className="font-bold text-accent hover:underline font-mono">
+                  <Link to="/reach-us" className="font-bold text-accent hover:underline font-mono">
                     Request an NDA
                   </Link>
                 </p>
@@ -1240,3 +1240,5 @@ export function CustomService() {
     </div>
   );
 }
+
+

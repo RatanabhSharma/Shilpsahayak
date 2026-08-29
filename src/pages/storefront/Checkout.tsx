@@ -357,7 +357,7 @@ export function Checkout() {
                 View in Account Dashboard
               </Button>
             </Link>
-            <Link to="/catalog" className="w-full sm:w-auto">
+            <Link to="/shop" className="w-full sm:w-auto">
               <Button variant="outline" className="w-full font-semibold">
                 Continue Shopping
               </Button>
@@ -414,7 +414,7 @@ export function Checkout() {
           <p className="mt-2 text-sm text-muted font-sans">
             Add items to your cart before proceeding to checkout.
           </p>
-          <Link to="/catalog" className="mt-6 inline-block">
+          <Link to="/shop" className="mt-6 inline-block">
             <Button className="font-display font-bold">Browse Catalog</Button>
           </Link>
         </div>
@@ -423,7 +423,7 @@ export function Checkout() {
   }
 
   return (
-    <div className="min-h-screen bg-paper text-ink">
+    <div className="min-h-screen bg-paper text-ink pt-16 lg:pt-20">
       {/* Checkout Header */}
       <section className="border-b border-line bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10">
@@ -858,3 +858,5 @@ export function Checkout() {
     </div>
   );
 }
+
+

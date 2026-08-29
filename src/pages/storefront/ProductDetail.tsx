@@ -308,7 +308,7 @@ export function ProductDetail() {
           <p className="mt-3 text-sm text-muted font-sans">
             This design might have been updated, archived, or moved.
           </p>
-          <Link to="/catalog" className="mt-6 inline-block">
+          <Link to="/shop" className="mt-6 inline-block">
             <Button className="font-display font-bold">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Catalog
@@ -320,7 +320,7 @@ export function ProductDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-paper text-ink">
+    <div className="min-h-screen bg-paper text-ink pt-16 lg:pt-20">
       {/* Breadcrumbs */}
       <div className="border-b border-line bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-3.5 sm:px-8 lg:px-10">
@@ -333,7 +333,7 @@ export function ProductDetail() {
               </li>
               <ChevronRight className="h-3 w-3" />
               <li>
-                <Link to="/catalog" className="hover:text-accent transition-colors">
+                <Link to="/shop" className="hover:text-accent transition-colors">
                   Catalog
                 </Link>
               </li>
@@ -349,7 +349,7 @@ export function ProductDetail() {
       {/* Main Product Container */}
       <main className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10 lg:py-12">
         <Link
-          to="/catalog"
+          to="/shop"
           className="mb-8 inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-muted hover:text-accent transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
@@ -891,7 +891,7 @@ export function ProductDetail() {
               </div>
 
               <Link
-                to="/catalog"
+                to="/shop"
                 className="text-xs font-bold text-accent hover:underline font-mono"
               >
                 <span>View Catalog →</span>
@@ -909,3 +909,5 @@ export function ProductDetail() {
     </div>
   );
 }
+
+

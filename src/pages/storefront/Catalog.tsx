@@ -751,7 +751,7 @@ export function Catalog() {
   );
 
   return (
-    <div className="min-h-screen bg-paper text-ink">
+    <div className="min-h-screen bg-paper text-ink pt-16 lg:pt-20">
       <style>
         {`
           .catalog-range {
@@ -798,7 +798,7 @@ export function Catalog() {
               <p className="mt-3 max-w-2xl font-sans text-sm leading-relaxed text-muted sm:text-base">
                 Browse our curated line of precision 3D printed products. Have a custom STL or CAD model you want us to produce instead?{' '}
                 <Link
-                  to="/custom-service"
+                  to="/shilp-studio"
                   className="font-bold text-accent underline underline-offset-4 hover:text-accent-dark transition-colors"
                 >
                   Upload CAD for Instant Quote →
@@ -996,7 +996,7 @@ export function Catalog() {
                     Clear Filters
                   </Button>
 
-                  <Link to="/custom-service">
+                  <Link to="/shilp-studio">
                     <Button className="font-display font-bold">
                       <Sparkles className="mr-2 h-4 w-4" />
                       Get Custom 3D Quote
@@ -1022,3 +1022,6 @@ export function Catalog() {
     </div>
   );
 }
+
+
+

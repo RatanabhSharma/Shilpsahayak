@@ -50,7 +50,7 @@ export const DEFAULT_HERO_SLIDES: HomepageHeroSlide[] = [
     image:
       'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&w=2000&q=80',
     buttonText: 'Explore Products',
-    buttonLink: '/catalog',
+    buttonLink: '/shop',
   },
   {
     id: 'hero-2',
@@ -62,7 +62,7 @@ export const DEFAULT_HERO_SLIDES: HomepageHeroSlide[] = [
     image:
       'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?auto=format&fit=crop&w=1200&q=80',
     buttonText: 'Upload CAD for Quote',
-    buttonLink: '/custom-service',
+    buttonLink: '/shilp-studio',
   },
   {
     id: 'hero-3',
@@ -74,7 +74,7 @@ export const DEFAULT_HERO_SLIDES: HomepageHeroSlide[] = [
     image:
       'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=1200&q=80',
     buttonText: 'Get Custom 3D Quote',
-    buttonLink: '/custom-service',
+    buttonLink: '/shilp-studio',
   },
 ];
 
@@ -82,12 +82,12 @@ export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
   heroSlides: DEFAULT_HERO_SLIDES,
   heroAutoplay: true,
   heroInterval: 6000,
-  heroVideoUrl: '/videos/demo_video.mp4',
+  heroVideoUrl: '/videos/demo_video2.mp4',
   heroEyebrow: 'BESPOKE 3D FABRICATION STUDIO',
   heroTitle: 'Turn Ideas Into Something Real.',
   heroSubtitle: 'Precision 3D printed lighting, mechanical components, and bespoke goods crafted in India.',
   heroButtonText: 'Explore Collection',
-  heroButtonLink: '/catalog',
+  heroButtonLink: '/shop',
 
   featuredProductIds: [],
   selectedProductIds: [],
@@ -103,7 +103,7 @@ export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
   customPromoTitle: 'Have a 3D Model? Upload your STL & get an instant quote.',
   customPromoSubtitle: 'Our interactive custom printing pipeline computes volume, estimates material weight, and generates transparent pricing in real time for PLA, PETG, ABS, and Resin.',
   customPromoButtonText: 'Upload 3D File',
-  customPromoButtonLink: '/custom-service',
+  customPromoButtonLink: '/shilp-studio',
 };
 
 const HOMEPAGE_DOCUMENT_ID = 'homepage';
@@ -380,3 +380,5 @@ export function useUpdateHomepage() {
     },
   });
 }
+
+

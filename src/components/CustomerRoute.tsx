@@ -34,3 +34,6 @@ export function CustomerRoute({ children }: CustomerRouteProps) {
 
   return <>{children}</>;
 }
+
+
+

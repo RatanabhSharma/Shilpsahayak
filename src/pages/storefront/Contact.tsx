@@ -41,7 +41,7 @@ export function Contact() {
   };
 
   return (
-    <div className="min-h-screen bg-paper text-ink">
+    <div className="min-h-screen bg-paper text-ink pt-16 lg:pt-20">
       {/* Hero Header */}
       <section className="border-b border-line bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-12 sm:px-8 lg:px-10 lg:py-16">
@@ -202,7 +202,7 @@ export function Contact() {
               <p className="font-sans text-xs text-muted leading-relaxed">
                 Skip the contact form and upload your STL directly to our automated slicing calculator for instant transparent pricing.
               </p>
-              <Link to="/custom-service" className="inline-block">
+              <Link to="/shilp-studio" className="inline-block">
                 <Button size="sm" variant="primary">
                   Launch 3D File Uploader
                   <ArrowRight className="ml-1 h-3.5 w-3.5" />
@@ -327,7 +327,7 @@ export function Contact() {
               </p>
             </div>
 
-            <Link to="/custom-service">
+            <Link to="/shilp-studio">
               <Button size="lg" variant="primary">
                 <span>Explore Custom Studio</span>
                 <ArrowRight className="w-4 h-4" />
@@ -339,3 +339,5 @@ export function Contact() {
     </div>
   );
 }
+
+

@@ -37,13 +37,13 @@ export function App() {
       <Routes>
         <Route path="/" element={<StorefrontLayout />}>
           <Route index element={<Home />} />
-          <Route path="catalog" element={<Catalog />} />
+          <Route path="shop" element={<Catalog />} />
           <Route path="product/:id" element={<ProductDetail />} />
           <Route path="cart" element={<Cart />} />
           <Route path="checkout" element={<Checkout />} />
 
           <Route
-            path="custom-service"
+            path="shilp-studio"
             element={
               <CustomerRoute>
                 <CustomService />
@@ -51,8 +51,8 @@ export function App() {
             }
           />
 
-          <Route path="about" element={<About />} />
-          <Route path="contact" element={<Contact />} />
+          <Route path="our-story" element={<About />} />
+          <Route path="reach-us" element={<Contact />} />
           <Route path="login" element={<Login />} />
 
           <Route
@@ -116,3 +116,6 @@ export function App() {
     </BrowserRouter>
   );
 }
+
+
+

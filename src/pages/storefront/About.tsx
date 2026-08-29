@@ -45,7 +45,7 @@ const PRINCIPLES = [
 
 export function About() {
   return (
-    <div className="min-h-screen bg-paper text-ink">
+    <div className="min-h-screen bg-paper text-ink pt-16 lg:pt-20">
       {/* Hero Header */}
       <section className="border-b border-line bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10 lg:py-20">
@@ -66,13 +66,13 @@ export function About() {
               </p>
 
               <div className="flex flex-wrap gap-3 pt-2 font-display">
-                <Link to="/catalog">
+                <Link to="/shop">
                   <Button size="lg" className="font-bold shadow-md shadow-accent/20 bg-accent hover:bg-accent-dark text-white border-accent">
                     Browse Studio Pieces
                     <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>
                 </Link>
-                <Link to="/custom-service">
+                <Link to="/shilp-studio">
                   <Button size="lg" variant="outline" className="font-bold">
                     Start Custom Print
                   </Button>
@@ -229,13 +229,13 @@ export function About() {
             </div>
 
             <div className="flex flex-wrap gap-3 shrink-0">
-              <Link to="/custom-service">
+              <Link to="/shilp-studio">
                 <Button size="lg" variant="primary">
                   <span>Upload 3D Model</span>
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
-              <Link to="/contact">
+              <Link to="/reach-us">
                 <Button size="lg" variant="secondary">
                   <span>Contact Studio</span>
                 </Button>
@@ -247,3 +247,5 @@ export function About() {
     </div>
   );
 }
+
+

@@ -419,7 +419,7 @@ export function Account() {
             <Link to="/login">
               <Button className="font-bold bg-accent hover:bg-accent-dark text-white border-accent">Sign in</Button>
             </Link>
-            <Link to="/catalog">
+            <Link to="/shop">
               <Button variant="outline" className="font-semibold">Browse Catalog</Button>
             </Link>
           </div>
@@ -433,7 +433,7 @@ export function Account() {
   );
 
   return (
-    <div className="min-h-screen bg-paper text-ink">
+    <div className="min-h-screen bg-paper text-ink pt-16 lg:pt-20">
       {/* Account Hero Header */}
       <section className="border-b border-line bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10">
@@ -503,7 +503,7 @@ export function Account() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Link to="/custom-service">
+              <Link to="/shilp-studio">
                 <Button size="sm" variant="primary">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>New Custom Print</span>
@@ -623,7 +623,7 @@ export function Account() {
                 <p className="mt-1 font-sans text-xs text-muted">
                   Browse our catalog or submit custom 3D files to start your first order.
                 </p>
-                <Link to="/catalog" className="mt-5 inline-block">
+                <Link to="/shop" className="mt-5 inline-block">
                   <Button className="font-display font-bold">Browse Catalog</Button>
                 </Link>
               </div>
@@ -699,7 +699,7 @@ export function Account() {
                 </p>
               </div>
 
-              <Link to="/custom-service">
+              <Link to="/shilp-studio">
                 <Button size="sm" variant="primary">
                   Upload New Model
                 </Button>
@@ -718,7 +718,7 @@ export function Account() {
                 <p className="mt-1 font-sans text-xs text-muted">
                   Upload an STL/OBJ model or share reference images for an instant or engineer-verified quote.
                 </p>
-                <Link to="/custom-service" className="mt-5 inline-block">
+                <Link to="/shilp-studio" className="mt-5 inline-block">
                   <Button variant="primary">Request Custom Quote</Button>
                 </Link>
               </div>
@@ -796,7 +796,7 @@ export function Account() {
                                 </Button>
                               </div>
                             ) : (
-                              <Link to="/custom-service">
+                              <Link to="/shilp-studio">
                                 <Button size="sm" variant="ghost">
                                   New Quote
                                 </Button>
@@ -1246,3 +1246,5 @@ export function Account() {
     </div>
   );
 }
+
+

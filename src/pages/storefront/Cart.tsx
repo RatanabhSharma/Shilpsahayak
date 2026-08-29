@@ -70,13 +70,13 @@ export function Cart() {
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row justify-center">
-            <Link to="/catalog" className="w-full sm:w-auto">
+            <Link to="/shop" className="w-full sm:w-auto">
               <Button className="w-full font-display font-bold">
                 Browse 3D Catalog
               </Button>
             </Link>
 
-            <Link to="/custom-service" className="w-full sm:w-auto">
+            <Link to="/shilp-studio" className="w-full sm:w-auto">
               <Button variant="outline" className="w-full font-sans font-semibold">
                 Upload Custom 3D Model
               </Button>
@@ -88,7 +88,7 @@ export function Cart() {
   }
 
   return (
-    <div className="min-h-screen bg-paper text-ink">
+    <div className="min-h-screen bg-paper text-ink pt-16 lg:pt-20">
       {/* Header */}
       <section className="border-b border-line bg-white">
         <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10">
@@ -103,7 +103,7 @@ export function Cart() {
             </div>
 
             <Link
-              to="/catalog"
+              to="/shop"
               className="font-mono text-xs font-bold text-accent hover:underline"
             >
               ← Continue Shopping
@@ -162,7 +162,7 @@ export function Cart() {
                       <Link
                         to={
                           isCustomPrint
-                            ? '/custom-service'
+                            ? '/shilp-studio'
                             : `/product/${item.product.id}`
                         }
                         className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-line bg-shell"
@@ -202,7 +202,7 @@ export function Cart() {
                         <Link
                           to={
                             isCustomPrint
-                              ? '/custom-service'
+                              ? '/shilp-studio'
                               : `/product/${item.product.id}`
                           }
                           className="font-display text-lg font-bold text-ink hover:text-accent transition-colors block line-clamp-1"
@@ -298,7 +298,7 @@ export function Cart() {
                 </span>
               </div>
               <Link
-                to="/custom-service"
+                to="/shilp-studio"
                 className="text-xs font-bold text-accent hover:underline whitespace-nowrap ml-4 font-mono"
               >
                 Open Studio →
@@ -371,3 +371,5 @@ export function Cart() {
     </div>
   );
 }
+
+

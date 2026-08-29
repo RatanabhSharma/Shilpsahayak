@@ -25,7 +25,7 @@ import { buttonVariants } from '../../components/ui';
 import { ProductCard } from '../../components/product/ProductCard';
 import { FeaturedProductSkeleton } from '../../components/loading/ProductSkeleton';
 import { Hero3DCanvas } from '../../components/3d/Hero3DCanvas';
-import demoVideo from '../../assets/videos/demo_video.mp4';
+import demoVideo from '../../assets/videos/demo_video2.mp4';
 
 /* ============================================================
    MOTION VARIANTS FOR REFINED SCROLL & HOVER INTERACTIONS
@@ -311,7 +311,12 @@ export function Home() {
   /* Hero Media & Content (Video / GIF with Poster fallback) */
   const heroMediaUrl = useMemo(() => {
     const custom = homepageSettings?.heroVideoUrl?.trim();
-    if (custom && !custom.includes('mixkit.co') && custom !== '/hero-print.webm') {
+    if (
+      custom &&
+      !custom.includes('mixkit.co') &&
+      custom !== '/hero-print.webm' &&
+      !custom.startsWith('/videos/demo_video')
+    ) {
       return custom;
     }
     return demoVideo;
@@ -512,7 +517,7 @@ export function Home() {
 
           <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
             <Link
-              to="/catalog"
+              to="/shop"
               className="inline-flex items-center gap-1.5 font-display text-xs sm:text-sm font-bold text-accent hover:underline"
             >
               <span>View Complete Catalog</span>
@@ -594,7 +599,7 @@ export function Home() {
 
             {/* View All Categories Link */}
             <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
-              <Link to="/catalog" className="font-display text-xs sm:text-sm font-bold text-accent hover:underline">
+              <Link to="/shop" className="font-display text-xs sm:text-sm font-bold text-accent hover:underline">
                 View All Categories →
               </Link>
             </div>
@@ -640,7 +645,7 @@ export function Home() {
                   className="w-[230px] sm:w-[280px] lg:w-[320px] shrink-0"
                 >
                   <Link
-                    to={`/catalog?category=${encodeURIComponent(cat.name)}`}
+                    to={`/shop?category=${encodeURIComponent(cat.name)}`}
                     className="group/cat relative block w-full overflow-hidden rounded-2xl border border-line bg-white shadow-soft transition-all duration-300 hover:shadow-card hover:-translate-y-1.5 hover:border-accent/40"
                   >
                     <div className="relative aspect-[4/3] w-full overflow-hidden bg-shell shine-sweep-container">
@@ -770,7 +775,7 @@ export function Home() {
 
                 <div className="flex flex-wrap gap-3 pt-1">
                   <Link
-                    to={homepageSettings?.customPromoButtonLink || '/custom-service'}
+                    to={homepageSettings?.customPromoButtonLink || '/shilp-studio'}
                     className={buttonVariants({ variant: 'primary', size: 'md' })}
                   >
                     <UploadCloud className="w-4 h-4" />
@@ -868,14 +873,14 @@ export function Home() {
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
               <Link
-                to="/catalog"
+                to="/shop"
                 className={buttonVariants({ variant: 'primary', size: 'lg' })}
               >
                 <span>Shop Catalog</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
-                to="/custom-service"
+                to="/shilp-studio"
                 className={buttonVariants({ variant: 'secondary', size: 'lg' })}
               >
                 <span>Start a Custom Print</span>
@@ -887,3 +892,5 @@ export function Home() {
     </div>
   );
 }
+
+

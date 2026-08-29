@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Pencil, Trash2, Loader2, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, X, Upload } from 'lucide-react';
 import {
   useProducts,
   useAddProduct,
@@ -933,3 +933,6 @@ export function Catalog() {
 }
 
 export default Catalog;
+
+
+

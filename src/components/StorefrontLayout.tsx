@@ -46,20 +46,25 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   {
-    name: 'Products',
-    path: '/catalog',
+    name: 'Home',
+    path: '/',
+    end: true,
   },
   {
-    name: 'Custom Printing',
-    path: '/custom-service',
+    name: 'Shop',
+    path: '/shop',
   },
   {
-    name: 'About Studio',
-    path: '/about',
+    name: 'Shilp Studio',
+    path: '/shilp-studio',
   },
   {
-    name: 'Contact',
-    path: '/contact',
+    name: 'Our Story',
+    path: '/our-story',
+  },
+  {
+    name: 'Reach Us',
+    path: '/reach-us',
   },
 ];
 
@@ -189,6 +194,37 @@ export function StorefrontLayout() {
   }, [location.pathname]);
 
   /* ----------------------------------------------------------
+     Dynamic browser tab title per route
+     ---------------------------------------------------------- */
+
+  useEffect(() => {
+    const PAGE_TITLES: Record<string, string> = {
+      '/':             'Where Ideas Come to Life',
+      '/shop':         'Shop',
+      '/shilp-studio': 'Shilp Studio',
+      '/our-story':    'Our Story',
+      '/reach-us':     'Reach Us',
+      '/cart':         'Cart',
+      '/checkout':     'Checkout',
+      '/login':        'Sign In',
+      '/account':      'My Account',
+    };
+
+    // Match exact first, then prefix (e.g. /product/:id, /shop?category=...)
+    const path = location.pathname;
+    const exact = PAGE_TITLES[path];
+    if (exact) {
+      document.title = exact;
+    } else if (path.startsWith('/product/')) {
+      document.title = 'Product | Shilp Sahayak';
+    } else if (path.startsWith('/shop')) {
+      document.title = 'Shop | Shilp Sahayak';
+    } else {
+      document.title = 'Shilp Sahayak — Where Ideas Come to Life';
+    }
+  }, [location.pathname]);
+
+  /* ----------------------------------------------------------
      Lock body scroll when mobile menu open
      ---------------------------------------------------------- */
 
@@ -261,6 +297,10 @@ export function StorefrontLayout() {
   const isAuthenticated = !authLoading && !!user;
   const showAdmin = !authLoading && !roleLoading && isAuthenticated && isAdmin;
 
+  // Transparent overlay only on the home page; all other pages always use solid navbar
+  const isHomePage = location.pathname === '/';
+  const isTransparent = isHomePage && !isScrolled;
+
   return (
     <div className="min-h-screen flex flex-col bg-paper text-ink">
       {/* Accessibility Skip Link */}
@@ -271,12 +311,12 @@ export function StorefrontLayout() {
         Skip to content
       </a>
 
-      {/* Persistent Single Stacked Header: Navbar on Top + Announcement Bar Directly Below */}
+      {/* Persistent Single Stacked Header: Navbar on Top */}
       <header
-        className={`sticky top-0 z-50 transition-all duration-300 ${
-          isScrolled
-            ? 'bg-paper/95 border-b border-line shadow-soft backdrop-blur-md'
-            : 'bg-paper/85 border-b border-line/60 backdrop-blur-md'
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          isTransparent
+            ? 'bg-transparent'
+            : 'bg-white/90 backdrop-blur-md shadow-sm border-b border-black/5'
         }`}
       >
         <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-4 sm:px-6 lg:h-20 lg:px-10">
@@ -304,6 +344,8 @@ export function StorefrontLayout() {
                     'relative py-2 text-sm font-display font-medium transition-colors group whitespace-nowrap',
                     isActive
                       ? 'text-accent font-semibold'
+                      : isTransparent
+                      ? 'text-white/90 hover:text-white drop-shadow'
                       : 'text-ink/80 hover:text-accent',
                   ].join(' ')
                 }
@@ -349,7 +391,7 @@ export function StorefrontLayout() {
             <button
               type="button"
               onClick={() => setIsSearchOpen(true)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-ink hover:bg-shell transition-colors"
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow' : 'text-ink hover:bg-shell'}`}
               aria-label="Search products"
               title="Search products (Ctrl+K or ⌘K)"
             >
@@ -362,7 +404,7 @@ export function StorefrontLayout() {
             ) : isAuthenticated ? (
               <Link
                 to="/account"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-ink hover:bg-shell transition-colors"
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow' : 'text-ink hover:bg-shell'}`}
                 aria-label="My account"
                 title="My Account"
               >
@@ -371,7 +413,7 @@ export function StorefrontLayout() {
             ) : (
               <Link
                 to="/login"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-ink hover:bg-shell transition-colors"
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow' : 'text-ink hover:bg-shell'}`}
                 aria-label="Sign in"
                 title="Sign In"
               >
@@ -383,7 +425,7 @@ export function StorefrontLayout() {
             <button
               type="button"
               onClick={openCart}
-              className="relative inline-flex h-10 w-10 items-center justify-center rounded-full text-ink hover:bg-shell transition-colors"
+              className={`relative inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow' : 'text-ink hover:bg-shell'}`}
               aria-label={`Shopping cart with ${cartItemCount} items`}
               title="View Cart"
             >
@@ -399,7 +441,7 @@ export function StorefrontLayout() {
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-ink hover:bg-shell transition-colors lg:hidden"
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors lg:hidden ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow' : 'text-ink hover:bg-shell'}`}
               aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={isMobileMenuOpen}
               aria-controls="mobile-navigation"
@@ -477,7 +519,7 @@ export function StorefrontLayout() {
 
                 <div className="pt-3">
                   <Link
-                    to="/custom-service"
+                    to="/shilp-studio"
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3.5 text-sm font-bold text-white shadow-md hover:bg-accent-dark transition-colors"
                   >
                     <Sparkles className="h-4 w-4" />
@@ -489,14 +531,6 @@ export function StorefrontLayout() {
           )}
         </AnimatePresence>
 
-        {/* Announcement Bar (Directly below Navbar in the persistent stacked header) */}
-        {homepageSettings?.announcementEnabled &&
-          homepageSettings.announcementMessages.length > 0 && (
-            <AnnouncementBar
-              messages={homepageSettings.announcementMessages}
-              duration={homepageSettings.announcementDuration}
-            />
-          )}
       </header>
 
       {/* Main Content Area */}
@@ -569,27 +603,27 @@ export function StorefrontLayout() {
               </h3>
               <ul className="space-y-2 text-xs sm:text-sm font-sans text-zinc-400">
                 <li>
-                  <Link to="/catalog" className="hover:text-white transition-colors">
+                  <Link to="/shop" className="hover:text-white transition-colors">
                     All 3D Pieces
                   </Link>
                 </li>
                 <li>
-                  <Link to="/catalog?category=Lamps%20%26%20Lighting" className="hover:text-white transition-colors">
+                  <Link to="/shop?category=Lamps%20%26%20Lighting" className="hover:text-white transition-colors">
                     Lamps & Lithophanes
                   </Link>
                 </li>
                 <li>
-                  <Link to="/catalog?category=Desk%20Decor" className="hover:text-white transition-colors">
+                  <Link to="/shop?category=Desk%20Decor" className="hover:text-white transition-colors">
                     Desk & Workspace
                   </Link>
                 </li>
                 <li>
-                  <Link to="/catalog?category=Keychains" className="hover:text-white transition-colors">
+                  <Link to="/shop?category=Keychains" className="hover:text-white transition-colors">
                     Keychains & Gifts
                   </Link>
                 </li>
                 <li>
-                  <Link to="/custom-service" className="text-accent hover:text-accent-light transition-colors font-medium">
+                  <Link to="/shilp-studio" className="text-accent hover:text-accent-light transition-colors font-medium">
                     Custom 3D Printing
                   </Link>
                 </li>
@@ -603,22 +637,22 @@ export function StorefrontLayout() {
               </h3>
               <ul className="space-y-2 text-xs sm:text-sm font-sans text-zinc-400">
                 <li>
-                  <Link to="/custom-service" className="hover:text-white transition-colors">
+                  <Link to="/shilp-studio" className="hover:text-white transition-colors">
                     Instant STL Slicer
                   </Link>
                 </li>
                 <li>
-                  <Link to="/contact?type=corporate" className="hover:text-white transition-colors">
+                  <Link to="/reach-us?type=corporate" className="hover:text-white transition-colors">
                     Corporate & Bulk
                   </Link>
                 </li>
                 <li>
-                  <Link to="/about" className="hover:text-white transition-colors">
+                  <Link to="/our-story" className="hover:text-white transition-colors">
                     About Workshop
                   </Link>
                 </li>
                 <li>
-                  <Link to="/contact" className="hover:text-white transition-colors">
+                  <Link to="/reach-us" className="hover:text-white transition-colors">
                     Contact & Inquiries
                   </Link>
                 </li>
@@ -642,7 +676,7 @@ export function StorefrontLayout() {
                   </Link>
                 </li>
                 <li>
-                  <Link to="/contact" className="hover:text-white transition-colors">
+                  <Link to="/reach-us" className="hover:text-white transition-colors">
                     Shipping & Delivery
                   </Link>
                 </li>
@@ -745,7 +779,7 @@ export function StorefrontLayout() {
                     {searchQuery.trim() ? `Matching Pieces (${filteredSearchResults.length})` : 'Popular Studio Picks'}
                   </span>
                   <Link
-                    to="/catalog"
+                    to="/shop"
                     onClick={() => setIsSearchOpen(false)}
                     className="text-[11px] font-bold text-accent hover:underline font-mono"
                   >
@@ -798,3 +832,5 @@ export function StorefrontLayout() {
     </div>
   );
 }
+
+

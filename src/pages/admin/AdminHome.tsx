@@ -502,7 +502,7 @@ export function AdminHome() {
                 type="text"
                 value={form.heroButtonLink || ''}
                 onChange={(e) => setForm((curr) => ({ ...curr, heroButtonLink: e.target.value }))}
-                placeholder="/catalog"
+                placeholder="/shop"
                 className="w-1/2 rounded-lg border border-line bg-white px-3 py-2 text-xs font-mono text-ink outline-none focus:border-accent"
               />
             </div>
@@ -741,7 +741,7 @@ export function AdminHome() {
                   type="text"
                   value={form.customPromoButtonLink || ''}
                   onChange={(e) => setForm((current) => ({ ...current, customPromoButtonLink: e.target.value }))}
-                  placeholder="/custom-service"
+                  placeholder="/shilp-studio"
                   className="w-full rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs text-ink outline-none"
                 />
               </div>
@@ -752,3 +752,6 @@ export function AdminHome() {
     </form>
   );
 }
+
+
+

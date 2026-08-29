@@ -200,3 +200,6 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
     </Link>
   );
 }
+
+
+

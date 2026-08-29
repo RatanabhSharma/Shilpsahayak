@@ -347,3 +347,6 @@ export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
   );
 }
 
+
+
+
