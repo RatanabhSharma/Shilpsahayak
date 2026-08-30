@@ -31,7 +31,6 @@ import {
 import { useStore } from '../store';
 import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
-import { useHomepage } from '../hooks/useHomepage';
 import { useUserRole } from '../hooks/useUserRole';
 import { useProducts } from '../hooks/useProducts';
 import { BrandLogo } from './ui';
@@ -67,66 +66,6 @@ const NAV_ITEMS: NavItem[] = [
     path: '/reach-us',
   },
 ];
-
-/* ============================================================
-   ANNOUNCEMENT BAR
-   ============================================================ */
-
-function AnnouncementBar({
-  messages,
-  duration,
-}: {
-  messages: string[];
-  duration: number;
-}) {
-  const cleanMessages = useMemo(
-    () =>
-      messages
-        .map((message) => message.trim())
-        .filter((msg) => msg && !msg.toLowerCase().includes('whatsapp')),
-    [messages]
-  );
-
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  useEffect(() => {
-    if (cleanMessages.length <= 1) return;
-    const intervalMs = Math.max(Math.min((duration || 5) * 1000, 12000), 3000);
-    const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % cleanMessages.length);
-    }, intervalMs);
-    return () => clearInterval(timer);
-  }, [cleanMessages.length, duration]);
-
-  if (cleanMessages.length === 0) return null;
-
-  return (
-    <div
-      className="relative z-10 h-7 sm:h-8 bg-dark text-white flex items-center justify-center px-4 border-t border-white/10"
-      role="region"
-      aria-label="Store announcements"
-    >
-      <div className="flex items-center gap-2 max-w-full">
-        <span className="flex h-1.5 w-1.5 relative shrink-0">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent"></span>
-        </span>
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={currentIndex}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="text-center text-[10px] sm:text-xs font-medium uppercase tracking-wider text-zinc-300 truncate"
-          >
-            {cleanMessages[currentIndex]}
-          </motion.p>
-        </AnimatePresence>
-      </div>
-    </div>
-  );
-}
 
 /* ============================================================
    STOREFRONT LAYOUT
@@ -178,12 +117,6 @@ export function StorefrontLayout() {
      ---------------------------------------------------------- */
 
   const { data: settings } = useSettings();
-
-  /* ----------------------------------------------------------
-     Homepage settings
-     ---------------------------------------------------------- */
-
-  const { data: homepageSettings } = useHomepage();
 
   /* ----------------------------------------------------------
      Close mobile menu on route change

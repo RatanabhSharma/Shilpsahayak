@@ -271,58 +271,59 @@ export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
         className="w-full h-full min-h-[320px] sm:min-h-[380px] cursor-grab active:cursor-grabbing touch-pan-y"
       />
 
-      {/* Top Overlay Badge */}
-      <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-white font-mono text-[10px]">
-        <span className="h-2 w-2 rounded-full bg-accent animate-ping" />
-        <span className="font-bold text-accent">REAL-TIME 3D CAD ENGINE</span>
-        <span className="text-zinc-500 hidden sm:inline">| Drag to tilt</span>
-      </div>
+      {/* Top Overlay Badges Row */}
+      <div className="absolute top-3 inset-x-3 sm:top-4 sm:inset-x-4 flex items-center justify-between gap-2 pointer-events-none z-10">
+        <div className="flex items-center gap-1.5 bg-black/75 backdrop-blur-md px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full border border-white/10 text-white font-mono text-[9px] sm:text-[10px] shadow-xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-accent animate-ping" />
+          <span className="font-bold text-accent">REAL-TIME 3D CAD</span>
+          <span className="text-zinc-500 hidden sm:inline">| Drag to tilt</span>
+        </div>
 
-      {/* Slicing Scanner Overlay Label */}
-      <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-accent/20 backdrop-blur-md px-2.5 py-1 rounded-full border border-accent/40 text-accent font-mono text-[10px] font-bold">
-        <Sparkles className="w-3 h-3" />
-        <span>G-Code Simulation</span>
+        <div className="flex items-center gap-1 bg-accent/20 backdrop-blur-md px-2 py-1 rounded-full border border-accent/40 text-accent font-mono text-[9px] sm:text-[10px] font-bold shadow-xs">
+          <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+          <span>G-Code Sim</span>
+        </div>
       </div>
 
       {/* Bottom Interactive Controls Strip */}
-      <div className="absolute bottom-4 inset-x-4 flex flex-wrap items-center justify-between gap-2 bg-black/75 backdrop-blur-md p-2 rounded-2xl border border-white/10 text-white font-mono text-xs">
+      <div className="absolute bottom-3 inset-x-3 sm:bottom-4 sm:inset-x-4 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 bg-black/80 backdrop-blur-md p-1.5 sm:p-2 rounded-2xl border border-white/10 text-white font-mono text-xs z-10">
         {/* Shape Switcher */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
           <button
             type="button"
             onClick={() => setActiveShape('gear')}
-            className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all ${
+            className={`px-2 sm:px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all ${
               activeShape === 'gear' ? 'bg-accent text-white shadow-xs' : 'bg-zinc-800/80 text-zinc-400 hover:text-white'
             }`}
           >
-            Gear Wheel
+            Gear
           </button>
           <button
             type="button"
             onClick={() => setActiveShape('gem')}
-            className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all ${
+            className={`px-2 sm:px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all ${
               activeShape === 'gem' ? 'bg-accent text-white shadow-xs' : 'bg-zinc-800/80 text-zinc-400 hover:text-white'
             }`}
           >
-            Facet Gem
+            Gem
           </button>
           <button
             type="button"
             onClick={() => setActiveShape('vase')}
-            className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all ${
+            className={`px-2 sm:px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all ${
               activeShape === 'vase' ? 'bg-accent text-white shadow-xs' : 'bg-zinc-800/80 text-zinc-400 hover:text-white'
             }`}
           >
-            Twisted Vase
+            Vase
           </button>
         </div>
 
         {/* View Mode Toggles */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           <button
             type="button"
             onClick={() => setWireframeOnly(!wireframeOnly)}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all ${
+            className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all ${
               wireframeOnly ? 'bg-white text-ink' : 'bg-zinc-800 text-zinc-300 hover:text-white'
             }`}
             title="Toggle Wireframe"
@@ -334,7 +335,7 @@ export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
           <button
             type="button"
             onClick={() => setIsRotating(!isRotating)}
-            className={`p-1.5 rounded-xl transition-all ${
+            className={`p-1 sm:p-1.5 rounded-xl transition-all ${
               isRotating ? 'bg-zinc-800 text-accent' : 'bg-zinc-800 text-zinc-500'
             }`}
             title={isRotating ? 'Pause Rotation' : 'Resume Rotation'}

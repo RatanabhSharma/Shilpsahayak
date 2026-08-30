@@ -492,14 +492,14 @@ export function Home() {
       </div>
 
       {/* =====================================================
-          3. FEATURED PRODUCTS (SIDE-POSITIONED FLOATING ARROWS & INFINITE LOOP)
+          3. FEATURED PRODUCTS (FEATURED 3D CREATIONS)
       ====================================================== */}
       <motion.section
         variants={fadeInUp}
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-40px' }}
-        className="bg-[#F0F4F8] py-14"
+        className="bg-[#F0F4F8] py-12 sm:py-14"
       >
         {/* Section Header */}
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10 mb-8 sm:mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -515,7 +515,7 @@ export function Home() {
             </p>
           </div>
 
-          <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
+          <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
             <Link
               to="/shop"
               className="inline-flex items-center gap-1.5 font-display text-xs sm:text-sm font-bold text-accent hover:underline"
@@ -523,26 +523,44 @@ export function Home() {
               <span>View Complete Catalog</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
+            <div className="flex sm:hidden items-center gap-1.5">
+              <button
+                type="button"
+                onClick={featuredCarousel.stepPrev}
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
+                aria-label="Previous products"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={featuredCarousel.stepNext}
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
+                aria-label="Next products"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Product Cards Infinite Carousel with Centered Side Arrows */}
         <div className="relative mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10 pb-4">
-          {/* Side Floating Left Arrow */}
+          {/* Desktop Floating Left Arrow */}
           <button
             type="button"
             onClick={featuredCarousel.stepPrev}
-            className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
+            className="hidden sm:flex absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
             aria-label="Previous featured products"
           >
             <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
 
-          {/* Side Floating Right Arrow */}
+          {/* Desktop Floating Right Arrow */}
           <button
             type="button"
             onClick={featuredCarousel.stepNext}
-            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
+            className="hidden sm:flex absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
             aria-label="Next featured products"
           >
             <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -577,110 +595,14 @@ export function Home() {
       </motion.section>
 
       {/* =====================================================
-          4. SHOP BY COLLECTION (SIDE-POSITIONED FLOATING ARROWS & INFINITE LOOP)
+          4. CUSTOM 3D PRINTING + THREE.JS INTERACTIVE 3D CAD ENGINE
       ====================================================== */}
       <motion.section
         variants={fadeInUp}
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-40px' }}
-        className="bg-[#F0F4F8] py-12 sm:py-14 border-t border-line"
-      >
-        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end mb-6 sm:mb-8">
-            <div>
-              <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
-                Curated Collections
-              </span>
-              <h2 className="mt-1 font-display text-2xl sm:text-4xl font-bold tracking-tight text-ink">
-                Shop by Category
-              </h2>
-            </div>
-
-            {/* View All Categories Link */}
-            <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
-              <Link to="/shop" className="font-display text-xs sm:text-sm font-bold text-accent hover:underline">
-                View All Categories →
-              </Link>
-            </div>
-          </div>
-
-          {/* Category Cards Infinite Carousel with Centered Side Arrows */}
-          <div className="relative">
-            {/* Side Floating Left Arrow */}
-            <button
-              type="button"
-              onClick={categoryCarousel.stepPrev}
-              className="absolute -left-2 sm:-left-4 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
-              aria-label="Previous categories"
-            >
-              <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
-            </button>
-
-            {/* Side Floating Right Arrow */}
-            <button
-              type="button"
-              onClick={categoryCarousel.stepNext}
-              className="absolute -right-2 sm:-right-4 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
-              aria-label="Next categories"
-            >
-              <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
-            </button>
-
-            <div
-              ref={categoryCarousel.containerRef}
-              onScroll={categoryCarousel.handleScroll}
-              onMouseEnter={() => categoryCarousel.setIsHovered(true)}
-              onMouseLeave={() => categoryCarousel.setIsHovered(false)}
-              onTouchStart={categoryCarousel.handleTouchStart}
-              onTouchEnd={categoryCarousel.handleTouchEnd}
-              onFocusCapture={() => categoryCarousel.setIsHovered(true)}
-              onBlurCapture={() => categoryCarousel.setIsHovered(false)}
-              className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-none touch-pan-y"
-              style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
-            >
-              {extendedCategories.map((cat) => (
-                <div
-                  key={cat._carouselKey}
-                  className="w-[230px] sm:w-[280px] lg:w-[320px] shrink-0"
-                >
-                  <Link
-                    to={`/shop?category=${encodeURIComponent(cat.name)}`}
-                    className="group/cat relative block w-full overflow-hidden rounded-2xl border border-line bg-white shadow-soft transition-all duration-300 hover:shadow-card hover:-translate-y-1.5 hover:border-accent/40"
-                  >
-                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-shell shine-sweep-container">
-                      <img
-                        src={cat.image || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80'}
-                        alt={cat.name}
-                        className="h-full w-full object-cover transition-all duration-700 group-hover/cat:scale-108"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#121212]/85 via-transparent to-transparent" />
-                      <div className="absolute bottom-4 left-4 right-4 text-white">
-                        <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent bg-black/60 px-2 py-0.5 rounded">
-                          {cat.productCount} {cat.productCount === 1 ? 'Piece' : 'Pieces'}
-                        </span>
-                        <h3 className="mt-1 font-display text-lg font-bold text-white group-hover/cat:text-accent transition-colors">
-                          {cat.name}
-                        </h3>
-                      </div>
-                    </div>
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* =====================================================
-          5. CUSTOM 3D PRINTING + THREE.JS INTERACTIVE 3D CAD ENGINE
-      ====================================================== */}
-      <motion.section
-        variants={fadeInUp}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-40px' }}
-        className="bg-[#F0F4F8] py-14"
+        className="bg-[#F0F4F8] py-14 border-t border-line"
       >
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
           <div className="relative rounded-3xl overflow-hidden border border-zinc-800 bg-[#0e0e11] grid-plate p-6 sm:p-10 lg:p-14 text-white shadow-2xl">
@@ -792,6 +714,127 @@ export function Home() {
                   </a>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* =====================================================
+          5. SHOP BY COLLECTION (CURATED CATEGORIES)
+      ====================================================== */}
+      <motion.section
+        variants={fadeInUp}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: '-40px' }}
+        className="bg-[#F0F4F8] py-12 sm:py-14 border-t border-line"
+      >
+        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end mb-6 sm:mb-8">
+            <div>
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
+                Curated Collections
+              </span>
+              <h2 className="mt-1 font-display text-2xl sm:text-4xl font-bold tracking-tight text-ink">
+                Shop by Category
+              </h2>
+            </div>
+
+            {/* View All Categories Link & Mobile Navigation Controls */}
+            <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+              <Link to="/shop" className="font-display text-xs sm:text-sm font-bold text-accent hover:underline">
+                View All Categories →
+              </Link>
+              <div className="flex sm:hidden items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={categoryCarousel.stepPrev}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
+                  aria-label="Previous categories"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={categoryCarousel.stepNext}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
+                  aria-label="Next categories"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Category Cards Infinite Carousel */}
+          <div className="relative">
+            {/* Desktop Floating Left Arrow */}
+            <button
+              type="button"
+              onClick={categoryCarousel.stepPrev}
+              className="hidden sm:flex absolute -left-3 sm:-left-5 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
+              aria-label="Previous categories"
+            >
+              <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+            </button>
+
+            {/* Desktop Floating Right Arrow */}
+            <button
+              type="button"
+              onClick={categoryCarousel.stepNext}
+              className="hidden sm:flex absolute -right-3 sm:-right-5 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
+              aria-label="Next categories"
+            >
+              <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
+            </button>
+
+            <div
+              ref={categoryCarousel.containerRef}
+              onScroll={categoryCarousel.handleScroll}
+              onMouseEnter={() => categoryCarousel.setIsHovered(true)}
+              onMouseLeave={() => categoryCarousel.setIsHovered(false)}
+              onTouchStart={categoryCarousel.handleTouchStart}
+              onTouchEnd={categoryCarousel.handleTouchEnd}
+              onFocusCapture={() => categoryCarousel.setIsHovered(true)}
+              onBlurCapture={() => categoryCarousel.setIsHovered(false)}
+              className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-none touch-pan-y"
+              style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+            >
+              {extendedCategories.map((cat) => (
+                <div
+                  key={cat._carouselKey}
+                  className="w-[220px] xs:w-[240px] sm:w-[280px] lg:w-[320px] shrink-0"
+                >
+                  <Link
+                    to={`/shop?category=${encodeURIComponent(cat.name)}`}
+                    className="group/cat relative block w-full overflow-hidden rounded-2xl border border-line bg-white shadow-soft transition-all duration-300 hover:shadow-card hover:-translate-y-1.5 hover:border-accent/40"
+                  >
+                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-shell shine-sweep-container">
+                      <img
+                        src={cat.image || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80'}
+                        alt={cat.name}
+                        className="h-full w-full object-cover transition-all duration-700 group-hover/cat:scale-108"
+                      />
+                      {/* Dark Gradient Overlay for Readability */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent pointer-events-none" />
+
+                      {/* Top-Left Piece Count Badge */}
+                      <div className="absolute top-2.5 left-2.5 z-10">
+                        <span className="inline-flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-accent border border-white/10 shadow-xs backdrop-blur-xs">
+                          {cat.productCount} {cat.productCount === 1 ? 'Piece' : 'Pieces'}
+                        </span>
+                      </div>
+
+                      {/* Bottom Title */}
+                      <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 text-white z-10">
+                        <h3 className="font-display text-base sm:text-lg font-bold text-white group-hover/cat:text-accent transition-colors truncate">
+                          {cat.name}
+                        </h3>
+                      </div>
+                    </div>
+                  </Link>
+                </div>
+              ))}
             </div>
           </div>
         </div>
