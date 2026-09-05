@@ -111,6 +111,24 @@ describe('Centralized Pricing Engine', () => {
       expect(quote.subtotalBeforeGst).toBe(149);
     });
 
+    it('adds packaging price on top of minimum order value', () => {
+      // Small piece under ₹149 with packaging requested
+      const withPackagingInput = {
+        materialWeightGrams: 2,
+        printTimeHours: 0.3,
+        material: plaMaterial,
+        quantity: 1,
+        packagingIncluded: true,
+      };
+
+      const quote = calculateCustomerQuote(withPackagingInput, DEFAULT_PRICING_CONFIG);
+      // Base minimum print order (₹149) + Packaging (₹20) = ₹169
+      expect(quote.minimumOrderChargeApplied).toBe(true);
+      expect(quote.packagingAmount).toBe(20);
+      expect(quote.subtotalBeforeGst).toBe(169);
+      expect(quote.totalPrice).toBe(169);
+    });
+
     it('applies bulk quantity discounts correctly across tiers', () => {
       const input = {
         materialWeightGrams: 50,

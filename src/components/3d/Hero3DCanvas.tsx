@@ -38,8 +38,9 @@ export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
       antialias: true,
       powerPreference: 'high-performance',
     });
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.2;
     container.replaceChildren(renderer.domElement);

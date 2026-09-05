@@ -166,15 +166,16 @@ function useInfiniteLoopCarousel({
     return () => observer.disconnect();
   }, []);
 
-  // Pause carousel autoplay while the user is actively scrolling vertically
+  // Pause carousel autoplay while the user is actively scrolling vertically (via Ref to avoid React re-renders)
+  const isWindowScrollingRef = useRef(false);
   useEffect(() => {
     let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
     const onWindowScroll = () => {
-      setIsInteracting(true);
+      isWindowScrollingRef.current = true;
       if (scrollTimeout) clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => {
-        setIsInteracting(false);
-      }, 800);
+        isWindowScrollingRef.current = false;
+      }, 600);
     };
     window.addEventListener('scroll', onWindowScroll, { passive: true });
     return () => {
@@ -289,6 +290,7 @@ function useInfiniteLoopCarousel({
     }
 
     autoplayTimerRef.current = setInterval(() => {
+      if (isWindowScrollingRef.current) return;
       step(1);
     }, autoplayInterval);
 
@@ -346,7 +348,6 @@ export function Home() {
 
   // Pure vertical translation for desktop only; no GPU texture rescaling (scale) during scroll
   const heroParallaxY = useTransform(scrollYProgress, [0, 1], ['0%', '18%']);
-  const heroScrimOpacity = useTransform(scrollYProgress, [0, 0.7, 1], [0.55, 0.8, 0.98]);
 
   /* Hero Media & Content (Video / GIF with Poster fallback) */
   const heroMediaUrl = useMemo(() => {
@@ -491,7 +492,7 @@ export function Home() {
           style={{
             y: prefersReducedMotion || isMobile ? '0%' : heroParallaxY,
           }}
-          className="absolute inset-0 z-0 w-full h-full overflow-hidden pointer-events-none will-change-transform"
+          className="absolute inset-0 z-0 w-full h-full overflow-hidden pointer-events-none"
         >
           {isHeroVideo ? (
             <video
@@ -523,9 +524,8 @@ export function Home() {
         </motion.div>
 
         {/* Multi-Stop Cinematic Scrim Overlays for Depth Transition */}
-        <motion.div
-          style={{ opacity: heroScrimOpacity }}
-          className="absolute inset-0 z-[1] bg-gradient-to-t from-[#0d0d0f] via-transparent to-transparent pointer-events-none"
+        <div
+          className="absolute inset-0 z-[1] bg-gradient-to-t from-[#0d0d0f] via-[#0d0d0f]/50 to-transparent pointer-events-none"
         />
         <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#0d0d0f]/60 to-transparent z-[1] pointer-events-none" />
       </section>

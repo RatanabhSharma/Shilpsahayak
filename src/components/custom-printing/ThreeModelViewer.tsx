@@ -94,12 +94,35 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     gridHelperRef.current = grid;
 
     // 7. Animation Loop
-    let animationFrameId: number;
+    // 7. Animation Loop with Visibility Gating
+    let animationFrameId: number | null = null;
+    let isVisible = true;
+
     const animate = () => {
+      if (!isVisible) return;
       animationFrameId = requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
     };
+
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => {
+        const nowVisible = entry.isIntersecting;
+        if (nowVisible && !isVisible) {
+          isVisible = true;
+          animate();
+        } else if (!nowVisible && isVisible) {
+          isVisible = false;
+          if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+          }
+        }
+      },
+      { threshold: 0.05 }
+    );
+    visibilityObserver.observe(container);
+
     animate();
 
     // 8. Resize Observer
@@ -116,7 +139,8 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     resizeObserver.observe(container);
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      visibilityObserver.disconnect();
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
       resizeObserver.disconnect();
       controls.dispose();
       renderer.dispose();

@@ -73,7 +73,7 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Card className="flex h-full flex-col justify-between overflow-hidden transition-transform transition-shadow duration-300 group-hover/card:-translate-y-2 group-hover/card:shadow-xl group-hover/card:border-accent/40 border-line bg-white rounded-2xl will-change-transform">
+      <Card className="flex h-full flex-col justify-between overflow-hidden transition-transform transition-shadow duration-300 group-hover/card:-translate-y-2 group-hover/card:shadow-xl group-hover/card:border-accent/40 border-line bg-white rounded-2xl hover:will-change-transform">
           {/* Image Container with Shimmer Sweep */}
           <div className="relative aspect-square w-full overflow-hidden bg-shell shine-sweep-container">
             <img

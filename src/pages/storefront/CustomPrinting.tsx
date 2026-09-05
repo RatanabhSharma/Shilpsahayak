@@ -172,6 +172,7 @@ export function CustomPrinting() {
   // Configuration state
   const [selectedMaterialId, setSelectedMaterialId] = useState<string>('pla');
   const [selectedColorName, setSelectedColorName] = useState<string>('');
+  const [customColorHex, setCustomColorHex] = useState<string | null>(null);
   const [selectedProfileId, setSelectedProfileId] = useState<string>('standard');
   const [quantity, setQuantity] = useState<number>(1);
   const [packagingIncluded, setPackagingIncluded] = useState<boolean>(false);
@@ -206,14 +207,26 @@ export function CustomPrinting() {
     );
   }, [activeMaterials, selectedMaterialId, pricingData]);
 
+  const handleMaterialChange = (materialId: string) => {
+    setSelectedMaterialId(materialId);
+    setCustomColorHex(null);
+    const newMat = activeMaterials.find((m) => m.id === materialId);
+    if (newMat?.colors && newMat.colors.length > 0) {
+      setSelectedColorName(newMat.colors[0].name);
+    }
+  };
+
   // Selected Color
   const activeColor = useMemo(() => {
+    if (customColorHex) {
+      return { name: selectedColorName || 'Custom Shade', hex: customColorHex };
+    }
     if (!activeMaterial?.colors || activeMaterial.colors.length === 0) {
       return { name: 'Standard', hex: '#2563EB' };
     }
     const found = activeMaterial.colors.find((c) => c.name === selectedColorName);
     return found || activeMaterial.colors[0];
-  }, [activeMaterial, selectedColorName]);
+  }, [activeMaterial, selectedColorName, customColorHex]);
 
   // Active Profile
   const activeProfiles = useMemo(
@@ -793,77 +806,83 @@ export function CustomPrinting() {
 
         {/* Right Column: Configuration & Pricing Stepper */}
         <div className="lg:col-span-6 space-y-4">
-          {/* Material Selection Card */}
+          {/* Material & Color Selection Card */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
               <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
                 <Layers className="w-4 h-4 text-accent" />
                 <span>1. Select Material</span>
               </h3>
-              <span className="font-mono text-[11px] text-muted">Thermoplastic FDM</span>
+              <span className="font-mono text-xs font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-md">
+                ₹{activeMaterial.pricePerGram}/g
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {activeMaterials.map((mat) => {
-                const isSelected = activeMaterial.id === mat.id;
-                return (
-                  <button
-                    key={mat.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedMaterialId(mat.id);
-                      if (mat.colors && mat.colors.length > 0) {
-                        setSelectedColorName(mat.colors[0].name);
-                      }
-                    }}
-                    className={`p-3 rounded-xl border text-left transition-all relative ${
-                      isSelected
-                        ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30 ring-1 ring-brand-400'
-                        : 'border-line dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-display font-bold text-sm text-ink dark:text-slate-100">
-                        {mat.name}
-                      </span>
-                      <span className="font-mono text-[10px] font-bold text-brand-600 dark:text-brand-400">
-                        ₹{mat.pricePerGram}/g
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-muted dark:text-slate-400 line-clamp-2 mt-1">
-                      {mat.tagline || mat.description}
-                    </p>
-                  </button>
-                );
-              })}
+            {/* Material Dropdown Selector */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block">
+                Filament Material
+              </label>
+              <div className="relative">
+                <select
+                  value={selectedMaterialId}
+                  onChange={(e) => handleMaterialChange(e.target.value)}
+                  className="w-full py-2.5 px-3.5 pr-10 rounded-xl border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold text-ink dark:text-white appearance-none cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-brand-500 shadow-2xs"
+                >
+                  {activeMaterials.map((mat) => (
+                    <option key={mat.id} value={mat.id}>
+                      {mat.name} — ₹{mat.pricePerGram}/g ({mat.tagline})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-muted absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+
+              {/* Selected Material Summary Card */}
+              <div className="flex items-center justify-between bg-shell/50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-line dark:border-slate-800 text-xs">
+                <span className="text-muted dark:text-slate-400 text-[11px] leading-tight">
+                  {activeMaterial.tagline || activeMaterial.description}
+                </span>
+                <span className="font-mono text-[10px] font-bold text-ink dark:text-slate-200 shrink-0 ml-3 bg-white dark:bg-slate-700 px-2 py-0.5 rounded-md border border-line/60 dark:border-slate-600">
+                  {activeMaterial.density} g/cm³
+                </span>
+              </div>
             </div>
 
-            {/* Color Swatches */}
-            {activeMaterial.colors && activeMaterial.colors.length > 0 && (
-              <div className="pt-2 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-ink dark:text-slate-200">
-                    Colour: <span className="text-accent">{activeColor.name}</span>
+            {/* Color Palette */}
+            <div className="pt-2 space-y-2.5 border-t border-line dark:border-slate-800">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-ink dark:text-slate-200 flex items-center gap-1.5">
+                  Colour: <span className="text-accent">{activeColor.name}</span>
+                  <span className="text-muted text-[10px] font-mono font-normal">
+                    ({activeColor.hex})
                   </span>
-                  <span className="text-[10px] font-mono text-muted">
-                    {activeMaterial.colors.length} available
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {activeMaterial.colors.map((color) => {
-                    const isSelected = activeColor.name === color.name;
+                </span>
+                <span className="text-[10px] font-mono text-muted">
+                  {activeMaterial.colors ? activeMaterial.colors.length : 0} shades + custom
+                </span>
+              </div>
+
+              {/* Swatches & Custom Picker */}
+              <div className="flex flex-wrap items-center gap-2">
+                {activeMaterial.colors &&
+                  activeMaterial.colors.map((color) => {
+                    const isSelected = !customColorHex && activeColor.name === color.name;
                     return (
                       <button
                         key={color.name}
                         type="button"
-                        onClick={() => setSelectedColorName(color.name)}
+                        onClick={() => {
+                          setCustomColorHex(null);
+                          setSelectedColorName(color.name);
+                        }}
                         className={`w-7 h-7 rounded-full border-2 transition-all relative flex items-center justify-center cursor-pointer ${
                           isSelected
-                            ? 'border-brand-500 scale-110 shadow-xs'
+                            ? 'border-brand-500 scale-110 shadow-sm ring-2 ring-brand-500/30'
                             : 'border-slate-300 dark:border-slate-700 hover:scale-105'
                         }`}
                         style={{ backgroundColor: color.hex }}
-                        title={color.name}
+                        title={`${color.name} (${color.hex})`}
                       >
                         {isSelected && (
                           <span
@@ -871,7 +890,8 @@ export function CustomPrinting() {
                             style={{
                               backgroundColor:
                                 color.hex.toLowerCase() === '#f8fafc' ||
-                                color.hex.toLowerCase() === '#ffffff'
+                                color.hex.toLowerCase() === '#ffffff' ||
+                                color.hex.toLowerCase() === '#f1f5f9'
                                   ? '#000000'
                                   : '#ffffff',
                             }}
@@ -880,9 +900,45 @@ export function CustomPrinting() {
                       </button>
                     );
                   })}
-                </div>
+
+                {/* Custom Color Palette / Hex Picker */}
+                <label
+                  className={`relative flex items-center justify-center w-7 h-7 rounded-full border-2 cursor-pointer transition-all ${
+                    customColorHex
+                      ? 'border-brand-500 scale-110 shadow-sm ring-2 ring-brand-500/30'
+                      : 'border-dashed border-slate-400 dark:border-slate-600 hover:scale-105'
+                  }`}
+                  style={{
+                    background: customColorHex
+                      ? customColorHex
+                      : 'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
+                  }}
+                  title="Pick custom color"
+                >
+                  <input
+                    type="color"
+                    value={customColorHex || '#FF4D00'}
+                    onChange={(e) => {
+                      setCustomColorHex(e.target.value);
+                      setSelectedColorName(`Custom (${e.target.value.toUpperCase()})`);
+                    }}
+                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                  />
+                  {customColorHex && (
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{
+                        backgroundColor:
+                          customColorHex.toLowerCase() === '#ffffff' ? '#000000' : '#ffffff',
+                      }}
+                    />
+                  )}
+                </label>
+                <span className="text-[10px] font-mono text-muted pl-0.5">
+                  {customColorHex ? 'Custom' : '+ Custom'}
+                </span>
               </div>
-            )}
+            </div>
           </div>
 
           {/* Quality & Print Profiles */}
@@ -1089,17 +1145,17 @@ export function CustomPrinting() {
                   </div>
                 )}
 
-                {quoteBreakdown.packagingAmount > 0 && (
-                  <div className="flex justify-between text-muted dark:text-slate-400">
-                    <span>Packaging & Protection</span>
-                    <span className="font-mono">+{formatINR(quoteBreakdown.packagingAmount)}</span>
+                {quoteBreakdown.minimumOrderChargeApplied && (
+                  <div className="flex justify-between text-amber-700 dark:text-amber-400 text-[11px] font-mono">
+                    <span>Minimum order value adjustment (₹{pricingData?.pricingConfig?.minimumOrderValue || 149})</span>
+                    <span>Applied (+{formatINR((pricingData?.pricingConfig?.minimumOrderValue || 149) - quoteBreakdown.discountedSubtotal)})</span>
                   </div>
                 )}
 
-                {quoteBreakdown.minimumOrderChargeApplied && (
-                  <div className="flex justify-between text-amber-700 dark:text-amber-400 text-[11px] font-mono">
-                    <span>Minimum order value adjustment (₹{pricingData?.pricingConfig?.minimumOrderValue})</span>
-                    <span>Applied</span>
+                {quoteBreakdown.packagingAmount > 0 && (
+                  <div className="flex justify-between text-muted dark:text-slate-400">
+                    <span>Protective Bubble & Box Packaging ({quantity}x)</span>
+                    <span className="font-mono">+{formatINR(quoteBreakdown.packagingAmount)}</span>
                   </div>
                 )}
 

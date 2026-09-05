@@ -126,18 +126,18 @@ export function calculateCustomerQuote(
   const discountAmount = Math.round(subtotal * (discountPercent / 100));
   const discountedSubtotal = subtotal - discountAmount;
 
-  // 5. Optional packaging: calculated per order or per piece as configured
+  // 5. Minimum Order Value Check (applies to base print order)
+  const minOrder = config.minimumOrderValue || 149;
+  const minimumOrderChargeApplied = discountedSubtotal < minOrder;
+  const printSubtotalAfterMinOrder = Math.max(discountedSubtotal, minOrder);
+
+  // 6. Optional packaging: add-on calculated per piece as configured
   const packagingAmount = input.packagingIncluded
     ? (config.packagingPrice || 20) * quantity
     : 0;
 
-  // 6. Subtotal with packaging
-  const rawSubtotalWithPackaging = discountedSubtotal + packagingAmount;
-
-  // 7. Minimum Order Value Check (applies to order subtotal)
-  const minOrder = config.minimumOrderValue || 149;
-  const subtotalBeforeGst = Math.max(rawSubtotalWithPackaging, minOrder);
-  const minimumOrderChargeApplied = rawSubtotalWithPackaging < minOrder;
+  // 7. Subtotal before GST (Print subtotal + optional packaging add-on)
+  const subtotalBeforeGst = printSubtotalAfterMinOrder + packagingAmount;
 
   // 8. GST (if enabled)
   const gstRate = (config.gstRate || 18) / 100;

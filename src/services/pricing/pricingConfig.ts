@@ -62,6 +62,10 @@ export const DEFAULT_MATERIALS: MaterialConfig[] = [
       { name: 'Steel Grey', hex: '#64748B' },
       { name: 'Bright Orange', hex: '#F97316' },
       { name: 'Sunshine Yellow', hex: '#EAB308' },
+      { name: 'Silk Gold', hex: '#D4AF37' },
+      { name: 'Silk Silver', hex: '#CBD5E1' },
+      { name: 'Lavender Violet', hex: '#8B5CF6' },
+      { name: 'Mint Cyan', hex: '#06B6D4' },
     ],
   },
   {
@@ -79,6 +83,9 @@ export const DEFAULT_MATERIALS: MaterialConfig[] = [
       { name: 'Industrial Grey', hex: '#475569' },
       { name: 'Ocean Blue', hex: '#0284C7' },
       { name: 'Signal Orange', hex: '#EA580C' },
+      { name: 'Fire Red', hex: '#DC2626' },
+      { name: 'Army Green', hex: '#166534' },
+      { name: 'Translucent Clear', hex: '#E2E8F0' },
     ],
   },
   {
@@ -95,6 +102,8 @@ export const DEFAULT_MATERIALS: MaterialConfig[] = [
       { name: 'Natural White', hex: '#E2E8F0' },
       { name: 'Safety Red', hex: '#DC2626' },
       { name: 'Vibrant Blue', hex: '#3B82F6' },
+      { name: 'Neon Yellow', hex: '#FACC15' },
+      { name: 'Olive Green', hex: '#3F6212' },
     ],
   },
 ];
