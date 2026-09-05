@@ -14,6 +14,24 @@ export type HomepageHeroSlide = {
   buttonLink: string;
 };
 
+export type HomepageTestimonial = {
+  id: string;
+  author: string;
+  location?: string;
+  rating: number;
+  comment: string;
+  verified?: boolean;
+  enabled: boolean;
+};
+
+export type HomepageFaq = {
+  id: string;
+  question: string;
+  answer: string;
+  category?: string;
+  enabled: boolean;
+};
+
 export type HomepageSettings = {
   heroSlides: HomepageHeroSlide[];
   heroAutoplay: boolean;
@@ -37,6 +55,10 @@ export type HomepageSettings = {
   customPromoSubtitle?: string;
   customPromoButtonText?: string;
   customPromoButtonLink?: string;
+  testimonials?: HomepageTestimonial[];
+  faqs?: HomepageFaq[];
+  isPublished?: boolean;
+  footerNote?: string;
 };
 
 export const DEFAULT_HERO_SLIDES: HomepageHeroSlide[] = [
@@ -78,6 +100,60 @@ export const DEFAULT_HERO_SLIDES: HomepageHeroSlide[] = [
   },
 ];
 
+export const DEFAULT_HOMEPAGE_TESTIMONIALS: HomepageTestimonial[] = [
+  {
+    id: 'test-1',
+    author: 'Aarav Patel',
+    location: 'Bengaluru, KA',
+    rating: 5,
+    comment: 'The surface finish on the custom PLA enclosure was stellar. Dimensional accuracy was within 0.15mm.',
+    verified: true,
+    enabled: true,
+  },
+  {
+    id: 'test-2',
+    author: 'Pooja Sharma',
+    location: 'Mumbai, MH',
+    rating: 5,
+    comment: 'Ordered the moonlight lamp as an anniversary gift. Beautiful ambient warm diffusion and rock-solid build.',
+    verified: true,
+    enabled: true,
+  },
+  {
+    id: 'test-3',
+    author: 'Vikram Mehta',
+    location: 'Gurugram, HR',
+    rating: 5,
+    comment: 'Turnaround for our drone prototype parts was under 48 hours. Excellent engineering service.',
+    verified: true,
+    enabled: true,
+  },
+];
+
+export const DEFAULT_HOMEPAGE_FAQS: HomepageFaq[] = [
+  {
+    id: 'faq-1',
+    question: 'What 3D printing materials do you support?',
+    answer: 'We fabricate with Plant-based PLA+, Engineering PETG, Heat-resistant ABS, Flexible TPU (95A), and Ultra-high-detail UV Resin.',
+    category: 'Materials',
+    enabled: true,
+  },
+  {
+    id: 'faq-2',
+    question: 'How long does custom 3D printing take?',
+    answer: 'Most custom orders are printed within 24–48 hours and shipped across India via express courier with real-time tracking.',
+    category: 'Turnaround',
+    enabled: true,
+  },
+  {
+    id: 'faq-3',
+    question: 'Can I upload files other than STL?',
+    answer: 'Yes! Our studio slicer accepts STL, OBJ, and 3MF files. For STEP/CAD or design idea sketches, submit a quote request and our engineers will inspect it.',
+    category: 'Files',
+    enabled: true,
+  },
+];
+
 export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
   heroSlides: DEFAULT_HERO_SLIDES,
   heroAutoplay: true,
@@ -104,6 +180,11 @@ export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
   customPromoSubtitle: 'Our interactive custom printing pipeline computes volume, estimates material weight, and generates transparent pricing in real time for PLA, PETG, ABS, and Resin.',
   customPromoButtonText: 'Upload 3D File',
   customPromoButtonLink: '/shilp-studio',
+
+  testimonials: DEFAULT_HOMEPAGE_TESTIMONIALS,
+  faqs: DEFAULT_HOMEPAGE_FAQS,
+  isPublished: true,
+  footerNote: 'Crafted with pride in India · Precision additive manufacturing',
 };
 
 const HOMEPAGE_DOCUMENT_ID = 'homepage';
@@ -333,6 +414,24 @@ export function useHomepage() {
           typeof data.customPromoButtonLink === 'string'
             ? data.customPromoButtonLink
             : DEFAULT_HOMEPAGE_SETTINGS.customPromoButtonLink,
+
+        testimonials: Array.isArray(data.testimonials)
+          ? (data.testimonials as HomepageTestimonial[])
+          : DEFAULT_HOMEPAGE_TESTIMONIALS,
+
+        faqs: Array.isArray(data.faqs)
+          ? (data.faqs as HomepageFaq[])
+          : DEFAULT_HOMEPAGE_FAQS,
+
+        isPublished:
+          typeof data.isPublished === 'boolean'
+            ? data.isPublished
+            : DEFAULT_HOMEPAGE_SETTINGS.isPublished,
+
+        footerNote:
+          typeof data.footerNote === 'string'
+            ? data.footerNote
+            : DEFAULT_HOMEPAGE_SETTINGS.footerNote,
       };
     },
 

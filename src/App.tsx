@@ -12,7 +12,7 @@ import { Catalog } from './pages/storefront/Catalog';
 import { ProductDetail } from './pages/storefront/ProductDetail';
 import { Cart } from './pages/storefront/Cart';
 import { Checkout } from './pages/storefront/Checkout';
-import { CustomService } from './pages/storefront/CustomService';
+import { CustomPrinting } from './pages/storefront/CustomPrinting';
 import { About } from './pages/storefront/About';
 import { Contact } from './pages/storefront/Contact';
 import { Login } from './pages/storefront/Login';
@@ -42,14 +42,9 @@ export function App() {
           <Route path="cart" element={<Cart />} />
           <Route path="checkout" element={<Checkout />} />
 
-          <Route
-            path="shilp-studio"
-            element={
-              <CustomerRoute>
-                <CustomService />
-              </CustomerRoute>
-            }
-          />
+          {/* Shilp Studio: Instant 3D Printing Quote & Slicing Engine + Assisted Design (Public access) */}
+          <Route path="shilp-studio" element={<CustomPrinting />} />
+          <Route path="custom-printing" element={<Navigate to="/shilp-studio" replace />} />
 
           <Route path="our-story" element={<About />} />
           <Route path="reach-us" element={<Contact />} />

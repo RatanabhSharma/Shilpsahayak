@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   doc,
   getDoc,
+  getDocs,
+  collection,
   serverTimestamp,
   setDoc
 } from 'firebase/firestore';
@@ -33,6 +35,10 @@ export type UserProfile = {
   address: UserAddress;
   addressHistory?: AddressHistoryItem[];
   role: 'customer' | 'admin';
+  companyName?: string;
+  gstin?: string;
+  adminNotes?: string;
+  customerType?: 'Retail' | 'Corporate' | 'Custom Printing' | string;
   createdAt?: unknown;
   updatedAt?: unknown;
 };
@@ -119,5 +125,75 @@ export function useUpdateUserProfile() {
 }
 
 export const useSaveUserProfile = useUpdateUserProfile;
+
+export function useAllUsers() {
+  return useQuery({
+    queryKey: ['allUsers'],
+    queryFn: async (): Promise<UserProfile[]> => {
+      try {
+        const snap = await getDocs(collection(db, 'users'));
+        return snap.docs.map((docSnap) => {
+          const d = docSnap.data();
+          return {
+            uid: docSnap.id,
+            name: d.name || '',
+            email: d.email || '',
+            phone: d.phone || '',
+            phoneVerified: !!d.phoneVerified,
+            emailVerified: !!d.emailVerified,
+            address: d.address || emptyAddress,
+            addressHistory: d.addressHistory || [],
+            role: d.role === 'admin' ? 'admin' : 'customer',
+            companyName: d.companyName,
+            gstin: d.gstin,
+            adminNotes: d.adminNotes,
+            customerType: d.customerType,
+            createdAt: d.createdAt,
+            updatedAt: d.updatedAt,
+          };
+        });
+      } catch (err) {
+        console.error('Failed to load all users from Firestore:', err);
+        return [];
+      }
+    },
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useUpdateCustomerAdminNotes() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      uid,
+      adminNotes,
+      customerType,
+      companyName,
+      gstin,
+    }: {
+      uid: string;
+      adminNotes?: string;
+      customerType?: string;
+      companyName?: string;
+      gstin?: string;
+    }) => {
+      const ref = doc(db, 'users', uid);
+      const updateData: Record<string, unknown> = {
+        updatedAt: serverTimestamp(),
+      };
+      if (adminNotes !== undefined) updateData.adminNotes = adminNotes;
+      if (customerType !== undefined) updateData.customerType = customerType;
+      if (companyName !== undefined) updateData.companyName = companyName;
+      if (gstin !== undefined) updateData.gstin = gstin;
+
+      await setDoc(ref, updateData, { merge: true });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allUsers'] });
+    },
+  });
+}
+
 
 

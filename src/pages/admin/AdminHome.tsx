@@ -3,22 +3,35 @@ import {
   ArrowDown,
   ArrowUp,
   CheckCircle2,
-  Eye,
-  EyeOff,
   Loader2,
   Plus,
   Save,
   Trash2,
+  ExternalLink,
+  HelpCircle,
+  Megaphone,
+  ShoppingBag,
+  Star,
+  Film,
+  Globe,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
-import { useProducts, Product } from '../../hooks/useProducts';
+import { useProducts } from '../../hooks/useProducts';
 import {
   DEFAULT_HOMEPAGE_SETTINGS,
+  DEFAULT_HERO_SLIDES,
+  DEFAULT_HOMEPAGE_TESTIMONIALS,
+  DEFAULT_HOMEPAGE_FAQS,
   HomepageSettings,
+  HomepageHeroSlide,
+  HomepageTestimonial,
+  HomepageFaq,
   useHomepage,
   useUpdateHomepage,
 } from '../../hooks/useHomepage';
+
+// Phase 2 Shared Admin Components
+import { PageHeader } from '../../components/admin/shared/PageHeader';
 
 function moveItem<T>(items: T[], index: number, direction: -1 | 1) {
   const nextIndex = index + direction;
@@ -29,13 +42,23 @@ function moveItem<T>(items: T[], index: number, direction: -1 | 1) {
   return next;
 }
 
+export type StorefrontTab =
+  | 'hero'
+  | 'announcements'
+  | 'featured'
+  | 'testimonials'
+  | 'faqs'
+  | 'footer';
+
 export function AdminHome() {
   const { data: products = [], isLoading: productsLoading } = useProducts();
-  const { data: savedSettings, isLoading: settingsLoading, isError } = useHomepage();
+  const { data: savedSettings, isLoading: settingsLoading } = useHomepage();
   const updateHomepage = useUpdateHomepage();
 
+  const [activeTab, setActiveTab] = useState<StorefrontTab>('hero');
   const [form, setForm] = useState<HomepageSettings>(DEFAULT_HOMEPAGE_SETTINGS);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const activeProducts = useMemo(
     () => products.filter((product) => product.active !== false),
@@ -58,7 +81,7 @@ export function AdminHome() {
     setForm({
       ...DEFAULT_HOMEPAGE_SETTINGS,
       ...savedSettings,
-      heroSlides: savedSettings.heroSlides ? [...savedSettings.heroSlides] : [],
+      heroSlides: savedSettings.heroSlides ? [...savedSettings.heroSlides] : DEFAULT_HERO_SLIDES,
       featuredProductIds: [...savedSettings.featuredProductIds],
       selectedProductIds: [...savedSettings.selectedProductIds],
       categoryNames: [...savedSettings.categoryNames],
@@ -66,9 +89,112 @@ export function AdminHome() {
         ? [...savedSettings.announcementMessages]
         : [savedSettings.announcementText || DEFAULT_HOMEPAGE_SETTINGS.announcementText],
       announcementDuration: savedSettings.announcementDuration ?? DEFAULT_HOMEPAGE_SETTINGS.announcementDuration,
+      testimonials: savedSettings.testimonials?.length
+        ? [...savedSettings.testimonials]
+        : DEFAULT_HOMEPAGE_TESTIMONIALS,
+      faqs: savedSettings.faqs?.length
+        ? [...savedSettings.faqs]
+        : DEFAULT_HOMEPAGE_FAQS,
+      isPublished: savedSettings.isPublished ?? true,
     });
   }, [savedSettings]);
 
+  // Slide Helpers
+  const addSlide = () => {
+    const newSlide: HomepageHeroSlide = {
+      id: `hero-${Date.now()}`,
+      enabled: true,
+      eyebrow: 'Precision 3D Craftsmanship',
+      title: 'New Headline Goes Here',
+      description: 'Highlight your custom 3D printing capabilities or product collection.',
+      image: 'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&w=1200&q=80',
+      buttonText: 'Explore Collection',
+      buttonLink: '/shop',
+    };
+    setForm((current) => ({
+      ...current,
+      heroSlides: [...current.heroSlides, newSlide],
+    }));
+  };
+
+  const updateSlide = (index: number, field: keyof HomepageHeroSlide, value: any) => {
+    setForm((current) => {
+      const slides = [...current.heroSlides];
+      slides[index] = { ...slides[index], [field]: value };
+      return { ...current, heroSlides: slides };
+    });
+  };
+
+  const removeSlide = (index: number) => {
+    setForm((current) => ({
+      ...current,
+      heroSlides: current.heroSlides.filter((_, i) => i !== index),
+    }));
+  };
+
+  // Testimonials Helpers
+  const addTestimonial = () => {
+    const newTest: HomepageTestimonial = {
+      id: `test-${Date.now()}`,
+      author: 'Customer Name',
+      location: 'City, India',
+      rating: 5,
+      comment: 'Excellent 3D print quality and fast dispatch!',
+      verified: true,
+      enabled: true,
+    };
+    setForm((curr) => ({
+      ...curr,
+      testimonials: [...(curr.testimonials || []), newTest],
+    }));
+  };
+
+  const updateTestimonial = (index: number, field: keyof HomepageTestimonial, val: any) => {
+    setForm((curr) => {
+      const list = [...(curr.testimonials || [])];
+      list[index] = { ...list[index], [field]: val };
+      return { ...curr, testimonials: list };
+    });
+  };
+
+  const removeTestimonial = (index: number) => {
+    setForm((curr) => ({
+      ...curr,
+      testimonials: (curr.testimonials || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  // FAQ Helpers
+  const addFaq = () => {
+    const newFaq: HomepageFaq = {
+      id: `faq-${Date.now()}`,
+      question: 'Frequently asked question title?',
+      answer: 'Detailed explanation and instructions for customers.',
+      category: 'General',
+      enabled: true,
+    };
+    setForm((curr) => ({
+      ...curr,
+      faqs: [...(curr.faqs || []), newFaq],
+    }));
+  };
+
+  const updateFaq = (index: number, field: keyof HomepageFaq, val: any) => {
+    setForm((curr) => {
+      const list = [...(curr.faqs || [])];
+      list[index] = { ...list[index], [field]: val };
+      return { ...curr, faqs: list };
+    });
+  };
+
+  const removeFaq = (index: number) => {
+    setForm((curr) => ({
+      ...curr,
+      faqs: (curr.faqs || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  // Toggle Products & Categories
   const toggleProduct = (
     field: 'featuredProductIds' | 'selectedProductIds',
     id: string
@@ -79,679 +205,863 @@ export function AdminHome() {
       const nextIds = exists
         ? currentIds.filter((item) => item !== id)
         : [...currentIds, id];
-
       return { ...current, [field]: nextIds };
     });
   };
 
-  const toggleCategory = (category: string) => {
-    setForm((current) => ({
-      ...current,
-      categoryNames: current.categoryNames.includes(category)
-        ? current.categoryNames.filter((item) => item !== category)
-        : [...current.categoryNames, category],
-    }));
+
+  // Save changes
+  const handleSave = async (e?: FormEvent) => {
+    if (e) e.preventDefault();
+    setSaving(true);
+
+    try {
+      const cleanSlides = form.heroSlides
+        .map((slide) => ({
+          ...slide,
+          eyebrow: slide.eyebrow.trim(),
+          title: slide.title.trim(),
+          description: slide.description.trim(),
+          image: slide.image.trim(),
+          buttonText: slide.buttonText.trim(),
+          buttonLink: slide.buttonLink.trim(),
+        }))
+        .filter((slide) => slide.title || slide.image || slide.description);
+
+      await updateHomepage.mutateAsync({
+        ...form,
+        heroSlides: cleanSlides,
+        heroInterval: Math.min(Math.max(Math.round(form.heroInterval), 2500), 15000),
+        featuredProductIds: form.featuredProductIds.filter((id) =>
+          activeProducts.some((product) => product.id === id)
+        ),
+        selectedProductIds: form.selectedProductIds.filter((id) =>
+          activeProducts.some((product) => product.id === id)
+        ),
+        categoryNames: form.categoryNames.filter((name) =>
+          availableCategories.includes(name)
+        ),
+        announcementMessages: form.announcementMessages.map((m) => m.trim()).filter(Boolean),
+        announcementDuration: Math.min(Math.max(Math.round(form.announcementDuration), 12), 40),
+        announcementText: form.announcementMessages.map((m) => m.trim()).filter(Boolean)[0] || '',
+      });
+
+      setForm((current) => ({ ...current, heroSlides: cleanSlides }));
+      setShowSuccess(true);
+      window.setTimeout(() => setShowSuccess(false), 3500);
+    } catch (err: any) {
+      console.error('Failed to save storefront settings:', err);
+      alert(err?.message || 'Failed to save storefront settings.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const save = async (event: FormEvent) => {
-    event.preventDefault();
-
-    const cleanSlides = form.heroSlides
-      .map((slide) => ({
-        ...slide,
-        eyebrow: slide.eyebrow.trim(),
-        title: slide.title.trim(),
-        description: slide.description.trim(),
-        image: slide.image.trim(),
-        buttonText: slide.buttonText.trim(),
-        buttonLink: slide.buttonLink.trim(),
-      }))
-      .filter((slide) => slide.title || slide.image || slide.description);
-
-    await updateHomepage.mutateAsync({
-      ...form,
-      heroSlides: cleanSlides,
-      heroInterval: Math.min(Math.max(Math.round(form.heroInterval), 2500), 15000),
-      featuredProductIds: form.featuredProductIds.filter((id) =>
-        activeProducts.some((product) => product.id === id)
-      ),
-      selectedProductIds: form.selectedProductIds.filter((id) =>
-        activeProducts.some((product) => product.id === id)
-      ),
-      categoryNames: form.categoryNames.filter((name) =>
-        availableCategories.includes(name)
-      ),
-      announcementMessages: form.announcementMessages.map((message) => message.trim()).filter(Boolean),
-      announcementDuration: Math.min(Math.max(Math.round(form.announcementDuration), 12), 40),
-      announcementText: form.announcementMessages.map((message) => message.trim()).filter(Boolean)[0] || '',
-    });
-
-    setForm((current) => ({ ...current, heroSlides: cleanSlides }));
-    setShowSuccess(true);
-    window.setTimeout(() => setShowSuccess(false), 3000);
-  };
-
-  const renderProductRow = (
-    product: Product,
-    field: 'featuredProductIds' | 'selectedProductIds'
-  ) => {
-    const ids = form[field];
-    const selected = ids.includes(product.id);
-    const index = ids.indexOf(product.id);
-
+  if (settingsLoading || productsLoading) {
     return (
-      <div
-        key={`${field}-${product.id}`}
-        className={`flex items-center gap-3 rounded-lg border px-3.5 py-2.5 transition-colors ${
-          selected
-            ? 'border-accent/40 bg-accent/5'
-            : 'border-line bg-white hover:border-line/80'
-        }`}
-      >
-        <img
-          src={product.image}
-          alt=""
-          className="h-10 w-10 shrink-0 rounded-md bg-shell object-cover border border-line"
-        />
-
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-semibold text-ink">{product.name}</p>
-          <p className="mt-0.5 text-[11px] font-mono text-muted">
-            {product.category || 'Uncategorized'} · ₹{product.price.toLocaleString('en-IN')}
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => toggleProduct(field, product.id)}
-          className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors ${
-            selected
-              ? 'border-accent bg-accent text-white hover:bg-accent-dark'
-              : 'border-line bg-white text-muted hover:text-ink hover:bg-shell'
-          }`}
-        >
-          {selected ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-          {selected ? 'Selected' : 'Add'}
-        </button>
-
-        {selected && (
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              disabled={index <= 0}
-              onClick={() =>
-                setForm((current) => ({
-                  ...current,
-                  [field]: moveItem(current[field], index, -1),
-                }))
-              }
-              className="flex h-7 w-7 items-center justify-center rounded-md border border-line text-muted disabled:cursor-not-allowed disabled:opacity-30 hover:bg-shell hover:text-ink"
-              aria-label={`Move ${product.name} up`}
-            >
-              <ArrowUp className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              disabled={index === -1 || index >= ids.length - 1}
-              onClick={() =>
-                setForm((current) => ({
-                  ...current,
-                  [field]: moveItem(current[field], index, 1),
-                }))
-              }
-              className="flex h-7 w-7 items-center justify-center rounded-md border border-line text-muted disabled:cursor-not-allowed disabled:opacity-30 hover:bg-shell hover:text-ink"
-              aria-label={`Move ${product.name} down`}
-            >
-              <ArrowDown className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  if (productsLoading || settingsLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center gap-3">
-        <Loader2 className="h-6 w-6 animate-spin text-accent" />
-        <span className="text-xs font-mono text-muted uppercase tracking-wider">Loading storefront settings...</span>
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700">
-        Failed to load homepage configuration. Please refresh the page and try again.
+      <div className="flex items-center justify-center h-64 gap-2">
+        <Loader2 className="w-6 h-6 animate-spin text-accent" />
+        <span className="text-xs font-mono text-muted uppercase tracking-wider">
+          Loading Storefront Settings...
+        </span>
       </div>
     );
   }
 
   return (
-    <form onSubmit={save} className="space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-line pb-4">
-        <div>
-          <span className="font-mono text-xs font-semibold uppercase tracking-wider text-accent block">
-            Storefront CMS
-          </span>
-          <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-ink">
-            Homepage Content Manager
-          </h1>
-          <p className="mt-1 text-xs text-muted">
-            Configure announcement ticker, hero carousel slides, featured product grids, and shop categories.
-          </p>
-        </div>
+      <PageHeader
+        title="Storefront Content Manager"
+        description="Curate public homepage hero banners, running announcements, featured collections, customer reviews, and FAQs."
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/admin' },
+          { label: 'Storefront' },
+        ]}
+        actions={
+          <div className="flex items-center gap-2.5">
+            <a
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-line bg-white hover:bg-shell text-ink font-mono text-xs font-bold transition-all shadow-2xs"
+            >
+              <span>Live Storefront Preview</span>
+              <ExternalLink className="w-3.5 h-3.5 text-accent" />
+            </a>
 
-        <div className="flex items-center gap-3">
-          {showSuccess && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Changes Saved
-            </span>
-          )}
-          <Link
-            to="/"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3.5 py-2 text-xs font-semibold text-ink hover:bg-shell transition-colors shadow-xs"
-          >
-            <Eye className="h-3.5 w-3.5 text-muted" /> Preview Storefront
-          </Link>
-          <button
-            type="submit"
-            disabled={updateHomepage.isPending}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-white hover:bg-accent-dark transition-colors shadow-xs shadow-accent/20 disabled:opacity-50"
-          >
-            {updateHomepage.isPending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Save className="h-3.5 w-3.5" />
-            )}
-            {updateHomepage.isPending ? 'Saving...' : 'Save Configuration'}
-          </button>
+            <button
+              type="button"
+              onClick={() => handleSave()}
+              disabled={saving}
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-accent hover:bg-accent-dark text-white font-mono text-xs font-bold transition-colors shadow-xs disabled:opacity-50 cursor-pointer"
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              <span>Publish Changes</span>
+            </button>
+          </div>
+        }
+      />
+
+      {/* Success Toast */}
+      {showSuccess && (
+        <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 font-mono text-xs font-bold flex items-center justify-between animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <span>Storefront changes successfully published and live!</span>
+          </div>
+          <a href="/" target="_blank" rel="noopener noreferrer" className="underline">
+            View Live Site ➔
+          </a>
         </div>
+      )}
+
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-1 border-b border-line bg-white px-2 overflow-x-auto scrollbar-none rounded-xl">
+        <button
+          type="button"
+          onClick={() => setActiveTab('hero')}
+          className={`inline-flex items-center gap-2 py-3 px-4 border-b-2 font-mono text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'hero'
+              ? 'border-accent text-accent'
+              : 'border-transparent text-muted hover:text-ink'
+          }`}
+        >
+          <Film className="w-3.5 h-3.5" />
+          <span>Hero Banners ({form.heroSlides.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('announcements')}
+          className={`inline-flex items-center gap-2 py-3 px-4 border-b-2 font-mono text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'announcements'
+              ? 'border-accent text-accent'
+              : 'border-transparent text-muted hover:text-ink'
+          }`}
+        >
+          <Megaphone className="w-3.5 h-3.5" />
+          <span>Marquee Bar</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('featured')}
+          className={`inline-flex items-center gap-2 py-3 px-4 border-b-2 font-mono text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'featured'
+              ? 'border-accent text-accent'
+              : 'border-transparent text-muted hover:text-ink'
+          }`}
+        >
+          <ShoppingBag className="w-3.5 h-3.5" />
+          <span>Featured Collections ({form.featuredProductIds.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('testimonials')}
+          className={`inline-flex items-center gap-2 py-3 px-4 border-b-2 font-mono text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'testimonials'
+              ? 'border-accent text-accent'
+              : 'border-transparent text-muted hover:text-ink'
+          }`}
+        >
+          <Star className="w-3.5 h-3.5" />
+          <span>Testimonials ({(form.testimonials || []).length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('faqs')}
+          className={`inline-flex items-center gap-2 py-3 px-4 border-b-2 font-mono text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'faqs'
+              ? 'border-accent text-accent'
+              : 'border-transparent text-muted hover:text-ink'
+          }`}
+        >
+          <HelpCircle className="w-3.5 h-3.5" />
+          <span>FAQs ({(form.faqs || []).length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('footer')}
+          className={`inline-flex items-center gap-2 py-3 px-4 border-b-2 font-mono text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'footer'
+              ? 'border-accent text-accent'
+              : 'border-transparent text-muted hover:text-ink'
+          }`}
+        >
+          <Globe className="w-3.5 h-3.5" />
+          <span>Footer & Brand</span>
+        </button>
       </div>
 
-      {/* Announcement Bar Settings Card */}
-      <div className="rounded-xl border border-line bg-white p-6 shadow-xs space-y-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h2 className="font-display text-base font-bold text-ink">Announcement Bar</h2>
-            <p className="mt-0.5 text-xs text-muted">
-              Add broadcast messages displayed at the top banner of the storefront.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setForm((current) => ({ ...current, announcementEnabled: !current.announcementEnabled }))}
-            className={`rounded-full px-3 py-1 font-mono text-[11px] font-bold ${
-              form.announcementEnabled
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                : 'bg-shell text-muted border border-line'
-            }`}
-          >
-            {form.announcementEnabled ? 'Status: Active' : 'Status: Disabled'}
-          </button>
-        </div>
+      {/* TAB 1: HERO BANNERS & SLIDES */}
+      {activeTab === 'hero' && (
+        <div className="space-y-6">
+          {/* Carousel Settings */}
+          <div className="p-5 rounded-2xl border border-line bg-white shadow-2xs space-y-4">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent block">
+              Hero Carousel Settings
+            </span>
 
-        <div className="grid gap-5 lg:grid-cols-[1fr_260px]">
-          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
+              <label className="flex items-center gap-2.5 p-3 rounded-xl border border-line bg-shell/40 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.heroAutoplay}
+                  onChange={(e) =>
+                    setForm({ ...form, heroAutoplay: e.target.checked })
+                  }
+                  className="accent-[#ff4d00]"
+                />
+                <span className="font-bold text-ink">Enable Auto-Slide Transition</span>
+              </label>
+
+              <div className="p-3 rounded-xl border border-line bg-shell/40">
+                <div className="flex justify-between mb-1">
+                  <span className="text-muted">Slide Interval:</span>
+                  <span className="font-bold text-ink">
+                    {(form.heroInterval / 1000).toFixed(1)} seconds
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={2500}
+                  max={12000}
+                  step={500}
+                  value={form.heroInterval}
+                  onChange={(e) =>
+                    setForm({ ...form, heroInterval: Number(e.target.value) })
+                  }
+                  className="w-full accent-[#ff4d00]"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Slides List */}
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-xs font-semibold uppercase tracking-wider text-muted">
-                Ticker Messages
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-muted">
+                Active Hero Slides ({form.heroSlides.length})
               </span>
               <button
                 type="button"
-                onClick={() => setForm((current) => ({ ...current, announcementMessages: [...current.announcementMessages, ''] }))}
-                className="inline-flex items-center gap-1 rounded-lg border border-line bg-white px-2.5 py-1 text-xs font-semibold text-ink hover:bg-shell"
+                onClick={addSlide}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-accent text-white font-mono text-xs font-bold hover:bg-accent-dark transition-colors shadow-2xs cursor-pointer"
               >
-                <Plus className="h-3.5 w-3.5 text-accent" /> Add Message
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Hero Slide</span>
               </button>
             </div>
 
-            <div className="space-y-2">
-              {form.announcementMessages.map((message, index) => (
-                <div key={`announcement-${index}`} className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] font-bold text-muted w-5 text-center">
-                    {index + 1}
-                  </span>
-                  <input
-                    type="text"
-                    value={message}
-                    onChange={(event) => setForm((current) => ({
-                      ...current,
-                      announcementMessages: current.announcementMessages.map((item, itemIndex) =>
-                        itemIndex === index ? event.target.value : item
-                      ),
-                    }))}
-                    placeholder="Free Pan-India shipping on custom 3D orders over ₹999..."
-                    className="flex-1 rounded-lg border border-line bg-white px-3 py-2 text-xs font-sans text-ink outline-none focus:border-accent"
-                  />
+            {form.heroSlides.map((slide, idx) => (
+              <div
+                key={slide.id || idx}
+                className="p-5 rounded-2xl border border-line bg-white shadow-2xs space-y-4"
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-line">
+                  <div className="flex items-center gap-2.5">
+                    <span className="font-mono text-xs font-bold text-accent">
+                      Slide #{idx + 1}
+                    </span>
+                    <label className="flex items-center gap-1.5 font-mono text-xs cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={slide.enabled}
+                        onChange={(e) => updateSlide(idx, 'enabled', e.target.checked)}
+                        className="accent-[#ff4d00]"
+                      />
+                      <span className={slide.enabled ? 'text-emerald-700 font-bold' : 'text-muted'}>
+                        {slide.enabled ? 'Active' : 'Disabled'}
+                      </span>
+                    </label>
+                  </div>
+
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
-                      disabled={index === 0}
-                      onClick={() => setForm((current) => ({ ...current, announcementMessages: moveItem(current.announcementMessages, index, -1) }))}
-                      className="p-1.5 rounded border border-line text-muted disabled:opacity-30 hover:bg-shell hover:text-ink"
-                      aria-label="Move announcement up"
+                      disabled={idx === 0}
+                      onClick={() =>
+                        setForm((curr) => ({
+                          ...curr,
+                          heroSlides: moveItem(curr.heroSlides, idx, -1),
+                        }))
+                      }
+                      className="p-1 rounded-lg border border-line bg-white hover:bg-shell text-muted disabled:opacity-30 cursor-pointer"
+                      title="Move Up"
                     >
-                      <ArrowUp className="h-3.5 w-3.5" />
+                      <ArrowUp className="w-3.5 h-3.5" />
                     </button>
                     <button
                       type="button"
-                      disabled={index === form.announcementMessages.length - 1}
-                      onClick={() => setForm((current) => ({ ...current, announcementMessages: moveItem(current.announcementMessages, index, 1) }))}
-                      className="p-1.5 rounded border border-line text-muted disabled:opacity-30 hover:bg-shell hover:text-ink"
-                      aria-label="Move announcement down"
+                      disabled={idx === form.heroSlides.length - 1}
+                      onClick={() =>
+                        setForm((curr) => ({
+                          ...curr,
+                          heroSlides: moveItem(curr.heroSlides, idx, 1),
+                        }))
+                      }
+                      className="p-1 rounded-lg border border-line bg-white hover:bg-shell text-muted disabled:opacity-30 cursor-pointer"
+                      title="Move Down"
                     >
-                      <ArrowDown className="h-3.5 w-3.5" />
+                      <ArrowDown className="w-3.5 h-3.5" />
                     </button>
                     <button
                       type="button"
-                      disabled={form.announcementMessages.length === 1}
-                      onClick={() => setForm((current) => ({ ...current, announcementMessages: current.announcementMessages.filter((_, itemIndex) => itemIndex !== index) }))}
-                      className="p-1.5 rounded border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-30"
-                      aria-label="Remove announcement"
+                      onClick={() => removeSlide(idx)}
+                      className="p-1 rounded-lg border border-rose-200 bg-white text-rose-600 hover:bg-rose-50 cursor-pointer ml-1"
+                      title="Delete Slide"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          <div className="rounded-lg border border-line bg-shell p-4 space-y-2">
-            <label className="block text-xs font-semibold text-ink" htmlFor="announcement-duration">
-              Scroll Speed (Duration)
-            </label>
-            <p className="text-[11px] text-muted leading-relaxed">
-              Higher value means smoother, slower ticker movement across the header.
-            </p>
-            <div className="flex items-center gap-3 pt-2">
-              <input
-                id="announcement-duration"
-                type="range"
-                min={12}
-                max={40}
-                step={1}
-                value={form.announcementDuration}
-                onChange={(event) => setForm((current) => ({ ...current, announcementDuration: Number(event.target.value) }))}
-                className="w-full accent-[#ff4d00]"
-              />
-              <span className="font-mono text-xs font-bold text-ink w-10 text-right">{form.announcementDuration}s</span>
-            </div>
-          </div>
-        </div>
-      </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
+                        Eyebrow Text (Small Pre-header)
+                      </label>
+                      <input
+                        type="text"
+                        value={slide.eyebrow}
+                        onChange={(e) => updateSlide(idx, 'eyebrow', e.target.value)}
+                        placeholder="e.g. BESPOKE 3D PRINTING"
+                        className="w-full px-3 py-2 text-xs font-mono uppercase text-ink bg-white border border-line rounded-xl outline-none"
+                      />
+                    </div>
 
-      {/* Hero Section & Background Video / GIF Manager */}
-      <div className="rounded-xl border border-line bg-white p-6 shadow-xs space-y-6">
-        <div>
-          <h2 className="font-display text-base font-bold text-ink">Hero Section & Video Background</h2>
-          <p className="mt-0.5 text-xs text-muted">
-            Configure the continuous looping background video or GIF, typography, and primary storefront CTAs.
-          </p>
-        </div>
+                    <div>
+                      <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
+                        Main Slide Headline *
+                      </label>
+                      <input
+                        type="text"
+                        value={slide.title}
+                        onChange={(e) => updateSlide(idx, 'title', e.target.value)}
+                        placeholder="e.g. Turn Ideas Into Something Real"
+                        className="w-full px-3 py-2 text-xs font-bold text-ink bg-white border border-line rounded-xl outline-none"
+                      />
+                    </div>
 
-        {/* Hero Background Video / GIF Controller */}
-        <div className="rounded-lg border border-line bg-shell p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
-              <p className="text-xs font-semibold text-ink">Hero Looping Video or Animated GIF URL</p>
-              <p className="text-[11px] text-muted">
-                Paste a direct .mp4 video link, webm link, or animated .gif link. It will loop continuously with smooth parallax scroll.
-              </p>
-            </div>
-            {form.heroVideoUrl && (
-              <span className="font-mono text-[10px] font-bold text-accent bg-accent/10 px-2.5 py-1 rounded-full border border-accent/20">
-                Active Looping Stream
-              </span>
-            )}
-          </div>
+                    <div>
+                      <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
+                        Subtitle / Description
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={slide.description}
+                        onChange={(e) => updateSlide(idx, 'description', e.target.value)}
+                        placeholder="Explaining the craftsmanship or precision fabrication..."
+                        className="w-full px-3 py-2 text-xs text-ink bg-white border border-line rounded-xl outline-none"
+                      />
+                    </div>
+                  </div>
 
-          <div className="flex flex-col sm:flex-row gap-2">
-            <input
-              type="text"
-              value={form.heroVideoUrl || ''}
-              onChange={(e) => setForm((curr) => ({ ...curr, heroVideoUrl: e.target.value }))}
-              placeholder="https://.../video.mp4 or https://.../animation.gif"
-              className="flex-1 rounded-lg border border-line bg-white px-3 py-2 text-xs font-mono text-ink outline-none focus:border-accent"
-            />
-            <button
-              type="button"
-              onClick={() =>
-                setForm((curr) => ({
-                  ...curr,
-                  heroVideoUrl: '/videos/demo_video.mp4',
-                }))
-              }
-              className="px-3.5 py-2 text-xs font-semibold text-ink hover:text-accent bg-white border border-line rounded-lg hover:border-accent/40 transition-colors shadow-xs"
-            >
-              Use Demo Video Loop
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                setForm((curr) => ({
-                  ...curr,
-                  heroVideoUrl: '/hero-print.gif',
-                }))
-              }
-              className="px-3.5 py-2 text-xs font-semibold text-ink hover:text-accent bg-white border border-line rounded-lg hover:border-accent/40 transition-colors shadow-xs"
-            >
-              Use 3D Print GIF Loop
-            </button>
-          </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
+                        Background Image URL *
+                      </label>
+                      <input
+                        type="url"
+                        value={slide.image}
+                        onChange={(e) => updateSlide(idx, 'image', e.target.value)}
+                        placeholder="https://images.unsplash.com/..."
+                        className="w-full px-3 py-2 text-xs font-mono text-ink bg-white border border-line rounded-xl outline-none"
+                      />
+                    </div>
 
-          {/* Live Admin Video / GIF Preview */}
-          <div className="mt-3 overflow-hidden rounded-lg border border-line bg-black relative max-h-56 flex items-center justify-center">
-            {form.heroVideoUrl && (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(form.heroVideoUrl) || form.heroVideoUrl.includes('video') || form.heroVideoUrl.endsWith('.webm')) ? (
-              <video
-                key={form.heroVideoUrl}
-                src={form.heroVideoUrl}
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="w-full h-56 object-cover object-center opacity-85"
-              />
-            ) : form.heroVideoUrl ? (
-              <img
-                src={form.heroVideoUrl}
-                alt="Hero Background Preview"
-                className="w-full h-56 object-cover object-center opacity-85"
-              />
-            ) : (
-              <div className="py-10 text-xs font-mono text-zinc-400">No background video specified</div>
-            )}
-            <div className="absolute bottom-2 right-2 rounded bg-black/70 px-2 py-0.5 font-mono text-[10px] text-white">
-              Live Background Canvas
-            </div>
-          </div>
-        </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
+                          Button CTA Text
+                        </label>
+                        <input
+                          type="text"
+                          value={slide.buttonText}
+                          onChange={(e) => updateSlide(idx, 'buttonText', e.target.value)}
+                          placeholder="Explore Products"
+                          className="w-full px-3 py-2 text-xs font-mono text-ink bg-white border border-line rounded-xl outline-none"
+                        />
+                      </div>
 
-        {/* Hero Copy & Typography Fields */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
-              Hero Eyebrow Tagline
-            </label>
-            <input
-              type="text"
-              value={form.heroEyebrow || ''}
-              onChange={(e) => setForm((curr) => ({ ...curr, heroEyebrow: e.target.value }))}
-              placeholder="BESPOKE 3D FABRICATION STUDIO"
-              className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-ink outline-none focus:border-accent"
-            />
-          </div>
+                      <div>
+                        <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
+                          Button Link
+                        </label>
+                        <input
+                          type="text"
+                          value={slide.buttonLink}
+                          onChange={(e) => updateSlide(idx, 'buttonLink', e.target.value)}
+                          placeholder="/shop or /custom-printing"
+                          className="w-full px-3 py-2 text-xs font-mono text-ink bg-white border border-line rounded-xl outline-none"
+                        />
+                      </div>
+                    </div>
 
-          <div>
-            <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
-              Primary Button Text & Destination
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={form.heroButtonText || ''}
-                onChange={(e) => setForm((curr) => ({ ...curr, heroButtonText: e.target.value }))}
-                placeholder="Explore Collection"
-                className="w-1/2 rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-ink outline-none focus:border-accent"
-              />
-              <input
-                type="text"
-                value={form.heroButtonLink || ''}
-                onChange={(e) => setForm((curr) => ({ ...curr, heroButtonLink: e.target.value }))}
-                placeholder="/shop"
-                className="w-1/2 rounded-lg border border-line bg-white px-3 py-2 text-xs font-mono text-ink outline-none focus:border-accent"
-              />
-            </div>
-          </div>
-
-          <div className="sm:col-span-2">
-            <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
-              Hero Main Headline
-            </label>
-            <input
-              type="text"
-              value={form.heroTitle || ''}
-              onChange={(e) => setForm((curr) => ({ ...curr, heroTitle: e.target.value }))}
-              placeholder="Turn Ideas Into Something Real."
-              className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm font-bold text-ink outline-none focus:border-accent"
-            />
-          </div>
-
-          <div className="sm:col-span-2">
-            <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
-              Hero Subtitle / Description
-            </label>
-            <textarea
-              rows={2}
-              value={form.heroSubtitle || ''}
-              onChange={(e) => setForm((curr) => ({ ...curr, heroSubtitle: e.target.value }))}
-              placeholder="Precision 3D printed lighting, mechanical components, and bespoke goods crafted in India."
-              className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs font-sans text-ink outline-none focus:border-accent"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Featured Products & Shop Categories Sections */}
-      <div className="grid gap-6 xl:grid-cols-2">
-        {/* Featured Products Card */}
-        <div className="rounded-xl border border-line bg-white p-6 shadow-xs space-y-4">
-          <div>
-            <h2 className="font-display text-base font-bold text-ink">Featured Product Sections</h2>
-            <p className="mt-0.5 text-xs text-muted">
-              Select which products appear in the featured homepage showcases.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-accent">
-              Section 1: Stocked Items Showcase
-            </h3>
-            <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
-              {activeProducts.map((product) => renderProductRow(product, 'featuredProductIds'))}
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-line space-y-2">
-            <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-accent">
-              Section 2: Secondary Workshop Grid
-            </h3>
-            <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
-              {activeProducts.map((product) => renderProductRow(product, 'selectedProductIds'))}
-            </div>
-          </div>
-        </div>
-
-        {/* Categories Card */}
-        <div className="rounded-xl border border-line bg-white p-6 shadow-xs space-y-4">
-          <div>
-            <h2 className="font-display text-base font-bold text-ink">Shop by Category Order</h2>
-            <p className="mt-0.5 text-xs text-muted">
-              Toggle categories to display on the storefront homepage and set their presentation sequence.
-            </p>
-          </div>
-
-          {availableCategories.length === 0 ? (
-            <p className="py-8 text-center text-xs font-mono text-muted">
-              No categories found. Add products with categories in the catalog first.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {availableCategories.map((category) => {
-                const selected = form.categoryNames.includes(category);
-                const index = form.categoryNames.indexOf(category);
-                return (
-                  <div
-                    key={category}
-                    className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${
-                      selected
-                        ? 'border-accent/40 bg-accent/5'
-                        : 'border-line bg-white'
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => toggleCategory(category)}
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded border ${
-                        selected
-                          ? 'border-accent bg-accent text-white font-bold'
-                          : 'border-line text-transparent'
-                      }`}
-                      aria-label={`${selected ? 'Remove' : 'Add'} ${category}`}
-                    >
-                      <span className="text-xs">✓</span>
-                    </button>
-                    <span className="flex-1 text-xs font-semibold text-ink">{category}</span>
-                    {selected && (
-                      <div className="flex gap-1">
-                        <button
-                          type="button"
-                          disabled={index <= 0}
-                          onClick={() =>
-                            setForm((current) => ({
-                              ...current,
-                              categoryNames: moveItem(current.categoryNames, index, -1),
-                            }))
-                          }
-                          className="p-1 rounded border border-line text-muted disabled:opacity-30 hover:bg-shell"
-                        >
-                          <ArrowUp className="h-3 w-3" />
-                        </button>
-                        <button
-                          type="button"
-                          disabled={index >= form.categoryNames.length - 1}
-                          onClick={() =>
-                            setForm((current) => ({
-                              ...current,
-                              categoryNames: moveItem(current.categoryNames, index, 1),
-                            }))
-                          }
-                          className="p-1 rounded border border-line text-muted disabled:opacity-30 hover:bg-shell"
-                        >
-                          <ArrowDown className="h-3 w-3" />
-                        </button>
+                    {slide.image && (
+                      <div className="h-20 rounded-xl overflow-hidden border border-line bg-shell relative">
+                        <img
+                          src={slide.image}
+                          alt="Slide preview"
+                          className="w-full h-full object-cover"
+                        />
+                        <span className="absolute bottom-1 right-2 text-[10px] font-mono bg-ink/70 text-white px-2 py-0.5 rounded">
+                          Slide Preview
+                        </span>
                       </div>
                     )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: MARQUEE ANNOUNCEMENTS */}
+      {activeTab === 'announcements' && (
+        <div className="p-6 rounded-2xl border border-line bg-white shadow-2xs space-y-5">
+          <div className="flex items-center justify-between pb-3 border-b border-line">
+            <div>
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent block">
+                Top Running Marquee Banner
+              </span>
+              <p className="text-xs text-muted mt-0.5">
+                Displays real-time announcements, shipping notices, or coupon codes across the top of the storefront.
+              </p>
+            </div>
+
+            <label className="flex items-center gap-2 font-mono text-xs font-bold cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.announcementEnabled}
+                onChange={(e) =>
+                  setForm({ ...form, announcementEnabled: e.target.checked })
+                }
+                className="accent-[#ff4d00]"
+              />
+              <span className={form.announcementEnabled ? 'text-emerald-700' : 'text-muted'}>
+                {form.announcementEnabled ? 'Banner Enabled' : 'Banner Disabled'}
+              </span>
+            </label>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted">
+                Ticker Messages ({form.announcementMessages.length})
+              </label>
+              <button
+                type="button"
+                onClick={() =>
+                  setForm({
+                    ...form,
+                    announcementMessages: [
+                      ...form.announcementMessages,
+                      'Free Express Shipping on prepaid orders across India!',
+                    ],
+                  })
+                }
+                className="text-xs font-mono font-bold text-accent hover:underline"
+              >
+                + Add Message
+              </button>
+            </div>
+
+            {form.announcementMessages.map((msg, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={msg}
+                  onChange={(e) => {
+                    const next = [...form.announcementMessages];
+                    next[idx] = e.target.value;
+                    setForm({ ...form, announcementMessages: next });
+                  }}
+                  placeholder="e.g. ⚡ Fast turnaround: Custom 3D prints dispatch in 24-48 hours"
+                  className="flex-1 px-3 py-2 text-xs font-sans text-ink bg-white border border-line rounded-xl outline-none focus:border-accent"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm({
+                      ...form,
+                      announcementMessages: form.announcementMessages.filter(
+                        (_, i) => i !== idx
+                      ),
+                    })
+                  }
+                  className="p-2 rounded-xl text-rose-600 hover:bg-rose-50"
+                  title="Remove message"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-3 border-t border-line">
+            <div className="flex justify-between text-xs font-mono mb-1">
+              <span className="text-muted">Marquee Scroll Speed:</span>
+              <span className="font-bold text-ink">{form.announcementDuration} seconds loop</span>
+            </div>
+            <input
+              type="range"
+              min={12}
+              max={40}
+              step={2}
+              value={form.announcementDuration}
+              onChange={(e) =>
+                setForm({ ...form, announcementDuration: Number(e.target.value) })
+              }
+              className="w-full accent-[#ff4d00]"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: FEATURED COLLECTIONS & SHILP STUDIO PROMO */}
+      {activeTab === 'featured' && (
+        <div className="space-y-6">
+          {/* Section Titles */}
+          <div className="p-5 rounded-2xl border border-line bg-white shadow-2xs space-y-4">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent block">
+              Featured Grid Titles
+            </span>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                  Section Headline
+                </label>
+                <input
+                  type="text"
+                  value={form.featuredTitle || ''}
+                  onChange={(e) => setForm({ ...form, featuredTitle: e.target.value })}
+                  placeholder="Featured 3D Creations"
+                  className="w-full px-3 py-2 text-xs font-bold text-ink bg-white border border-line rounded-xl outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                  Section Subtitle
+                </label>
+                <input
+                  type="text"
+                  value={form.featuredSubtitle || ''}
+                  onChange={(e) => setForm({ ...form, featuredSubtitle: e.target.value })}
+                  placeholder="Handcrafted 3D printed lighting, desk accessories..."
+                  className="w-full px-3 py-2 text-xs text-ink bg-white border border-line rounded-xl outline-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Product Picker Grid */}
+          <div className="p-5 rounded-2xl border border-line bg-white shadow-2xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent block">
+                  Select Featured Products ({form.featuredProductIds.length} Selected)
+                </span>
+                <span className="text-xs text-muted">
+                  Click to toggle which products are highlighted on the storefront homepage.
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {activeProducts.map((p) => {
+                const isSelected = form.featuredProductIds.includes(p.id);
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => toggleProduct('featuredProductIds', p.id)}
+                    className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all ${
+                      isSelected
+                        ? 'border-accent bg-accent/5 shadow-2xs'
+                        : 'border-line bg-white hover:bg-shell/40'
+                    }`}
+                  >
+                    <img
+                      src={p.image}
+                      alt={p.name}
+                      className="w-12 h-12 rounded-lg object-contain bg-shell border border-line shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-display font-bold text-xs text-ink truncate">
+                        {p.name}
+                      </h4>
+                      <p className="font-mono text-[11px] text-muted">
+                        ₹{Number(p.price).toLocaleString('en-IN')}
+                      </p>
+                    </div>
+                    <span
+                      className={`text-xs font-mono font-bold px-2 py-0.5 rounded-full ${
+                        isSelected
+                          ? 'bg-accent text-white'
+                          : 'bg-slate-100 text-muted'
+                      }`}
+                    >
+                      {isSelected ? '✓ On Home' : '+ Add'}
+                    </span>
                   </div>
                 );
               })}
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Homepage Section Headlines & Promo Banner Manager */}
-      <div className="rounded-xl border border-line bg-white p-6 shadow-xs space-y-5">
-        <div>
-          <h2 className="font-display text-base font-bold text-ink">Section Headlines & Custom STL Promo Banner</h2>
-          <p className="mt-0.5 text-xs text-muted">
-            Configure section titles and custom 3D printing spotlight copy displayed across the storefront homepage.
-          </p>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Featured Collection Copy */}
-          <div className="rounded-lg border border-line bg-shell p-4 space-y-3">
-            <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-accent block">
-              Featured Products Section
-            </span>
-            <div>
-              <label className="block text-xs font-semibold text-ink mb-1" htmlFor="featured-title">
-                Section Heading Title
-              </label>
-              <input
-                id="featured-title"
-                type="text"
-                value={form.featuredTitle || ''}
-                onChange={(e) => setForm((current) => ({ ...current, featuredTitle: e.target.value }))}
-                placeholder="Featured Products"
-                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-ink outline-none focus:border-accent"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-ink mb-1" htmlFor="featured-subtitle">
-                Section Subtitle
-              </label>
-              <input
-                id="featured-subtitle"
-                type="text"
-                value={form.featuredSubtitle || ''}
-                onChange={(e) => setForm((current) => ({ ...current, featuredSubtitle: e.target.value }))}
-                placeholder="Handcrafted 3D printed lighting, desk accessories, and customized keepsakes."
-                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs text-ink outline-none focus:border-accent"
-              />
-            </div>
           </div>
 
-          {/* Custom STL Promo Spotlight Copy */}
-          <div className="rounded-lg border border-line bg-shell p-4 space-y-3">
-            <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-accent block">
-              Custom 3D Printing Spotlight Banner
+          {/* Shilp Studio Custom Printing Promo Banner */}
+          <div className="p-5 rounded-2xl border border-line bg-white shadow-2xs space-y-4">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent block">
+              Custom CAD Printing Banner Promotion
             </span>
-            <div>
-              <label className="block text-xs font-semibold text-ink mb-1" htmlFor="promo-title">
-                Banner Headline
-              </label>
-              <input
-                id="promo-title"
-                type="text"
-                value={form.customPromoTitle || ''}
-                onChange={(e) => setForm((current) => ({ ...current, customPromoTitle: e.target.value }))}
-                placeholder="Have a 3D Model? Upload your STL & get an instant quote."
-                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-ink outline-none focus:border-accent"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-ink mb-1" htmlFor="promo-subtitle">
-                Banner Subtitle
-              </label>
-              <textarea
-                id="promo-subtitle"
-                rows={2}
-                value={form.customPromoSubtitle || ''}
-                onChange={(e) => setForm((current) => ({ ...current, customPromoSubtitle: e.target.value }))}
-                placeholder="Our interactive custom printing pipeline computes volume..."
-                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-xs text-ink outline-none focus:border-accent"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] font-mono text-muted mb-1" htmlFor="promo-btn-text">
-                  Button Text
+                <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                  Banner Headline
                 </label>
                 <input
-                  id="promo-btn-text"
                   type="text"
-                  value={form.customPromoButtonText || ''}
-                  onChange={(e) => setForm((current) => ({ ...current, customPromoButtonText: e.target.value }))}
-                  placeholder="Upload 3D File"
-                  className="w-full rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs text-ink outline-none"
+                  value={form.customPromoTitle || ''}
+                  onChange={(e) => setForm({ ...form, customPromoTitle: e.target.value })}
+                  className="w-full px-3 py-2 text-xs font-bold text-ink bg-white border border-line rounded-xl outline-none"
                 />
               </div>
+
               <div>
-                <label className="block text-[11px] font-mono text-muted mb-1" htmlFor="promo-btn-link">
-                  Button Link
+                <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                  Button Text & Link
                 </label>
-                <input
-                  id="promo-btn-link"
-                  type="text"
-                  value={form.customPromoButtonLink || ''}
-                  onChange={(e) => setForm((current) => ({ ...current, customPromoButtonLink: e.target.value }))}
-                  placeholder="/shilp-studio"
-                  className="w-full rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs text-ink outline-none"
-                />
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    value={form.customPromoButtonText || ''}
+                    onChange={(e) =>
+                      setForm({ ...form, customPromoButtonText: e.target.value })
+                    }
+                    placeholder="Upload 3D File"
+                    className="w-full px-3 py-2 text-xs font-mono text-ink bg-white border border-line rounded-xl outline-none"
+                  />
+                  <input
+                    type="text"
+                    value={form.customPromoButtonLink || ''}
+                    onChange={(e) =>
+                      setForm({ ...form, customPromoButtonLink: e.target.value })
+                    }
+                    placeholder="/custom-printing"
+                    className="w-full px-3 py-2 text-xs font-mono text-ink bg-white border border-line rounded-xl outline-none"
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </form>
+      )}
+
+      {/* TAB 4: TESTIMONIALS */}
+      {activeTab === 'testimonials' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent block">
+                Customer Testimonials & Social Proof
+              </span>
+              <span className="text-xs text-muted">
+                Curate reviews highlighting dimensional accuracy, ambient lighting, and prototype speed.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={addTestimonial}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-accent text-white font-mono text-xs font-bold hover:bg-accent-dark transition-colors shadow-2xs cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Review</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {(form.testimonials || []).map((t, idx) => (
+              <div
+                key={t.id || idx}
+                className="p-4 rounded-2xl border border-line bg-white shadow-2xs space-y-3"
+              >
+                <div className="flex items-center justify-between pb-2 border-b border-line">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-accent">
+                      Review #{idx + 1}
+                    </span>
+                    <label className="flex items-center gap-1 font-mono text-[11px] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={t.enabled}
+                        onChange={(e) => updateTestimonial(idx, 'enabled', e.target.checked)}
+                        className="accent-[#ff4d00]"
+                      />
+                      <span className={t.enabled ? 'text-emerald-700 font-bold' : 'text-muted'}>
+                        {t.enabled ? 'Shown' : 'Hidden'}
+                      </span>
+                    </label>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => removeTestimonial(idx)}
+                    className="p-1 rounded-lg text-rose-600 hover:bg-rose-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs font-sans">
+                  <div>
+                    <label className="block text-[10px] font-mono text-muted mb-0.5">Author</label>
+                    <input
+                      type="text"
+                      value={t.author}
+                      onChange={(e) => updateTestimonial(idx, 'author', e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs text-ink bg-white border border-line rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-mono text-muted mb-0.5">Location</label>
+                    <input
+                      type="text"
+                      value={t.location || ''}
+                      onChange={(e) => updateTestimonial(idx, 'location', e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs text-ink bg-white border border-line rounded-lg"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-mono text-muted mb-0.5">Review Feedback</label>
+                  <textarea
+                    rows={2}
+                    value={t.comment}
+                    onChange={(e) => updateTestimonial(idx, 'comment', e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs text-ink bg-white border border-line rounded-lg"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: FAQS */}
+      {activeTab === 'faqs' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent block">
+                Frequently Asked Questions (FAQ)
+              </span>
+              <span className="text-xs text-muted">
+                Answers to customer questions regarding print materials, turnaround times, and tolerances.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={addFaq}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-accent text-white font-mono text-xs font-bold hover:bg-accent-dark transition-colors shadow-2xs cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add FAQ</span>
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {(form.faqs || []).map((faq, idx) => (
+              <div
+                key={faq.id || idx}
+                className="p-4 rounded-2xl border border-line bg-white shadow-2xs space-y-3"
+              >
+                <div className="flex items-center justify-between pb-2 border-b border-line">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-accent">
+                      Q#{idx + 1}
+                    </span>
+                    <label className="flex items-center gap-1 font-mono text-[11px] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={faq.enabled}
+                        onChange={(e) => updateFaq(idx, 'enabled', e.target.checked)}
+                        className="accent-[#ff4d00]"
+                      />
+                      <span className={faq.enabled ? 'text-emerald-700 font-bold' : 'text-muted'}>
+                        {faq.enabled ? 'Published' : 'Hidden'}
+                      </span>
+                    </label>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => removeFaq(idx)}
+                    className="p-1 rounded-lg text-rose-600 hover:bg-rose-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={faq.question}
+                    onChange={(e) => updateFaq(idx, 'question', e.target.value)}
+                    placeholder="Question..."
+                    className="w-full px-3 py-2 text-xs font-bold text-ink bg-white border border-line rounded-xl outline-none"
+                  />
+                  <textarea
+                    rows={2}
+                    value={faq.answer}
+                    onChange={(e) => updateFaq(idx, 'answer', e.target.value)}
+                    placeholder="Detailed answer..."
+                    className="w-full px-3 py-2 text-xs text-ink bg-white border border-line rounded-xl outline-none"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 6: FOOTER & BRAND */}
+      {activeTab === 'footer' && (
+        <div className="p-6 rounded-2xl border border-line bg-white shadow-2xs space-y-4">
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent block">
+            Storefront Brand Footer
+          </span>
+
+          <div>
+            <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1">
+              Footer Brand Statement
+            </label>
+            <input
+              type="text"
+              value={form.footerNote || ''}
+              onChange={(e) => setForm({ ...form, footerNote: e.target.value })}
+              placeholder="e.g. Crafted with pride in India · Precision additive manufacturing"
+              className="w-full px-3 py-2 text-xs text-ink bg-white border border-line rounded-xl outline-none"
+            />
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
-
-
+export default AdminHome;

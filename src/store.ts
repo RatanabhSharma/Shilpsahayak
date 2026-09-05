@@ -57,15 +57,24 @@ export type Product = {
 export type CustomPrintData = {
   fileName?: string;
   fileUrl?: string;
+  fileKey?: string;
 
   material?: string;
   color?: string;
+  quality?: string;
 
   infill?: number;
   layerHeight?: number;
 
+  dimensions?: { x: number; y: number; z: number };
   volume?: number;
   estimatedWeight?: number;
+  estimatedPrintTimeHours?: number;
+
+  packagingIncluded?: boolean;
+  pricingVersion?: string;
+  isEstimate?: boolean;
+  quoteId?: string;
 
   /**
    * Price calculated specifically
@@ -156,16 +165,54 @@ export type QuoteRequest = {
 /* -------------------------------------------------------------------------- */
 
 export type Settings = {
+  // Business Information
   businessName: string;
-  whatsappNumber: string;
+  logoUrl?: string;
   email: string;
   phone: string;
+  whatsappNumber: string;
   address: string;
+  gstin?: string;
+  cin?: string;
+  supportHours?: string;
 
+  // Pricing
+  baseFee?: number;
+  minimumOrderValue?: number;
+  defaultGSTRate?: number;
+
+  // Shipping
   shippingFlatRate: number;
   freeShippingThreshold: number;
+  expressShippingRate?: number;
+  defaultCourierPartner?: string;
+  deliveryZones?: string[];
 
+  // Payments
   upiId: string;
+  codEnabled?: boolean;
+  maxCodOrderValue?: number;
+  bankAccountDetails?: {
+    accountName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    bankName?: string;
+  };
+
+  // Notifications
+  notifications?: {
+    newOrderAlerts?: boolean;
+    quoteAlerts?: boolean;
+    lowStockAlerts?: boolean;
+    alertEmailRecipient?: string;
+  };
+
+  // Admin Access
+  adminUsers?: {
+    email: string;
+    role: string;
+    addedAt: string;
+  }[];
 };
 
 const INITIAL_SETTINGS: Settings = {

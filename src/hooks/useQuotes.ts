@@ -49,11 +49,19 @@ function removeUndefined<T>(value: T): T {
 }
 
 export type QuoteStatus =
+  | 'New Request'
+  | 'Under Review'
+  | 'Quote Sent'
+  | 'Approved'
+  | 'Rejected'
+  | 'Converted to Order'
+  | 'Cancelled'
+  /* Backwards compatible legacy statuses */
   | 'Pending'
   | 'Quoted'
   | 'Accepted'
-  | 'Rejected'
-  | 'Completed';
+  | 'Completed'
+  | 'Expired';
 
 export type QuoteRequestType =
   | '3d-model'
@@ -88,18 +96,24 @@ export type Quote = {
   /* Uploaded file */
   fileName?: string;
   fileUrl?: string;
+  fileSizeBytes?: number;
 
   /* Printing specifications */
   material?: string;
   color?: string;
+  quality?: string;
   infill?: number;
   layerHeight?: number;
   quantity: number;
+  packagingIncluded?: boolean;
 
   /* Model calculation */
   volume?: number;
   estimatedWeight?: number;
-  estimatedPrice?: number;
+  estimatedPrintTimeHours?: number;
+  systemEstimatedPrice?: number;
+  estimatedPrice?: number; // legacy alias
+  customerApprovedAmount?: number;
 
   /* Image / idea requests */
   dimensions?: QuoteDimensions;
@@ -110,10 +124,17 @@ export type Quote = {
 
   /* Quote lifecycle */
   status: QuoteStatus;
+  expiresAt?: string;
+  pricingVersion?: string;
 
-  /* Admin pricing */
+  /* Admin pricing & review tracking */
   adminPrice?: number;
   adminNotes?: string;
+  adminAdjustmentReason?: string;
+  orderId?: string; // linked converted order
+  reviewedAt?: string;
+  quotedAt?: string;
+  convertedAt?: string;
 };
 
 /*

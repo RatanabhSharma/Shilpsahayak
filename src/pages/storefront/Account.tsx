@@ -36,6 +36,7 @@ import {
 import {
   useMyOrders,
   useReorderOrder,
+  useCancelOrder,
 } from '../../hooks/useOrders';
 
 import {
@@ -135,6 +136,7 @@ export function Account() {
 
   const updateQuote = useUpdateQuote();
   const reorderOrder = useReorderOrder();
+  const cancelOrder = useCancelOrder();
 
   const navigate = useNavigate();
 
@@ -143,6 +145,11 @@ export function Account() {
 
   const [selectedOrder, setSelectedOrder] =
     useState<(typeof myOrders)[number] | null>(null);
+
+  const [cancellingOrder, setCancellingOrder] =
+    useState<(typeof myOrders)[number] | null>(null);
+  const [cancellationReason, setCancellationReason] = useState('Change of plans');
+  const [customReason, setCustomReason] = useState('');
 
   const [profileMessage, setProfileMessage] = useState('');
   const [profileError, setProfileError] = useState('');
@@ -383,6 +390,58 @@ export function Account() {
     } catch (error) {
       console.error('Failed to reorder:', error);
       alert(error instanceof Error ? error.message : 'Unable to reorder. Please try again.');
+    }
+  };
+
+  const isOrderCancellable = (order: (typeof myOrders)[number]) => {
+    // 1. Status must be Pending or Confirmed (before printing / fabrication)
+    if (order.status !== 'Pending' && order.status !== 'Confirmed') {
+      return false;
+    }
+    // 2. Order level override
+    if (order.isCancellable === false) {
+      return false;
+    }
+    // 3. Line items: if any item explicitly has isCancellable === false
+    const hasNonCancellableItem = order.items?.some(
+      (item) => item.isCancellable === false
+    );
+    if (hasNonCancellableItem) {
+      return false;
+    }
+    return true;
+  };
+
+  const handleConfirmCancellation = async () => {
+    if (!cancellingOrder) return;
+    const finalReason =
+      cancellationReason === 'Other'
+        ? customReason.trim() || 'Customer requested cancellation'
+        : cancellationReason;
+
+    try {
+      await cancelOrder.mutateAsync({
+        orderId: cancellingOrder.id,
+        reason: finalReason,
+      });
+      const cancelledId = cancellingOrder.id;
+      setCancellingOrder(null);
+      if (selectedOrder?.id === cancelledId) {
+        setSelectedOrder((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: 'Cancelled',
+                cancellationReason: finalReason,
+                cancelledAt: new Date().toISOString(),
+              }
+            : null
+        );
+      }
+      alert('Order cancelled successfully. If payment was made, your 100% refund will be processed within 2–3 business days.');
+    } catch (error: any) {
+      console.error('Cancellation error:', error);
+      alert(error?.message || 'Failed to cancel order. Please contact support.');
     }
   };
 
@@ -650,6 +709,20 @@ export function Account() {
                           year: 'numeric',
                         })}
                       </p>
+
+                      {order.status === 'Cancelled' ? (
+                        <p className="text-[11px] text-rose-600 font-medium">
+                          ✕ Cancelled • 100% Refund credited in 2–3 business days
+                        </p>
+                      ) : order.status === 'Printing' || order.status === 'Quality Check' ? (
+                        <p className="text-[11px] text-accent font-medium">
+                          🖨️ Active on 3D Printer Bed (Non-cancellable)
+                        </p>
+                      ) : !isOrderCancellable(order) && (order.status === 'Pending' || order.status === 'Confirmed') ? (
+                        <p className="text-[11px] text-muted font-medium">
+                          🔒 Bespoke Custom Fabrication (Non-cancellable)
+                        </p>
+                      ) : null}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
@@ -667,6 +740,18 @@ export function Account() {
                       >
                         View Details
                       </Button>
+
+                      {isOrderCancellable(order) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-rose-600 border-rose-200 hover:bg-rose-50 font-sans"
+                          onClick={() => setCancellingOrder(order)}
+                          disabled={cancelOrder.isPending}
+                        >
+                          Cancel Order
+                        </Button>
+                      )}
 
                       <Button
                         size="sm"
@@ -737,74 +822,106 @@ export function Account() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-line font-sans">
-                      {myQuotes.map((quote) => (
-                        <tr key={quote.id} className="hover:bg-shell/50">
-                          <td className="px-6 py-4 font-mono font-bold text-ink">
-                            #{quote.id.slice(0, 8).toUpperCase()}
-                          </td>
-                          <td className="px-6 py-4">
-                            <p className="max-w-[200px] truncate font-bold text-ink font-display">
-                              {quote.fileName}
-                            </p>
-                            <span className="font-mono text-[10px] text-muted">
-                              {new Date(quote.date).toLocaleDateString('en-IN', {
-                                day: 'numeric',
-                                month: 'short',
-                              })}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="font-semibold text-ink">{quote.material}</span> • {quote.color}
-                            <p className="font-mono text-[10px] text-muted">{quote.infill}% Infill</p>
-                          </td>
-                          <td className="px-6 py-4">
-                            {getStatusBadge(quote.status)}
-                          </td>
-                          <td className="px-6 py-4 font-mono font-bold text-ink">
-                            {quote.adminPrice ? (
-                              <div>
-                                <span>₹{quote.adminPrice.toLocaleString('en-IN')}</span>
-                                <span className="block text-[10px] font-bold text-emerald-600 font-sans">Final Price</span>
-                              </div>
-                            ) : (
-                              <div>
-                                <span>₹{(quote.estimatedPrice ?? 0).toLocaleString('en-IN')}</span>
-                                <span className="block text-[10px] text-muted font-sans">Estimate</span>
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            {quote.status === 'Quoted' && quote.adminPrice ? (
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleAcceptQuote(quote.id)}
-                                  disabled={updateQuote.isPending}
-                                  className="bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
-                                >
-                                  <CheckCircle className="w-3.5 h-3.5" />
-                                  <span>Accept</span>
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleRejectQuote(quote.id)}
-                                  disabled={updateQuote.isPending}
-                                >
-                                  <XCircle className="w-3.5 h-3.5" />
-                                  <span>Decline</span>
-                                </Button>
-                              </div>
-                            ) : (
-                              <Link to="/shilp-studio">
-                                <Button size="sm" variant="ghost">
-                                  New Quote
-                                </Button>
-                              </Link>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                      {myQuotes.map((quote) => {
+                        const isExpired = quote.expiresAt
+                          ? new Date(quote.expiresAt).getTime() < Date.now()
+                          : false;
+
+                        return (
+                          <tr key={quote.id} className="hover:bg-shell/50">
+                            <td className="px-6 py-4 font-mono font-bold text-ink">
+                              #{quote.id.slice(0, 8).toUpperCase()}
+                            </td>
+                            <td className="px-6 py-4">
+                              <p className="max-w-[200px] truncate font-bold text-ink font-display">
+                                {quote.fileName}
+                              </p>
+                              <span className="font-mono text-[10px] text-muted">
+                                {new Date(quote.date).toLocaleDateString('en-IN', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                })}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="font-semibold text-ink">{quote.material}</span> • {quote.color}
+                              <p className="font-mono text-[10px] text-muted">{quote.infill}% Infill</p>
+                            </td>
+                            <td className="px-6 py-4">
+                              {isExpired && quote.status === 'Quoted' ? (
+                                <div className="space-y-1">
+                                  <span className="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-rose-700">
+                                    Expired
+                                  </span>
+                                  {quote.expiresAt && (
+                                    <p className="font-mono text-[10px] text-rose-600">
+                                      Expired on {new Date(quote.expiresAt).toLocaleDateString('en-IN')}
+                                    </p>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="space-y-1">
+                                  {getStatusBadge(quote.status)}
+                                  {quote.status === 'Quoted' && quote.expiresAt && (
+                                    <p className="font-mono text-[10px] text-amber-700 font-semibold">
+                                      ⏳ Valid until {new Date(quote.expiresAt).toLocaleDateString('en-IN')}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 font-mono font-bold text-ink">
+                              {quote.adminPrice ? (
+                                <div>
+                                  <span>₹{quote.adminPrice.toLocaleString('en-IN')}</span>
+                                  <span className="block text-[10px] font-bold text-emerald-600 font-sans">Final Price</span>
+                                </div>
+                              ) : (
+                                <div>
+                                  <span>₹{(quote.estimatedPrice ?? 0).toLocaleString('en-IN')}</span>
+                                  <span className="block text-[10px] text-muted font-sans">Estimate</span>
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              {quote.status === 'Quoted' && quote.adminPrice && !isExpired ? (
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleAcceptQuote(quote.id)}
+                                    disabled={updateQuote.isPending}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
+                                  >
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                    <span>Accept</span>
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleRejectQuote(quote.id)}
+                                    disabled={updateQuote.isPending}
+                                  >
+                                    <XCircle className="w-3.5 h-3.5" />
+                                    <span>Decline</span>
+                                  </Button>
+                                </div>
+                              ) : quote.status === 'Quoted' && isExpired ? (
+                                <Link to="/shilp-studio">
+                                  <Button size="sm" variant="outline" className="font-mono text-xs text-accent border-accent/40 hover:bg-accent-soft">
+                                    Request Re-quote
+                                  </Button>
+                                </Link>
+                              ) : (
+                                <Link to="/shilp-studio">
+                                  <Button size="sm" variant="ghost">
+                                    New Quote
+                                  </Button>
+                                </Link>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -1175,6 +1292,16 @@ export function Account() {
                 {getStatusBadge(selectedOrder.status)}
               </div>
 
+              {selectedOrder.status === 'Cancelled' && (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-sans text-rose-800 space-y-1">
+                  <p className="font-bold font-display text-sm text-rose-900">This order is Cancelled</p>
+                  <p>
+                    {selectedOrder.cancellationReason ? `Reason: ${selectedOrder.cancellationReason}. ` : ''}
+                    A 100% full refund of <strong>₹{selectedOrder.total.toLocaleString('en-IN')}</strong> will be credited to your account/UPI in 2–3 business days.
+                  </p>
+                </div>
+              )}
+
               {/* Items List */}
               <div className="divide-y divide-line border-y border-line">
                 {selectedOrder.items.map((item, index) => (
@@ -1213,19 +1340,139 @@ export function Account() {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex justify-end gap-3 border-t border-line bg-shell p-4 rounded-b-3xl">
-              <Button variant="ghost" size="sm" onClick={() => setSelectedOrder(null)}>
-                Close
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-shell p-4 rounded-b-3xl">
+              <div>
+                {isOrderCancellable(selectedOrder) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-rose-600 border-rose-200 hover:bg-rose-50 font-sans"
+                    onClick={() => {
+                      const order = selectedOrder;
+                      setSelectedOrder(null);
+                      setCancellingOrder(order);
+                    }}
+                    disabled={cancelOrder.isPending}
+                  >
+                    Cancel Order
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setSelectedOrder(null)}>
+                  Close
+                </Button>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => handleOrderAgain(selectedOrder)}
+                  disabled={reorderOrder.isPending}
+                  isLoading={reorderOrder.isPending}
+                >
+                  <ShoppingCart className="w-3.5 h-3.5" />
+                  <span>Order Again</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CANCELLATION CONFIRMATION MODAL */}
+      {cancellingOrder && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-8"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setCancellingOrder(null)}
+        >
+          <div
+            className="w-full max-w-md overflow-hidden rounded-3xl border border-line bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-line p-5 bg-rose-50/50">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100 text-rose-600 shrink-0">
+                  <XCircle className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-display text-lg font-bold text-ink">
+                    Cancel Order #{cancellingOrder.id.slice(0, 8).toUpperCase()}
+                  </h3>
+                  <p className="font-mono text-xs text-muted">Refund Amount: ₹{cancellingOrder.total.toLocaleString('en-IN')}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCancellingOrder(null)}
+                className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-shell transition-colors cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-5 space-y-4 text-xs font-sans">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-amber-900 leading-relaxed">
+                <p className="font-bold mb-1 font-display">100% Full Refund Policy</p>
+                <p className="text-[11px]">
+                  Since 3D printing has not commenced, your order is eligible for immediate cancellation. If you already paid via UPI or card, a refund of <strong>₹{cancellingOrder.total.toLocaleString('en-IN')}</strong> will be credited to your account within 2–3 business days.
+                </p>
+              </div>
+
+              <div>
+                <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1.5">
+                  Reason for Cancellation
+                </label>
+                <select
+                  value={cancellationReason}
+                  onChange={(e) => setCancellationReason(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-white border border-line rounded-lg outline-none focus:border-accent text-ink"
+                >
+                  <option value="Change of plans">Change of plans / Ordered by mistake</option>
+                  <option value="Delivery time too long">Delivery time is too long</option>
+                  <option value="Found better alternative">Found a different model/product</option>
+                  <option value="Incorrect delivery address or details">Incorrect delivery address or details</option>
+                  <option value="Other">Other reason</option>
+                </select>
+              </div>
+
+              {cancellationReason === 'Other' && (
+                <div>
+                  <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
+                    Please specify
+                  </label>
+                  <input
+                    type="text"
+                    value={customReason}
+                    onChange={(e) => setCustomReason(e.target.value)}
+                    placeholder="Enter reason..."
+                    className="w-full px-3 py-2 text-xs bg-white border border-line rounded-lg outline-none focus:border-accent text-ink"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-2.5 border-t border-line bg-shell p-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCancellingOrder(null)}
+                disabled={cancelOrder.isPending}
+              >
+                Keep Order
               </Button>
               <Button
                 size="sm"
-                variant="primary"
-                onClick={() => handleOrderAgain(selectedOrder)}
-                disabled={reorderOrder.isPending}
-                isLoading={reorderOrder.isPending}
+                className="bg-rose-600 hover:bg-rose-700 text-white border-rose-600 font-semibold"
+                onClick={handleConfirmCancellation}
+                disabled={cancelOrder.isPending}
+                isLoading={cancelOrder.isPending}
               >
-                <ShoppingCart className="w-3.5 h-3.5" />
-                <span>Order Again</span>
+                Confirm Cancellation
               </Button>
             </div>
           </div>

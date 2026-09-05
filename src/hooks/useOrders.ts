@@ -19,6 +19,11 @@ import { useStore, Product } from '../store';
 
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
+import {
+  sendOrderConfirmationNotification,
+  sendOrderStatusUpdateNotification,
+  sendOrderCancelledNotification,
+} from '../services/emailNotifications';
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -27,11 +32,67 @@ import { useAuth } from './useAuth';
 export type OrderStatus =
   | 'Pending'
   | 'Confirmed'
-  | 'Printing'
-  | 'Quality Check'
+  | 'Processing'
+  | 'Ready to ship'
   | 'Shipped'
   | 'Delivered'
-  | 'Cancelled';
+  | 'Cancelled'
+  | 'Refunded'
+  /* Legacy statuses for backwards compatibility */
+  | 'Printing'
+  | 'Quality Check';
+
+export type PaymentStatus =
+  | 'Pending'
+  | 'Paid'
+  | 'Failed'
+  | 'Refunded'
+  | 'Partially refunded';
+
+export type ShippingStatus =
+  | 'Not shipped'
+  | 'Ready to ship'
+  | 'Shipped'
+  | 'In transit'
+  | 'Delivered'
+  | 'Returned';
+
+export type ReturnStatus =
+  | 'None'
+  | 'Requested'
+  | 'Approved'
+  | 'Received'
+  | 'Rejected'
+  | 'Completed';
+
+export type RefundStatus =
+  | 'None'
+  | 'Requested'
+  | 'Processing'
+  | 'Approved'
+  | 'Refunded'
+  | 'Rejected';
+
+export type FulfillmentType =
+  | 'Standard Shipping'
+  | 'Express Shipping'
+  | 'Studio Pickup'
+  | 'Custom Delivery';
+
+export type OrderTimelineEvent = {
+  id: string;
+  status: string;
+  note?: string;
+  timestamp: string;
+  updatedBy?: string;
+};
+
+export type OrderNote = {
+  id: string;
+  text: string;
+  createdAt: string;
+  author: string;
+};
 
 export type OrderItem = {
   productId: string;
@@ -41,6 +102,9 @@ export type OrderItem = {
   customNotes?: string;
   variantId?: string;
   variantLabel?: string;
+  isCancellable?: boolean;
+  quoteId?: string;
+  customPrint?: any;
 };
 
 export type Order = {
@@ -53,14 +117,54 @@ export type Order = {
   customerPhone: string;
 
   address: string;
+  shippingAddress?: {
+    line1?: string;
+    line2?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+  };
 
   items: OrderItem[];
 
   total: number;
+  subtotal?: number;
+  shippingFee?: number;
+  shippingCost?: number;
+  taxAmount?: number;
 
   status: OrderStatus;
+  paymentId?: string;
+  paymentStatus?: PaymentStatus;
+  paymentMethod?: string;
+  transactionRef?: string;
+  paidAt?: string;
 
+  fulfillmentType?: FulfillmentType;
+  shippingStatus?: ShippingStatus;
+  courierPartner?: string;
+  trackingNumber?: string;
+  expectedDeliveryDate?: string;
+  deliveredDate?: string;
+
+  returnRequest?: boolean;
+  returnReason?: string;
+  returnStatus?: ReturnStatus;
+  returnRequestedAt?: string;
+  returnNotes?: string;
+
+  refundAmount?: number;
+  refundStatus?: RefundStatus;
+  refundReason?: string;
+  refundedAt?: string;
+  timeline?: OrderTimelineEvent[];
+  internalNotes?: OrderNote[];
+
+  quoteId?: string;
   notes?: string;
+  isCancellable?: boolean;
+  cancelledAt?: string;
+  cancellationReason?: string;
 };
 
 /* -------------------------------------------------------------------------- */
@@ -319,7 +423,7 @@ export function useCreateOrder() {
       }
 
       const customerId =
-        currentUser.uid;
+        orderData.customerId || currentUser.uid;
 
       console.log(
         'Creating order for Firebase UID:',
@@ -329,17 +433,31 @@ export function useCreateOrder() {
       /*
        * Create the Firestore document.
        */
-
+      const dateNow = new Date().toISOString();
       const newOrder = {
         ...orderData,
 
         customerId,
 
-        date:
-          new Date().toISOString(),
+        date: dateNow,
 
-        status:
-          'Pending' as OrderStatus,
+        status: (orderData as any).status || ('Pending' as OrderStatus),
+
+        paymentStatus: (orderData as any).paymentStatus || ('Pending' as PaymentStatus),
+
+        fulfillmentType: (orderData as any).fulfillmentType || ('Standard Shipping' as FulfillmentType),
+
+        timeline: [
+          {
+            id: `tl_${Date.now()}`,
+            status: 'Pending',
+            note: 'Order placed by customer',
+            timestamp: dateNow,
+            updatedBy: 'Customer',
+          },
+        ],
+
+        internalNotes: [],
       };
 
       /*
@@ -385,6 +503,10 @@ export function useCreateOrder() {
 
     onSuccess:
       async (newOrder) => {
+        // Dispatch order confirmation email to customer
+        sendOrderConfirmationNotification(newOrder as Order).catch((err) =>
+          console.error('[Notification] Failed to send order confirmation email:', err)
+        );
 
         /*
          * Invalidate admin orders.
@@ -451,45 +573,436 @@ export function useCreateOrder() {
 /* -------------------------------------------------------------------------- */
 
 export function useUpdateOrderStatus() {
-  const queryClient =
-    useQueryClient();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
       id,
       status,
+      trackingNumber,
+      courierPartner,
+      note,
+      updatedBy = 'Workshop Admin',
     }: {
       id: string;
       status: OrderStatus;
+      trackingNumber?: string;
+      courierPartner?: string;
+      note?: string;
+      updatedBy?: string;
     }) => {
+      const orderRef = doc(db, 'orders', id);
+      const snapshot = await getDoc(orderRef);
+      if (!snapshot.exists()) throw new Error('Order not found');
 
-      await updateDoc(
-        doc(
-          db,
-          'orders',
-          id
-        ),
+      const existingData = snapshot.data() as Order;
+      const timeline = existingData.timeline || [
         {
+          id: 'initial',
+          status: existingData.status || 'Pending',
+          timestamp: existingData.date || new Date().toISOString(),
+          note: 'Order placed',
+          updatedBy: 'System',
+        },
+      ];
+
+      const newTimelineEvent: OrderTimelineEvent = {
+        id: `tl_${Date.now()}`,
+        status,
+        timestamp: new Date().toISOString(),
+        note: note || `Order status updated to "${status}"`,
+        updatedBy,
+      };
+
+      const updateData: Record<string, unknown> = {
+        status,
+        timeline: [...timeline, newTimelineEvent],
+      };
+      if (trackingNumber !== undefined) updateData.trackingNumber = trackingNumber;
+      if (courierPartner !== undefined) updateData.courierPartner = courierPartner;
+
+      await updateDoc(orderRef, updateData);
+
+      if (snapshot.exists()) {
+        const orderData = { id: snapshot.id, ...snapshot.data() } as Order;
+        sendOrderStatusUpdateNotification({
+          order: orderData,
           status,
-        }
-      );
+          trackingNumber,
+          courierPartner,
+        }).catch((err) => console.error('Failed to dispatch status email:', err));
+      }
     },
 
-    onSuccess:
-      async () => {
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['my-orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['order'] }),
+      ]);
+    },
+  });
+}
 
-        await queryClient.invalidateQueries({
-          queryKey: ['orders'],
-        });
+/* -------------------------------------------------------------------------- */
+/* Update payment status - Admin                                              */
+/* -------------------------------------------------------------------------- */
 
-        await queryClient.invalidateQueries({
-          queryKey: ['my-orders'],
-        });
+export function useUpdatePaymentStatus() {
+  const queryClient = useQueryClient();
 
-        await queryClient.invalidateQueries({
-          queryKey: ['order'],
-        });
-      },
+  return useMutation({
+    mutationFn: async ({
+      id,
+      paymentId,
+      paymentStatus,
+      paymentMethod,
+      transactionRef,
+      paidAt,
+      note,
+      updatedBy = 'Workshop Admin',
+    }: {
+      id: string;
+      paymentId?: string;
+      paymentStatus: PaymentStatus;
+      paymentMethod?: string;
+      transactionRef?: string;
+      paidAt?: string;
+      note?: string;
+      updatedBy?: string;
+    }) => {
+      const orderRef = doc(db, 'orders', id);
+      const snapshot = await getDoc(orderRef);
+      if (!snapshot.exists()) throw new Error('Order not found');
+
+      const existingData = snapshot.data() as Order;
+      const timeline = existingData.timeline || [];
+
+      const newTimelineEvent: OrderTimelineEvent = {
+        id: `tl_${Date.now()}`,
+        status: `Payment: ${paymentStatus}`,
+        timestamp: new Date().toISOString(),
+        note:
+          note ||
+          `Payment status updated to "${paymentStatus}"${
+            paymentMethod ? ` via ${paymentMethod}` : ''
+          }${transactionRef ? ` (Ref: ${transactionRef})` : ''}`,
+        updatedBy,
+      };
+
+      const updateData: Record<string, unknown> = {
+        paymentStatus,
+        timeline: [...timeline, newTimelineEvent],
+      };
+      if (paymentId !== undefined) updateData.paymentId = paymentId;
+      if (paymentMethod !== undefined) updateData.paymentMethod = paymentMethod;
+      if (transactionRef !== undefined) updateData.transactionRef = transactionRef;
+      if (paymentStatus === 'Paid') {
+        updateData.paidAt = paidAt || new Date().toISOString();
+      } else if (paidAt !== undefined) {
+        updateData.paidAt = paidAt;
+      }
+
+      await updateDoc(orderRef, updateData);
+    },
+
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['my-orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['order'] }),
+      ]);
+    },
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Update shipping & fulfillment details - Admin                              */
+/* -------------------------------------------------------------------------- */
+
+export function useUpdateShippingDetails() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      shippingStatus,
+      courierPartner,
+      trackingNumber,
+      shippingCost,
+      expectedDeliveryDate,
+      deliveredDate,
+      note,
+      syncOrderStatus = true,
+      updatedBy = 'Workshop Admin',
+    }: {
+      id: string;
+      shippingStatus: ShippingStatus;
+      courierPartner?: string;
+      trackingNumber?: string;
+      shippingCost?: number;
+      expectedDeliveryDate?: string;
+      deliveredDate?: string;
+      note?: string;
+      syncOrderStatus?: boolean;
+      updatedBy?: string;
+    }) => {
+      const orderRef = doc(db, 'orders', id);
+      const snapshot = await getDoc(orderRef);
+      if (!snapshot.exists()) throw new Error('Order not found');
+
+      const existingData = snapshot.data() as Order;
+      const timeline = existingData.timeline || [];
+
+      const newTimelineEvent: OrderTimelineEvent = {
+        id: `tl_${Date.now()}`,
+        status: `Shipping: ${shippingStatus}`,
+        timestamp: new Date().toISOString(),
+        note:
+          note ||
+          `Shipping updated to "${shippingStatus}"${
+            courierPartner ? ` via ${courierPartner}` : ''
+          }${trackingNumber ? ` (AWB: ${trackingNumber})` : ''}`,
+        updatedBy,
+      };
+
+      const updateData: Record<string, unknown> = {
+        shippingStatus,
+        timeline: [...timeline, newTimelineEvent],
+      };
+
+      if (courierPartner !== undefined) updateData.courierPartner = courierPartner;
+      if (trackingNumber !== undefined) updateData.trackingNumber = trackingNumber;
+      if (shippingCost !== undefined) {
+        updateData.shippingCost = shippingCost;
+        updateData.shippingFee = shippingCost;
+      }
+      if (expectedDeliveryDate !== undefined) {
+        updateData.expectedDeliveryDate = expectedDeliveryDate;
+      }
+      if (deliveredDate !== undefined) {
+        updateData.deliveredDate = deliveredDate;
+      } else if (shippingStatus === 'Delivered') {
+        updateData.deliveredDate = new Date().toISOString();
+      }
+
+      // Sync overall order status if enabled
+      if (syncOrderStatus) {
+        if (shippingStatus === 'Ready to ship' && existingData.status !== 'Shipped' && existingData.status !== 'Delivered') {
+          updateData.status = 'Ready to ship';
+        } else if ((shippingStatus === 'Shipped' || shippingStatus === 'In transit') && existingData.status !== 'Delivered') {
+          updateData.status = 'Shipped';
+        } else if (shippingStatus === 'Delivered') {
+          updateData.status = 'Delivered';
+        }
+      }
+
+      await updateDoc(orderRef, updateData);
+
+      // Fire customer email notification on dispatch
+      if (shippingStatus === 'Shipped' && existingData.status !== 'Shipped') {
+        const orderData = { id: snapshot.id, ...snapshot.data(), ...updateData } as Order;
+        sendOrderStatusUpdateNotification({
+          order: orderData,
+          status: 'Shipped',
+          trackingNumber,
+          courierPartner,
+        }).catch((err) => console.error('Failed to dispatch shipping notification:', err));
+      }
+    },
+
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['my-orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['order'] }),
+      ]);
+    },
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Update return and refund workflow - Admin                                  */
+/* -------------------------------------------------------------------------- */
+
+export function useUpdateReturnRequest() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      returnStatus,
+      returnReason,
+      returnNotes,
+      refundAmount,
+      refundStatus,
+      updatedBy = 'Workshop Admin',
+    }: {
+      id: string;
+      returnStatus: ReturnStatus;
+      returnReason?: string;
+      returnNotes?: string;
+      refundAmount?: number;
+      refundStatus?: RefundStatus;
+      updatedBy?: string;
+    }) => {
+      const orderRef = doc(db, 'orders', id);
+      const snapshot = await getDoc(orderRef);
+      if (!snapshot.exists()) throw new Error('Order not found');
+
+      const existingData = snapshot.data() as Order;
+      const timeline = existingData.timeline || [];
+
+      const newTimelineEvent: OrderTimelineEvent = {
+        id: `tl_${Date.now()}`,
+        status: `Return: ${returnStatus}`,
+        timestamp: new Date().toISOString(),
+        note: `Return status marked as "${returnStatus}"${
+          returnReason ? ` · Reason: ${returnReason}` : ''
+        }`,
+        updatedBy,
+      };
+
+      const updateData: Record<string, unknown> = {
+        returnStatus,
+        returnRequest: returnStatus !== 'None',
+        timeline: [...timeline, newTimelineEvent],
+      };
+
+      if (returnReason !== undefined) updateData.returnReason = returnReason;
+      if (returnNotes !== undefined) updateData.returnNotes = returnNotes;
+      if (refundAmount !== undefined) updateData.refundAmount = refundAmount;
+      if (refundStatus !== undefined) {
+        updateData.refundStatus = refundStatus;
+        if (refundStatus === 'Refunded') {
+          updateData.paymentStatus = 'Refunded';
+          updateData.refundedAt = new Date().toISOString();
+        } else if (refundStatus === 'Processing' || refundStatus === 'Approved') {
+          if (existingData.paymentStatus !== 'Refunded') {
+            updateData.paymentStatus = 'Partially refunded';
+          }
+        }
+      }
+
+      await updateDoc(orderRef, updateData);
+    },
+
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['my-orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['order'] }),
+      ]);
+    },
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Add internal note - Admin                                                  */
+/* -------------------------------------------------------------------------- */
+
+export function useAddOrderNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      text,
+      author = 'Workshop Admin',
+    }: {
+      id: string;
+      text: string;
+      author?: string;
+    }) => {
+      const orderRef = doc(db, 'orders', id);
+      const snapshot = await getDoc(orderRef);
+      if (!snapshot.exists()) throw new Error('Order not found');
+
+      const existingData = snapshot.data() as Order;
+      const internalNotes = existingData.internalNotes || [];
+
+      const newNote: OrderNote = {
+        id: `note_${Date.now()}`,
+        text: text.trim(),
+        createdAt: new Date().toISOString(),
+        author,
+      };
+
+      await updateDoc(orderRef, {
+        internalNotes: [...internalNotes, newNote],
+      });
+    },
+
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['order'] }),
+      ]);
+    },
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Refund order - Admin                                                       */
+/* -------------------------------------------------------------------------- */
+
+export function useRefundOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      refundAmount,
+      reason,
+      updatedBy = 'Workshop Admin',
+    }: {
+      id: string;
+      refundAmount: number;
+      reason?: string;
+      updatedBy?: string;
+    }) => {
+      const orderRef = doc(db, 'orders', id);
+      const snapshot = await getDoc(orderRef);
+      if (!snapshot.exists()) throw new Error('Order not found');
+
+      const existingData = snapshot.data() as Order;
+      const orderTotal = Number(existingData.total) || 0;
+      const isFullRefund = refundAmount >= orderTotal;
+      const newPaymentStatus: PaymentStatus = isFullRefund ? 'Refunded' : 'Partially refunded';
+      const timeline = existingData.timeline || [];
+
+      const newTimelineEvent: OrderTimelineEvent = {
+        id: `tl_${Date.now()}`,
+        status: `Refund: ${newPaymentStatus}`,
+        timestamp: new Date().toISOString(),
+        note: `Processed refund of ₹${refundAmount.toLocaleString('en-IN')}${
+          reason ? ` · Reason: ${reason}` : ''
+        }`,
+        updatedBy,
+      };
+
+      const updateData: Record<string, unknown> = {
+        paymentStatus: newPaymentStatus,
+        refundAmount,
+        refundReason: reason,
+        refundedAt: new Date().toISOString(),
+        timeline: [...timeline, newTimelineEvent],
+      };
+
+      if (isFullRefund) {
+        updateData.status = 'Refunded';
+      }
+
+      await updateDoc(orderRef, updateData);
+    },
+
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['my-orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['order'] }),
+      ]);
+    },
   });
 }
 
@@ -691,6 +1204,102 @@ export function useReorderOrder() {
 
       return resolvedItems;
     }
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Customer / Admin: Cancel Order & Restore Inventory Stock                   */
+/* -------------------------------------------------------------------------- */
+
+export function useCancelOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      orderId,
+      reason,
+    }: {
+      orderId: string;
+      reason?: string;
+    }) => {
+      console.log('Processing cancellation for order:', orderId);
+      const orderRef = doc(db, 'orders', orderId);
+      const orderSnap = await getDoc(orderRef);
+
+      if (!orderSnap.exists()) {
+        throw new Error('Order not found.');
+      }
+
+      const orderData = orderSnap.data() as Order;
+
+      // Only allow cancellation if status is Pending or Confirmed
+      if (orderData.status !== 'Pending' && orderData.status !== 'Confirmed') {
+        throw new Error(
+          `Cannot cancel order. The current status is "${orderData.status}". 3D print fabrication or dispatch has already commenced.`
+        );
+      }
+
+      // 1. Update order status to Cancelled in Firestore
+      const cancellationTime = new Date().toISOString();
+      await updateDoc(orderRef, {
+        status: 'Cancelled',
+        cancelledAt: cancellationTime,
+        cancellationReason: reason || 'Customer requested cancellation before production',
+      });
+
+      // 2. Automatically restore inventory stock for all catalogue items
+      if (Array.isArray(orderData.items)) {
+        for (const item of orderData.items) {
+          if (!item.productId) continue;
+          try {
+            const productRef = doc(db, 'products', item.productId);
+            const productSnap = await getDoc(productRef);
+            if (productSnap.exists()) {
+              const productData = productSnap.data() as Product;
+              const currentStock = Number(productData.stock) || 0;
+              const qtyToRestore = Number(item.quantity) || 1;
+
+              // If item was a variant, also restore variant stock
+              if (item.variantId && Array.isArray(productData.variants)) {
+                const updatedVariants = productData.variants.map((v) => {
+                  if (v.id === item.variantId) {
+                    return { ...v, stock: (Number(v.stock) || 0) + qtyToRestore };
+                  }
+                  return v;
+                });
+                await updateDoc(productRef, {
+                  stock: currentStock + qtyToRestore,
+                  variants: updatedVariants,
+                });
+              } else {
+                await updateDoc(productRef, {
+                  stock: currentStock + qtyToRestore,
+                });
+              }
+            }
+          } catch (stockErr) {
+            console.error('Error restoring stock for product:', item.productId, stockErr);
+          }
+        }
+      }
+
+      // 3. Dispatch order cancellation email
+      sendOrderCancelledNotification({
+        order: orderData,
+        reason,
+      }).catch((err) =>
+        console.error('[Notification] Failed to send order cancelled email:', err)
+      );
+
+      return { orderId, status: 'Cancelled' };
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['my-orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['products'] }),
+      ]);
+    },
   });
 }
 

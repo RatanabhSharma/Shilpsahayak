@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -13,27 +13,45 @@ import {
   X,
   ExternalLink,
   Layers,
+  ChevronDown,
 } from 'lucide-react';
 import { BrandLogo } from './ui';
+import { auth } from '../lib/firebase';
+import { signOut } from 'firebase/auth';
 
 export function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsUserMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const navItems = [
     {
-      name: 'Studio Dashboard',
+      name: 'Dashboard',
       path: '/admin/dashboard',
       icon: LayoutDashboard,
     },
     {
-      name: 'Storefront CMS',
+      name: 'Storefront',
       path: '/admin/home',
       icon: Home,
     },
     {
-      name: 'Orders & Dispatch',
+      name: 'Customer Orders',
       path: '/admin/orders',
       icon: ShoppingBag,
     },
@@ -48,7 +66,7 @@ export function AdminLayout() {
       icon: Package,
     },
     {
-      name: 'Filament & Materials',
+      name: 'Product Inventory',
       path: '/admin/inventory',
       icon: Layers,
     },
@@ -64,8 +82,13 @@ export function AdminLayout() {
     },
   ];
 
-  const handleLogout = () => {
-    navigate('/admin/login');
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.error('Error signing out:', e);
+    }
+    navigate('/admin/login', { replace: true });
   };
 
   const currentNav = navItems.find((item) => location.pathname.startsWith(item.path));
@@ -138,32 +161,6 @@ export function AdminLayout() {
             })}
           </nav>
         </div>
-
-        {/* Sidebar Footer */}
-        <div className="p-3 border-t border-line space-y-1 bg-paper/50">
-          <Link
-            to="/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between w-full px-3 py-2 rounded-lg font-sans text-xs font-medium text-muted hover:text-ink hover:bg-shell transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <ExternalLink className="w-3.5 h-3.5 text-muted" />
-              <span>View Storefront</span>
-            </div>
-            <span className="font-mono text-[10px] bg-shell px-1.5 py-0.5 rounded border border-line text-muted">
-              Live
-            </span>
-          </Link>
-
-          <button
-            onClick={handleLogout}
-            className="flex items-center w-full px-3 py-2 rounded-lg font-sans text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors"
-          >
-            <LogOut className="w-3.5 h-3.5 mr-2 shrink-0 text-rose-600" />
-            Sign Out
-          </button>
-        </div>
       </aside>
 
       {/* Main Content Area */}
@@ -187,27 +184,89 @@ export function AdminLayout() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            {/* Storefront Link */}
             <Link
               to="/"
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line bg-paper text-xs font-medium text-ink hover:bg-shell transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line bg-paper text-xs font-medium text-ink hover:bg-shell transition-colors shadow-xs"
             >
-              <span>Quick View Storefront</span>
+              <span>Storefront</span>
               <ExternalLink className="w-3.5 h-3.5 text-muted" />
             </Link>
 
-            <div className="h-4 w-px bg-line hidden sm:block" />
+            <div className="h-4 w-px bg-line" />
 
-            <div className="flex items-center gap-2.5">
-              <div className="text-right hidden sm:block">
-                <p className="text-xs font-semibold text-ink leading-tight">Workshop Admin</p>
-                <p className="font-mono text-[10px] text-muted">Patiala Studio</p>
-              </div>
-              <div className="h-9 w-9 rounded-lg bg-accent text-white font-mono font-bold text-xs flex items-center justify-center shadow-xs shadow-accent/20">
-                SS
-              </div>
+            {/* Admin Workshop Profile with Dropdown Menu */}
+            <div className="relative" ref={userMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsUserMenuOpen((prev) => !prev)}
+                className="flex items-center gap-2.5 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-transparent hover:border-line hover:bg-shell/80 transition-all cursor-pointer group"
+                aria-expanded={isUserMenuOpen}
+              >
+                <div className="text-right hidden sm:block">
+                  <p className="text-xs font-semibold text-ink leading-tight group-hover:text-accent transition-colors">
+                    Workshop Admin
+                  </p>
+                  <p className="font-mono text-[10px] text-muted">Patiala Studio</p>
+                </div>
+
+                <div className="h-8 w-8 rounded-lg bg-accent text-white font-mono font-bold text-xs flex items-center justify-center shadow-xs shadow-accent/20 shrink-0">
+                  SS
+                </div>
+
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-muted transition-transform duration-200 ${
+                    isUserMenuOpen ? 'rotate-180 text-accent' : ''
+                  }`}
+                />
+              </button>
+
+              {/* Dropdown Menu */}
+              {isUserMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 rounded-xl border border-line bg-white py-1.5 shadow-lg z-50 font-sans text-xs">
+                  <div className="px-3.5 py-2.5 border-b border-line">
+                    <p className="font-semibold text-ink">Workshop Administrator</p>
+                    <p className="font-mono text-[10px] text-muted mt-0.5">Patiala Studio Console</p>
+                  </div>
+
+                  <div className="py-1">
+                    <Link
+                      to="/admin/settings"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-3.5 py-2 text-ink hover:bg-shell transition-colors"
+                    >
+                      <Settings className="w-4 h-4 text-muted" />
+                      <span>Platform Settings</span>
+                    </Link>
+
+                    <Link
+                      to="/admin/home"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-3.5 py-2 text-ink hover:bg-shell transition-colors"
+                    >
+                      <Home className="w-4 h-4 text-muted" />
+                      <span>Storefront</span>
+                    </Link>
+                  </div>
+
+                  <div className="pt-1 border-t border-line">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-rose-600 hover:bg-rose-50 transition-colors font-medium cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>

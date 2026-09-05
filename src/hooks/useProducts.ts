@@ -9,36 +9,65 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
+export type ProductStatus = 'Draft' | 'Active' | 'Archived';
+
+export type ProductDimensions = {
+  length?: number;
+  width?: number;
+  height?: number;
+  unit?: 'mm' | 'cm' | 'in';
+};
+
 export type ProductVariant = {
   id: string;
   label: string;
+  sku?: string;
   price: number;
   originalPrice?: number;
+  costPrice?: number;
   stock: number;
   image?: string;
   theme?: string;
   color?: string;
   size?: string;
+  weight?: number; // grams
 };
 
 export type Product = {
   id: string;
   name: string;
+  slug?: string;
+  sku?: string;
   description: string;
+  shortDescription?: string;
   price: number;
   originalPrice?: number;
+  costPrice?: number;
   category: string;
   subcategory?: string;
   image: string;
   images?: string[];
   stock: number;
+  lowStockThreshold?: number;
   material?: string;
   occasion?: string;
+  dimensions?: ProductDimensions;
+  weight?: number; // grams
+  leadTimeDays?: number;
+  packagingNotes?: string;
   isCustomizable?: boolean;
+  isCancellable?: boolean;
   featured?: boolean;
   active?: boolean;
+  status?: ProductStatus;
+  badge?: string;
+  tags?: string[];
+  seoTitle?: string;
+  seoDescription?: string;
   hasVariants?: boolean;
   variants?: ProductVariant[];
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export const INITIAL_CATALOG_PRODUCTS: Product[] = [
