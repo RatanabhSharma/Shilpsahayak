@@ -5,8 +5,6 @@ import {
   Layers,
   Sparkles,
   AlertTriangle,
-  Clock,
-  Scale,
   Package,
   CheckCircle2,
   ChevronDown,
@@ -21,9 +19,11 @@ import {
   Lightbulb,
   Image as ImageIcon,
   MessageSquare,
+  Maximize2,
+  RotateCcw,
 } from 'lucide-react';
 import { usePricingSettings } from '../../hooks/usePricingSettings';
-import { parseSTLModel } from '../../services/model/modelParser';
+import { parse3DModel } from '../../services/model/modelParser';
 import { ParsedModelResult } from '../../services/model/modelTypes';
 import { ThreeModelViewer } from '../../components/custom-printing/ThreeModelViewer';
 import {
@@ -169,6 +169,11 @@ export function CustomPrinting() {
   const [modelResult, setModelResult] = useState<ParsedModelResult | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
+  // Model Sizing & Scale State
+  const [scaleFactor, setScaleFactor] = useState<number>(1.0);
+  const [baseDimensions, setBaseDimensions] = useState<{ x: number; y: number; z: number } | null>(null);
+  const [targetHeightInput, setTargetHeightInput] = useState<string>('');
+
   // Configuration state
   const [selectedMaterialId, setSelectedMaterialId] = useState<string>('pla');
   const [selectedColorName, setSelectedColorName] = useState<string>('');
@@ -246,15 +251,54 @@ export function CustomPrinting() {
   const effectiveInfill = customInfill ?? activeProfile.infillPercent;
   const effectiveLayerHeight = customLayerHeight ?? activeProfile.layerHeight;
 
-  // Real-time geometry estimations
-  const estimatedMaterialUsageGrams = useMemo(() => {
+  // Handle Model Orientation Changes from 3D Viewer
+  const handleOrientedDimensionsChange = (dims: { x: number; y: number; z: number }) => {
+    const currentScale = scaleFactor > 0 ? scaleFactor : 1;
+    const unscaled = {
+      x: Math.round((dims.x / currentScale) * 10) / 10,
+      y: Math.round((dims.y / currentScale) * 10) / 10,
+      z: Math.round((dims.z / currentScale) * 10) / 10,
+    };
+    setBaseDimensions(unscaled);
+    setTargetHeightInput((unscaled.z * currentScale).toFixed(1));
+  };
+
+  // Effective scaled dimensions
+  const effectiveDimensions = useMemo(() => {
+    const base = baseDimensions || modelResult?.dimensions || { x: 0, y: 0, z: 0 };
+    return {
+      x: Math.round(base.x * scaleFactor * 10) / 10,
+      y: Math.round(base.y * scaleFactor * 10) / 10,
+      z: Math.round(base.z * scaleFactor * 10) / 10,
+    };
+  }, [baseDimensions, modelResult, scaleFactor]);
+
+  // Effective scaled volume (scales cubically with scaleFactor^3)
+  const effectiveVolumeCm3 = useMemo(() => {
     if (!modelResult?.volumeCm3) return 0;
+    return Math.max(0.01, Math.round(modelResult.volumeCm3 * Math.pow(scaleFactor, 3) * 100) / 100);
+  }, [modelResult, scaleFactor]);
+
+  // Max build volume verification
+  const maxBuildVolume = pricingData?.pricingConfig?.maxBuildVolume || { x: 256, y: 256, z: 256 };
+  const exceedsBuildVolume = useMemo(() => {
+    if (!modelResult?.success) return false;
+    return (
+      effectiveDimensions.x > maxBuildVolume.x ||
+      effectiveDimensions.y > maxBuildVolume.y ||
+      effectiveDimensions.z > maxBuildVolume.z
+    );
+  }, [modelResult, effectiveDimensions, maxBuildVolume]);
+
+  // Real-time geometry estimations using scaled volume
+  const estimatedMaterialUsageGrams = useMemo(() => {
+    if (!effectiveVolumeCm3) return 0;
     return estimateMaterialUsage(
-      modelResult.volumeCm3,
+      effectiveVolumeCm3,
       activeMaterial.density,
       activeProfile
     );
-  }, [modelResult, activeMaterial, activeProfile]);
+  }, [effectiveVolumeCm3, activeMaterial, activeProfile]);
 
   const estimatedPrintTimeHours = useMemo(() => {
     if (!estimatedMaterialUsageGrams) return 0;
@@ -272,7 +316,7 @@ export function CustomPrinting() {
         material: activeMaterial,
         quantity,
         packagingIncluded,
-        exceedsBuildVolume: modelResult?.exceedsBuildVolume,
+        exceedsBuildVolume: exceedsBuildVolume || modelResult?.exceedsBuildVolume,
       },
       pricingData.pricingConfig,
       pricingData.quantityDiscounts
@@ -284,17 +328,70 @@ export function CustomPrinting() {
     activeMaterial,
     quantity,
     packagingIncluded,
+    exceedsBuildVolume,
     modelResult,
   ]);
 
-  // Handle File Selection
+  // Handle Height & Scale adjustments
+  const handleHeightInputChange = (val: string) => {
+    setTargetHeightInput(val);
+    const parsed = parseFloat(val);
+    const base = baseDimensions || modelResult?.dimensions;
+    if (!isNaN(parsed) && parsed > 0 && base && base.z > 0) {
+      const newScale = Math.min(Math.max(parsed / base.z, 0.1), 5.0);
+      setScaleFactor(newScale);
+    }
+  };
+
+  const handleSliderScale = (newScale: number) => {
+    setScaleFactor(newScale);
+    const base = baseDimensions || modelResult?.dimensions;
+    if (base && base.z > 0) {
+      setTargetHeightInput((base.z * newScale).toFixed(1));
+    }
+  };
+
+  const handlePresetScale = (presetScale: number) => {
+    setScaleFactor(presetScale);
+    const base = baseDimensions || modelResult?.dimensions;
+    if (base && base.z > 0) {
+      setTargetHeightInput((base.z * presetScale).toFixed(1));
+    }
+  };
+
+  const handleResetScale = () => {
+    setScaleFactor(1.0);
+    const base = baseDimensions || modelResult?.dimensions;
+    if (base) {
+      setTargetHeightInput(base.z.toFixed(1));
+    }
+  };
+
+  // Stepper Scroll & Focus helper
+  const scrollToStep = (stepNumber: StepNumber, targetId: string) => {
+    setCurrentStep(stepNumber);
+    const element = document.getElementById(targetId);
+    if (element) {
+      const yOffset = -90;
+      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+
+      element.classList.add('ring-2', 'ring-brand-500');
+      setTimeout(() => {
+        element.classList.remove('ring-2', 'ring-brand-500');
+      }, 1500);
+    }
+  };
+
+  // Handle File Selection (Supports STL, OBJ, and 3MF)
   const handleFile = async (selectedFile: File) => {
     if (!selectedFile) return;
 
     // Validation
     const name = selectedFile.name.toLowerCase();
-    if (!name.endsWith('.stl')) {
-      alert('Currently STL files (.stl) are supported. OBJ & 3MF support will be added soon.');
+    const validExts = ['.stl', '.obj', '.3mf'];
+    if (!validExts.some((ext) => name.endsWith(ext))) {
+      alert('Currently STL (.stl), OBJ (.obj), and 3MF (.3mf) files are supported.');
       return;
     }
 
@@ -307,7 +404,7 @@ export function CustomPrinting() {
     setIsParsing(true);
     setModelResult(null);
 
-    const result = await parseSTLModel(
+    const result = await parse3DModel(
       selectedFile,
       pricingData?.pricingConfig?.maxBuildVolume
     );
@@ -316,7 +413,9 @@ export function CustomPrinting() {
     setModelResult(result);
 
     if (result.success) {
-      // Auto advance to Configure step if on step 1
+      setScaleFactor(1.0);
+      setBaseDimensions(result.dimensions);
+      setTargetHeightInput(result.dimensions.z.toFixed(1));
       if (currentStep === 1) {
         setCurrentStep(2);
       }
@@ -344,6 +443,9 @@ export function CustomPrinting() {
   const handleRemoveFile = () => {
     setFile(null);
     setModelResult(null);
+    setScaleFactor(1.0);
+    setBaseDimensions(null);
+    setTargetHeightInput('');
     setCurrentStep(1);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -397,13 +499,14 @@ export function CustomPrinting() {
         {
           fileName: file.name,
           fileKey,
+          fileUrl: fileKey,
           material: activeMaterial.name,
           color: activeColor.name,
           quality: activeProfile.name,
           infill: effectiveInfill,
           layerHeight: effectiveLayerHeight,
-          dimensions: modelResult.dimensions,
-          volume: modelResult.volumeCm3,
+          dimensions: effectiveDimensions,
+          volume: effectiveVolumeCm3,
           estimatedWeight: estimatedMaterialUsageGrams,
           estimatedPrintTimeHours,
           packagingIncluded,
@@ -420,7 +523,7 @@ export function CustomPrinting() {
       console.error('Failed to prepare custom print order:', error);
       setIsSubmitting(false);
       setUploadProgress(null);
-      alert(error?.message || 'Failed to upload 3D file for order. Please try requesting a quote.');
+      alert(error?.message || 'Failed to process 3D file for order. Please try requesting a quote.');
     }
   };
 
@@ -442,10 +545,7 @@ export function CustomPrinting() {
       setIsSubmitting(true);
       setUploadProgress(15);
 
-      let fileKey = '';
-      if (user) {
-        fileKey = await upload3DFile(file, user.uid, (progress) => setUploadProgress(progress));
-      }
+      const fileKey = await upload3DFile(file, user?.uid || 'guest', (progress) => setUploadProgress(progress));
 
       await submitQuoteMutation.mutateAsync({
         requestType: '3d-model',
@@ -462,15 +562,15 @@ export function CustomPrinting() {
         layerHeight: effectiveLayerHeight,
         quantity,
         packagingIncluded,
-        volume: modelResult.volumeCm3,
+        volume: effectiveVolumeCm3,
         estimatedWeight: estimatedMaterialUsageGrams,
         estimatedPrintTimeHours,
         systemEstimatedPrice: quoteBreakdown.totalPrice,
         estimatedPrice: quoteBreakdown.totalPrice,
         dimensions: {
-          length: modelResult.dimensions.x,
-          width: modelResult.dimensions.y,
-          height: modelResult.dimensions.z,
+          length: effectiveDimensions.x,
+          width: effectiveDimensions.y,
+          height: effectiveDimensions.z,
           unit: 'mm',
         },
         notes: customerNotes.trim() || undefined,
@@ -568,10 +668,10 @@ export function CustomPrinting() {
         <nav aria-label="Progress">
           <ol className="flex items-center justify-between border border-line dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 p-2 sm:p-3 shadow-xs">
             {[
-              { step: 1, label: 'Upload', desc: 'STL file' },
-              { step: 2, label: 'Configure', desc: 'Material & Quality' },
-              { step: 3, label: 'Estimate', desc: 'Live Quote' },
-              { step: 4, label: 'Order', desc: 'Checkout / Review' },
+              { step: 1, label: 'Model & Sizing', desc: 'Rotate & Scale', targetId: 'step-model' },
+              { step: 2, label: 'Material & Quality', desc: 'Filament & Infill', targetId: 'step-material' },
+              { step: 3, label: 'Quantity & Packaging', desc: 'Discounts & Add-ons', targetId: 'step-quantity' },
+              { step: 4, label: 'Estimate & Order', desc: 'Quote & Checkout', targetId: 'step-quote' },
             ].map((item) => {
               const isActive = currentStep === item.step;
               const isDone = currentStep > item.step || (item.step === 1 && modelResult?.success);
@@ -581,11 +681,11 @@ export function CustomPrinting() {
                     type="button"
                     onClick={() => {
                       if (item.step === 1 || modelResult?.success) {
-                        setCurrentStep(item.step as StepNumber);
+                        scrollToStep(item.step as StepNumber, item.targetId);
                       }
                     }}
                     disabled={item.step > 1 && !modelResult?.success}
-                    className={`w-full flex items-center gap-2 sm:gap-3 p-2 rounded-xl text-left transition-all ${
+                    className={`w-full flex items-center gap-2 sm:gap-3 p-2 rounded-xl text-left transition-all cursor-pointer ${
                       isActive
                         ? 'bg-brand-50/80 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 ring-1 ring-brand-300 dark:ring-brand-700'
                         : isDone
@@ -636,7 +736,7 @@ export function CustomPrinting() {
                   setQuoteSuccess(false);
                   handleRemoveFile();
                 }}
-                className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-mono text-xs font-bold shadow-xs hover:bg-emerald-700"
+                className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-mono text-xs font-bold shadow-xs hover:bg-emerald-700 cursor-pointer"
               >
                 Upload Another Model
               </button>
@@ -653,8 +753,8 @@ export function CustomPrinting() {
 
       {/* Main Grid Layout */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: 3D Preview & Analysis */}
-        <div className="lg:col-span-6 space-y-4">
+        {/* Left Column: 3D Preview, Orientation & Scaling */}
+        <div id="step-model" className="lg:col-span-6 space-y-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-4 sm:p-5 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -667,7 +767,7 @@ export function CustomPrinting() {
                 <button
                   type="button"
                   onClick={handleRemoveFile}
-                  className="inline-flex items-center gap-1 text-[11px] font-mono text-rose-600 hover:text-rose-700 hover:underline"
+                  className="inline-flex items-center gap-1 text-[11px] font-mono text-rose-600 hover:text-rose-700 hover:underline cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                   <span>Remove file</span>
@@ -675,84 +775,15 @@ export function CustomPrinting() {
               )}
             </div>
 
-            {/* Three.js Canvas Viewer */}
+            {/* Three.js Canvas Viewer with rotation and grounding */}
             <ThreeModelViewer
               geometry={modelResult?.geometry || null}
               colorHex={activeColor.hex}
               isLoading={isParsing}
               error={modelResult?.errorMessage}
-              dimensions={modelResult?.dimensions}
-            />
-
-            {/* Model Geometry Analysis Specs */}
-            {modelResult?.success && (
-              <div className="space-y-3 pt-2">
-                <div className="grid grid-cols-3 gap-2 bg-shell/50 dark:bg-slate-800/40 p-3 rounded-xl border border-line dark:border-slate-800 text-center">
-                  <div>
-                    <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                      Bounding Box
-                    </span>
-                    <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
-                      {modelResult.dimensions.x}×{modelResult.dimensions.y}×{modelResult.dimensions.z} <span className="text-[10px] font-normal">mm</span>
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                      Volume
-                    </span>
-                    <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
-                      {modelResult.volumeCm3} <span className="text-[10px] font-normal">cm³</span>
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                      Triangles
-                    </span>
-                    <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
-                      {modelResult.triangleCount.toLocaleString('en-IN')}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Print Estimates */}
-                <div className="grid grid-cols-2 gap-2 bg-brand-50/40 dark:bg-brand-950/20 p-3 rounded-xl border border-brand-100 dark:border-brand-900 text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <Scale className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-                    <div className="text-left">
-                      <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                        Est. Material Usage
-                      </span>
-                      <span className="font-mono text-xs font-bold text-brand-700 dark:text-brand-300">
-                        ~{estimatedMaterialUsageGrams}g
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-center gap-2">
-                    <Clock className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-                    <div className="text-left">
-                      <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                        Est. Print Time
-                      </span>
-                      <span className="font-mono text-xs font-bold text-brand-700 dark:text-brand-300">
-                        ~{formatPrintTime(estimatedPrintTimeHours)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Hidden File Input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".stl"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  handleFile(e.target.files[0]);
-                }
-              }}
-              className="hidden"
+              dimensions={effectiveDimensions}
+              scale={scaleFactor}
+              onOrientedDimensionsChange={handleOrientedDimensionsChange}
             />
 
             {/* Dropzone prompt if no file selected */}
@@ -772,14 +803,215 @@ export function CustomPrinting() {
                   <Upload className="w-6 h-6" />
                 </div>
                 <p className="text-xs font-bold text-ink dark:text-slate-200">
-                  Drag and drop your STL file here, or <span className="text-accent underline">browse</span>
+                  Drag and drop your 3D CAD model here, or <span className="text-accent underline">browse</span>
                 </p>
                 <p className="text-[11px] text-muted dark:text-slate-500 font-mono mt-1">
-                  Supports Binary and ASCII STL (Max 100 MB)
+                  Supports STL (.stl), OBJ (.obj), and 3MF (.3mf) files (Max 100 MB)
                 </p>
               </div>
             )}
+
+            {/* Hidden File Input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".stl,.obj,.3mf"
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  handleFile(e.target.files[0]);
+                }
+              }}
+              className="hidden"
+            />
           </div>
+
+          {/* Model Dimensions & Scaling Controls */}
+          {modelResult?.success && (
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-4 sm:p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <Maximize2 className="w-4 h-4 text-accent" />
+                  <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider">
+                    Dimensions & Sizing
+                  </h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-md">
+                    {Math.round(scaleFactor * 100)}% Scale
+                  </span>
+                  {scaleFactor !== 1 && (
+                    <button
+                      type="button"
+                      onClick={handleResetScale}
+                      className="text-[10px] font-mono text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer"
+                      title="Reset to original 100% size"
+                    >
+                      <RotateCcw className="w-2.5 h-2.5" />
+                      <span>Reset</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Dimensions Grid */}
+              <div className="grid grid-cols-3 gap-2 bg-shell/50 dark:bg-slate-800/40 p-3 rounded-xl border border-line dark:border-slate-800 text-center">
+                <div>
+                  <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
+                    Length (X)
+                  </span>
+                  <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
+                    {effectiveDimensions.x} <span className="text-[10px] font-normal">mm</span>
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
+                    Width (Y)
+                  </span>
+                  <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
+                    {effectiveDimensions.y} <span className="text-[10px] font-normal">mm</span>
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
+                    Height (Z)
+                  </span>
+                  <span className="font-mono text-xs font-bold text-accent dark:text-accent">
+                    {effectiveDimensions.z} <span className="text-[10px] font-normal">mm</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Sizing Controls: Height Input & Scale Slider */}
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                  {/* Height Adjustment Input */}
+                  <div>
+                    <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block mb-1">
+                      Set Target Height (Z in mm)
+                    </label>
+                    <div className="relative flex items-center">
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="5"
+                        max="256"
+                        value={targetHeightInput}
+                        onChange={(e) => handleHeightInputChange(e.target.value)}
+                        className="w-full py-2 px-3 pr-10 rounded-xl border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-mono font-bold text-ink dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-500 shadow-2xs"
+                      />
+                      <span className="absolute right-3 font-mono text-xs text-muted pointer-events-none">
+                        mm
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Quick Scale Presets */}
+                  <div>
+                    <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block mb-1">
+                      Quick Scale Presets
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      {[50, 75, 100, 150, 200].map((pct) => (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => handlePresetScale(pct / 100)}
+                          className={`flex-1 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                            Math.round(scaleFactor * 100) === pct
+                              ? 'bg-brand-500 text-white shadow-2xs'
+                              : 'bg-shell dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-ink dark:text-slate-200'
+                          }`}
+                        >
+                          {pct}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Uniform Scale Slider */}
+                <div>
+                  <div className="flex justify-between text-[10px] font-mono text-muted mb-1">
+                    <span>25%</span>
+                    <span className="font-bold text-ink dark:text-slate-200">
+                      Uniform Scale: {Math.round(scaleFactor * 100)}%
+                    </span>
+                    <span>300%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.25"
+                    max="3.0"
+                    step="0.05"
+                    value={scaleFactor}
+                    onChange={(e) => handleSliderScale(parseFloat(e.target.value))}
+                    className="w-full accent-brand-500 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Volume & Print Estimates */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-line dark:border-slate-800 text-center">
+                <div className="p-2 rounded-xl bg-shell/40 dark:bg-slate-800/40">
+                  <span className="text-[9px] font-mono text-muted uppercase tracking-wider block">
+                    Volume
+                  </span>
+                  <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
+                    {effectiveVolumeCm3} <span className="text-[9px] font-normal">cm³</span>
+                  </span>
+                </div>
+                <div className="p-2 rounded-xl bg-shell/40 dark:bg-slate-800/40">
+                  <span className="text-[9px] font-mono text-muted uppercase tracking-wider block">
+                    Triangles
+                  </span>
+                  <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
+                    {modelResult.triangleCount.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="p-2 rounded-xl bg-brand-50/50 dark:bg-brand-950/20">
+                  <span className="text-[9px] font-mono text-muted uppercase tracking-wider block">
+                    Est. Material
+                  </span>
+                  <span className="font-mono text-xs font-bold text-brand-700 dark:text-brand-300">
+                    ~{estimatedMaterialUsageGrams}g
+                  </span>
+                </div>
+                <div className="p-2 rounded-xl bg-brand-50/50 dark:bg-brand-950/20">
+                  <span className="text-[9px] font-mono text-muted uppercase tracking-wider block">
+                    Est. Time
+                  </span>
+                  <span className="font-mono text-xs font-bold text-brand-700 dark:text-brand-300">
+                    ~{formatPrintTime(estimatedPrintTimeHours)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Build Envelope Warning */}
+              {exceedsBuildVolume && (
+                <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold block">Exceeds Maximum Build Envelope</span>
+                    <span>
+                      Model dimensions ({effectiveDimensions.x} × {effectiveDimensions.y} × {effectiveDimensions.z} mm) exceed our 256 × 256 × 256 mm build plate. Please scale down or submit for manual review.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 1 -> Step 2 Guidance Button */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => scrollToStep(2, 'step-material')}
+                  className="w-full py-3 px-4 rounded-xl bg-ink hover:bg-slate-800 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>Next: Choose Material & Quality</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-accent" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Safety Net Banner */}
           {modelResult?.requiresManualReview && (
@@ -806,254 +1038,275 @@ export function CustomPrinting() {
 
         {/* Right Column: Configuration & Pricing Stepper */}
         <div className="lg:col-span-6 space-y-4">
-          {/* Material & Color Selection Card */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
-              <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <Layers className="w-4 h-4 text-accent" />
-                <span>1. Select Material</span>
-              </h3>
-              <span className="font-mono text-xs font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-md">
-                ₹{activeMaterial.pricePerGram}/g
-              </span>
-            </div>
-
-            {/* Material Dropdown Selector */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block">
-                Filament Material
-              </label>
-              <div className="relative">
-                <select
-                  value={selectedMaterialId}
-                  onChange={(e) => handleMaterialChange(e.target.value)}
-                  className="w-full py-2.5 px-3.5 pr-10 rounded-xl border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold text-ink dark:text-white appearance-none cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-brand-500 shadow-2xs"
-                >
-                  {activeMaterials.map((mat) => (
-                    <option key={mat.id} value={mat.id}>
-                      {mat.name} — ₹{mat.pricePerGram}/g ({mat.tagline})
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-muted absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-
-              {/* Selected Material Summary Card */}
-              <div className="flex items-center justify-between bg-shell/50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-line dark:border-slate-800 text-xs">
-                <span className="text-muted dark:text-slate-400 text-[11px] leading-tight">
-                  {activeMaterial.tagline || activeMaterial.description}
-                </span>
-                <span className="font-mono text-[10px] font-bold text-ink dark:text-slate-200 shrink-0 ml-3 bg-white dark:bg-slate-700 px-2 py-0.5 rounded-md border border-line/60 dark:border-slate-600">
-                  {activeMaterial.density} g/cm³
-                </span>
-              </div>
-            </div>
-
-            {/* Color Palette */}
-            <div className="pt-2 space-y-2.5 border-t border-line dark:border-slate-800">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-ink dark:text-slate-200 flex items-center gap-1.5">
-                  Colour: <span className="text-accent">{activeColor.name}</span>
-                  <span className="text-muted text-[10px] font-mono font-normal">
-                    ({activeColor.hex})
-                  </span>
-                </span>
-                <span className="text-[10px] font-mono text-muted">
-                  {activeMaterial.colors ? activeMaterial.colors.length : 0} shades + custom
+          <div id="step-material" className="space-y-4">
+            {/* Material & Color Selection Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
+                <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-accent" />
+                  <span>1. Select Material</span>
+                </h3>
+                <span className="font-mono text-xs font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-md">
+                  ₹{activeMaterial.pricePerGram}/g
                 </span>
               </div>
 
-              {/* Swatches & Custom Picker */}
-              <div className="flex flex-wrap items-center gap-2">
-                {activeMaterial.colors &&
-                  activeMaterial.colors.map((color) => {
-                    const isSelected = !customColorHex && activeColor.name === color.name;
-                    return (
-                      <button
-                        key={color.name}
-                        type="button"
-                        onClick={() => {
-                          setCustomColorHex(null);
-                          setSelectedColorName(color.name);
-                        }}
-                        className={`w-7 h-7 rounded-full border-2 transition-all relative flex items-center justify-center cursor-pointer ${
-                          isSelected
-                            ? 'border-brand-500 scale-110 shadow-sm ring-2 ring-brand-500/30'
-                            : 'border-slate-300 dark:border-slate-700 hover:scale-105'
-                        }`}
-                        style={{ backgroundColor: color.hex }}
-                        title={`${color.name} (${color.hex})`}
-                      >
-                        {isSelected && (
-                          <span
-                            className="w-2 h-2 rounded-full"
-                            style={{
-                              backgroundColor:
-                                color.hex.toLowerCase() === '#f8fafc' ||
-                                color.hex.toLowerCase() === '#ffffff' ||
-                                color.hex.toLowerCase() === '#f1f5f9'
-                                  ? '#000000'
-                                  : '#ffffff',
-                            }}
-                          />
-                        )}
-                      </button>
-                    );
-                  })}
-
-                {/* Custom Color Palette / Hex Picker */}
-                <label
-                  className={`relative flex items-center justify-center w-7 h-7 rounded-full border-2 cursor-pointer transition-all ${
-                    customColorHex
-                      ? 'border-brand-500 scale-110 shadow-sm ring-2 ring-brand-500/30'
-                      : 'border-dashed border-slate-400 dark:border-slate-600 hover:scale-105'
-                  }`}
-                  style={{
-                    background: customColorHex
-                      ? customColorHex
-                      : 'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
-                  }}
-                  title="Pick custom color"
-                >
-                  <input
-                    type="color"
-                    value={customColorHex || '#FF4D00'}
-                    onChange={(e) => {
-                      setCustomColorHex(e.target.value);
-                      setSelectedColorName(`Custom (${e.target.value.toUpperCase()})`);
-                    }}
-                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                  />
-                  {customColorHex && (
-                    <span
-                      className="w-2 h-2 rounded-full"
-                      style={{
-                        backgroundColor:
-                          customColorHex.toLowerCase() === '#ffffff' ? '#000000' : '#ffffff',
-                      }}
-                    />
-                  )}
+              {/* Material Dropdown Selector */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block">
+                  Filament Material
                 </label>
-                <span className="text-[10px] font-mono text-muted pl-0.5">
-                  {customColorHex ? 'Custom' : '+ Custom'}
-                </span>
+                <div className="relative">
+                  <select
+                    value={selectedMaterialId}
+                    onChange={(e) => handleMaterialChange(e.target.value)}
+                    className="w-full py-2.5 px-3.5 pr-10 rounded-xl border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold text-ink dark:text-white appearance-none cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-brand-500 shadow-2xs"
+                  >
+                    {activeMaterials.map((mat) => (
+                      <option key={mat.id} value={mat.id}>
+                        {mat.name} — ₹{mat.pricePerGram}/g ({mat.tagline})
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-muted absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+
+                {/* Selected Material Summary Card */}
+                <div className="flex items-center justify-between bg-shell/50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-line dark:border-slate-800 text-xs">
+                  <span className="text-muted dark:text-slate-400 text-[11px] leading-tight">
+                    {activeMaterial.tagline || activeMaterial.description}
+                  </span>
+                  <span className="font-mono text-[10px] font-bold text-ink dark:text-slate-200 shrink-0 ml-3 bg-white dark:bg-slate-700 px-2 py-0.5 rounded-md border border-line/60 dark:border-slate-600">
+                    {activeMaterial.density} g/cm³
+                  </span>
+                </div>
+              </div>
+
+              {/* Color Palette */}
+              <div className="pt-2 space-y-2.5 border-t border-line dark:border-slate-800">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-ink dark:text-slate-200 flex items-center gap-1.5">
+                    Colour: <span className="text-accent">{activeColor.name}</span>
+                    <span className="text-muted text-[10px] font-mono font-normal">
+                      ({activeColor.hex})
+                    </span>
+                  </span>
+                  <span className="text-[10px] font-mono text-muted">
+                    {activeMaterial.colors ? activeMaterial.colors.length : 0} shades + custom
+                  </span>
+                </div>
+
+                {/* Swatches & Custom Picker */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {activeMaterial.colors &&
+                    activeMaterial.colors.map((color) => {
+                      const isSelected = !customColorHex && activeColor.name === color.name;
+                      return (
+                        <button
+                          key={color.name}
+                          type="button"
+                          onClick={() => {
+                            setCustomColorHex(null);
+                            setSelectedColorName(color.name);
+                          }}
+                          className={`w-7 h-7 rounded-full border-2 transition-all relative flex items-center justify-center cursor-pointer ${
+                            isSelected
+                              ? 'border-brand-500 scale-110 shadow-sm ring-2 ring-brand-500/30'
+                              : 'border-slate-300 dark:border-slate-700 hover:scale-105'
+                          }`}
+                          style={{ backgroundColor: color.hex }}
+                          title={`${color.name} (${color.hex})`}
+                        >
+                          {isSelected && (
+                            <span
+                              className="w-2 h-2 rounded-full"
+                              style={{
+                                backgroundColor:
+                                  color.hex.toLowerCase() === '#f8fafc' ||
+                                  color.hex.toLowerCase() === '#ffffff' ||
+                                  color.hex.toLowerCase() === '#f1f5f9'
+                                    ? '#000000'
+                                    : '#ffffff',
+                              }}
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+
+                  {/* Custom Color Palette / Hex Picker */}
+                  <label
+                    className={`relative flex items-center justify-center w-7 h-7 rounded-full border-2 cursor-pointer transition-all ${
+                      customColorHex
+                        ? 'border-brand-500 scale-110 shadow-sm ring-2 ring-brand-500/30'
+                        : 'border-dashed border-slate-400 dark:border-slate-600 hover:scale-105'
+                    }`}
+                    style={{
+                      background: customColorHex
+                        ? customColorHex
+                        : 'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
+                    }}
+                    title="Pick custom color"
+                  >
+                    <input
+                      type="color"
+                      value={customColorHex || '#FF4D00'}
+                      onChange={(e) => {
+                        setCustomColorHex(e.target.value);
+                        setSelectedColorName(`Custom (${e.target.value.toUpperCase()})`);
+                      }}
+                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                    />
+                    {customColorHex && (
+                      <span
+                        className="w-2 h-2 rounded-full"
+                        style={{
+                          backgroundColor:
+                            customColorHex.toLowerCase() === '#ffffff' ? '#000000' : '#ffffff',
+                        }}
+                      />
+                    )}
+                  </label>
+                  <span className="text-[10px] font-mono text-muted pl-0.5">
+                    {customColorHex ? 'Custom' : '+ Custom'}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Quality & Print Profiles */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
-              <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-accent" />
-                <span>2. Print Quality</span>
-              </h3>
-              <span className="font-mono text-[11px] text-muted">Layer Height & Infill</span>
-            </div>
+            {/* Quality & Print Profiles */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
+                <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-accent" />
+                  <span>2. Print Quality</span>
+                </h3>
+                <span className="font-mono text-[11px] text-muted">Layer Height & Infill</span>
+              </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {activeProfiles.map((profile) => {
-                const isSelected = activeProfile.id === profile.id;
-                return (
-                  <button
-                    key={profile.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedProfileId(profile.id);
-                      setCustomInfill(null);
-                      setCustomLayerHeight(null);
-                    }}
-                    className={`p-3 rounded-xl border text-left transition-all ${
-                      isSelected
-                        ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30 ring-1 ring-brand-400'
-                        : 'border-line dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-display font-bold text-sm text-ink dark:text-slate-100">
-                        {profile.name}
-                      </span>
-                      {profile.id === 'standard' && (
-                        <span className="px-1.5 py-0.5 rounded-full bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-300 font-mono text-[9px] font-bold">
-                          Recommended
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {activeProfiles.map((profile) => {
+                  const isSelected = activeProfile.id === profile.id;
+                  return (
+                    <button
+                      key={profile.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedProfileId(profile.id);
+                        setCustomInfill(null);
+                        setCustomLayerHeight(null);
+                      }}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30 ring-1 ring-brand-400'
+                          : 'border-line dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-display font-bold text-sm text-ink dark:text-slate-100">
+                          {profile.name}
                         </span>
-                      )}
+                        {profile.id === 'standard' && (
+                          <span className="px-1.5 py-0.5 rounded-full bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-300 font-mono text-[9px] font-bold">
+                            Recommended
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] font-mono text-muted dark:text-slate-400 mt-1">
+                        {profile.layerHeight}mm · {profile.infillPercent}% infill
+                      </p>
+                      <p className="text-[11px] text-muted dark:text-slate-400 line-clamp-2 mt-1">
+                        {profile.tagline}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Collapsible Advanced Print Settings */}
+              <div className="pt-2 border-t border-line dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="w-full flex items-center justify-between text-xs font-mono font-bold text-muted hover:text-ink dark:hover:text-white transition-colors cursor-pointer"
+                >
+                  <span>Advanced Print Settings</span>
+                  {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+
+                {showAdvanced && (
+                  <div className="pt-3 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted block mb-1">
+                          Infill Density: {effectiveInfill}%
+                        </label>
+                        <input
+                          type="range"
+                          min="10"
+                          max="100"
+                          step="5"
+                          value={effectiveInfill}
+                          onChange={(e) => setCustomInfill(Number(e.target.value))}
+                          className="w-full accent-brand-500 cursor-pointer"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted block mb-1">
+                          Layer Height
+                        </label>
+                        <select
+                          value={effectiveLayerHeight}
+                          onChange={(e) => setCustomLayerHeight(Number(e.target.value))}
+                          className="w-full py-1.5 px-2 rounded-lg border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono cursor-pointer"
+                        >
+                          <option value="0.12">0.12 mm — Ultra Detail</option>
+                          <option value="0.16">0.16 mm — Fine Finish</option>
+                          <option value="0.20">0.20 mm — Standard</option>
+                          <option value="0.28">0.28 mm — Fast Prototype</option>
+                        </select>
+                      </div>
                     </div>
-                    <p className="text-[10px] font-mono text-muted dark:text-slate-400 mt-1">
-                      {profile.layerHeight}mm · {profile.infillPercent}% infill
-                    </p>
-                    <p className="text-[11px] text-muted dark:text-slate-400 line-clamp-2 mt-1">
-                      {profile.tagline}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
 
-            {/* Collapsible Advanced Print Settings */}
-            <div className="pt-2 border-t border-line dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="w-full flex items-center justify-between text-xs font-mono font-bold text-muted hover:text-ink dark:hover:text-white transition-colors"
-              >
-                <span>Advanced Print Settings</span>
-                {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
-
-              {showAdvanced && (
-                <div className="pt-3 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted block mb-1">
-                        Infill Density: {effectiveInfill}%
-                      </label>
+                    <div className="flex items-center gap-2">
                       <input
-                        type="range"
-                        min="10"
-                        max="100"
-                        step="5"
-                        value={effectiveInfill}
-                        onChange={(e) => setCustomInfill(Number(e.target.value))}
-                        className="w-full accent-brand-500"
+                        type="checkbox"
+                        id="supports"
+                        checked={supportsEnabled}
+                        onChange={(e) => setSupportsEnabled(e.target.checked)}
+                        className="rounded text-brand-500 focus:ring-brand-400 cursor-pointer"
                       />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted block mb-1">
-                        Layer Height
+                      <label htmlFor="supports" className="text-xs text-ink dark:text-slate-300 font-sans cursor-pointer">
+                        Enable Tree/Organic Supports for steep overhangs
                       </label>
-                      <select
-                        value={effectiveLayerHeight}
-                        onChange={(e) => setCustomLayerHeight(Number(e.target.value))}
-                        className="w-full py-1.5 px-2 rounded-lg border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono"
-                      >
-                        <option value="0.12">0.12 mm — Ultra Detail</option>
-                        <option value="0.16">0.16 mm — Fine Finish</option>
-                        <option value="0.20">0.20 mm — Standard</option>
-                        <option value="0.28">0.28 mm — Fast Prototype</option>
-                      </select>
                     </div>
                   </div>
+                )}
+              </div>
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="supports"
-                      checked={supportsEnabled}
-                      onChange={(e) => setSupportsEnabled(e.target.checked)}
-                      className="rounded text-brand-500 focus:ring-brand-400"
-                    />
-                    <label htmlFor="supports" className="text-xs text-ink dark:text-slate-300 font-sans">
-                      Enable Tree/Organic Supports for steep overhangs
-                    </label>
-                  </div>
-                </div>
-              )}
+              {/* Step 2 -> Step 3 Navigation */}
+              <div className="pt-2 flex items-center justify-between gap-3 border-t border-line dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => scrollToStep(1, 'step-model')}
+                  className="px-3.5 py-2 rounded-xl border border-line dark:border-slate-700 text-xs font-mono font-bold text-muted hover:text-ink dark:hover:text-white transition-colors cursor-pointer"
+                >
+                  ← Back to Model
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollToStep(3, 'step-quantity')}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-ink hover:bg-slate-800 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>Next: Quantity & Packaging</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-accent" />
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Quantity & Optional Packaging */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-4">
+          <div id="step-quantity" className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <span className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider block">
@@ -1067,7 +1320,7 @@ export function CustomPrinting() {
                 <button
                   type="button"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-ink dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-colors"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-ink dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer"
                 >
                   −
                 </button>
@@ -1077,7 +1330,7 @@ export function CustomPrinting() {
                 <button
                   type="button"
                   onClick={() => setQuantity(quantity + 1)}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-ink dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-colors"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-ink dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer"
                 >
                   +
                 </button>
@@ -1104,11 +1357,30 @@ export function CustomPrinting() {
                 className="w-4 h-4 rounded text-brand-500 focus:ring-brand-400 cursor-pointer"
               />
             </div>
+
+            {/* Step 3 -> Step 4 Navigation */}
+            <div className="pt-2 flex items-center justify-between gap-3 border-t border-line dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => scrollToStep(2, 'step-material')}
+                className="px-3.5 py-2 rounded-xl border border-line dark:border-slate-700 text-xs font-mono font-bold text-muted hover:text-ink dark:hover:text-white transition-colors cursor-pointer"
+              >
+                ← Back to Material
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToStep(4, 'step-quote')}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-ink hover:bg-slate-800 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Next: Review Estimate & Order</span>
+                <ArrowRight className="w-3.5 h-3.5 text-accent" />
+              </button>
+            </div>
           </div>
 
           {/* Customer Quote Summary Card */}
           {quoteBreakdown && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-brand-500/80 p-5 shadow-md space-y-4">
+            <div id="step-quote" className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-brand-500/80 p-5 shadow-md space-y-4">
               <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
                 <div>
                   <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-brand-600 dark:text-brand-400 block">

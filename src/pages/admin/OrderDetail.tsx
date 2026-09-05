@@ -596,13 +596,26 @@ export function OrderDetail() {
                       </p>
                     )}
                     {item.customPrint && (
-                      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-purple-50 text-purple-800 font-mono text-[10px] font-bold border border-purple-200">
-                        <span>Custom 3D Print Job</span>
-                        {item.customPrint.material && (
-                          <span>· {item.customPrint.material}</span>
-                        )}
-                        {item.customPrint.color && (
-                          <span>· {item.customPrint.color}</span>
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-purple-50 text-purple-800 font-mono text-[10px] font-bold border border-purple-200">
+                          <span>Custom 3D Print Job</span>
+                          {item.customPrint.material && (
+                            <span>· {item.customPrint.material}</span>
+                          )}
+                          {item.customPrint.color && (
+                            <span>· {item.customPrint.color}</span>
+                          )}
+                        </div>
+                        {(item.customPrint.fileUrl || item.customPrint.fileKey) && (
+                          <a
+                            href={item.customPrint.fileUrl || item.customPrint.fileKey}
+                            download={item.customPrint.fileName || 'model.stl'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-mono text-[10px] font-bold border border-indigo-200 transition-colors"
+                          >
+                            ⬇ Download 3D File ({item.customPrint.fileName || 'Model'})
+                          </a>
                         )}
                       </div>
                     )}

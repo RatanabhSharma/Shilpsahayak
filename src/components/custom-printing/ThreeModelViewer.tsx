@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
@@ -8,15 +8,18 @@ import {
   Grid,
   Loader2,
   Box,
+  Compass,
 } from 'lucide-react';
 
-interface ThreeModelViewerProps {
+export interface ThreeModelViewerProps {
   geometry: THREE.BufferGeometry | null;
   colorHex?: string;
   wireframe?: boolean;
   isLoading?: boolean;
   error?: string | null;
   dimensions?: { x: number; y: number; z: number };
+  scale?: number;
+  onOrientedDimensionsChange?: (dimensions: { x: number; y: number; z: number }) => void;
 }
 
 export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
@@ -26,6 +29,8 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
   isLoading = false,
   error = null,
   dimensions,
+  scale = 1.0,
+  onOrientedDimensionsChange,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -37,6 +42,44 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
 
   const [isWireframe, setIsWireframe] = useState(initialWireframe);
   const [showGrid, setShowGrid] = useState(true);
+  const [rotation, setRotation] = useState<{ x: number; y: number; z: number }>({
+    x: 0,
+    y: 0,
+    z: 0,
+  });
+  const [currentDims, setCurrentDims] = useState<{ x: number; y: number; z: number } | null>(
+    dimensions || null
+  );
+
+  // Reset rotation when geometry changes
+  useEffect(() => {
+    setRotation({ x: 0, y: 0, z: 0 });
+  }, [geometry]);
+
+  // Camera framing function
+  const fitCameraToObject = useCallback(() => {
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+    const mesh = meshRef.current;
+    if (!camera || !controls || !mesh) return;
+
+    const box = new THREE.Box3().setFromObject(mesh);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z, 25);
+
+    const fov = camera.fov * (Math.PI / 180);
+    let distance = Math.abs(maxDim / Math.sin(fov / 2));
+    distance = Math.min(Math.max(distance * 0.95, 45), 900);
+
+    camera.position.set(center.x + distance * 0.75, center.y + distance * 0.65, center.z + distance * 0.85);
+    camera.lookAt(center);
+    controls.target.copy(center);
+    controls.update();
+  }, []);
 
   // Initialize Three.js scene
   useEffect(() => {
@@ -75,7 +118,7 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     controlsRef.current = controls;
 
     // 5. Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
     scene.add(ambientLight);
 
     const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.9);
@@ -93,7 +136,6 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     scene.add(grid);
     gridHelperRef.current = grid;
 
-    // 7. Animation Loop
     // 7. Animation Loop with Visibility Gating
     let animationFrameId: number | null = null;
     let isVisible = true;
@@ -150,12 +192,10 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     };
   }, []);
 
-  // Update Geometry & Material Color
+  // Update Geometry, Material Color, Scaling, and Rotation
   useEffect(() => {
     const scene = sceneRef.current;
-    const camera = cameraRef.current;
-    const controls = controlsRef.current;
-    if (!scene || !camera || !controls) return;
+    if (!scene) return;
 
     // Remove existing mesh
     if (meshRef.current) {
@@ -171,6 +211,11 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
 
     if (!geometry) return;
 
+    // Clone geometry so we keep a clean unmodified base buffer
+    const clonedGeometry = geometry.clone();
+    clonedGeometry.center();
+    clonedGeometry.computeVertexNormals();
+
     // Create realistic plastic material
     const material = new THREE.MeshStandardMaterial({
       color: new THREE.Color(colorHex),
@@ -180,24 +225,54 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
       side: THREE.DoubleSide,
     });
 
-    const mesh = new THREE.Mesh(geometry, material);
+    const mesh = new THREE.Mesh(clonedGeometry, material);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
 
-    // Align mesh so its bottom sits flat on y = 0
-    geometry.computeBoundingBox();
-    const bbox = geometry.boundingBox;
-    if (bbox) {
-      const height = bbox.max.y - bbox.min.y;
-      mesh.position.y = height / 2;
-    }
+    // Apply rotation & scale
+    const radX = (rotation.x * Math.PI) / 180;
+    const radY = (rotation.y * Math.PI) / 180;
+    const radZ = (rotation.z * Math.PI) / 180;
+
+    mesh.position.set(0, 0, 0);
+    mesh.rotation.set(radX, radY, radZ);
+    mesh.scale.set(scale, scale, scale);
+    mesh.updateMatrixWorld(true);
+
+    // Compute bounding box in transformed world orientation
+    const bbox = new THREE.Box3().setFromObject(mesh);
+    const center = new THREE.Vector3();
+    bbox.getCenter(center);
+
+    // Ground model on grid (y = 0) and center horizontally (x = 0, z = 0)
+    mesh.position.x = -center.x;
+    mesh.position.z = -center.z;
+    mesh.position.y = -bbox.min.y;
+    mesh.updateMatrixWorld(true);
 
     scene.add(mesh);
     meshRef.current = mesh;
 
-    // Fit camera to view
+    // Compute oriented dimensions
+    const finalBBox = new THREE.Box3().setFromObject(mesh);
+    const orientedWidth = Math.round((finalBBox.max.x - finalBBox.min.x) * 10) / 10;
+    const orientedDepth = Math.round((finalBBox.max.z - finalBBox.min.z) * 10) / 10;
+    const orientedHeight = Math.round((finalBBox.max.y - finalBBox.min.y) * 10) / 10;
+
+    const newDims = {
+      x: orientedWidth,
+      y: orientedDepth,
+      z: orientedHeight,
+    };
+    setCurrentDims(newDims);
+
+    if (onOrientedDimensionsChange) {
+      onOrientedDimensionsChange(newDims);
+    }
+
+    // Fit camera on orientation / geometry changes
     fitCameraToObject();
-  }, [geometry, colorHex, isWireframe]);
+  }, [geometry, colorHex, isWireframe, scale, rotation, fitCameraToObject, onOrientedDimensionsChange]);
 
   // Toggle Grid
   useEffect(() => {
@@ -206,31 +281,19 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     }
   }, [showGrid]);
 
-  const fitCameraToObject = () => {
-    const camera = cameraRef.current;
-    const controls = controlsRef.current;
-    const mesh = meshRef.current;
-    if (!camera || !controls || !mesh) return;
-
-    mesh.geometry.computeBoundingSphere();
-    const sphere = mesh.geometry.boundingSphere;
-    if (!sphere) return;
-
-    const radius = Math.max(sphere.radius, 10);
-    const fov = camera.fov * (Math.PI / 180);
-    let distance = Math.abs(radius / Math.sin(fov / 2));
-    distance = Math.min(Math.max(distance * 1.3, 30), 800);
-
-    const center = sphere.center;
-    camera.position.set(center.x + distance * 0.7, center.y + distance * 0.6, center.z + distance * 0.9);
-    camera.lookAt(center);
-    controls.target.copy(center);
-    controls.update();
+  const handleRotateAxis = (axis: 'x' | 'y' | 'z') => {
+    setRotation((prev) => ({
+      ...prev,
+      [axis]: (prev[axis] + 90) % 360,
+    }));
   };
 
-  const handleResetCamera = () => {
-    fitCameraToObject();
+  const handleResetRotation = () => {
+    setRotation({ x: 0, y: 0, z: 0 });
   };
+
+  const isRotated = rotation.x !== 0 || rotation.y !== 0 || rotation.z !== 0;
+  const displayDimensions = currentDims || dimensions;
 
   return (
     <div className="relative w-full h-[320px] sm:h-[400px] md:h-[450px] bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-inner flex items-center justify-center">
@@ -257,7 +320,7 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
             {error}
           </p>
           <span className="text-xs text-slate-500 max-w-xs">
-            Please verify your 3D model is a valid manifold STL file.
+            Please verify your 3D model is a valid STL, OBJ, or 3MF file.
           </span>
         </div>
       )}
@@ -265,15 +328,59 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
       {/* Viewer Overlay Controls */}
       {geometry && !isLoading && !error && (
         <>
-          {/* Top-Right Control Toolbar */}
+          {/* Top-Left: Model Orientation Toolbar */}
+          <div className="absolute top-3 left-3 flex items-center gap-1 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md px-2 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1 hidden sm:inline">
+              Rotate:
+            </span>
+            <button
+              type="button"
+              onClick={() => handleRotateAxis('x')}
+              className="px-2 py-1 rounded-lg text-xs font-mono font-bold text-slate-700 dark:text-slate-200 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              title="Rotate 90° along X axis (Pitch / Tilt)"
+            >
+              X 90°
+            </button>
+            <button
+              type="button"
+              onClick={() => handleRotateAxis('y')}
+              className="px-2 py-1 rounded-lg text-xs font-mono font-bold text-slate-700 dark:text-slate-200 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              title="Rotate 90° along Y axis (Yaw / Turn)"
+            >
+              Y 90°
+            </button>
+            <button
+              type="button"
+              onClick={() => handleRotateAxis('z')}
+              className="px-2 py-1 rounded-lg text-xs font-mono font-bold text-slate-700 dark:text-slate-200 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              title="Rotate 90° along Z axis (Roll)"
+            >
+              Z 90°
+            </button>
+            {isRotated && (
+              <>
+                <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-700 mx-0.5" />
+                <button
+                  type="button"
+                  onClick={handleResetRotation}
+                  className="p-1 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                  title="Reset Model Orientation (0°, 0°, 0°)"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Top-Right: Camera & Display Toolbar */}
           <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md px-2 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs z-10">
             <button
               type="button"
-              onClick={handleResetCamera}
+              onClick={fitCameraToObject}
               className="p-1.5 rounded-lg text-slate-600 hover:text-brand-600 dark:text-slate-300 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
               title="Reset Camera View"
             >
-              <RotateCcw className="w-4 h-4" />
+              <Compass className="w-4 h-4" />
             </button>
             <button
               type="button"
@@ -310,12 +417,17 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
           </div>
 
           {/* Bottom-Left Bounding Dimension Pill */}
-          {dimensions && (
+          {displayDimensions && (
             <div className="absolute bottom-3 left-3 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs z-10 flex items-center gap-2 font-mono text-[11px] font-bold text-slate-700 dark:text-slate-200">
               <span className="w-2 h-2 rounded-full bg-brand-500" />
               <span>
-                {dimensions.x} × {dimensions.y} × {dimensions.z} mm
+                {displayDimensions.x} × {displayDimensions.y} × {displayDimensions.z} mm
               </span>
+              {isRotated && (
+                <span className="text-[9px] font-semibold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/50 px-1.5 py-0.5 rounded-md border border-brand-200/50 dark:border-brand-800/50">
+                  Rotated ({rotation.x}°, {rotation.y}°, {rotation.z}°)
+                </span>
+              )}
             </div>
           )}
 
@@ -328,4 +440,5 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     </div>
   );
 };
+
 

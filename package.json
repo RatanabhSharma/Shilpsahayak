@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "npx vite",
+    "worker:dev": "cd shilp-sahayak-r2 && npx wrangler dev --port 8787 --local",
+    "git:fix": "powershell -Command \"Remove-Item .git/index -Force -ErrorAction SilentlyContinue; git reset; git status\"",
     "build": "npx vite build",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "preview": "npx vite preview"

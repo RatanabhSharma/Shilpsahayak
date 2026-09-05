@@ -30,15 +30,21 @@ const ALLOWED_EXTENSIONS = [
 const ALLOWED_ORIGINS = [
   "http://localhost:5173",
   "http://localhost:5174",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
 ];
 
 function getCorsHeaders(request: Request): Headers {
   const origin = request.headers.get("Origin");
 
-  const allowedOrigin =
-    origin && ALLOWED_ORIGINS.includes(origin)
-      ? origin
-      : ALLOWED_ORIGINS[0];
+  const isAllowed = !origin ||
+    origin.startsWith("http://localhost:") ||
+    origin.startsWith("http://127.0.0.1:") ||
+    origin.endsWith(".web.app") ||
+    origin.endsWith(".firebaseapp.com") ||
+    origin.endsWith(".shilpsahayak.com");
+
+  const allowedOrigin = isAllowed ? (origin || "*") : ALLOWED_ORIGINS[0];
 
   return new Headers({
     "Access-Control-Allow-Origin": allowedOrigin,

@@ -18,7 +18,7 @@
   {
     "binding": "STORAGE",
     "bucket_name": "shilp-sahayak-storage",
-    "remote": true
+    "remote": false
   }
 ]
 
