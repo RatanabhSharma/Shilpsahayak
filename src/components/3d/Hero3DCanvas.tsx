@@ -101,20 +101,29 @@ export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
     scene.add(laserMesh);
 
     // Mouse Interaction (Ignore touch so mobile page scrolling is smooth)
+    let cachedRect: DOMRect | null = null;
+    const updateCachedRect = () => {
+      if (container) cachedRect = container.getBoundingClientRect();
+    };
+    updateCachedRect();
+
     const handlePointerMove = (e: PointerEvent) => {
       if (e.pointerType === 'touch') return;
-      const rect = container.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+      if (!cachedRect) updateCachedRect();
+      if (!cachedRect || cachedRect.width === 0 || cachedRect.height === 0) return;
+      const x = ((e.clientX - cachedRect.left) / cachedRect.width) * 2 - 1;
+      const y = -(((e.clientY - cachedRect.top) / cachedRect.height) * 2 - 1);
       mouseRef.current.targetX = x * 0.6;
       mouseRef.current.targetY = y * 0.6;
     };
 
+    container.addEventListener('pointerenter', updateCachedRect, { passive: true });
     container.addEventListener('pointermove', handlePointerMove, { passive: true });
 
     // Resize Handler
     const handleResize = () => {
       if (!container) return;
+      updateCachedRect();
       const w = container.clientWidth;
       const h = container.clientHeight;
       camera.aspect = w / h;
@@ -124,10 +133,12 @@ export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
 
     window.addEventListener('resize', handleResize);
 
-    // Animation Loop
+    // Animation Loop with Visibility Gating (IntersectionObserver)
     const clock = new THREE.Clock();
+    let isVisible = false;
 
     const animate = () => {
+      if (!isVisible) return;
       animFrameIdRef.current = requestAnimationFrame(animate);
       const elapsedTime = clock.getElapsedTime();
 
@@ -159,10 +170,30 @@ export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
       renderer.render(scene, camera);
     };
 
-    animate();
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const nowVisible = entry.isIntersecting;
+        if (nowVisible && !isVisible) {
+          isVisible = true;
+          clock.start();
+          animate();
+        } else if (!nowVisible && isVisible) {
+          isVisible = false;
+          if (animFrameIdRef.current) {
+            cancelAnimationFrame(animFrameIdRef.current);
+            animFrameIdRef.current = null;
+          }
+        }
+      },
+      { threshold: 0.05 }
+    );
+
+    observer.observe(container);
 
     return () => {
+      observer.disconnect();
       if (animFrameIdRef.current) cancelAnimationFrame(animFrameIdRef.current);
+      container.removeEventListener('pointerenter', updateCachedRect);
       container.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('resize', handleResize);
       renderer.dispose();

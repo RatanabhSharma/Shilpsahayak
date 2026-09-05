@@ -1,6 +1,5 @@
-import React, { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from 'framer-motion';
 import { ShoppingBag, Sparkles, Star, Zap } from 'lucide-react';
 import { Product, useStore } from '../../store';
 import { Card } from '../ui';
@@ -15,31 +14,6 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
   const openCart = useStore((state) => state.openCart);
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const prefersReducedMotion = useReducedMotion();
-
-  /* 3D Tilt Values */
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  const springConfig = { damping: 20, stiffness: 260 };
-  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [7, -7]), springConfig);
-  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-7, 7]), springConfig);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
-    if (prefersReducedMotion || !cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const xPct = (e.clientX - rect.left) / rect.width - 0.5;
-    const yPct = (e.clientY - rect.top) / rect.height - 0.5;
-    mouseX.set(xPct);
-    mouseY.set(yPct);
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    mouseX.set(0);
-    mouseY.set(0);
-  };
 
   const getProductPrices = () => {
     let price = Number(product.price) || 0;
@@ -95,21 +69,11 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
   return (
     <Link
       to={`/product/${product.id}`}
-      className={`group/card flex flex-col h-full touch-manipulation select-none perspective-1000 ${className}`}
+      className={`group/card flex flex-col h-full touch-manipulation select-none ${className}`}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <motion.div
-        ref={cardRef}
-        style={{
-          rotateX: prefersReducedMotion ? 0 : rotateX,
-          rotateY: prefersReducedMotion ? 0 : rotateY,
-          transformStyle: 'preserve-3d',
-        }}
-        className="h-full"
-      >
-        <Card className="flex h-full flex-col justify-between overflow-hidden transition-all duration-300 group-hover/card:-translate-y-2 group-hover/card:shadow-2xl group-hover/card:border-accent/40 border-line bg-white rounded-2xl">
+      <Card className="flex h-full flex-col justify-between overflow-hidden transition-transform transition-shadow duration-300 group-hover/card:-translate-y-2 group-hover/card:shadow-xl group-hover/card:border-accent/40 border-line bg-white rounded-2xl will-change-transform">
           {/* Image Container with Shimmer Sweep */}
           <div className="relative aspect-square w-full overflow-hidden bg-shell shine-sweep-container">
             <img
@@ -196,7 +160,6 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
             </div>
           </div>
         </Card>
-      </motion.div>
     </Link>
   );
 }

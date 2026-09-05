@@ -115,6 +115,7 @@ function useInfiniteLoopCarousel({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
+  const [isInView, setIsInView] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
   const isNormalizingRef = useRef(false);
@@ -124,16 +125,16 @@ function useInfiniteLoopCarousel({
   const getSingleSetWidth = useCallback(() => {
     const el = containerRef.current;
     if (!el || itemCount === 0) return 0;
-    return el.scrollWidth / 6;
+    return el.scrollWidth / 3;
   }, [itemCount]);
 
-  // Position container in the middle set (Set 2 of 6) on mount & resize
+  // Position container in the center set (Set 1 of 3: indices 0, 1, 2) on mount & resize
   const initializePosition = useCallback(() => {
     const el = containerRef.current;
     if (!el || itemCount === 0) return;
     const singleSetWidth = getSingleSetWidth();
     if (singleSetWidth > 50) {
-      el.scrollLeft = singleSetWidth * 2;
+      el.scrollLeft = singleSetWidth;
     }
   }, [itemCount, getSingleSetWidth]);
 
@@ -143,17 +144,46 @@ function useInfiniteLoopCarousel({
 
     initializePosition();
     const t = setTimeout(initializePosition, 120);
-    const t2 = setTimeout(initializePosition, 400);
 
     window.addEventListener('resize', initializePosition);
     return () => {
       clearTimeout(t);
-      clearTimeout(t2);
       window.removeEventListener('resize', initializePosition);
     };
   }, [itemCount, initializePosition]);
 
-  // Seamless infinite wrap without resetting to start
+  // Viewport visibility check: do not run carousel autoplay when offscreen
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Pause carousel autoplay while the user is actively scrolling vertically
+  useEffect(() => {
+    let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+    const onWindowScroll = () => {
+      setIsInteracting(true);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        setIsInteracting(false);
+      }, 800);
+    };
+    window.addEventListener('scroll', onWindowScroll, { passive: true });
+    return () => {
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      window.removeEventListener('scroll', onWindowScroll);
+    };
+  }, []);
+
+  // Seamless infinite wrap without resetting to start (3 sets)
   const handleScroll = useCallback(() => {
     const el = containerRef.current;
     if (!el || isNormalizingRef.current || itemCount === 0) return;
@@ -161,18 +191,18 @@ function useInfiniteLoopCarousel({
     const singleSetWidth = getSingleSetWidth();
     if (singleSetWidth <= 50) return;
 
-    // Past Set 3 into Set 4 -> shift back by 2 sets
-    if (el.scrollLeft >= singleSetWidth * 3.8) {
+    // Past Set 1 into Set 2 -> shift back by 1 set
+    if (el.scrollLeft >= singleSetWidth * 1.95) {
       isNormalizingRef.current = true;
-      el.scrollLeft -= singleSetWidth * 2;
+      el.scrollLeft -= singleSetWidth;
       setTimeout(() => {
         isNormalizingRef.current = false;
       }, 50);
     }
-    // Before Set 2 into Set 1 -> shift forward by 2 sets
-    else if (el.scrollLeft <= singleSetWidth * 1.2 && el.scrollLeft > 0) {
+    // Before Set 1 into Set 0 -> shift forward by 1 set
+    else if (el.scrollLeft <= singleSetWidth * 0.05 && el.scrollLeft > 0) {
       isNormalizingRef.current = true;
-      el.scrollLeft += singleSetWidth * 2;
+      el.scrollLeft += singleSetWidth;
       setTimeout(() => {
         isNormalizingRef.current = false;
       }, 50);
@@ -246,7 +276,7 @@ function useInfiniteLoopCarousel({
   );
 
   useEffect(() => {
-    if (!enableAutoplay || itemCount <= 1 || isHovered || isInteracting) {
+    if (!enableAutoplay || itemCount <= 1 || isHovered || isInteracting || !isInView) {
       if (autoplayTimerRef.current) clearInterval(autoplayTimerRef.current);
       return;
     }
@@ -265,7 +295,7 @@ function useInfiniteLoopCarousel({
     return () => {
       if (autoplayTimerRef.current) clearInterval(autoplayTimerRef.current);
     };
-  }, [enableAutoplay, itemCount, isHovered, isInteracting, autoplayInterval, step]);
+  }, [enableAutoplay, itemCount, isHovered, isInteracting, isInView, autoplayInterval, step]);
 
   return {
     containerRef,
@@ -297,6 +327,16 @@ export function Home() {
     [products]
   );
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile, { passive: true });
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   /* Scroll-Linked Hero Parallax & Depth Transitions */
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
@@ -304,8 +344,8 @@ export function Home() {
     offset: ['start start', 'end start'],
   });
 
-  const heroParallaxY = useTransform(scrollYProgress, [0, 1], ['0%', '32%']);
-  const heroScale = useTransform(scrollYProgress, [0, 1], [1.0, 1.15]);
+  // Pure vertical translation for desktop only; no GPU texture rescaling (scale) during scroll
+  const heroParallaxY = useTransform(scrollYProgress, [0, 1], ['0%', '18%']);
   const heroScrimOpacity = useTransform(scrollYProgress, [0, 0.7, 1], [0.55, 0.8, 0.98]);
 
   /* Hero Media & Content (Video / GIF with Poster fallback) */
@@ -340,6 +380,25 @@ export function Home() {
       videoRef.current.play().catch(() => {});
     }
   }, [heroMediaUrl]);
+
+  // Pause video decoding when hero section is not visible to free GPU & CPU during scroll
+  useEffect(() => {
+    const heroEl = heroRef.current;
+    if (!heroEl) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!videoRef.current) return;
+        if (entry.isIntersecting) {
+          videoRef.current.play().catch(() => {});
+        } else {
+          videoRef.current.pause();
+        }
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(heroEl);
+    return () => observer.disconnect();
+  }, []);
 
   const heroPosterImage =
     'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=2000&q=80';
@@ -379,10 +438,10 @@ export function Home() {
     }));
   }, [activeProducts]);
 
-  /* Cloned 6-Set Extended Arrays for True Infinite Seamless Looping */
+  /* Cloned 3-Set Extended Arrays for True Infinite Seamless Looping (50% lighter DOM) */
   const extendedFeaturedProducts = useMemo(() => {
     if (featuredProducts.length === 0) return [];
-    return Array.from({ length: 6 }, (_, setIdx) =>
+    return Array.from({ length: 3 }, (_, setIdx) =>
       featuredProducts.map((p, idx) => ({
         ...p,
         _carouselKey: `feat-${p.id || idx}-set-${setIdx}`,
@@ -392,7 +451,7 @@ export function Home() {
 
   const extendedCategories = useMemo(() => {
     if (categories.length === 0) return [];
-    return Array.from({ length: 6 }, (_, setIdx) =>
+    return Array.from({ length: 3 }, (_, setIdx) =>
       categories.map((c, idx) => ({
         ...c,
         _carouselKey: `cat-${c.name || idx}-set-${setIdx}`,
@@ -425,16 +484,14 @@ export function Home() {
       ====================================================== */}
       <section
         ref={heroRef}
-        style={{ touchAction: 'pan-y' }}
-        className="relative overflow-hidden bg-[#0d0d0f] aspect-video sm:aspect-auto sm:h-[580px] lg:h-[680px] w-full touch-pan-y"
+        className="relative overflow-hidden bg-[#0d0d0f] aspect-video sm:aspect-auto sm:h-[580px] lg:h-[680px] w-full"
       >
         {/* Parallax Background Stage (Video / GIF / High-Res Poster) */}
         <motion.div
           style={{
-            y: prefersReducedMotion ? '0%' : heroParallaxY,
-            scale: prefersReducedMotion ? 1 : heroScale,
+            y: prefersReducedMotion || isMobile ? '0%' : heroParallaxY,
           }}
-          className="absolute inset-0 z-0 w-full h-full overflow-hidden pointer-events-none"
+          className="absolute inset-0 z-0 w-full h-full overflow-hidden pointer-events-none will-change-transform"
         >
           {isHeroVideo ? (
             <video
@@ -578,8 +635,8 @@ export function Home() {
               onTouchEnd={featuredCarousel.handleTouchEnd}
               onFocusCapture={() => featuredCarousel.setIsHovered(true)}
               onBlurCapture={() => featuredCarousel.setIsHovered(false)}
-              className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-none touch-pan-y"
-              style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+              className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-none overscroll-x-contain"
+              style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
             >
               {extendedFeaturedProducts.map((product) => (
                 <div
@@ -602,6 +659,7 @@ export function Home() {
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-40px' }}
+        style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 650px' }}
         className="bg-[#F0F4F8] py-14 border-t border-line"
       >
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
@@ -727,6 +785,7 @@ export function Home() {
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-40px' }}
+        style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 500px' }}
         className="bg-[#F0F4F8] py-12 sm:py-14 border-t border-line"
       >
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
@@ -797,8 +856,8 @@ export function Home() {
               onTouchEnd={categoryCarousel.handleTouchEnd}
               onFocusCapture={() => categoryCarousel.setIsHovered(true)}
               onBlurCapture={() => categoryCarousel.setIsHovered(false)}
-              className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-none touch-pan-y"
-              style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+              className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-none overscroll-x-contain"
+              style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
             >
               {extendedCategories.map((cat) => (
                 <div
@@ -849,6 +908,7 @@ export function Home() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-40px' }}
+          style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 400px' }}
           className="bg-[#F0F4F8] text-ink py-16 border-t border-line"
         >
           <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
@@ -901,6 +961,7 @@ export function Home() {
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-40px' }}
+        style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 350px' }}
         className="py-20 bg-white border-t border-line text-center"
       >
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
