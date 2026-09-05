@@ -90,11 +90,17 @@ export function Login() {
 
   const from = useMemo(() => {
     const pathname = locationState?.from?.pathname;
-    if (!pathname) return '/account';
-    return `${pathname}${locationState?.from?.search || ''}${
-      locationState?.from?.hash || ''
-    }`;
-  }, [locationState]);
+    if (pathname) {
+      return `${pathname}${locationState?.from?.search || ''}${
+        locationState?.from?.hash || ''
+      }`;
+    }
+    const searchParams = new URLSearchParams(location.search);
+    const redirectParam = searchParams.get('redirect');
+    if (redirectParam) return redirectParam;
+
+    return '/account';
+  }, [locationState, location.search]);
 
   /* State Management */
   const [tab, setTab] = useState<AuthMainTab>('signin');

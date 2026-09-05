@@ -77,6 +77,20 @@ export function StorefrontLayout() {
   const location = useLocation();
 
   /* ----------------------------------------------------------
+     Scroll to top on navbar item click
+     ---------------------------------------------------------- */
+  const handleNavClick = () => {
+    setIsMobileMenuOpen(false);
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    if (document.documentElement) {
+      document.documentElement.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    }
+    if (document.body) {
+      document.body.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    }
+  };
+
+  /* ----------------------------------------------------------
      Scroll listener for sticky header background transition
      ---------------------------------------------------------- */
   useEffect(() => {
@@ -256,6 +270,7 @@ export function StorefrontLayout() {
           {/* Logo */}
           <Link
             to="/"
+            onClick={handleNavClick}
             className="group flex items-center"
             aria-label={`${businessName} home`}
           >
@@ -272,6 +287,7 @@ export function StorefrontLayout() {
                 key={item.path}
                 to={item.path}
                 end={item.end}
+                onClick={handleNavClick}
                 className={({ isActive }) =>
                   [
                     'relative py-2 text-sm font-display font-medium transition-colors group whitespace-nowrap',
@@ -408,6 +424,7 @@ export function StorefrontLayout() {
                     key={item.path}
                     to={item.path}
                     end={item.end}
+                    onClick={handleNavClick}
                     className={({ isActive }) =>
                       [
                         'flex items-center justify-between rounded-xl px-4 py-3 text-sm font-display font-semibold transition-colors',
@@ -433,6 +450,7 @@ export function StorefrontLayout() {
                 {showAdmin && (
                   <NavLink
                     to="/admin"
+                    onClick={handleNavClick}
                     className={({ isActive }) =>
                       [
                         'flex items-center justify-between rounded-xl border px-4 py-3 text-xs font-mono uppercase tracking-wider',
@@ -453,6 +471,7 @@ export function StorefrontLayout() {
                 <div className="pt-3">
                   <Link
                     to="/shilp-studio"
+                    onClick={handleNavClick}
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3.5 text-sm font-bold text-white shadow-md hover:bg-accent-dark transition-colors"
                   >
                     <Sparkles className="h-4 w-4" />
