@@ -9,7 +9,6 @@ import {
   Loader2,
   Box,
   Compass,
-  Palette,
 } from 'lucide-react';
 
 export interface ThreeModelViewerProps {

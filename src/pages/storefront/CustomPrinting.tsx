@@ -291,8 +291,8 @@ export function CustomPrinting() {
 
   // Customer-Facing Configuration Presets
   const [selectedMaterialId, setSelectedMaterialId] = useState<string>('pla');
-  const [selectedColorName, setSelectedColorName] = useState<string>('');
-  const [customColorHex, setCustomColorHex] = useState<string | null>(null);
+  const [selectedColorName, setSelectedColorName] = useState<string>('#1C1917');
+  const [customColorHex, setCustomColorHex] = useState<string>('#1C1917');
   const [qualityPreset, setQualityPreset] = useState<QualityPreset>('standard');
   const [strengthPreset, setStrengthPreset] = useState<StrengthPreset>('balanced');
   const [supportMode, setSupportMode] = useState<SupportMode>('auto');
@@ -331,24 +331,16 @@ export function CustomPrinting() {
 
   const handleMaterialChange = (materialId: string) => {
     setSelectedMaterialId(materialId);
-    setCustomColorHex(null);
-    const newMat = activeMaterials.find((m) => m.id === materialId);
-    if (newMat?.colors && newMat.colors.length > 0) {
-      setSelectedColorName(newMat.colors[0].name);
-    }
   };
 
-  // Selected Color
+  // Selected Color from the interactive Color Palette
   const activeColor = useMemo(() => {
-    if (customColorHex) {
-      return { name: selectedColorName || 'Custom Shade', hex: customColorHex };
-    }
-    if (!activeMaterial?.colors || activeMaterial.colors.length === 0) {
-      return { name: 'Standard', hex: '#2563EB' };
-    }
-    const found = activeMaterial.colors.find((c) => c.name === selectedColorName);
-    return found || activeMaterial.colors[0];
-  }, [activeMaterial, selectedColorName, customColorHex]);
+    const hex = customColorHex || '#1C1917';
+    return {
+      name: selectedColorName || hex.toUpperCase(),
+      hex,
+    };
+  }, [customColorHex, selectedColorName]);
 
   // Active Profiles & Profile Resolution from Customer Quality Preset
   const activeProfiles = useMemo(
@@ -380,15 +372,15 @@ export function CustomPrinting() {
   const supportsEnabled = supportMode !== 'none';
   const supportMultiplier = supportMode === 'none' ? 1.0 : supportMode === 'required' ? 1.25 : 1.15;
 
-  // Handle Model Orientation Changes from 3D Viewer
+  // Keep stable ref to scaleFactor to prevent recreation of handleOrientedDimensionsChange
+  const scaleFactorRef = useRef(scaleFactor);
+  useEffect(() => {
+    scaleFactorRef.current = scaleFactor;
+  }, [scaleFactor]);
+
+  // Handle Model Orientation Changes from 3D Viewer (unscaled geometry dims)
   const handleOrientedDimensionsChange = useCallback(
-    (dims: { x: number; y: number; z: number }) => {
-      const currentScale = scaleFactor > 0 ? scaleFactor : 1;
-      const unscaled = {
-        x: Math.round((dims.x / currentScale) * 10) / 10,
-        y: Math.round((dims.y / currentScale) * 10) / 10,
-        z: Math.round((dims.z / currentScale) * 10) / 10,
-      };
+    (unscaled: { x: number; y: number; z: number }) => {
       setBaseDimensions((prev) => {
         if (
           prev &&
@@ -400,9 +392,10 @@ export function CustomPrinting() {
         }
         return unscaled;
       });
+      const currentScale = scaleFactorRef.current > 0 ? scaleFactorRef.current : 1;
       setTargetHeightInput((unscaled.z * currentScale).toFixed(1));
     },
-    [scaleFactor]
+    []
   );
 
   // Effective scaled dimensions
@@ -528,8 +521,8 @@ export function CustomPrinting() {
     const parsed = parseFloat(val);
     const base = baseDimensions || modelResult?.dimensions;
     if (!isNaN(parsed) && parsed > 0 && base && base.z > 0) {
-      const newScale = Math.min(Math.max(parsed / base.z, 0.1), 5.0);
-      setScaleFactor(newScale);
+      const newScale = Math.min(Math.max(parsed / base.z, 0.05), 5.0);
+      setScaleFactor(Math.round(newScale * 100) / 100);
     }
   };
 
@@ -1396,7 +1389,7 @@ export function CustomPrinting() {
                     {/* Uniform Scale Slider */}
                     <div>
                       <div className="flex justify-between text-[10px] font-mono text-muted mb-1">
-                        <span>25%</span>
+                        <span>10%</span>
                         <span className="font-bold text-ink dark:text-slate-200">
                           Uniform Scale: {Math.round(scaleFactor * 100)}%
                         </span>
@@ -1404,7 +1397,7 @@ export function CustomPrinting() {
                       </div>
                       <input
                         type="range"
-                        min="0.25"
+                        min="0.1"
                         max="3.0"
                         step="0.05"
                         value={scaleFactor}
@@ -1491,72 +1484,103 @@ export function CustomPrinting() {
               </div>
 
               {/* 2. Color */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-3">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-4">
                 <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
                   <div>
                     <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
                       <Palette className="w-4 h-4 text-accent" />
-                      <span>Color</span>
+                      <span>Color Palette</span>
                     </h3>
                     <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
-                      Choose your preferred color.
+                      Select or enter your desired print color.
                     </p>
                   </div>
-                  <span className="font-mono text-xs font-semibold text-accent">
-                    {customColorHex ? `Custom (${customColorHex.toUpperCase()})` : activeColor.name}
+                  <span className="font-mono text-xs font-bold text-accent px-2.5 py-1 rounded-md bg-accent/10 border border-accent/20">
+                    {customColorHex ? customColorHex.toUpperCase() : activeColor.name}
                   </span>
                 </div>
 
-                <div className="space-y-3">
-                  {/* Material Swatches */}
-                  {activeMaterial.colors && activeMaterial.colors.length > 0 && (
-                    <div className="flex flex-wrap gap-2 items-center">
-                      {activeMaterial.colors.map((c) => {
-                        const isSelected = !customColorHex && activeColor.name === c.name;
-                        return (
-                          <button
-                            key={c.name}
-                            type="button"
-                            onClick={() => {
-                              setCustomColorHex(null);
-                              setSelectedColorName(c.name);
-                            }}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-mono transition-all cursor-pointer ${
-                              isSelected
-                                ? 'border-accent bg-accent/10 dark:bg-amber-950/30 text-ink dark:text-white font-bold ring-1 ring-accent'
-                                : 'border-line dark:border-slate-800 bg-shell/40 dark:bg-slate-800/40 text-muted hover:border-slate-300'
-                            }`}
-                          >
-                            <span
-                              className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-600 shadow-2xs shrink-0"
-                              style={{ backgroundColor: c.hex }}
-                            />
-                            <span>{c.name}</span>
-                          </button>
-                        );
-                      })}
-
-                      {/* Custom Color Wheel Picker */}
-                      <label
-                        className="relative flex items-center justify-center w-8 h-8 rounded-full border-2 border-accent scale-105 shadow-sm ring-2 ring-accent/30 cursor-pointer transition-all hover:scale-110 ml-1"
+                {/* Interactive Color Palette Picker */}
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-4 p-4 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
+                  {/* Swatch & Native Color Wheel Trigger */}
+                  <div className="relative group cursor-pointer shrink-0">
+                    <div
+                      className="w-12 h-12 rounded-xl border-2 border-white/80 dark:border-slate-700 shadow-md transition-transform group-hover:scale-105 flex items-center justify-center relative overflow-hidden"
+                      style={{ backgroundColor: customColorHex }}
+                    >
+                      {/* Rainbow corner badge indicating interactive color picker */}
+                      <div
+                        className="absolute bottom-0 right-0 w-5 h-5 rounded-tl-lg shadow-xs"
                         style={{
                           background:
                             'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
                         }}
-                        title="Pick custom color shade"
+                      />
+                    </div>
+                    <input
+                      type="color"
+                      aria-label="Choose print color"
+                      value={customColorHex}
+                      onChange={(e) => {
+                        const hex = e.target.value.toUpperCase();
+                        setCustomColorHex(hex);
+                        setSelectedColorName(hex);
+                      }}
+                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                    />
+                  </div>
+
+                  {/* HEX Input & Color Description */}
+                  <div className="flex-1 min-w-[200px] space-y-1.5">
+                    <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block">
+                      Color Hex Code
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1 max-w-[160px]">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs font-bold text-muted">
+                          #
+                        </span>
+                        <input
+                          type="text"
+                          maxLength={7}
+                          value={customColorHex.startsWith('#') ? customColorHex.slice(1) : customColorHex}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/[^0-9A-Fa-f]/g, '').slice(0, 6);
+                            const hex = `#${raw.toUpperCase()}`;
+                            setCustomColorHex(hex);
+                            setSelectedColorName(hex);
+                          }}
+                          placeholder="1C1917"
+                          className="w-full pl-7 pr-3 py-1.5 rounded-xl border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono font-bold text-ink dark:text-white uppercase focus:outline-hidden focus:ring-2 focus:ring-accent shadow-2xs"
+                        />
+                      </div>
+                      <label
+                        className="relative px-3 py-1.5 rounded-xl border border-line dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-accent hover:text-accent text-xs font-mono font-semibold text-muted dark:text-slate-300 transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
                       >
+                        <span
+                          className="w-3.5 h-3.5 rounded-full shrink-0 shadow-2xs"
+                          style={{
+                            background:
+                              'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
+                          }}
+                        />
+                        <span>Pick Color</span>
                         <input
                           type="color"
-                          value={customColorHex || activeColor.hex || '#1C1917'}
+                          value={customColorHex}
                           onChange={(e) => {
-                            setCustomColorHex(e.target.value);
-                            setSelectedColorName(`Custom (${e.target.value.toUpperCase()})`);
+                            const hex = e.target.value.toUpperCase();
+                            setCustomColorHex(hex);
+                            setSelectedColorName(hex);
                           }}
                           className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
                         />
                       </label>
                     </div>
-                  )}
+                    <p className="text-[10px] text-muted dark:text-slate-400 font-sans">
+                      Click the swatch or &quot;Pick Color&quot; to open the palette picker, or enter any HEX color code.
+                    </p>
+                  </div>
                 </div>
               </div>
 
