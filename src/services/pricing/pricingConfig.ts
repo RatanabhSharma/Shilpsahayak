@@ -62,10 +62,6 @@ export const DEFAULT_MATERIALS: MaterialConfig[] = [
       { name: 'Steel Grey', hex: '#64748B' },
       { name: 'Bright Orange', hex: '#F97316' },
       { name: 'Sunshine Yellow', hex: '#EAB308' },
-      { name: 'Silk Gold', hex: '#D4AF37' },
-      { name: 'Silk Silver', hex: '#CBD5E1' },
-      { name: 'Lavender Violet', hex: '#8B5CF6' },
-      { name: 'Mint Cyan', hex: '#06B6D4' },
     ],
   },
   {

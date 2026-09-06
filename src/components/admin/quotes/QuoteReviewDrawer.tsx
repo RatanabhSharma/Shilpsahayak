@@ -428,6 +428,18 @@ export const QuoteReviewDrawer: React.FC<QuoteReviewDrawerProps> = ({
                     </span>
                   </div>
                   <div className="bg-shell p-2 rounded-lg border border-line/60">
+                    <span className="text-[10px] text-muted uppercase block">Quantity / Packaging</span>
+                    <span className="font-bold text-ink">
+                      {quote.quantity || 1} pcs · {quote.packagingIncluded ? 'Box & Bubble' : 'Standard'}
+                    </span>
+                  </div>
+                  <div className="bg-shell p-2 rounded-lg border border-line/60">
+                    <span className="text-[10px] text-muted uppercase block">Supports</span>
+                    <span className="font-bold text-ink">
+                      {quote.supports ? 'Auto (Enabled)' : 'No Supports'}
+                    </span>
+                  </div>
+                  <div className="bg-shell p-2 rounded-lg border border-line/60">
                     <span className="text-[10px] text-muted uppercase block">Weight / Volume</span>
                     <span className="font-bold text-ink">
                       {quote.estimatedWeight || '—'}g / {quote.volume || '—'}cm³
@@ -535,7 +547,7 @@ export const QuoteReviewDrawer: React.FC<QuoteReviewDrawerProps> = ({
                   <span className="text-base font-mono font-bold text-slate-700 mt-1 block">
                     ₹{(quote.systemEstimatedPrice || quote.estimatedPrice || 0).toLocaleString('en-IN')}
                   </span>
-                  <span className="text-[10px] font-mono text-muted">From slicer formula</span>
+                  <span className="text-[10px] font-mono text-muted">From geometric formula</span>
                 </div>
 
                 <div className="p-3 rounded-xl bg-white border border-line text-center">

@@ -104,6 +104,7 @@ export type Quote = {
   quality?: string;
   infill?: number;
   layerHeight?: number;
+  supports?: boolean;
   quantity: number;
   packagingIncluded?: boolean;
 

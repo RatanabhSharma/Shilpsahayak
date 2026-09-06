@@ -3,9 +3,12 @@ import * as THREE from 'three';
 export type ParsedModelResult = {
   success: boolean;
   geometry?: THREE.BufferGeometry;
+  object3d?: THREE.Object3D;
+  hasOriginalColors?: boolean;
+  originalColorCount?: number;
   fileName: string;
   fileSizeBytes: number;
-  fileType: 'stl' | 'obj' | '3mf' | 'unknown';
+  fileType: 'stl' | 'obj' | '3mf' | 'zip' | 'unknown';
 
   dimensions: {
     x: number;

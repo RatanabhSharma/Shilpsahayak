@@ -50,15 +50,8 @@ export function App() {
           <Route path="cart" element={<Cart />} />
           <Route path="checkout" element={<Checkout />} />
 
-          {/* Shilp Studio: Instant 3D Printing Quote & Slicing Engine + Assisted Design (Requires Sign-In) */}
-          <Route
-            path="shilp-studio"
-            element={
-              <CustomerRoute>
-                <CustomPrinting />
-              </CustomerRoute>
-            }
-          />
+          {/* Shilp Studio: Instant 3D Printing Quote & Assisted Design */}
+          <Route path="shilp-studio" element={<CustomPrinting />} />
           <Route path="custom-printing" element={<Navigate to="/shilp-studio" replace />} />
 
           <Route path="our-story" element={<About />} />

@@ -650,7 +650,7 @@ export function StorefrontLayout() {
               <ul className="space-y-2 text-xs sm:text-sm font-sans text-zinc-400">
                 <li>
                   <Link to="/shilp-studio" className="hover:text-white transition-colors">
-                    Instant STL Slicer
+                    Shilp Studio (3D Printing)
                   </Link>
                 </li>
                 <li>

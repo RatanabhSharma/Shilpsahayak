@@ -176,8 +176,8 @@ export function TermsAndConditions() {
               <strong className="text-ink">Pricing:</strong> All prices displayed on the
               Platform are in Indian Rupees (₹) and are inclusive of applicable GST. Prices for
               custom prints are dynamically calculated based on material, volume (cm³), weight
-              (g), and infill settings using our automated slicer engine. Estimates are
-              indicative until confirmed by our engineering team.
+              (g), and infill settings using our geometric volume estimation model. Estimates are
+              indicative until verified and confirmed by our workshop team.
             </p>
             <p>
               <strong className="text-ink">Cancellation window:</strong> Catalogue orders can be

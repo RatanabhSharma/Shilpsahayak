@@ -1,0 +1,14 @@
+newmtl RedSuit
+Kd 0.882 0.114 0.282
+Ka 0.2 0.02 0.05
+d 1.0
+
+newmtl BlackClothing
+Kd 0.059 0.090 0.165
+Ka 0.01 0.01 0.02
+d 1.0
+
+newmtl WhiteEyes
+Kd 0.980 0.980 0.980
+Ka 0.5 0.5 0.5
+d 1.0

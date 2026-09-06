@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Upload,
@@ -7,8 +7,6 @@ import {
   AlertTriangle,
   Package,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   X,
   FileBox,
   ShoppingCart,
@@ -21,6 +19,7 @@ import {
   MessageSquare,
   Maximize2,
   RotateCcw,
+  Palette,
 } from 'lucide-react';
 import { usePricingSettings } from '../../hooks/usePricingSettings';
 import { parse3DModel } from '../../services/model/modelParser';
@@ -162,6 +161,10 @@ export function CustomPrinting() {
   // Stepper state
   const [currentStep, setCurrentStep] = useState<StepNumber>(1);
 
+  // Model Processing States: 'idle' | 'uploading' | 'processing' | 'ready' | 'needs_review' | 'error'
+  type ModelProcessingState = 'idle' | 'uploading' | 'processing' | 'ready' | 'needs_review' | 'error';
+  const [modelProcessingState, setModelProcessingState] = useState<ModelProcessingState>('idle');
+
   // File & Model state
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -173,6 +176,7 @@ export function CustomPrinting() {
   const [scaleFactor, setScaleFactor] = useState<number>(1.0);
   const [baseDimensions, setBaseDimensions] = useState<{ x: number; y: number; z: number } | null>(null);
   const [targetHeightInput, setTargetHeightInput] = useState<string>('');
+  const [modelColorMode, setModelColorMode] = useState<'original' | 'single'>('original');
 
   // Configuration state
   const [selectedMaterialId, setSelectedMaterialId] = useState<string>('pla');
@@ -182,8 +186,7 @@ export function CustomPrinting() {
   const [quantity, setQuantity] = useState<number>(1);
   const [packagingIncluded, setPackagingIncluded] = useState<boolean>(false);
 
-  // Advanced settings (collapsed by default)
-  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
+  // Advanced settings
   const [customInfill, setCustomInfill] = useState<number | null>(null);
   const [customLayerHeight, setCustomLayerHeight] = useState<number | null>(null);
   const [supportsEnabled, setSupportsEnabled] = useState<boolean>(false);
@@ -252,20 +255,35 @@ export function CustomPrinting() {
   const effectiveLayerHeight = customLayerHeight ?? activeProfile.layerHeight;
 
   // Handle Model Orientation Changes from 3D Viewer
-  const handleOrientedDimensionsChange = (dims: { x: number; y: number; z: number }) => {
-    const currentScale = scaleFactor > 0 ? scaleFactor : 1;
-    const unscaled = {
-      x: Math.round((dims.x / currentScale) * 10) / 10,
-      y: Math.round((dims.y / currentScale) * 10) / 10,
-      z: Math.round((dims.z / currentScale) * 10) / 10,
-    };
-    setBaseDimensions(unscaled);
-    setTargetHeightInput((unscaled.z * currentScale).toFixed(1));
-  };
+  const handleOrientedDimensionsChange = useCallback(
+    (dims: { x: number; y: number; z: number }) => {
+      const currentScale = scaleFactor > 0 ? scaleFactor : 1;
+      const unscaled = {
+        x: Math.round((dims.x / currentScale) * 10) / 10,
+        y: Math.round((dims.y / currentScale) * 10) / 10,
+        z: Math.round((dims.z / currentScale) * 10) / 10,
+      };
+      setBaseDimensions((prev) => {
+        if (
+          prev &&
+          Math.abs(prev.x - unscaled.x) < 0.1 &&
+          Math.abs(prev.y - unscaled.y) < 0.1 &&
+          Math.abs(prev.z - unscaled.z) < 0.1
+        ) {
+          return prev;
+        }
+        return unscaled;
+      });
+      setTargetHeightInput((unscaled.z * currentScale).toFixed(1));
+    },
+    [scaleFactor]
+  );
 
-  // Effective scaled dimensions
+  // Effective scaled dimensions (null when no valid model loaded)
   const effectiveDimensions = useMemo(() => {
-    const base = baseDimensions || modelResult?.dimensions || { x: 0, y: 0, z: 0 };
+    if (!modelResult?.success) return null;
+    const base = baseDimensions || modelResult?.dimensions;
+    if (!base) return null;
     return {
       x: Math.round(base.x * scaleFactor * 10) / 10,
       y: Math.round(base.y * scaleFactor * 10) / 10,
@@ -282,7 +300,7 @@ export function CustomPrinting() {
   // Max build volume verification
   const maxBuildVolume = pricingData?.pricingConfig?.maxBuildVolume || { x: 256, y: 256, z: 256 };
   const exceedsBuildVolume = useMemo(() => {
-    if (!modelResult?.success) return false;
+    if (!modelResult?.success || !effectiveDimensions) return false;
     return (
       effectiveDimensions.x > maxBuildVolume.x ||
       effectiveDimensions.y > maxBuildVolume.y ||
@@ -290,24 +308,30 @@ export function CustomPrinting() {
     );
   }, [modelResult, effectiveDimensions, maxBuildVolume]);
 
-  // Real-time geometry estimations using scaled volume
+  // Real-time geometry estimations using scaled volume (0 when no model)
   const estimatedMaterialUsageGrams = useMemo(() => {
-    if (!effectiveVolumeCm3) return 0;
-    return estimateMaterialUsage(
+    if (!modelResult?.success || !effectiveVolumeCm3) return 0;
+    const baseUsage = estimateMaterialUsage(
       effectiveVolumeCm3,
       activeMaterial.density,
       activeProfile
     );
-  }, [effectiveVolumeCm3, activeMaterial, activeProfile]);
+    // Modulate based on infill ratio (relative to standard 20%) and auto supports (+15% if enabled)
+    const infillRatio = effectiveInfill / 20;
+    const supportMultiplier = supportsEnabled ? 1.15 : 1.0;
+    const adjusted = baseUsage * (0.75 + 0.25 * infillRatio) * supportMultiplier;
+    return Math.max(1, Math.round(adjusted * 10) / 10);
+  }, [modelResult, effectiveVolumeCm3, activeMaterial, activeProfile, effectiveInfill, supportsEnabled]);
 
   const estimatedPrintTimeHours = useMemo(() => {
     if (!estimatedMaterialUsageGrams) return 0;
     return estimatePrintTime(estimatedMaterialUsageGrams, activeProfile);
   }, [estimatedMaterialUsageGrams, activeProfile]);
 
-  // Live Pricing Engine Calculation
+  // Live Pricing Engine Calculation (null until a valid 3D model is analyzed)
   const quoteBreakdown = useMemo(() => {
     if (!pricingData?.pricingConfig) return null;
+    if (!modelResult?.success || !effectiveVolumeCm3 || effectiveVolumeCm3 <= 0) return null;
 
     return calculateCustomerQuote(
       {
@@ -316,20 +340,21 @@ export function CustomPrinting() {
         material: activeMaterial,
         quantity,
         packagingIncluded,
-        exceedsBuildVolume: exceedsBuildVolume || modelResult?.exceedsBuildVolume,
+        exceedsBuildVolume: exceedsBuildVolume || Boolean(modelResult?.exceedsBuildVolume),
       },
       pricingData.pricingConfig,
       pricingData.quantityDiscounts
     );
   }, [
     pricingData,
+    modelResult,
+    effectiveVolumeCm3,
     estimatedMaterialUsageGrams,
     estimatedPrintTimeHours,
     activeMaterial,
     quantity,
     packagingIncluded,
     exceedsBuildVolume,
-    modelResult,
   ]);
 
   // Handle Height & Scale adjustments
@@ -383,29 +408,53 @@ export function CustomPrinting() {
     }
   };
 
-  // Handle File Selection (Supports STL, OBJ, and 3MF)
-  const handleFile = async (selectedFile: File) => {
-    if (!selectedFile) return;
+  // Handle File Selection (Supports STL, OBJ (+MTL/textures), 3MF, and ZIP archives)
+  const handleFile = async (selected: File | File[] | FileList) => {
+    if (!selected) return;
 
-    // Validation
-    const name = selectedFile.name.toLowerCase();
-    const validExts = ['.stl', '.obj', '.3mf'];
-    if (!validExts.some((ext) => name.endsWith(ext))) {
-      alert('Currently STL (.stl), OBJ (.obj), and 3MF (.3mf) files are supported.');
+    const fileList: File[] =
+      selected instanceof FileList
+        ? Array.from(selected)
+        : Array.isArray(selected)
+        ? selected
+        : [selected];
+
+    if (fileList.length === 0) return;
+
+    const validExts = ['.stl', '.obj', '.3mf', '.mtl', '.zip'];
+    const hasValid = fileList.some((f) =>
+      validExts.some((ext) => f.name.toLowerCase().endsWith(ext))
+    );
+
+    if (!hasValid) {
+      alert('Currently STL (.stl), OBJ (.obj, .mtl), 3MF (.3mf), and ZIP archives (.zip) are supported.');
       return;
     }
 
-    if (selectedFile.size > 100 * 1024 * 1024) {
-      alert('File size exceeds the 100 MB limit.');
+    const totalSize = fileList.reduce((sum, f) => sum + f.size, 0);
+    if (totalSize > 100 * 1024 * 1024) {
+      alert('Total file size exceeds the 100 MB limit.');
       return;
     }
 
-    setFile(selectedFile);
+    // Set primary display file (prefer .3mf, .obj, .zip, or first valid)
+    const primaryFile =
+      fileList.find((f) => {
+        const ext = f.name.toLowerCase();
+        return ext.endsWith('.3mf') || ext.endsWith('.obj') || ext.endsWith('.zip') || ext.endsWith('.stl');
+      }) || fileList[0];
+
+    setFile(primaryFile);
+    setModelProcessingState('uploading');
     setIsParsing(true);
     setModelResult(null);
 
+    // Brief upload simulation for UI feedback
+    await new Promise((r) => setTimeout(r, 200));
+    setModelProcessingState('processing');
+
     const result = await parse3DModel(
-      selectedFile,
+      fileList.length === 1 ? fileList[0] : fileList,
       pricingData?.pricingConfig?.maxBuildVolume
     );
 
@@ -413,12 +462,34 @@ export function CustomPrinting() {
     setModelResult(result);
 
     if (result.success) {
+      // Default to original colors if detected, else single-colour preview
+      if (result.hasOriginalColors) {
+        setModelColorMode('original');
+      } else {
+        setModelColorMode('single');
+      }
+
       setScaleFactor(1.0);
       setBaseDimensions(result.dimensions);
       setTargetHeightInput(result.dimensions.z.toFixed(1));
+
+      const activeMaxVolume = pricingData?.pricingConfig?.maxBuildVolume || { x: 256, y: 256, z: 256 };
+      const isOversized =
+        result.dimensions.x > activeMaxVolume.x ||
+        result.dimensions.y > activeMaxVolume.y ||
+        result.dimensions.z > activeMaxVolume.z;
+
+      if (result.requiresManualReview || isOversized) {
+        setModelProcessingState('needs_review');
+      } else {
+        setModelProcessingState('ready');
+      }
+
       if (currentStep === 1) {
         setCurrentStep(2);
       }
+    } else {
+      setModelProcessingState('error');
     }
   };
 
@@ -435,14 +506,16 @@ export function CustomPrinting() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFile(e.dataTransfer.files);
     }
   };
 
   const handleRemoveFile = () => {
     setFile(null);
     setModelResult(null);
+    setModelProcessingState('idle');
+    setModelColorMode('original');
     setScaleFactor(1.0);
     setBaseDimensions(null);
     setTargetHeightInput('');
@@ -505,7 +578,8 @@ export function CustomPrinting() {
           quality: activeProfile.name,
           infill: effectiveInfill,
           layerHeight: effectiveLayerHeight,
-          dimensions: effectiveDimensions,
+          supports: supportsEnabled,
+          dimensions: effectiveDimensions || undefined,
           volume: effectiveVolumeCm3,
           estimatedWeight: estimatedMaterialUsageGrams,
           estimatedPrintTimeHours,
@@ -560,6 +634,7 @@ export function CustomPrinting() {
         quality: activeProfile.name,
         infill: effectiveInfill,
         layerHeight: effectiveLayerHeight,
+        supports: supportsEnabled,
         quantity,
         packagingIncluded,
         volume: effectiveVolumeCm3,
@@ -567,12 +642,12 @@ export function CustomPrinting() {
         estimatedPrintTimeHours,
         systemEstimatedPrice: quoteBreakdown.totalPrice,
         estimatedPrice: quoteBreakdown.totalPrice,
-        dimensions: {
+        dimensions: effectiveDimensions ? {
           length: effectiveDimensions.x,
           width: effectiveDimensions.y,
           height: effectiveDimensions.z,
           unit: 'mm',
-        },
+        } : undefined,
         notes: customerNotes.trim() || undefined,
         pricingVersion: pricingData.pricingVersion,
       });
@@ -604,41 +679,80 @@ export function CustomPrinting() {
           </h1>
 
           <p className="max-w-2xl mx-auto text-sm sm:text-base text-muted dark:text-slate-400 font-sans leading-relaxed">
-            Upload your 3D CAD model for an instant slicing estimate & 3D WebGL preview, or share your sketches & ideas for assisted fabrication by our master makers.
+            Upload your 3D model for an instant printing estimate, or share your idea and let us help bring it to life.
           </p>
 
-          {/* Mode Switcher Tabs */}
-          <div className="pt-3 flex justify-center">
-            <div className="inline-flex p-1.5 rounded-2xl bg-shell dark:bg-slate-900 border border-line dark:border-slate-800 shadow-inner">
-              <button
-                type="button"
-                onClick={() => handleModeChange('3d-model')}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer ${
+          {/* Dual Service Pathways */}
+          <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto text-left">
+            <button
+              type="button"
+              onClick={() => handleModeChange('3d-model')}
+              className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-3.5 ${
+                studioMode === '3d-model'
+                  ? 'border-accent bg-white dark:bg-slate-900 shadow-md ring-2 ring-accent/20'
+                  : 'border-line dark:border-slate-800 bg-white/60 dark:bg-slate-900/40 hover:border-accent/40'
+              }`}
+            >
+              <div
+                className={`p-2 rounded-xl shrink-0 ${
                   studioMode === '3d-model'
-                    ? 'bg-white dark:bg-slate-800 text-accent shadow-sm border border-line dark:border-slate-700'
-                    : 'text-muted hover:text-ink dark:text-slate-400 dark:hover:text-slate-200'
+                    ? 'bg-accent text-white'
+                    : 'bg-shell dark:bg-slate-800 text-muted'
                 }`}
               >
-                <Box className="w-4 h-4 text-accent" />
-                <span>3D CAD Model (Instant Quote)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleModeChange('assisted')}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer ${
+                <Box className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-display text-sm font-bold text-ink dark:text-white">
+                    I Have a 3D Model
+                  </span>
+                  {studioMode === '3d-model' && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                  )}
+                </div>
+                <p className="text-[11px] text-muted dark:text-slate-400 font-sans mt-0.5">
+                  STL, 3MF, or OBJ · Instant visual preview &amp; estimated quotation
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleModeChange('assisted')}
+              className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-3.5 ${
+                studioMode === 'assisted'
+                  ? 'border-accent bg-white dark:bg-slate-900 shadow-md ring-2 ring-accent/20'
+                  : 'border-line dark:border-slate-800 bg-white/60 dark:bg-slate-900/40 hover:border-accent/40'
+              }`}
+            >
+              <div
+                className={`p-2 rounded-xl shrink-0 ${
                   studioMode === 'assisted'
-                    ? 'bg-white dark:bg-slate-800 text-accent shadow-sm border border-line dark:border-slate-700'
-                    : 'text-muted hover:text-ink dark:text-slate-400 dark:hover:text-slate-200'
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-shell dark:bg-slate-800 text-muted'
                 }`}
               >
-                <Lightbulb className="w-4 h-4 text-amber-500" />
-                <span>Assisted Design / Bring Your Idea</span>
-              </button>
-            </div>
+                <Lightbulb className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-display text-sm font-bold text-ink dark:text-white">
+                    I Have an Idea
+                  </span>
+                  {studioMode === 'assisted' && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  )}
+                </div>
+                <p className="text-[11px] text-muted dark:text-slate-400 font-sans mt-0.5">
+                  Sketches, images, or brief · Custom CAD modeling &amp; quote
+                </p>
+              </div>
+            </button>
           </div>
 
-          {studioMode === '3d-model' && (
-            <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+          {studioMode === '3d-model' && !file && (
+            <div className="pt-2 flex justify-center">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -646,14 +760,6 @@ export function CustomPrinting() {
               >
                 <Upload className="w-4 h-4 text-accent" />
                 <span>Upload 3D Model</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleModeChange('assisted')}
-                className="px-5 py-3 rounded-xl border border-line hover:border-accent/40 bg-white dark:bg-slate-800 text-ink dark:text-slate-200 font-mono text-xs font-semibold transition-all hover:bg-shell/50 cursor-pointer"
-              >
-                Don't have a 3D file? Get a Custom Design →
               </button>
             </div>
           )}
@@ -663,20 +769,19 @@ export function CustomPrinting() {
       {studioMode === '3d-model' && (
         <>
 
-      {/* Stepper Header */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8">
+      {/* 3-Step Process Navigation */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8">
         <nav aria-label="Progress">
-          <ol className="flex items-center justify-between border border-line dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 p-2 sm:p-3 shadow-xs">
+          <ol className="grid grid-cols-3 gap-2 sm:gap-4 border border-line dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 p-2 sm:p-3 shadow-xs">
             {[
-              { step: 1, label: 'Model & Sizing', desc: 'Rotate & Scale', targetId: 'step-model' },
-              { step: 2, label: 'Material & Quality', desc: 'Filament & Infill', targetId: 'step-material' },
-              { step: 3, label: 'Quantity & Packaging', desc: 'Discounts & Add-ons', targetId: 'step-quantity' },
-              { step: 4, label: 'Estimate & Order', desc: 'Quote & Checkout', targetId: 'step-quote' },
+              { step: 1, label: '1. Your 3D Model', desc: 'Preview & Dimensions', targetId: 'step-model' },
+              { step: 2, label: '2. Print Options', desc: 'Material, Quality & Strength', targetId: 'step-options' },
+              { step: 3, label: '3. Estimated Quote', desc: 'Verification & Order', targetId: 'step-quote' },
             ].map((item) => {
               const isActive = currentStep === item.step;
               const isDone = currentStep > item.step || (item.step === 1 && modelResult?.success);
               return (
-                <li key={item.step} className="flex-1 relative">
+                <li key={item.step} className="relative">
                   <button
                     type="button"
                     onClick={() => {
@@ -718,7 +823,7 @@ export function CustomPrinting() {
 
       {/* Success Notification Banner */}
       {quoteSuccess && (
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50/90 dark:bg-emerald-950/30 p-6 text-center space-y-3 shadow-xs">
             <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-md">
               <CheckCircle2 className="w-7 h-7" />
@@ -751,62 +856,149 @@ export function CustomPrinting() {
         </div>
       )}
 
-      {/* Main Grid Layout */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: 3D Preview, Orientation & Scaling */}
-        <div id="step-model" className="lg:col-span-6 space-y-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-4 sm:p-5 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
+      {/* Main 3-Step Layout Grid */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Step 1 (Model & Sizing) + Step 2 (Print Options) */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* STEP 1: Your 3D Model */}
+          <div id="step-model" className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-4 sm:p-5 shadow-xs space-y-4">
+            {/* Step 1 Header */}
+            <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <FileBox className="w-4 h-4 text-accent" />
-                <h2 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider">
-                  3D Model Preview
-                </h2>
+                <FileBox className="w-5 h-5 text-accent" />
+                <div>
+                  <h2 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider">
+                    Step 1 — Your 3D Model
+                  </h2>
+                  <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
+                    Upload and preview your 3D CAD design for volume estimation
+                  </p>
+                </div>
               </div>
-              {file && (
-                <button
-                  type="button"
-                  onClick={handleRemoveFile}
-                  className="inline-flex items-center gap-1 text-[11px] font-mono text-rose-600 hover:text-rose-700 hover:underline cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                  <span>Remove file</span>
-                </button>
-              )}
+
+              {/* Processing State Badge */}
+              <div className="flex items-center gap-2">
+                {modelProcessingState === 'uploading' && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-soft text-accent font-mono text-[10px] font-bold">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span>Uploading...</span>
+                  </span>
+                )}
+                {modelProcessingState === 'processing' && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 font-mono text-[10px] font-bold">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span>Analyzing geometry...</span>
+                  </span>
+                )}
+                {modelProcessingState === 'ready' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-mono text-[10px] font-bold border border-emerald-200">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Estimate Ready</span>
+                  </span>
+                )}
+                {modelProcessingState === 'needs_review' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-mono text-[10px] font-bold border border-amber-200">
+                    <AlertTriangle className="w-3 h-3" />
+                    <span>Needs Review</span>
+                  </span>
+                )}
+                {file && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveFile}
+                    className="inline-flex items-center gap-1 text-[11px] font-mono text-rose-600 hover:text-rose-700 hover:underline cursor-pointer ml-1"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Remove</span>
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Three.js Canvas Viewer with rotation and grounding */}
+            {/* File Details bar & Replace Model action if file loaded */}
+            {file && (
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono bg-shell/50 dark:bg-slate-800/40 px-3 py-2 rounded-xl border border-line dark:border-slate-800">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="truncate max-w-[220px] text-ink dark:text-slate-200 font-semibold" title={file.name}>
+                    {file.name}
+                  </span>
+                  <span className="text-muted shrink-0">
+                    · {(file.size / (1024 * 1024)).toFixed(2)} MB · {file.name.split('.').pop()?.toUpperCase()}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-[11px] font-mono text-accent hover:underline flex items-center gap-1 cursor-pointer shrink-0"
+                >
+                  <Upload className="w-3 h-3" />
+                  <span>Replace Model</span>
+                </button>
+              </div>
+            )}
+
+            {/* Three.js Canvas Viewer */}
             <ThreeModelViewer
               geometry={modelResult?.geometry || null}
+              object3d={modelResult?.object3d || null}
+              hasOriginalColors={modelResult?.hasOriginalColors || false}
+              colorMode={modelColorMode}
+              onColorModeChange={setModelColorMode}
               colorHex={activeColor.hex}
               isLoading={isParsing}
               error={modelResult?.errorMessage}
-              dimensions={effectiveDimensions}
+              dimensions={effectiveDimensions || undefined}
               scale={scaleFactor}
               onOrientedDimensionsChange={handleOrientedDimensionsChange}
             />
 
-            {/* Dropzone prompt if no file selected */}
+            {/* Original Colours Banner & Model Appearance Toggle */}
+            {modelResult?.success && modelResult?.hasOriginalColors && (
+              <div className="flex flex-wrap items-center justify-between gap-2.5 p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+                  <div>
+                    <span className="font-mono font-bold text-amber-900 dark:text-amber-300">
+                      Original Model Colours Detected
+                    </span>
+                    <p className="text-[11px] text-amber-800/80 dark:text-amber-400/80 font-sans mt-0.5">
+                      The 3D viewer displays your file's original design colours. Production prints will be crafted using your selected filament colour in Step 2.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 font-mono text-[11px] shrink-0">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold bg-amber-600 text-white shadow-2xs">
+                    <Palette className="w-3.5 h-3.5" />
+                    <span>Original Colours Active</span>
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Empty State when no file selected */}
             {!file && (
               <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                className={`border-2 border-dashed rounded-2xl p-8 sm:p-10 text-center cursor-pointer transition-all ${
                   isDragOver
                     ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/20'
                     : 'border-line dark:border-slate-800 hover:border-accent hover:bg-shell/30'
                 }`}
               >
-                <div className="w-12 h-12 rounded-full bg-shell dark:bg-slate-800 flex items-center justify-center mx-auto text-muted dark:text-slate-400 mb-3">
-                  <Upload className="w-6 h-6" />
+                <div className="w-14 h-14 rounded-2xl bg-shell dark:bg-slate-800 flex items-center justify-center mx-auto text-accent mb-3 shadow-2xs">
+                  <Upload className="w-7 h-7" />
                 </div>
-                <p className="text-xs font-bold text-ink dark:text-slate-200">
+                <h3 className="font-display font-bold text-sm sm:text-base text-ink dark:text-slate-200">
                   Drag and drop your 3D CAD model here, or <span className="text-accent underline">browse</span>
+                </h3>
+                <p className="text-xs text-muted dark:text-slate-400 font-mono mt-1">
+                  Supports 3MF (.3mf), OBJ (.obj, .mtl), STL (.stl), &amp; ZIP packages (Max 100 MB)
                 </p>
-                <p className="text-[11px] text-muted dark:text-slate-500 font-mono mt-1">
-                  Supports STL (.stl), OBJ (.obj), and 3MF (.3mf) files (Max 100 MB)
+                <p className="text-[11px] text-muted dark:text-slate-500 font-sans mt-3 max-w-sm mx-auto leading-relaxed">
+                  Export directly from Blender, Bambu Studio, Fusion 360, Tinkercad, or community repositories. Upload multi-colour 3MF, OBJ with MTL, or ZIP archives with textures.
                 </p>
               </div>
             )}
@@ -815,598 +1007,570 @@ export function CustomPrinting() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".stl,.obj,.3mf"
+              accept=".stl,.obj,.3mf,.mtl,.zip"
+              multiple
               onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  handleFile(e.target.files[0]);
+                if (e.target.files && e.target.files.length > 0) {
+                  handleFile(e.target.files);
                 }
               }}
               className="hidden"
             />
-          </div>
 
-          {/* Model Dimensions & Scaling Controls */}
-          {modelResult?.success && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-4 sm:p-5 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <Maximize2 className="w-4 h-4 text-accent" />
-                  <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider">
-                    Dimensions & Sizing
-                  </h3>
+            {/* Dimensions & Sizing (Displayed when model is successfully parsed) */}
+            {modelResult?.success && effectiveDimensions && (
+              <div className="space-y-4 pt-3 border-t border-line dark:border-slate-800">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Maximize2 className="w-4 h-4 text-accent" />
+                    <span className="font-display font-bold text-xs uppercase tracking-wider text-ink dark:text-slate-200">
+                      Model Dimensions & Sizing
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-md">
+                      {Math.round(scaleFactor * 100)}% Scale
+                    </span>
+                    {scaleFactor !== 1 && (
+                      <button
+                        type="button"
+                        onClick={handleResetScale}
+                        className="text-[10px] font-mono text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer"
+                        title="Reset to original 100% size"
+                      >
+                        <RotateCcw className="w-2.5 h-2.5" />
+                        <span>Reset</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-md">
-                    {Math.round(scaleFactor * 100)}% Scale
-                  </span>
-                  {scaleFactor !== 1 && (
-                    <button
-                      type="button"
-                      onClick={handleResetScale}
-                      className="text-[10px] font-mono text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer"
-                      title="Reset to original 100% size"
-                    >
-                      <RotateCcw className="w-2.5 h-2.5" />
-                      <span>Reset</span>
-                    </button>
-                  )}
-                </div>
-              </div>
 
-              {/* Dimensions Grid */}
-              <div className="grid grid-cols-3 gap-2 bg-shell/50 dark:bg-slate-800/40 p-3 rounded-xl border border-line dark:border-slate-800 text-center">
-                <div>
-                  <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                    Length (X)
-                  </span>
-                  <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
-                    {effectiveDimensions.x} <span className="text-[10px] font-normal">mm</span>
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                    Width (Y)
-                  </span>
-                  <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
-                    {effectiveDimensions.y} <span className="text-[10px] font-normal">mm</span>
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                    Height (Z)
-                  </span>
-                  <span className="font-mono text-xs font-bold text-accent dark:text-accent">
-                    {effectiveDimensions.z} <span className="text-[10px] font-normal">mm</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Sizing Controls: Height Input & Scale Slider */}
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
-                  {/* Height Adjustment Input */}
+                {/* Dimensions Grid (X, Y, Z in mm) */}
+                <div className="grid grid-cols-3 gap-2 bg-shell/50 dark:bg-slate-800/40 p-3 rounded-xl border border-line dark:border-slate-800 text-center">
                   <div>
-                    <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block mb-1">
-                      Set Target Height (Z in mm)
-                    </label>
-                    <div className="relative flex items-center">
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="5"
-                        max="256"
-                        value={targetHeightInput}
-                        onChange={(e) => handleHeightInputChange(e.target.value)}
-                        className="w-full py-2 px-3 pr-10 rounded-xl border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-mono font-bold text-ink dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-500 shadow-2xs"
-                      />
-                      <span className="absolute right-3 font-mono text-xs text-muted pointer-events-none">
-                        mm
+                    <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
+                      Length (X)
+                    </span>
+                    <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
+                      {effectiveDimensions.x} <span className="text-[10px] font-normal">mm</span>
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
+                      Width (Y)
+                    </span>
+                    <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
+                      {effectiveDimensions.y} <span className="text-[10px] font-normal">mm</span>
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
+                      Height (Z)
+                    </span>
+                    <span className="font-mono text-xs font-bold text-accent">
+                      {effectiveDimensions.z} <span className="text-[10px] font-normal">mm</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Scale Controls: Height & Presets */}
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                    <div>
+                      <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block mb-1">
+                        Target Height (Z in mm)
+                      </label>
+                      <div className="relative flex items-center">
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="5"
+                          max={maxBuildVolume.z}
+                          value={targetHeightInput}
+                          onChange={(e) => handleHeightInputChange(e.target.value)}
+                          className="w-full py-2 px-3 pr-10 rounded-xl border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono font-bold text-ink dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-500 shadow-2xs"
+                        />
+                        <span className="absolute right-3 font-mono text-xs text-muted pointer-events-none">
+                          mm
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block mb-1">
+                        Quick Scale Presets
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        {[50, 75, 100, 150, 200].map((pct) => (
+                          <button
+                            key={pct}
+                            type="button"
+                            onClick={() => handlePresetScale(pct / 100)}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                              Math.round(scaleFactor * 100) === pct
+                                ? 'bg-brand-500 text-white shadow-2xs'
+                                : 'bg-shell dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-ink dark:text-slate-200'
+                            }`}
+                          >
+                            {pct}%
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Uniform Scale Slider */}
+                  <div>
+                    <div className="flex justify-between text-[10px] font-mono text-muted mb-1">
+                      <span>25%</span>
+                      <span className="font-bold text-ink dark:text-slate-200">
+                        Uniform Scale: {Math.round(scaleFactor * 100)}%
+                      </span>
+                      <span>300%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.25"
+                      max="3.0"
+                      step="0.05"
+                      value={scaleFactor}
+                      onChange={(e) => handleSliderScale(parseFloat(e.target.value))}
+                      className="w-full accent-brand-500 cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                {/* Build Volume Envelope Check */}
+                {exceedsBuildVolume ? (
+                  <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold block">Exceeds Maximum Build Envelope</span>
+                      <span>
+                        Model dimensions ({effectiveDimensions.x} × {effectiveDimensions.y} × {effectiveDimensions.z} mm) exceed our {maxBuildVolume.x} × {maxBuildVolume.y} × {maxBuildVolume.z} mm printer volume. Please scale down or submit for custom split printing review.
                       </span>
                     </div>
                   </div>
-
-                  {/* Quick Scale Presets */}
-                  <div>
-                    <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block mb-1">
-                      Quick Scale Presets
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      {[50, 75, 100, 150, 200].map((pct) => (
-                        <button
-                          key={pct}
-                          type="button"
-                          onClick={() => handlePresetScale(pct / 100)}
-                          className={`flex-1 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
-                            Math.round(scaleFactor * 100) === pct
-                              ? 'bg-brand-500 text-white shadow-2xs'
-                              : 'bg-shell dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-ink dark:text-slate-200'
-                          }`}
-                        >
-                          {pct}%
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Uniform Scale Slider */}
-                <div>
-                  <div className="flex justify-between text-[10px] font-mono text-muted mb-1">
-                    <span>25%</span>
-                    <span className="font-bold text-ink dark:text-slate-200">
-                      Uniform Scale: {Math.round(scaleFactor * 100)}%
+                ) : (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 dark:bg-emerald-950/20 p-2.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 font-mono text-[11px] font-semibold">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      Fits Workshop Printer Envelope
                     </span>
-                    <span>300%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0.25"
-                    max="3.0"
-                    step="0.05"
-                    value={scaleFactor}
-                    onChange={(e) => handleSliderScale(parseFloat(e.target.value))}
-                    className="w-full accent-brand-500 cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              {/* Volume & Print Estimates */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-line dark:border-slate-800 text-center">
-                <div className="p-2 rounded-xl bg-shell/40 dark:bg-slate-800/40">
-                  <span className="text-[9px] font-mono text-muted uppercase tracking-wider block">
-                    Volume
-                  </span>
-                  <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
-                    {effectiveVolumeCm3} <span className="text-[9px] font-normal">cm³</span>
-                  </span>
-                </div>
-                <div className="p-2 rounded-xl bg-shell/40 dark:bg-slate-800/40">
-                  <span className="text-[9px] font-mono text-muted uppercase tracking-wider block">
-                    Triangles
-                  </span>
-                  <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
-                    {modelResult.triangleCount.toLocaleString('en-IN')}
-                  </span>
-                </div>
-                <div className="p-2 rounded-xl bg-brand-50/50 dark:bg-brand-950/20">
-                  <span className="text-[9px] font-mono text-muted uppercase tracking-wider block">
-                    Est. Material
-                  </span>
-                  <span className="font-mono text-xs font-bold text-brand-700 dark:text-brand-300">
-                    ~{estimatedMaterialUsageGrams}g
-                  </span>
-                </div>
-                <div className="p-2 rounded-xl bg-brand-50/50 dark:bg-brand-950/20">
-                  <span className="text-[9px] font-mono text-muted uppercase tracking-wider block">
-                    Est. Time
-                  </span>
-                  <span className="font-mono text-xs font-bold text-brand-700 dark:text-brand-300">
-                    ~{formatPrintTime(estimatedPrintTimeHours)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Build Envelope Warning */}
-              {exceedsBuildVolume && (
-                <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold block">Exceeds Maximum Build Envelope</span>
-                    <span>
-                      Model dimensions ({effectiveDimensions.x} × {effectiveDimensions.y} × {effectiveDimensions.z} mm) exceed our 256 × 256 × 256 mm build plate. Please scale down or submit for manual review.
+                    <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400">
+                      Max: {maxBuildVolume.x} × {maxBuildVolume.y} × {maxBuildVolume.z} mm
                     </span>
                   </div>
-                </div>
-              )}
-
-              {/* Step 1 -> Step 2 Guidance Button */}
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => scrollToStep(2, 'step-material')}
-                  className="w-full py-3 px-4 rounded-xl bg-ink hover:bg-slate-800 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>Next: Choose Material & Quality</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-accent" />
-                </button>
+                )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Safety Net Banner */}
-          {modelResult?.requiresManualReview && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50/90 dark:bg-amber-950/40 p-4 text-xs space-y-2">
-              <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold">
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
-                <span>Requires Engineering Review</span>
-              </div>
-              <p className="text-amber-800 dark:text-amber-300">
-                {modelResult.reviewReason ||
-                  'This 3D geometry requires verification by our production engineer before manufacturing.'}
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowQuoteModal(true)}
-                className="mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-mono text-[11px] font-bold shadow-xs cursor-pointer"
-              >
-                <Send className="w-3 h-3" />
-                <span>Request Manual Quote</span>
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: Configuration & Pricing Stepper */}
-        <div className="lg:col-span-6 space-y-4">
-          <div id="step-material" className="space-y-4">
-            {/* Material & Color Selection Card */}
+          {/* STEP 2: Choose Printing Options */}
+          <div id="step-options" className="space-y-4">
+            {/* Material & Color Group */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
-                <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-accent" />
-                  <span>1. Select Material</span>
-                </h3>
-                <span className="font-mono text-xs font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-md">
+                <div>
+                  <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-accent" />
+                    <span>Step 2 — Material & Color</span>
+                  </h3>
+                  <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
+                    Select production filament and color finish
+                  </p>
+                </div>
+                <span className="font-mono text-xs font-bold text-accent bg-accent/10 px-2.5 py-1 rounded-md">
                   ₹{activeMaterial.pricePerGram}/g
                 </span>
               </div>
 
-              {/* Material Dropdown Selector */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block">
-                  Filament Material
-                </label>
-                <div className="relative">
-                  <select
-                    value={selectedMaterialId}
-                    onChange={(e) => handleMaterialChange(e.target.value)}
-                    className="w-full py-2.5 px-3.5 pr-10 rounded-xl border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold text-ink dark:text-white appearance-none cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-brand-500 shadow-2xs"
-                  >
-                    {activeMaterials.map((mat) => (
-                      <option key={mat.id} value={mat.id}>
-                        {mat.name} — ₹{mat.pricePerGram}/g ({mat.tagline})
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-muted absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-
-                {/* Selected Material Summary Card */}
-                <div className="flex items-center justify-between bg-shell/50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-line dark:border-slate-800 text-xs">
-                  <span className="text-muted dark:text-slate-400 text-[11px] leading-tight">
-                    {activeMaterial.tagline || activeMaterial.description}
-                  </span>
-                  <span className="font-mono text-[10px] font-bold text-ink dark:text-slate-200 shrink-0 ml-3 bg-white dark:bg-slate-700 px-2 py-0.5 rounded-md border border-line/60 dark:border-slate-600">
-                    {activeMaterial.density} g/cm³
-                  </span>
-                </div>
-              </div>
-
-              {/* Color Palette */}
-              <div className="pt-2 space-y-2.5 border-t border-line dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-ink dark:text-slate-200 flex items-center gap-1.5">
-                    Colour: <span className="text-accent">{activeColor.name}</span>
-                    <span className="text-muted text-[10px] font-mono font-normal">
-                      ({activeColor.hex})
-                    </span>
-                  </span>
-                  <span className="text-[10px] font-mono text-muted">
-                    {activeMaterial.colors ? activeMaterial.colors.length : 0} shades + custom
-                  </span>
-                </div>
-
-                {/* Swatches & Custom Picker */}
-                <div className="flex flex-wrap items-center gap-2">
-                  {activeMaterial.colors &&
-                    activeMaterial.colors.map((color) => {
-                      const isSelected = !customColorHex && activeColor.name === color.name;
-                      return (
-                        <button
-                          key={color.name}
-                          type="button"
-                          onClick={() => {
-                            setCustomColorHex(null);
-                            setSelectedColorName(color.name);
-                          }}
-                          className={`w-7 h-7 rounded-full border-2 transition-all relative flex items-center justify-center cursor-pointer ${
-                            isSelected
-                              ? 'border-brand-500 scale-110 shadow-sm ring-2 ring-brand-500/30'
-                              : 'border-slate-300 dark:border-slate-700 hover:scale-105'
-                          }`}
-                          style={{ backgroundColor: color.hex }}
-                          title={`${color.name} (${color.hex})`}
-                        >
-                          {isSelected && (
-                            <span
-                              className="w-2 h-2 rounded-full"
-                              style={{
-                                backgroundColor:
-                                  color.hex.toLowerCase() === '#f8fafc' ||
-                                  color.hex.toLowerCase() === '#ffffff' ||
-                                  color.hex.toLowerCase() === '#f1f5f9'
-                                    ? '#000000'
-                                    : '#ffffff',
-                              }}
-                            />
-                          )}
-                        </button>
-                      );
-                    })}
-
-                  {/* Custom Color Palette / Hex Picker */}
-                  <label
-                    className={`relative flex items-center justify-center w-7 h-7 rounded-full border-2 cursor-pointer transition-all ${
-                      customColorHex
-                        ? 'border-brand-500 scale-110 shadow-sm ring-2 ring-brand-500/30'
-                        : 'border-dashed border-slate-400 dark:border-slate-600 hover:scale-105'
-                    }`}
-                    style={{
-                      background: customColorHex
-                        ? customColorHex
-                        : 'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
-                    }}
-                    title="Pick custom color"
-                  >
-                    <input
-                      type="color"
-                      value={customColorHex || '#FF4D00'}
-                      onChange={(e) => {
-                        setCustomColorHex(e.target.value);
-                        setSelectedColorName(`Custom (${e.target.value.toUpperCase()})`);
-                      }}
-                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                    />
-                    {customColorHex && (
-                      <span
-                        className="w-2 h-2 rounded-full"
-                        style={{
-                          backgroundColor:
-                            customColorHex.toLowerCase() === '#ffffff' ? '#000000' : '#ffffff',
-                        }}
-                      />
-                    )}
-                  </label>
-                  <span className="text-[10px] font-mono text-muted pl-0.5">
-                    {customColorHex ? 'Custom' : '+ Custom'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quality & Print Profiles */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
-                <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-accent" />
-                  <span>2. Print Quality</span>
-                </h3>
-                <span className="font-mono text-[11px] text-muted">Layer Height & Infill</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {activeProfiles.map((profile) => {
-                  const isSelected = activeProfile.id === profile.id;
+              {/* Material Selection Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {activeMaterials.map((mat) => {
+                  const isSelected = selectedMaterialId === mat.id;
                   return (
                     <button
-                      key={profile.id}
+                      key={mat.id}
                       type="button"
-                      onClick={() => {
-                        setSelectedProfileId(profile.id);
-                        setCustomInfill(null);
-                        setCustomLayerHeight(null);
-                      }}
+                      onClick={() => handleMaterialChange(mat.id)}
                       className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         isSelected
-                          ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30 ring-1 ring-brand-400'
-                          : 'border-line dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
+                          ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30 ring-1 ring-brand-400 shadow-2xs'
+                          : 'border-line dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between mb-1">
                         <span className="font-display font-bold text-sm text-ink dark:text-slate-100">
-                          {profile.name}
+                          {mat.name}
                         </span>
-                        {profile.id === 'standard' && (
-                          <span className="px-1.5 py-0.5 rounded-full bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-300 font-mono text-[9px] font-bold">
-                            Recommended
-                          </span>
-                        )}
+                        <span className="font-mono text-[10px] font-bold text-accent">
+                          ₹{mat.pricePerGram}/g
+                        </span>
                       </div>
-                      <p className="text-[10px] font-mono text-muted dark:text-slate-400 mt-1">
-                        {profile.layerHeight}mm · {profile.infillPercent}% infill
-                      </p>
-                      <p className="text-[11px] text-muted dark:text-slate-400 line-clamp-2 mt-1">
-                        {profile.tagline}
+                      <p className="text-[11px] text-muted dark:text-slate-400 line-clamp-2 leading-relaxed font-sans">
+                        {mat.tagline || mat.description}
                       </p>
                     </button>
                   );
                 })}
               </div>
 
-              {/* Collapsible Advanced Print Settings */}
-              <div className="pt-2 border-t border-line dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="w-full flex items-center justify-between text-xs font-mono font-bold text-muted hover:text-ink dark:hover:text-white transition-colors cursor-pointer"
-                >
-                  <span>Advanced Print Settings</span>
-                  {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </button>
-
-                {showAdvanced && (
-                  <div className="pt-3 space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted block mb-1">
-                          Infill Density: {effectiveInfill}%
-                        </label>
-                        <input
-                          type="range"
-                          min="10"
-                          max="100"
-                          step="5"
-                          value={effectiveInfill}
-                          onChange={(e) => setCustomInfill(Number(e.target.value))}
-                          className="w-full accent-brand-500 cursor-pointer"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted block mb-1">
-                          Layer Height
-                        </label>
-                        <select
-                          value={effectiveLayerHeight}
-                          onChange={(e) => setCustomLayerHeight(Number(e.target.value))}
-                          className="w-full py-1.5 px-2 rounded-lg border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono cursor-pointer"
-                        >
-                          <option value="0.12">0.12 mm — Ultra Detail</option>
-                          <option value="0.16">0.16 mm — Fine Finish</option>
-                          <option value="0.20">0.20 mm — Standard</option>
-                          <option value="0.28">0.28 mm — Fast Prototype</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="supports"
-                        checked={supportsEnabled}
-                        onChange={(e) => setSupportsEnabled(e.target.checked)}
-                        className="rounded text-brand-500 focus:ring-brand-400 cursor-pointer"
-                      />
-                      <label htmlFor="supports" className="text-xs text-ink dark:text-slate-300 font-sans cursor-pointer">
-                        Enable Tree/Organic Supports for steep overhangs
-                      </label>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Step 2 -> Step 3 Navigation */}
-              <div className="pt-2 flex items-center justify-between gap-3 border-t border-line dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => scrollToStep(1, 'step-model')}
-                  className="px-3.5 py-2 rounded-xl border border-line dark:border-slate-700 text-xs font-mono font-bold text-muted hover:text-ink dark:hover:text-white transition-colors cursor-pointer"
-                >
-                  ← Back to Model
-                </button>
-                <button
-                  type="button"
-                  onClick={() => scrollToStep(3, 'step-quantity')}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-ink hover:bg-slate-800 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>Next: Quantity & Packaging</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-accent" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Quantity & Optional Packaging */}
-          <div id="step-quantity" className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider block">
-                  3. Quantity & Packaging
-                </span>
-                <span className="text-[11px] text-muted">Bulk discounts automatically applied</span>
-              </div>
-
-              {/* Quantity Counter */}
-              <div className="flex items-center border border-line dark:border-slate-700 rounded-xl bg-shell/40 dark:bg-slate-800 p-1">
-                <button
-                  type="button"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-ink dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                >
-                  −
-                </button>
-                <span className="w-10 text-center font-mono font-bold text-sm text-ink dark:text-slate-100">
-                  {quantity}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-ink dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            {/* Optional Packaging Checkbox */}
-            <div className="flex items-center justify-between p-3 rounded-xl border border-line dark:border-slate-800 bg-shell/30 dark:bg-slate-800/30">
-              <div className="flex items-center gap-2.5">
-                <Package className="w-4 h-4 text-accent" />
-                <div>
-                  <span className="text-xs font-bold text-ink dark:text-slate-200 block">
-                    Protective Bubble & Box Packaging
-                  </span>
-                  <span className="text-[10px] text-muted">
-                    +₹{pricingData?.pricingConfig?.packagingPrice || 20} per piece
+              {/* Custom Colour Palette */}
+              <div className="pt-3 border-t border-line dark:border-slate-800 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-ink dark:text-slate-200">
+                    Printing Colour:{' '}
+                    <span className="text-accent font-semibold ml-1">
+                      {customColorHex ? `Custom (${customColorHex.toUpperCase()})` : activeColor.name}
+                    </span>
                   </span>
                 </div>
+
+                <div className="flex items-center gap-2.5">
+                  {/* Custom Colour Palette Wheel */}
+                  <label
+                    className="relative flex items-center justify-center w-8 h-8 rounded-full border-2 border-brand-500 scale-105 shadow-sm ring-2 ring-brand-500/30 cursor-pointer transition-all hover:scale-110"
+                    style={{
+                      background:
+                        'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
+                    }}
+                    title="Open custom colour palette"
+                  >
+                    <input
+                      type="color"
+                      value={customColorHex || activeColor.hex || '#1C1917'}
+                      onChange={(e) => {
+                        setCustomColorHex(e.target.value);
+                        setSelectedColorName(`Custom (${e.target.value.toUpperCase()})`);
+                      }}
+                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                    />
+                  </label>
+
+                  {/* Selected Color Swatch & Hex */}
+                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-shell/50 dark:bg-slate-800/50 border border-line dark:border-slate-700 text-xs font-mono">
+                    <span
+                      className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-600 shadow-xs shrink-0"
+                      style={{ backgroundColor: customColorHex || activeColor.hex }}
+                    />
+                    <span className="font-bold text-ink dark:text-slate-200">
+                      {(customColorHex || activeColor.hex).toUpperCase()}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <input
-                type="checkbox"
-                checked={packagingIncluded}
-                onChange={(e) => setPackagingIncluded(e.target.checked)}
-                className="w-4 h-4 rounded text-brand-500 focus:ring-brand-400 cursor-pointer"
-              />
             </div>
 
-            {/* Step 3 -> Step 4 Navigation */}
-            <div className="pt-2 flex items-center justify-between gap-3 border-t border-line dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => scrollToStep(2, 'step-material')}
-                className="px-3.5 py-2 rounded-xl border border-line dark:border-slate-700 text-xs font-mono font-bold text-muted hover:text-ink dark:hover:text-white transition-colors cursor-pointer"
-              >
-                ← Back to Material
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollToStep(4, 'step-quote')}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-ink hover:bg-slate-800 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>Next: Review Estimate & Order</span>
-                <ArrowRight className="w-3.5 h-3.5 text-accent" />
-              </button>
-            </div>
-          </div>
-
-          {/* Customer Quote Summary Card */}
-          {quoteBreakdown && (
-            <div id="step-quote" className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-brand-500/80 p-5 shadow-md space-y-4">
+            {/* Print Quality Group */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-3">
               <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
                 <div>
-                  <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-brand-600 dark:text-brand-400 block">
-                    Estimated Price
-                  </span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-display text-3xl font-bold text-ink dark:text-white">
-                      {formatINR(quoteBreakdown.totalPrice)}
+                  <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-accent" />
+                    <span>Print Quality (Layer Height)</span>
+                  </h3>
+                  <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
+                    Finer layers deliver smoother vertical walls with minimal layer lines
+                  </p>
+                </div>
+                <span className="font-mono text-xs text-muted">
+                  {effectiveLayerHeight} mm layer
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {[
+                  { id: 'budget', name: 'Draft', height: '0.28 mm', desc: 'Fast prototype & rough form testing' },
+                  { id: 'standard', name: 'Standard', height: '0.20 mm', desc: 'Optimal balance of surface quality & speed', recommended: true },
+                  { id: 'premium', name: 'Fine', height: '0.12 mm', desc: 'Smooth surface finish for miniatures & display' },
+                ].map((tier) => {
+                  const isSelected = selectedProfileId === tier.id;
+                  return (
+                    <button
+                      key={tier.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedProfileId(tier.id);
+                        setCustomLayerHeight(null);
+                      }}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30 ring-1 ring-brand-400 shadow-2xs'
+                          : 'border-line dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-display font-bold text-sm text-ink dark:text-slate-100">
+                          {tier.name}
+                        </span>
+                        {tier.recommended && (
+                          <span className="px-1.5 py-0.5 rounded-full bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-300 font-mono text-[9px] font-bold">
+                            Recommended
+                          </span>
+                        )}
+                      </div>
+                      <p className="font-mono text-xs font-semibold text-accent mb-1">
+                        {tier.height}
+                      </p>
+                      <p className="text-[11px] text-muted dark:text-slate-400 leading-relaxed font-sans">
+                        {tier.desc}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Strength (Infill) Group */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
+                <div>
+                  <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <Box className="w-4 h-4 text-accent" />
+                    <span>Part Strength (Infill Density)</span>
+                  </h3>
+                  <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
+                    Internal grid density determines weight, rigidity, and material usage
+                  </p>
+                </div>
+                <span className="font-mono text-xs font-bold text-accent">
+                  {effectiveInfill}% infill
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {[
+                  { pct: 15, name: 'Lightweight', subtitle: '15% infill', desc: 'Display & decorative · Fastest print · Minimal material' },
+                  { pct: 25, name: 'Balanced', subtitle: '25% infill', desc: 'Standard utility · Great strength-to-weight balance' },
+                  { pct: 50, name: 'Reinforced', subtitle: '50% infill', desc: 'Mechanical & functional · Maximum load resistance' },
+                ].map((tier) => {
+                  const isSelected = effectiveInfill === tier.pct;
+                  return (
+                    <button
+                      key={tier.pct}
+                      type="button"
+                      onClick={() => setCustomInfill(tier.pct)}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30 ring-1 ring-brand-400 shadow-2xs'
+                          : 'border-line dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-display font-bold text-sm text-ink dark:text-slate-100">
+                          {tier.name}
+                        </span>
+                        <span className="font-mono text-xs font-semibold text-accent">
+                          {tier.subtitle}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted dark:text-slate-400 leading-relaxed font-sans">
+                        {tier.desc}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Supports Group */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
+                <div>
+                  <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-accent" />
+                    <span>Support Structures</span>
+                  </h3>
+                  <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
+                    Temporary scaffolding for steep overhangs and horizontal bridges
+                  </p>
+                </div>
+                <span className="font-mono text-xs font-semibold text-muted">
+                  {supportsEnabled ? 'Auto (Enabled)' : 'None'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setSupportsEnabled(true)}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    supportsEnabled
+                      ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30 ring-1 ring-brand-400 shadow-2xs'
+                      : 'border-line dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-display font-bold text-sm text-ink dark:text-slate-100">
+                      Auto Supports
                     </span>
+                    <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-mono text-[9px] font-bold">
+                      Recommended
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted dark:text-slate-400 leading-relaxed font-sans">
+                    Recommended for steep overhangs (&gt;45°), bridges & complex organic models.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSupportsEnabled(false)}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    !supportsEnabled
+                      ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30 ring-1 ring-brand-400 shadow-2xs'
+                      : 'border-line dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-display font-bold text-sm text-ink dark:text-slate-100">
+                      No Supports
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted dark:text-slate-400 leading-relaxed font-sans">
+                    Best for flat-bottom models, geometric primitives, or self-supporting angles.
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {/* Quantity & Packaging Group */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
+                <div>
+                  <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <Package className="w-4 h-4 text-accent" />
+                    <span>Quantity & Packaging</span>
+                  </h3>
+                  <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
+                    Bulk volume discounts automatically applied
+                  </p>
+                </div>
+
+                {/* Quantity Stepper */}
+                <div className="flex items-center border border-line dark:border-slate-700 rounded-xl bg-shell/40 dark:bg-slate-800 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-ink dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                  >
+                    −
+                  </button>
+                  <span className="w-10 text-center font-mono font-bold text-sm text-ink dark:text-slate-100">
+                    {quantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-ink dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Protective Packaging Checkbox */}
+              <div className="flex items-center justify-between p-3 rounded-xl border border-line dark:border-slate-800 bg-shell/30 dark:bg-slate-800/30">
+                <div className="flex items-center gap-2.5">
+                  <Package className="w-4 h-4 text-accent shrink-0" />
+                  <div>
+                    <span className="text-xs font-bold text-ink dark:text-slate-200 block">
+                      Protective Bubble & Box Packaging
+                    </span>
+                    <span className="text-[10px] text-muted">
+                      +₹{pricingData?.pricingConfig?.packagingPrice || 20} per piece · High-durability box with custom padding
+                    </span>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={packagingIncluded}
+                  onChange={(e) => setPackagingIncluded(e.target.checked)}
+                  className="w-4 h-4 rounded text-brand-500 focus:ring-brand-400 cursor-pointer"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Step 3 — Quotation Card (Sticky on Desktop) */}
+        <div id="step-quote" className="lg:col-span-5 lg:sticky lg:top-24 space-y-4 self-start">
+          {quoteBreakdown && modelResult?.success ? (
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-accent/80 p-5 shadow-md space-y-4">
+              {/* Dominant Price Header */}
+              <div className="border-b border-line dark:border-slate-800 pb-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-accent">
+                    Step 3 — Estimated Quotation
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-shell dark:bg-slate-800 text-muted dark:text-slate-300 font-mono text-[10px] font-bold border border-line dark:border-slate-700">
+                    Theoretical Estimate
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-display font-extrabold text-3xl sm:text-4xl text-ink dark:text-white">
+                    {formatINR(quoteBreakdown.totalPrice)}
+                  </span>
+                  {quantity > 1 && (
                     <span className="text-xs text-muted font-mono">
                       ({formatINR(quoteBreakdown.unitPrice)} / piece)
                     </span>
-                  </div>
+                  )}
                 </div>
-
-                <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-mono text-[10px] font-bold border border-emerald-200 dark:border-emerald-800">
-                  Valid for 7 days
-                </span>
+                <p className="text-xs font-mono text-muted dark:text-slate-400 mt-1">
+                  For {quantity} {quantity === 1 ? 'piece' : 'pieces'} · {activeMaterial.name} ({activeColor.name}) · {activeProfile.name} quality
+                </p>
+                <p className="text-[11px] text-muted dark:text-slate-400 mt-1.5 leading-relaxed font-sans">
+                  Your estimate changes based on the selected material, print settings, and quantity.
+                </p>
               </div>
 
-              {/* Price Line Breakdown */}
-              <div className="space-y-1.5 text-xs font-sans">
+              {/* Compact Breakdown Table */}
+              <div className="rounded-xl border border-line dark:border-slate-800 bg-shell/30 dark:bg-slate-800/30 p-3.5 space-y-2 text-xs">
+                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block">
+                  Print Specifications Breakdown
+                </span>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono text-[11px]">
+                  <div className="flex justify-between">
+                    <span className="text-muted font-sans">Material:</span>
+                    <span className="font-bold text-ink dark:text-slate-200 truncate ml-1">{activeMaterial.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted font-sans">Color:</span>
+                    <span className="font-bold text-ink dark:text-slate-200 truncate ml-1">{activeColor.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted font-sans">Quality:</span>
+                    <span className="font-bold text-ink dark:text-slate-200">{activeProfile.name} ({effectiveLayerHeight}mm)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted font-sans">Strength:</span>
+                    <span className="font-bold text-ink dark:text-slate-200">{effectiveInfill}% infill</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted font-sans">Est. Material:</span>
+                    <span className="font-bold text-accent">~{estimatedMaterialUsageGrams} g</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted font-sans">Est. Print Time:</span>
+                    <span className="font-bold text-accent">~{formatPrintTime(estimatedPrintTimeHours)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted font-sans">Quantity:</span>
+                    <span className="font-bold text-ink dark:text-slate-200">{quantity} {quantity === 1 ? 'piece' : 'pieces'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted font-sans">Packaging:</span>
+                    <span className="font-bold text-ink dark:text-slate-200">{packagingIncluded ? 'Protective Box' : 'Standard'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pricing Lines */}
+              <div className="space-y-1.5 text-xs font-sans border-t border-line dark:border-slate-800 pt-3">
                 <div className="flex justify-between text-muted dark:text-slate-400">
-                  <span>
-                    Subtotal ({quantity} {quantity === 1 ? 'piece' : 'pieces'})
-                  </span>
+                  <span>Subtotal ({quantity} {quantity === 1 ? 'piece' : 'pieces'})</span>
                   <span className="font-mono">{formatINR(quoteBreakdown.subtotal)}</span>
                 </div>
 
@@ -1419,14 +1583,14 @@ export function CustomPrinting() {
 
                 {quoteBreakdown.minimumOrderChargeApplied && (
                   <div className="flex justify-between text-amber-700 dark:text-amber-400 text-[11px] font-mono">
-                    <span>Minimum order value adjustment (₹{pricingData?.pricingConfig?.minimumOrderValue || 149})</span>
-                    <span>Applied (+{formatINR((pricingData?.pricingConfig?.minimumOrderValue || 149) - quoteBreakdown.discountedSubtotal)})</span>
+                    <span>Minimum order adjustment (₹{pricingData?.pricingConfig?.minimumOrderValue || 149})</span>
+                    <span>+{formatINR((pricingData?.pricingConfig?.minimumOrderValue || 149) - quoteBreakdown.discountedSubtotal)}</span>
                   </div>
                 )}
 
                 {quoteBreakdown.packagingAmount > 0 && (
                   <div className="flex justify-between text-muted dark:text-slate-400">
-                    <span>Protective Bubble & Box Packaging ({quantity}x)</span>
+                    <span>Protective Box Packaging ({quantity}x)</span>
                     <span className="font-mono">+{formatINR(quoteBreakdown.packagingAmount)}</span>
                   </div>
                 )}
@@ -1439,32 +1603,48 @@ export function CustomPrinting() {
                 )}
 
                 <div className="pt-2 border-t border-line dark:border-slate-800 flex justify-between font-bold text-sm text-ink dark:text-white">
-                  <span>Total Estimated Cost</span>
-                  <span className="font-mono text-base text-brand-600 dark:text-brand-400">
+                  <span>Estimated Total</span>
+                  <span className="font-mono text-base text-accent">
                     {formatINR(quoteBreakdown.totalPrice)}
                   </span>
                 </div>
               </div>
 
+              {/* Short Scannable Verification Notice */}
+              <div className="rounded-xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 p-3 text-xs text-amber-900 dark:text-amber-300 space-y-1">
+                <p className="font-semibold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span>We verify your model and confirm the final price before production.</span>
+                </p>
+                <p className="text-[11px] text-amber-800 dark:text-amber-400 leading-relaxed font-sans">
+                  This theoretical estimate is based on geometric volume. Our workshop team verifies slicing toolpaths, wall thicknesses, and print orientation before manufacturing begins.
+                </p>
+              </div>
+
               {/* Action Buttons */}
-              <div className="pt-2 space-y-2">
-                {!modelResult?.requiresManualReview ? (
+              <div className="pt-1 space-y-2">
+                {!modelResult?.requiresManualReview && !exceedsBuildVolume ? (
                   <button
                     type="button"
                     onClick={handleContinueToOrder}
                     disabled={isSubmitting}
-                    className="w-full py-3.5 px-4 rounded-xl bg-accent hover:bg-amber-600 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full p-3.5 rounded-xl bg-accent hover:bg-amber-600 text-white text-center shadow-md transition-all cursor-pointer"
                   >
                     {isSubmitting ? (
-                      <>
+                      <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold uppercase">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         <span>Uploading Model ({uploadProgress || 0}%)...</span>
-                      </>
+                      </div>
                     ) : (
-                      <>
-                        <ShoppingCart className="w-4 h-4" />
-                        <span>Continue to Order · {formatINR(quoteBreakdown.totalPrice)}</span>
-                      </>
+                      <div>
+                        <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold uppercase tracking-wider">
+                          <ShoppingCart className="w-4 h-4" />
+                          <span>Place order for verification · {formatINR(quoteBreakdown.totalPrice)}</span>
+                        </div>
+                        <span className="block text-[10px] font-sans font-normal opacity-90 mt-0.5">
+                          Submit your model and settings. We will verify the details before production.
+                        </span>
+                      </div>
                     )}
                   </button>
                 ) : null}
@@ -1473,16 +1653,56 @@ export function CustomPrinting() {
                   type="button"
                   onClick={() => setShowQuoteModal(true)}
                   disabled={isSubmitting}
-                  className="w-full py-3 px-4 rounded-xl border border-line hover:border-accent bg-white dark:bg-slate-800 text-ink dark:text-slate-200 font-mono text-xs font-semibold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full p-3.5 rounded-xl border border-line hover:border-accent bg-white dark:bg-slate-800 text-ink dark:text-slate-200 text-center shadow-xs transition-all cursor-pointer"
                 >
-                  <Send className="w-3.5 h-3.5 text-accent" />
-                  <span>Request Manual Quote / Confirmation</span>
+                  <div className="flex items-center justify-center gap-2 font-mono text-xs font-semibold">
+                    <Send className="w-3.5 h-3.5 text-accent" />
+                    <span>Request a quote review</span>
+                  </div>
+                  <span className="block text-[10px] font-sans font-normal text-muted dark:text-slate-400 mt-0.5">
+                    Not ready to order? Ask us to review your model and quotation.
+                  </span>
                 </button>
               </div>
-
-              <p className="text-[10px] text-muted text-center">
-                * This is an estimated price. Final pricing may change after engineer slicer review.
-              </p>
+            </div>
+          ) : (
+            /* Empty Quotation Placeholder when no model uploaded */
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 sm:p-6 shadow-xs space-y-4">
+              <div className="flex items-center gap-2 border-b border-line dark:border-slate-800 pb-3">
+                <FileBox className="w-4 h-4 text-accent" />
+                <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider">
+                  Step 3 — Estimated Quotation
+                </h3>
+              </div>
+              <div className="text-center py-6 space-y-3">
+                <div className="w-12 h-12 rounded-full bg-shell dark:bg-slate-800 flex items-center justify-center mx-auto text-accent">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <h4 className="font-display font-bold text-base text-ink dark:text-white">
+                  Upload a model to see your instant price
+                </h4>
+                <p className="text-xs text-muted dark:text-slate-400 max-w-xs mx-auto leading-relaxed">
+                  Upload an STL, OBJ, or 3MF file to view estimated material weight, print time, and instant quotation.
+                </p>
+              </div>
+              <div className="rounded-xl bg-shell/40 dark:bg-slate-800/40 p-3 space-y-2 text-xs text-muted dark:text-slate-400">
+                <div className="flex items-center gap-2 font-medium text-ink dark:text-slate-200">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span>Live volume & theoretical cost calculation</span>
+                </div>
+                <div className="flex items-center gap-2 font-medium text-ink dark:text-slate-200">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span>Configurable filament, color, quality & strength</span>
+                </div>
+                <div className="flex items-center gap-2 font-medium text-ink dark:text-slate-200">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span>Workshop engineer verification before production</span>
+                </div>
+                <div className="flex items-center gap-2 font-medium text-ink dark:text-slate-200">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span>Zero upfront charge until final confirmation</span>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -1610,13 +1830,13 @@ export function CustomPrinting() {
           <button
             type="button"
             onClick={
-              modelResult?.requiresManualReview
+              modelResult?.requiresManualReview || exceedsBuildVolume
                 ? () => setShowQuoteModal(true)
                 : handleContinueToOrder
             }
             className="px-5 py-2.5 rounded-xl bg-accent hover:bg-amber-600 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-md flex items-center gap-1.5 cursor-pointer"
           >
-            <span>{modelResult?.requiresManualReview ? 'Request Quote' : 'Continue to Order'}</span>
+            <span>{modelResult?.requiresManualReview || exceedsBuildVolume ? 'Request Quote Review' : 'Place Order for Verification'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -1818,13 +2038,6 @@ export function CustomPrinting() {
                       badge: 'Durable',
                       tag: 'Tough & Heat Resistant',
                       desc: 'Great for functional parts, phone stands, brackets, and outdoor use.',
-                    },
-                    {
-                      id: 'ABS',
-                      name: 'ABS Filament',
-                      badge: 'Engineering',
-                      tag: 'Impact & Wear Resistant',
-                      desc: 'Ideal for mechanical components, enclosures, and high-wear applications.',
                     },
                     {
                       id: 'TPU',

@@ -148,7 +148,7 @@ export const DEFAULT_HOMEPAGE_FAQS: HomepageFaq[] = [
   {
     id: 'faq-3',
     question: 'Can I upload files other than STL?',
-    answer: 'Yes! Our studio slicer accepts STL, OBJ, and 3MF files. For STEP/CAD or design idea sketches, submit a quote request and our engineers will inspect it.',
+    answer: 'Yes! Shilp Studio accepts STL, OBJ, 3MF, and ZIP package files. For STEP/CAD or design idea sketches, submit a design assistance request and our engineers will inspect it.',
     category: 'Files',
     enabled: true,
   },

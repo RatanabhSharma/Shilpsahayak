@@ -65,6 +65,7 @@ export type CustomPrintData = {
 
   infill?: number;
   layerHeight?: number;
+  supports?: boolean;
 
   dimensions?: { x: number; y: number; z: number };
   volume?: number;

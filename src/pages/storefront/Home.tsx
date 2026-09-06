@@ -680,13 +680,13 @@ export function Home() {
               <div className="space-y-5">
                 <span className="inline-flex items-center gap-2 rounded-full bg-accent/20 border border-accent/30 px-3.5 py-1 font-mono text-xs font-bold text-accent-light">
                   <Sparkles className="w-3.5 h-3.5" />
-                  Instant STL Slicer & Estimator
+                  Instant 3D Quotation &amp; Estimator
                 </span>
                 <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight">
                   {homepageSettings?.customPromoTitle || 'Have a 3D CAD model? Get an instant quote.'}
                 </h2>
                 <p className="font-sans text-xs sm:text-sm text-zinc-300 max-w-lg leading-relaxed">
-                  Upload your STL/OBJ file for real-time model slicing, weight computation, and live pricing across industrial-grade materials.
+                  Upload your 3D CAD file for instant geometric volume analysis, theoretical weight calculation, and workshop pricing.
                 </p>
 
                 {/* 3-Step Visual CAD Pipeline */}
@@ -761,7 +761,7 @@ export function Home() {
                     className={buttonVariants({ variant: 'primary', size: 'md' })}
                   >
                     <UploadCloud className="w-4 h-4" />
-                    <span>{homepageSettings?.customPromoButtonText || 'Launch 3D Slicer'}</span>
+                    <span>{homepageSettings?.customPromoButtonText || 'Launch Shilp Studio'}</span>
                   </Link>
                   <a
                     href={whatsappLink}

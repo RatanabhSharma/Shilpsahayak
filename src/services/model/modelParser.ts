@@ -1,12 +1,16 @@
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { ThreeMFLoader } from 'three/examples/jsm/loaders/3MFLoader.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { unzipSync } from 'three/examples/jsm/libs/fflate.module.js';
 import { ParsedModelResult } from './modelTypes';
 import { checkBuildVolume } from '../pricing/calculateQuote';
 import { DEFAULT_PRICING_CONFIG } from '../pricing/pricingConfig';
 import { getModelLocally } from '../../utils/uploadFile';
+import { parseBambu3MF } from './bambu3mfParser';
+
 
 function signedVolumeOfTriangle(
   p1: THREE.Vector3,
@@ -14,6 +18,114 @@ function signedVolumeOfTriangle(
   p3: THREE.Vector3
 ): number {
   return p1.dot(p2.cross(p3)) / 6.0;
+}
+
+/**
+ * Detects whether an uploaded model contains original color information:
+ * - STL binary vertex/facet colors
+ * - OBJ vertex colors (v x y z r g b)
+ * - OBJ MTL material assignments
+ * - Texture maps (diffuse maps)
+ * - 3MF color groups, materials, and textures
+ */
+export function detectOriginalColors(
+  geometry?: THREE.BufferGeometry | null,
+  object3d?: THREE.Object3D | null
+): { hasColors: boolean; colorCount: number; hasTextures: boolean } {
+  let hasColors = false;
+  let hasTextures = false;
+  const uniqueColors = new Set<string>();
+
+  // 1. Check BufferGeometry vertex colors (STL & single mesh OBJ/3MF)
+  if (geometry && geometry.hasAttribute('color')) {
+    const colorAttr = geometry.getAttribute('color');
+    if (colorAttr && colorAttr.count > 0) {
+      const step = Math.max(1, Math.floor(colorAttr.count / 300));
+      for (let i = 0; i < colorAttr.count; i += step) {
+        const r = Math.round(colorAttr.getX(i) * 255);
+        const g = Math.round(colorAttr.getY(i) * 255);
+        const b = Math.round(colorAttr.getZ(i) * 255);
+        uniqueColors.add(`${r},${g},${b}`);
+      }
+      if (
+        uniqueColors.size > 1 ||
+        (uniqueColors.size === 1 &&
+          !uniqueColors.has('255,255,255') &&
+          !uniqueColors.has('0,0,0'))
+      ) {
+        hasColors = true;
+      }
+    }
+  }
+
+  // 2. Check Object3D hierarchy (meshes, materials, textures, vertex colors)
+  if (object3d) {
+    object3d.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        if (mesh.geometry && mesh.geometry.hasAttribute('color')) {
+          const colorAttr = mesh.geometry.getAttribute('color');
+          if (colorAttr && colorAttr.count > 0) {
+            const step = Math.max(1, Math.floor(colorAttr.count / 300));
+            for (let i = 0; i < colorAttr.count; i += step) {
+              const r = Math.round(colorAttr.getX(i) * 255);
+              const g = Math.round(colorAttr.getY(i) * 255);
+              const b = Math.round(colorAttr.getZ(i) * 255);
+              uniqueColors.add(`${r},${g},${b}`);
+            }
+            if (
+              uniqueColors.size > 1 ||
+              (uniqueColors.size === 1 &&
+                !uniqueColors.has('255,255,255') &&
+                !uniqueColors.has('0,0,0'))
+            ) {
+              hasColors = true;
+            }
+          }
+        }
+
+        const materials = Array.isArray(mesh.material)
+          ? mesh.material
+          : [mesh.material];
+        for (const mat of materials) {
+          if (!mat) continue;
+          const m = mat as THREE.MeshStandardMaterial;
+          // A texture map means UV-mapped image colours —
+          // primary colour source for 3MF from Bambu Studio / PrusaSlicer.
+          if (m.map || (m as any).alphaMap || (m as any).aoMap) {
+            hasTextures = true;
+            hasColors = true; // immediately set — no further checks needed
+          }
+          if (m.color instanceof THREE.Color) {
+            const hex = m.color.getHexString();
+            uniqueColors.add(hex);
+            if (
+              hex !== 'ffffff' &&
+              hex !== 'cccccc' &&
+              hex !== '808080' &&
+              hex !== 'eeeeee' &&
+              hex !== '000000'
+            ) {
+              hasColors = true;
+            }
+          }
+          if ((m as any).vertexColors) {
+            hasColors = true;
+          }
+        }
+      }
+    });
+
+    if (uniqueColors.size > 1 || hasTextures) {
+      hasColors = true;
+    }
+  }
+
+  return {
+    hasColors,
+    colorCount: uniqueColors.size,
+    hasTextures,
+  };
 }
 
 /**
@@ -28,8 +140,11 @@ export function analyzeGeometry(
   geometry: THREE.BufferGeometry,
   fileName = 'model.stl',
   fileSizeBytes = 0,
-  fileType: 'stl' | 'obj' | '3mf' = 'stl',
-  maxBuildVolume = DEFAULT_PRICING_CONFIG.maxBuildVolume
+  fileType: 'stl' | 'obj' | '3mf' | 'zip' = 'stl',
+  maxBuildVolume = DEFAULT_PRICING_CONFIG.maxBuildVolume,
+  object3d?: THREE.Object3D,
+  hasOriginalColors = false,
+  originalColorCount = 0
 ): ParsedModelResult {
   try {
     geometry.computeBoundingBox();
@@ -49,7 +164,7 @@ export function analyzeGeometry(
       z: Math.round(Math.abs(size.z) * 10) / 10,
     };
 
-    // Center geometry for viewer and rotation pivots
+    // Center geometry for volume and fallback rendering
     geometry.center();
     geometry.computeVertexNormals();
 
@@ -107,6 +222,9 @@ export function analyzeGeometry(
     return {
       success: true,
       geometry,
+      object3d,
+      hasOriginalColors,
+      originalColorCount,
       fileName,
       fileSizeBytes,
       fileType,
@@ -161,7 +279,18 @@ export function parseSTLArrayBuffer(
   try {
     const loader = new STLLoader();
     const geometry = loader.parse(arrayBuffer);
-    return analyzeGeometry(geometry, fileName, fileSizeBytes, 'stl', maxBuildVolume);
+    const colorInfo = detectOriginalColors(geometry, null);
+
+    return analyzeGeometry(
+      geometry,
+      fileName,
+      fileSizeBytes,
+      'stl',
+      maxBuildVolume,
+      undefined,
+      colorInfo.hasColors,
+      colorInfo.colorCount
+    );
   } catch (err: any) {
     console.error('Failed to parse STL buffer:', err);
     return {
@@ -180,13 +309,15 @@ export function parseSTLArrayBuffer(
 }
 
 /**
- * Parses an OBJ string / text content.
+ * Parses an OBJ string / text content, optionally with MTL and texture assets.
  */
 export function parseOBJText(
   text: string,
   fileName = 'model.obj',
   fileSizeBytes = 0,
-  maxBuildVolume = DEFAULT_PRICING_CONFIG.maxBuildVolume
+  maxBuildVolume = DEFAULT_PRICING_CONFIG.maxBuildVolume,
+  mtlText?: string,
+  textureMap?: Record<string, string>
 ): ParsedModelResult {
   if (!text || text.trim().length === 0) {
     return {
@@ -204,8 +335,28 @@ export function parseOBJText(
   }
 
   try {
-    const loader = new OBJLoader();
-    const objGroup = loader.parse(text);
+    const objLoader = new OBJLoader();
+
+    // If MTL materials text was provided, parse and attach materials
+    if (mtlText && mtlText.trim().length > 0) {
+      try {
+        const manager = new THREE.LoadingManager();
+        if (textureMap) {
+          manager.setURLModifier((url) => {
+            const clean = url.split('/').pop()?.toLowerCase() || '';
+            return textureMap[clean] || url;
+          });
+        }
+        const mtlLoader = new MTLLoader(manager);
+        const materials = mtlLoader.parse(mtlText, '');
+        materials.preload();
+        objLoader.setMaterials(materials);
+      } catch (mtlErr) {
+        console.warn('Failed to parse accompanying MTL materials:', mtlErr);
+      }
+    }
+
+    const objGroup = objLoader.parse(text);
 
     const geometries: THREE.BufferGeometry[] = [];
     objGroup.traverse((child) => {
@@ -224,12 +375,24 @@ export function parseOBJText(
       throw new Error('No valid 3D mesh geometry found inside the OBJ file.');
     }
 
-    const unifiedGeometry = geometries.length === 1 ? geometries[0] : mergeGeometries(geometries, false);
+    const unifiedGeometry =
+      geometries.length === 1 ? geometries[0] : mergeGeometries(geometries, false);
     if (!unifiedGeometry) {
       throw new Error('Failed to merge sub-meshes in OBJ file.');
     }
 
-    return analyzeGeometry(unifiedGeometry, fileName, fileSizeBytes, 'obj', maxBuildVolume);
+    const colorInfo = detectOriginalColors(unifiedGeometry, objGroup);
+
+    return analyzeGeometry(
+      unifiedGeometry,
+      fileName,
+      fileSizeBytes,
+      'obj',
+      maxBuildVolume,
+      objGroup,
+      colorInfo.hasColors,
+      colorInfo.colorCount
+    );
   } catch (err: any) {
     console.error('Failed to parse OBJ text:', err);
     return {
@@ -248,14 +411,22 @@ export function parseOBJText(
 }
 
 /**
- * Parses a 3MF ArrayBuffer container.
+ * Parses a 3MF ArrayBuffer, with two strategies:
+ *
+ * 1. Bambu Studio format — if the file contains `paint_color` attributes on triangles
+ *    (Bambu's proprietary multi-colour face-painting system), we parse the colours
+ *    ourselves and create a vertex-coloured geometry. This handles the majority of
+ *    multi-colour models downloaded from Bambu Makerworld / Printables.
+ *
+ * 2. Standard 3MF — all other 3MF files (colour groups, base materials, textures)
+ *    are handled by Three.js ThreeMFLoader.
  */
-export function parse3MFArrayBuffer(
+export async function parse3MFArrayBuffer(
   arrayBuffer: ArrayBuffer,
   fileName = 'model.3mf',
   fileSizeBytes = 0,
   maxBuildVolume = DEFAULT_PRICING_CONFIG.maxBuildVolume
-): ParsedModelResult {
+): Promise<ParsedModelResult> {
   if (!arrayBuffer || arrayBuffer.byteLength === 0) {
     return {
       success: false,
@@ -271,9 +442,70 @@ export function parse3MFArrayBuffer(
     };
   }
 
+  // ── Strategy 1: Bambu Studio paint_color system ────────────────────────
+  try {
+    const bambu = await parseBambu3MF(arrayBuffer);
+    if (bambu.success && bambu.hasColors) {
+      // Successfully decoded Bambu paint colours into vertex colours
+      return analyzeGeometry(
+        bambu.geometry,
+        fileName,
+        fileSizeBytes,
+        '3mf',
+        maxBuildVolume,
+        undefined, // no separate object3d — geometry already has vertex colours
+        true,       // hasOriginalColors
+        bambu.colors.length
+      );
+    }
+    // If Bambu parse succeeded but has no colours (single-colour model),
+    // still use the Bambu geometry for correct dimensions/volume but
+    // mark as no original colours so it renders with filament preview.
+    if (bambu.success && !bambu.hasColors) {
+      return analyzeGeometry(
+        bambu.geometry,
+        fileName,
+        fileSizeBytes,
+        '3mf',
+        maxBuildVolume,
+        undefined,
+        false,
+        1
+      );
+    }
+  } catch (bambuErr) {
+    // Bambu parse failed — proceed to standard ThreeMFLoader
+    console.warn('Bambu 3MF parse failed, trying ThreeMFLoader:', bambuErr);
+  }
+
+  // ── Strategy 2: Standard ThreeMFLoader ────────────────────────────────
   try {
     const loader = new ThreeMFLoader();
     const group = loader.parse(arrayBuffer);
+
+    // Walk the group and fix texture colour spaces for sRGB textures.
+    group.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        mats.forEach((mat) => {
+          if (!mat) return;
+          const m = mat as THREE.MeshStandardMaterial;
+          if (m.map) {
+            m.map.colorSpace = THREE.SRGBColorSpace;
+            m.map.needsUpdate = true;
+          }
+          if (m.emissiveMap) {
+            m.emissiveMap.colorSpace = THREE.SRGBColorSpace;
+            m.emissiveMap.needsUpdate = true;
+          }
+          if (m.roughness === undefined || m.roughness === 1) m.roughness = 0.55;
+          if (m.metalness === undefined) m.metalness = 0.0;
+          m.side = THREE.DoubleSide;
+          m.needsUpdate = true;
+        });
+      }
+    });
 
     const geometries: THREE.BufferGeometry[] = [];
     group.traverse((child) => {
@@ -292,12 +524,24 @@ export function parse3MFArrayBuffer(
       throw new Error('No valid 3D mesh geometry found inside the 3MF package.');
     }
 
-    const unifiedGeometry = geometries.length === 1 ? geometries[0] : mergeGeometries(geometries, false);
+    const unifiedGeometry =
+      geometries.length === 1 ? geometries[0] : mergeGeometries(geometries, false);
     if (!unifiedGeometry) {
       throw new Error('Failed to extract geometry from 3MF package.');
     }
 
-    return analyzeGeometry(unifiedGeometry, fileName, fileSizeBytes, '3mf', maxBuildVolume);
+    const colorInfo = detectOriginalColors(unifiedGeometry, group);
+
+    return analyzeGeometry(
+      unifiedGeometry,
+      fileName,
+      fileSizeBytes,
+      '3mf',
+      maxBuildVolume,
+      group,
+      colorInfo.hasColors,
+      colorInfo.colorCount
+    );
   } catch (err: any) {
     console.error('Failed to parse 3MF buffer:', err);
     return {
@@ -315,20 +559,131 @@ export function parse3MFArrayBuffer(
   }
 }
 
+
 /**
- * Parses an uploaded 3D file object (STL, OBJ, or 3MF).
+ * Unpacks and parses a ZIP archive containing 3D model files (STL, OBJ with MTL/textures, or 3MF).
  */
-export async function parse3DModel(
-  file: File,
+export async function parseZIPArrayBuffer(
+  arrayBuffer: ArrayBuffer,
+  fileName = 'model.zip',
+  fileSizeBytes = 0,
   maxBuildVolume = DEFAULT_PRICING_CONFIG.maxBuildVolume
 ): Promise<ParsedModelResult> {
-  const fileName = file.name;
-  const fileSizeBytes = file.size;
+  try {
+    const unzipped = unzipSync(new Uint8Array(arrayBuffer));
+    const entries = Object.keys(unzipped);
 
-  if (!file || fileSizeBytes === 0) {
+    // 1. Look for 3MF model first
+    const threeMFPath = entries.find((e) => e.toLowerCase().endsWith('.3mf'));
+    if (threeMFPath) {
+      const fileData = unzipped[threeMFPath];
+      const buffer = fileData.buffer.slice(
+        fileData.byteOffset,
+        fileData.byteOffset + fileData.byteLength
+      );
+      return await parse3MFArrayBuffer(buffer, threeMFPath, fileData.byteLength, maxBuildVolume);
+    }
+
+    // 2. Look for OBJ model
+    const objPath = entries.find((e) => e.toLowerCase().endsWith('.obj'));
+    if (objPath) {
+      const objData = unzipped[objPath];
+      const objText = new TextDecoder().decode(objData);
+
+      // Check for companion MTL in the same zip
+      const mtlPath = entries.find((e) => e.toLowerCase().endsWith('.mtl'));
+      let mtlText: string | undefined;
+      if (mtlPath) {
+        mtlText = new TextDecoder().decode(unzipped[mtlPath]);
+      }
+
+      // Map any texture images in the zip to object URLs
+      const textureMap: Record<string, string> = {};
+      for (const entry of entries) {
+        const lower = entry.toLowerCase();
+        if (
+          lower.endsWith('.png') ||
+          lower.endsWith('.jpg') ||
+          lower.endsWith('.jpeg') ||
+          lower.endsWith('.webp')
+        ) {
+          const imgData = unzipped[entry];
+          const mime = lower.endsWith('.png') ? 'image/png' : 'image/jpeg';
+          const blob = new Blob([imgData], { type: mime });
+          const blobUrl = URL.createObjectURL(blob);
+          const baseName = entry.split('/').pop()?.toLowerCase() || '';
+          textureMap[baseName] = blobUrl;
+        }
+      }
+
+      return parseOBJText(
+        objText,
+        objPath,
+        objData.byteLength,
+        maxBuildVolume,
+        mtlText,
+        textureMap
+      );
+    }
+
+    // 3. Look for STL model
+    const stlPath = entries.find((e) => e.toLowerCase().endsWith('.stl'));
+    if (stlPath) {
+      const fileData = unzipped[stlPath];
+      const buffer = fileData.buffer.slice(
+        fileData.byteOffset,
+        fileData.byteOffset + fileData.byteLength
+      );
+      return parseSTLArrayBuffer(buffer, stlPath, fileData.byteLength, maxBuildVolume);
+    }
+
     return {
       success: false,
       fileName,
+      fileSizeBytes,
+      fileType: 'zip',
+      dimensions: { x: 0, y: 0, z: 0 },
+      volumeCm3: 0,
+      triangleCount: 0,
+      exceedsBuildVolume: false,
+      requiresManualReview: true,
+      errorMessage: 'No STL, OBJ, or 3MF model file found inside the ZIP archive.',
+    };
+  } catch (err: any) {
+    console.error('Failed to unpack ZIP file:', err);
+    return {
+      success: false,
+      fileName,
+      fileSizeBytes,
+      fileType: 'zip',
+      dimensions: { x: 0, y: 0, z: 0 },
+      volumeCm3: 0,
+      triangleCount: 0,
+      exceedsBuildVolume: false,
+      requiresManualReview: true,
+      errorMessage: err?.message || 'Failed to extract 3D model from ZIP archive.',
+    };
+  }
+}
+
+/**
+ * Parses an uploaded 3D file object or collection of files (STL, OBJ, 3MF, or ZIP).
+ */
+export async function parse3DModel(
+  fileOrFiles: File | File[] | FileList,
+  maxBuildVolume = DEFAULT_PRICING_CONFIG.maxBuildVolume
+): Promise<ParsedModelResult> {
+  let files: File[] = [];
+  if (fileOrFiles instanceof File) {
+    files = [fileOrFiles];
+  } else if (fileOrFiles && 'length' in fileOrFiles) {
+    files = Array.from(fileOrFiles);
+  }
+
+  if (files.length === 0) {
+    return {
+      success: false,
+      fileName: 'model',
       fileSizeBytes: 0,
       fileType: 'unknown',
       dimensions: { x: 0, y: 0, z: 0 },
@@ -336,14 +691,70 @@ export async function parse3DModel(
       triangleCount: 0,
       exceedsBuildVolume: false,
       requiresManualReview: true,
-      errorMessage: 'The selected file is empty or corrupted.',
+      errorMessage: 'The selected file is empty or missing.',
     };
   }
 
+  // If multiple files uploaded (e.g. OBJ + MTL + PNG texture maps)
+  if (files.length > 1) {
+    const objFile = files.find((f) => f.name.toLowerCase().endsWith('.obj'));
+    if (objFile) {
+      const mtlFile = files.find((f) => f.name.toLowerCase().endsWith('.mtl'));
+      const imageFiles = files.filter((f) => {
+        const n = f.name.toLowerCase();
+        return (
+          n.endsWith('.png') ||
+          n.endsWith('.jpg') ||
+          n.endsWith('.jpeg') ||
+          n.endsWith('.webp')
+        );
+      });
+
+      let mtlText: string | undefined;
+      if (mtlFile) {
+        mtlText = await mtlFile.text();
+      }
+
+      const textureMap: Record<string, string> = {};
+      for (const img of imageFiles) {
+        textureMap[img.name.toLowerCase()] = URL.createObjectURL(img);
+      }
+
+      const objText = await objFile.text();
+      return parseOBJText(
+        objText,
+        objFile.name,
+        objFile.size,
+        maxBuildVolume,
+        mtlText,
+        textureMap
+      );
+    }
+
+    const threeMFFile = files.find((f) => f.name.toLowerCase().endsWith('.3mf'));
+    if (threeMFFile) {
+      const buffer = await threeMFFile.arrayBuffer();
+      return await parse3MFArrayBuffer(buffer, threeMFFile.name, threeMFFile.size, maxBuildVolume);
+    }
+
+    const stlFile = files.find((f) => f.name.toLowerCase().endsWith('.stl'));
+    if (stlFile) {
+      const buffer = await stlFile.arrayBuffer();
+      return parseSTLArrayBuffer(buffer, stlFile.name, stlFile.size, maxBuildVolume);
+    }
+  }
+
+  // Single file handling
+  const file = files[0];
+  const fileName = file.name;
+  const fileSizeBytes = file.size;
   const lowerName = fileName.toLowerCase();
 
   try {
-    if (lowerName.endsWith('.stl')) {
+    if (lowerName.endsWith('.zip')) {
+      const arrayBuffer = await file.arrayBuffer();
+      return await parseZIPArrayBuffer(arrayBuffer, fileName, fileSizeBytes, maxBuildVolume);
+    } else if (lowerName.endsWith('.stl')) {
       const arrayBuffer = await file.arrayBuffer();
       return parseSTLArrayBuffer(arrayBuffer, fileName, fileSizeBytes, maxBuildVolume);
     } else if (lowerName.endsWith('.obj')) {
@@ -351,7 +762,7 @@ export async function parse3DModel(
       return parseOBJText(text, fileName, fileSizeBytes, maxBuildVolume);
     } else if (lowerName.endsWith('.3mf')) {
       const arrayBuffer = await file.arrayBuffer();
-      return parse3MFArrayBuffer(arrayBuffer, fileName, fileSizeBytes, maxBuildVolume);
+      return await parse3MFArrayBuffer(arrayBuffer, fileName, fileSizeBytes, maxBuildVolume);
     } else {
       return {
         success: false,
@@ -363,7 +774,8 @@ export async function parse3DModel(
         triangleCount: 0,
         exceedsBuildVolume: false,
         requiresManualReview: true,
-        errorMessage: 'Unsupported file format. Please upload an STL (.stl), OBJ (.obj), or 3MF (.3mf) model.',
+        errorMessage:
+          'Unsupported file format. Please upload an STL (.stl), OBJ (.obj), 3MF (.3mf), or ZIP package.',
       };
     }
   } catch (err: any) {
@@ -383,7 +795,7 @@ export async function parse3DModel(
 }
 
 /**
- * Downloads and parses a 3D model (STL, OBJ, or 3MF) from a remote URL.
+ * Downloads and parses a 3D model (STL, OBJ, 3MF, or ZIP) from a remote URL.
  */
 export async function parse3DFromUrl(
   url: string,
@@ -419,8 +831,10 @@ export async function parse3DFromUrl(
       }
     }
 
-    if (lowerName.endsWith('.3mf')) {
-      return parse3MFArrayBuffer(arrayBuffer, fileName, arrayBuffer.byteLength, maxBuildVolume);
+    if (lowerName.endsWith('.zip')) {
+      return await parseZIPArrayBuffer(arrayBuffer, fileName, arrayBuffer.byteLength, maxBuildVolume);
+    } else if (lowerName.endsWith('.3mf')) {
+      return await parse3MFArrayBuffer(arrayBuffer, fileName, arrayBuffer.byteLength, maxBuildVolume);
     } else {
       return parseSTLArrayBuffer(arrayBuffer, fileName, arrayBuffer.byteLength, maxBuildVolume);
     }

@@ -1,0 +1,3 @@
+newmtl TexMat
+map_Kd texture.png
+Kd 1.0 1.0 1.0

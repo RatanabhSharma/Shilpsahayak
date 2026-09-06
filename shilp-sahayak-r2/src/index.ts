@@ -21,6 +21,7 @@ const ALLOWED_EXTENSIONS = [
   ".stl",
   ".obj",
   ".3mf",
+  ".zip",
   ".png",
   ".jpg",
   ".jpeg",

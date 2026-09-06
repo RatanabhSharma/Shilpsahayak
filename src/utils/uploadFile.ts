@@ -18,6 +18,7 @@ const ALLOWED_EXTENSIONS = [
   '.stl',
   '.obj',
   '.3mf',
+  '.zip',
 ];
 
 const MAX_FILE_SIZE =
@@ -94,7 +95,7 @@ export async function deleteModelLocally(key: string): Promise<void> {
 /**
  * Get the currently authenticated Firebase user's ID token.
  */
-async function getFirebaseIdToken(): Promise<string> {
+export async function getFirebaseIdToken(): Promise<string> {
   const user = auth.currentUser;
 
   if (!user) {

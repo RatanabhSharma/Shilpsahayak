@@ -9,10 +9,15 @@ import {
   Loader2,
   Box,
   Compass,
+  Palette,
 } from 'lucide-react';
 
 export interface ThreeModelViewerProps {
   geometry: THREE.BufferGeometry | null;
+  object3d?: THREE.Object3D | null;
+  hasOriginalColors?: boolean;
+  colorMode?: 'original' | 'single';
+  onColorModeChange?: (mode: 'original' | 'single') => void;
   colorHex?: string;
   wireframe?: boolean;
   isLoading?: boolean;
@@ -24,6 +29,10 @@ export interface ThreeModelViewerProps {
 
 export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
   geometry,
+  object3d = null,
+  hasOriginalColors = false,
+  colorMode = 'original',
+  onColorModeChange: _onColorModeChange,
   colorHex = '#2563EB',
   wireframe: initialWireframe = false,
   isLoading = false,
@@ -37,7 +46,7 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
-  const meshRef = useRef<THREE.Mesh | null>(null);
+  const modelRef = useRef<THREE.Object3D | null>(null);
   const gridHelperRef = useRef<THREE.GridHelper | null>(null);
 
   const [isWireframe, setIsWireframe] = useState(initialWireframe);
@@ -51,19 +60,23 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     dimensions || null
   );
 
-  // Reset rotation when geometry changes
+  const onOrientedDimensionsChangeRef = useRef(onOrientedDimensionsChange);
+  onOrientedDimensionsChangeRef.current = onOrientedDimensionsChange;
+  const lastNotifiedDimsRef = useRef<{ x: number; y: number; z: number } | null>(null);
+
+  // Reset rotation when geometry or object3d changes
   useEffect(() => {
     setRotation({ x: 0, y: 0, z: 0 });
-  }, [geometry]);
+  }, [geometry, object3d]);
 
   // Camera framing function
   const fitCameraToObject = useCallback(() => {
     const camera = cameraRef.current;
     const controls = controlsRef.current;
-    const mesh = meshRef.current;
-    if (!camera || !controls || !mesh) return;
+    const model = modelRef.current;
+    if (!camera || !controls || !model) return;
 
-    const box = new THREE.Box3().setFromObject(mesh);
+    const box = new THREE.Box3().setFromObject(model);
     const center = new THREE.Vector3();
     box.getCenter(center);
 
@@ -105,6 +118,10 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     renderer.setSize(width, height);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // Critical: output colour space must match texture colour space (sRGB).
+    // Without this, sRGB textures are double-gamma-corrected and appear nearly
+    // black — which is exactly what we saw with the Spider-Man 3MF model.
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
@@ -117,16 +134,17 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     controls.minDistance = 5;
     controlsRef.current = controls;
 
-    // 5. Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+    // 5. Lights — boosted for textured / multi-material models
+    // Ambient at 1.2 ensures textures are fully visible from all angles.
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
     scene.add(ambientLight);
 
-    const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.9);
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
     dirLight1.position.set(150, 200, 150);
     dirLight1.castShadow = true;
     scene.add(dirLight1);
 
-    const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+    const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
     dirLight2.position.set(-150, -100, -150);
     scene.add(dirLight2);
 
@@ -192,69 +210,167 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     };
   }, []);
 
-  // Update Geometry, Material Color, Scaling, and Rotation
+  // Update Geometry, Materials, Color Mode, Scaling, and Rotation
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene) return;
 
-    // Remove existing mesh
-    if (meshRef.current) {
-      scene.remove(meshRef.current);
-      if (meshRef.current.geometry) meshRef.current.geometry.dispose();
-      if (Array.isArray(meshRef.current.material)) {
-        meshRef.current.material.forEach((m) => m.dispose());
-      } else {
-        meshRef.current.material.dispose();
-      }
-      meshRef.current = null;
+    // Remove existing model and dispose resources
+    if (modelRef.current) {
+      scene.remove(modelRef.current);
+      modelRef.current.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const m = child as THREE.Mesh;
+          if (m.geometry) m.geometry.dispose();
+          if (m.material) {
+            if (Array.isArray(m.material)) {
+              m.material.forEach((mat) => mat.dispose());
+            } else {
+              m.material.dispose();
+            }
+          }
+        }
+      });
+      modelRef.current = null;
     }
 
-    if (!geometry) return;
+    if (!geometry && !object3d) return;
 
-    // Clone geometry so we keep a clean unmodified base buffer
-    const clonedGeometry = geometry.clone();
-    clonedGeometry.center();
-    clonedGeometry.computeVertexNormals();
+    let displayObj: THREE.Object3D;
+    const isOriginalMode = hasOriginalColors || colorMode === 'original';
 
-    // Create realistic plastic material
-    const material = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(colorHex),
-      roughness: 0.35,
-      metalness: 0.05,
-      wireframe: isWireframe,
-      side: THREE.DoubleSide,
-    });
+    if (isOriginalMode && object3d) {
+      // 1. Cloned 3D Group/Mesh preserving original materials, textures, and vertex colors
+      displayObj = object3d.clone(true);
+      displayObj.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const m = child as THREE.Mesh;
+          m.castShadow = true;
+          m.receiveShadow = true;
+          if (m.material) {
+            const mats = Array.isArray(m.material) ? m.material : [m.material];
+            mats.forEach((mat) => {
+              const sm = mat as THREE.MeshStandardMaterial;
+              if ('wireframe' in sm) sm.wireframe = isWireframe;
+              sm.side = THREE.DoubleSide;
 
-    const mesh = new THREE.Mesh(clonedGeometry, material);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
+              // Ensure textures are decoded with correct colour space.
+              // Three.js r152+ requires explicit SRGBColorSpace on loaded
+              // textures when renderer.outputColorSpace = SRGBColorSpace.
+              if (sm.map) {
+                sm.map.colorSpace = THREE.SRGBColorSpace;
+                sm.map.needsUpdate = true;
+              }
+              if (sm.emissiveMap) {
+                sm.emissiveMap.colorSpace = THREE.SRGBColorSpace;
+                sm.emissiveMap.needsUpdate = true;
+              }
 
-    // Apply rotation & scale
+              // Apply reasonable surface defaults if not already set
+              if (sm.roughness === undefined || sm.roughness > 0.95) sm.roughness = 0.55;
+              if (sm.metalness === undefined) sm.metalness = 0.0;
+
+              // Activate vertex colours if geometry carries them
+              if (m.geometry && m.geometry.hasAttribute('color')) {
+                sm.vertexColors = true;
+              }
+              sm.needsUpdate = true;
+            });
+          }
+        }
+      });
+    } else if (isOriginalMode && geometry && geometry.hasAttribute('color')) {
+      // 2. Vertex-colored geometry (STL with VisCAM/Magics or raw vertex colors)
+      const clonedGeometry = geometry.clone();
+      clonedGeometry.center();
+      clonedGeometry.computeVertexNormals();
+
+      const material = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.4,
+        metalness: 0.05,
+        wireframe: isWireframe,
+        side: THREE.DoubleSide,
+      });
+
+      const mesh = new THREE.Mesh(clonedGeometry, material);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      displayObj = mesh;
+    } else if (geometry) {
+      // 3. Single-colour preview with selected filament color
+      const clonedGeometry = geometry.clone();
+      clonedGeometry.center();
+      clonedGeometry.computeVertexNormals();
+
+      const material = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(colorHex),
+        roughness: 0.35,
+        metalness: 0.05,
+        wireframe: isWireframe,
+        side: THREE.DoubleSide,
+      });
+
+      const mesh = new THREE.Mesh(clonedGeometry, material);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      displayObj = mesh;
+    } else if (object3d) {
+      // 4. Single-colour override on parsed object3d
+      displayObj = object3d.clone(true);
+      const overrideMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(colorHex),
+        roughness: 0.35,
+        metalness: 0.05,
+        wireframe: isWireframe,
+        side: THREE.DoubleSide,
+      });
+      displayObj.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const m = child as THREE.Mesh;
+          m.castShadow = true;
+          m.receiveShadow = true;
+          m.material = overrideMat;
+        }
+      });
+    } else {
+      return;
+    }
+
+    // Wrap model in a pivot group centered at model's geometric center
+    const pivot = new THREE.Group();
+    const initialBox = new THREE.Box3().setFromObject(displayObj);
+    const initialCenter = new THREE.Vector3();
+    initialBox.getCenter(initialCenter);
+
+    displayObj.position.set(-initialCenter.x, -initialCenter.y, -initialCenter.z);
+    pivot.add(displayObj);
+
+    // Apply rotation & scale to the centered pivot
     const radX = (rotation.x * Math.PI) / 180;
     const radY = (rotation.y * Math.PI) / 180;
     const radZ = (rotation.z * Math.PI) / 180;
 
-    mesh.position.set(0, 0, 0);
-    mesh.rotation.set(radX, radY, radZ);
-    mesh.scale.set(scale, scale, scale);
-    mesh.updateMatrixWorld(true);
+    pivot.rotation.set(radX, radY, radZ);
+    pivot.scale.set(scale, scale, scale);
+    pivot.updateMatrixWorld(true);
 
     // Compute bounding box in transformed world orientation
-    const bbox = new THREE.Box3().setFromObject(mesh);
+    const bbox = new THREE.Box3().setFromObject(pivot);
     const center = new THREE.Vector3();
     bbox.getCenter(center);
 
-    // Ground model on grid (y = 0) and center horizontally (x = 0, z = 0)
-    mesh.position.x = -center.x;
-    mesh.position.z = -center.z;
-    mesh.position.y = -bbox.min.y;
-    mesh.updateMatrixWorld(true);
+    // Ground pivot on grid (y = 0) and center horizontally (x = 0, z = 0)
+    pivot.position.x = -center.x;
+    pivot.position.z = -center.z;
+    pivot.position.y = -bbox.min.y;
+    pivot.updateMatrixWorld(true);
 
-    scene.add(mesh);
-    meshRef.current = mesh;
+    scene.add(pivot);
+    modelRef.current = pivot;
 
     // Compute oriented dimensions
-    const finalBBox = new THREE.Box3().setFromObject(mesh);
+    const finalBBox = new THREE.Box3().setFromObject(pivot);
     const orientedWidth = Math.round((finalBBox.max.x - finalBBox.min.x) * 10) / 10;
     const orientedDepth = Math.round((finalBBox.max.z - finalBBox.min.z) * 10) / 10;
     const orientedHeight = Math.round((finalBBox.max.y - finalBBox.min.y) * 10) / 10;
@@ -264,15 +380,35 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
       y: orientedDepth,
       z: orientedHeight,
     };
-    setCurrentDims(newDims);
 
-    if (onOrientedDimensionsChange) {
-      onOrientedDimensionsChange(newDims);
+    setCurrentDims((prev) => {
+      if (prev && prev.x === orientedWidth && prev.y === orientedDepth && prev.z === orientedHeight) {
+        return prev;
+      }
+      return newDims;
+    });
+
+    const last = lastNotifiedDimsRef.current;
+    if (!last || last.x !== orientedWidth || last.y !== orientedDepth || last.z !== orientedHeight) {
+      lastNotifiedDimsRef.current = newDims;
+      if (onOrientedDimensionsChangeRef.current) {
+        onOrientedDimensionsChangeRef.current(newDims);
+      }
     }
 
-    // Fit camera on orientation / geometry changes
+    // Fit camera on orientation / geometry / mode changes
     fitCameraToObject();
-  }, [geometry, colorHex, isWireframe, scale, rotation, fitCameraToObject, onOrientedDimensionsChange]);
+  }, [
+    geometry,
+    object3d,
+    hasOriginalColors,
+    colorMode,
+    colorHex,
+    isWireframe,
+    scale,
+    rotation,
+    fitCameraToObject,
+  ]);
 
   // Toggle Grid
   useEffect(() => {
@@ -326,8 +462,18 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
       )}
 
       {/* Viewer Overlay Controls */}
-      {geometry && !isLoading && !error && (
+      {(geometry || object3d) && !isLoading && !error && (
         <>
+          {/* Top-Center: Original Colours Indicator */}
+          {hasOriginalColors && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center bg-white/95 dark:bg-slate-800/95 backdrop-blur-md px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+              <span className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-slate-700 dark:text-slate-200">
+                <Palette className="w-3.5 h-3.5 text-amber-500" />
+                <span>Original Colours</span>
+              </span>
+            </div>
+          )}
+
           {/* Top-Left: Model Orientation Toolbar */}
           <div className="absolute top-3 left-3 flex items-center gap-1 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md px-2 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs z-10">
             <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1 hidden sm:inline">
@@ -417,7 +563,7 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
           </div>
 
           {/* Bottom-Left Bounding Dimension Pill */}
-          {displayDimensions && (
+          {displayDimensions && (displayDimensions.x > 0 || displayDimensions.y > 0 || displayDimensions.z > 0) && (
             <div className="absolute bottom-3 left-3 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs z-10 flex items-center gap-2 font-mono text-[11px] font-bold text-slate-700 dark:text-slate-200">
               <span className="w-2 h-2 rounded-full bg-brand-500" />
               <span>
