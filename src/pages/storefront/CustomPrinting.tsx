@@ -13,13 +13,18 @@ import {
   Send,
   Loader2,
   ArrowRight,
+  ArrowLeft,
   Box,
   Lightbulb,
   Image as ImageIcon,
   MessageSquare,
   Maximize2,
-  RotateCcw,
   Palette,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Shield,
+  Sliders,
 } from 'lucide-react';
 import { usePricingSettings } from '../../hooks/usePricingSettings';
 import { parse3DModel } from '../../services/model/modelParser';
@@ -37,7 +42,112 @@ import { useAuth } from '../../hooks/useAuth';
 import { upload3DFile } from '../../utils/uploadFile';
 import { useSubmitQuote } from '../../hooks/useQuotes';
 
-type StepNumber = 1 | 2 | 3 | 4;
+export type StudioTab = 'upload' | 'configure' | 'estimate';
+export type QualityPreset = 'draft' | 'standard' | 'fine';
+export type StrengthPreset = 'light' | 'balanced' | 'strong';
+export type SupportMode = 'auto' | 'none' | 'required';
+export type SurfaceFinish = 'standard' | 'smooth';
+export type SizeMode = 'original' | 'custom';
+
+// Customer-Facing Options Definitions
+const QUALITY_OPTIONS: {
+  id: QualityPreset;
+  name: string;
+  badge?: string;
+  description: string;
+  profileId: string;
+}[] = [
+  {
+    id: 'draft',
+    name: 'Draft',
+    description: 'Faster printing, lower detail. Suitable for prototypes and simple shapes.',
+    profileId: 'budget',
+  },
+  {
+    id: 'standard',
+    name: 'Standard',
+    badge: 'Recommended',
+    description: 'Balanced quality and print time. Suitable for general-purpose printing.',
+    profileId: 'standard',
+  },
+  {
+    id: 'fine',
+    name: 'Fine',
+    description: 'More detail, longer print time. Suitable for miniatures and detailed models.',
+    profileId: 'premium',
+  },
+];
+
+const STRENGTH_OPTIONS: {
+  id: StrengthPreset;
+  name: string;
+  badge?: string;
+  description: string;
+  defaultInfill: number;
+}[] = [
+  {
+    id: 'light',
+    name: 'Light',
+    description: 'Suitable for decorative objects with lower material usage.',
+    defaultInfill: 15,
+  },
+  {
+    id: 'balanced',
+    name: 'Balanced',
+    badge: 'Recommended',
+    description: 'Suitable for general-purpose objects with optimal strength-to-weight balance.',
+    defaultInfill: 25,
+  },
+  {
+    id: 'strong',
+    name: 'Strong',
+    description: 'Suitable for functional parts with high resistance to load and impact.',
+    defaultInfill: 50,
+  },
+];
+
+const SUPPORT_OPTIONS: {
+  id: SupportMode;
+  name: string;
+  badge?: string;
+  description: string;
+}[] = [
+  {
+    id: 'auto',
+    name: 'Auto',
+    badge: 'Recommended',
+    description: 'Let us choose. Optimal scaffolding placed automatically on steep overhangs.',
+  },
+  {
+    id: 'none',
+    name: 'No support',
+    description: 'Print without support where possible. Best for flat-bottom and simple models.',
+  },
+  {
+    id: 'required',
+    name: 'Required',
+    description: 'Use support for difficult areas, complex bridges, and organic details.',
+  },
+];
+
+const FINISH_OPTIONS: {
+  id: SurfaceFinish;
+  name: string;
+  badge?: string;
+  description: string;
+}[] = [
+  {
+    id: 'standard',
+    name: 'Standard',
+    badge: 'Default',
+    description: 'Natural layer texture, clean, robust, and authentic to 3D printing.',
+  },
+  {
+    id: 'smooth',
+    name: 'Smooth',
+    description: 'Enhanced surface refinement and ironing for smoother top faces and touch.',
+  },
+];
 
 export function CustomPrinting() {
   const navigate = useNavigate();
@@ -158,8 +268,8 @@ export function CustomPrinting() {
     }
   };
 
-  // Stepper state
-  const [currentStep, setCurrentStep] = useState<StepNumber>(1);
+  // 3-Step Tab Navigation State
+  const [activeTab, setActiveTab] = useState<StudioTab>('upload');
 
   // Model Processing States: 'idle' | 'uploading' | 'processing' | 'ready' | 'needs_review' | 'error'
   type ModelProcessingState = 'idle' | 'uploading' | 'processing' | 'ready' | 'needs_review' | 'error';
@@ -173,25 +283,29 @@ export function CustomPrinting() {
   const [isDragOver, setIsDragOver] = useState(false);
 
   // Model Sizing & Scale State
+  const [sizeMode, setSizeMode] = useState<SizeMode>('original');
   const [scaleFactor, setScaleFactor] = useState<number>(1.0);
   const [baseDimensions, setBaseDimensions] = useState<{ x: number; y: number; z: number } | null>(null);
   const [targetHeightInput, setTargetHeightInput] = useState<string>('');
   const [modelColorMode, setModelColorMode] = useState<'original' | 'single'>('original');
 
-  // Configuration state
+  // Customer-Facing Configuration Presets
   const [selectedMaterialId, setSelectedMaterialId] = useState<string>('pla');
   const [selectedColorName, setSelectedColorName] = useState<string>('');
   const [customColorHex, setCustomColorHex] = useState<string | null>(null);
-  const [selectedProfileId, setSelectedProfileId] = useState<string>('standard');
+  const [qualityPreset, setQualityPreset] = useState<QualityPreset>('standard');
+  const [strengthPreset, setStrengthPreset] = useState<StrengthPreset>('balanced');
+  const [supportMode, setSupportMode] = useState<SupportMode>('auto');
+  const [surfaceFinish, setSurfaceFinish] = useState<SurfaceFinish>('standard');
   const [quantity, setQuantity] = useState<number>(1);
   const [packagingIncluded, setPackagingIncluded] = useState<boolean>(false);
 
-  // Advanced settings
+  // Optional Advanced Settings (Hidden by default)
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [customInfill, setCustomInfill] = useState<number | null>(null);
   const [customLayerHeight, setCustomLayerHeight] = useState<number | null>(null);
-  const [supportsEnabled, setSupportsEnabled] = useState<boolean>(false);
 
-  // Handoff & submission states
+  // Handoff & Submission States
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [quoteSuccess, setQuoteSuccess] = useState<boolean>(false);
@@ -201,7 +315,7 @@ export function CustomPrinting() {
   const [customerNotes, setCustomerNotes] = useState('');
   const [showQuoteModal, setShowQuoteModal] = useState(false);
 
-  // Active configurations
+  // Active configurations from pricing settings
   const activeMaterials = useMemo(
     () => (pricingData?.materials || []).filter((m) => m.enabled),
     [pricingData]
@@ -236,23 +350,35 @@ export function CustomPrinting() {
     return found || activeMaterial.colors[0];
   }, [activeMaterial, selectedColorName, customColorHex]);
 
-  // Active Profile
+  // Active Profiles & Profile Resolution from Customer Quality Preset
   const activeProfiles = useMemo(
     () => (pricingData?.printProfiles || []).filter((p) => p.enabled),
     [pricingData]
   );
 
   const activeProfile = useMemo(() => {
+    const targetOption = QUALITY_OPTIONS.find((q) => q.id === qualityPreset);
+    const targetProfileId = targetOption?.profileId || 'standard';
     return (
-      activeProfiles.find((p) => p.id === selectedProfileId) ||
+      activeProfiles.find((p) => p.id === targetProfileId) ||
+      activeProfiles.find((p) => p.id === 'standard') ||
       activeProfiles[0] ||
       pricingData.printProfiles[0]
     );
-  }, [activeProfiles, selectedProfileId, pricingData]);
+  }, [activeProfiles, qualityPreset, pricingData]);
 
-  // Effective print parameters
-  const effectiveInfill = customInfill ?? activeProfile.infillPercent;
+  // Resolution: Strength Preset -> Default Infill
+  const resolvedInfill = useMemo(() => {
+    if (customInfill !== null) return customInfill;
+    const option = STRENGTH_OPTIONS.find((s) => s.id === strengthPreset);
+    return option?.defaultInfill ?? 25;
+  }, [strengthPreset, customInfill]);
+
+  // Effective Parameters for Slicer Engine & Summary
+  const effectiveInfill = resolvedInfill;
   const effectiveLayerHeight = customLayerHeight ?? activeProfile.layerHeight;
+  const supportsEnabled = supportMode !== 'none';
+  const supportMultiplier = supportMode === 'none' ? 1.0 : supportMode === 'required' ? 1.25 : 1.15;
 
   // Handle Model Orientation Changes from 3D Viewer
   const handleOrientedDimensionsChange = useCallback(
@@ -279,7 +405,7 @@ export function CustomPrinting() {
     [scaleFactor]
   );
 
-  // Effective scaled dimensions (null when no valid model loaded)
+  // Effective scaled dimensions
   const effectiveDimensions = useMemo(() => {
     if (!modelResult?.success) return null;
     const base = baseDimensions || modelResult?.dimensions;
@@ -308,7 +434,7 @@ export function CustomPrinting() {
     );
   }, [modelResult, effectiveDimensions, maxBuildVolume]);
 
-  // Real-time geometry estimations using scaled volume (0 when no model)
+  // Real-time geometry estimations using scaled volume and customer choices
   const estimatedMaterialUsageGrams = useMemo(() => {
     if (!modelResult?.success || !effectiveVolumeCm3) return 0;
     const baseUsage = estimateMaterialUsage(
@@ -316,17 +442,21 @@ export function CustomPrinting() {
       activeMaterial.density,
       activeProfile
     );
-    // Modulate based on infill ratio (relative to standard 20%) and auto supports (+15% if enabled)
+    // Modulate based on infill ratio (relative to standard 20%) and support multiplier
     const infillRatio = effectiveInfill / 20;
-    const supportMultiplier = supportsEnabled ? 1.15 : 1.0;
     const adjusted = baseUsage * (0.75 + 0.25 * infillRatio) * supportMultiplier;
     return Math.max(1, Math.round(adjusted * 10) / 10);
-  }, [modelResult, effectiveVolumeCm3, activeMaterial, activeProfile, effectiveInfill, supportsEnabled]);
+  }, [modelResult, effectiveVolumeCm3, activeMaterial, activeProfile, effectiveInfill, supportMultiplier]);
 
   const estimatedPrintTimeHours = useMemo(() => {
     if (!estimatedMaterialUsageGrams) return 0;
-    return estimatePrintTime(estimatedMaterialUsageGrams, activeProfile);
-  }, [estimatedMaterialUsageGrams, activeProfile]);
+    const surfaceTimeFactor = surfaceFinish === 'smooth' ? 1.06 : 1.0;
+    const adjustedProfile = {
+      ...activeProfile,
+      printTimeFactor: (activeProfile.printTimeFactor || 1.0) * surfaceTimeFactor,
+    };
+    return estimatePrintTime(estimatedMaterialUsageGrams, adjustedProfile);
+  }, [estimatedMaterialUsageGrams, activeProfile, surfaceFinish]);
 
   // Live Pricing Engine Calculation (null until a valid 3D model is analyzed)
   const quoteBreakdown = useMemo(() => {
@@ -356,6 +486,41 @@ export function CustomPrinting() {
     packagingIncluded,
     exceedsBuildVolume,
   ]);
+
+  // Navigation State Guards
+  const canGoToConfigure = Boolean(file && modelResult?.success);
+  const canGoToEstimate = Boolean(file && modelResult?.success && quoteBreakdown);
+
+  // Tab Navigation Handler
+  const handleTabChange = (tab: StudioTab) => {
+    if (tab === 'upload') {
+      setActiveTab('upload');
+      window.scrollTo({ top: 300, behavior: 'smooth' });
+    } else if (tab === 'configure') {
+      if (canGoToConfigure) {
+        setActiveTab('configure');
+        window.scrollTo({ top: 300, behavior: 'smooth' });
+      }
+    } else if (tab === 'estimate') {
+      if (canGoToEstimate) {
+        setActiveTab('estimate');
+        window.scrollTo({ top: 300, behavior: 'smooth' });
+      }
+    }
+  };
+
+  // Guard: Automatically return to valid tab if model is removed
+  useEffect(() => {
+    if (activeTab === 'configure' && !canGoToConfigure) {
+      setActiveTab('upload');
+    } else if (activeTab === 'estimate' && !canGoToEstimate) {
+      if (canGoToConfigure) {
+        setActiveTab('configure');
+      } else {
+        setActiveTab('upload');
+      }
+    }
+  }, [activeTab, canGoToConfigure, canGoToEstimate]);
 
   // Handle Height & Scale adjustments
   const handleHeightInputChange = (val: string) => {
@@ -392,19 +557,10 @@ export function CustomPrinting() {
     }
   };
 
-  // Stepper Scroll & Focus helper
-  const scrollToStep = (stepNumber: StepNumber, targetId: string) => {
-    setCurrentStep(stepNumber);
-    const element = document.getElementById(targetId);
-    if (element) {
-      const yOffset = -90;
-      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: y, behavior: 'smooth' });
-
-      element.classList.add('ring-2', 'ring-brand-500');
-      setTimeout(() => {
-        element.classList.remove('ring-2', 'ring-brand-500');
-      }, 1500);
+  const handleSizeModeChange = (mode: SizeMode) => {
+    setSizeMode(mode);
+    if (mode === 'original') {
+      handleResetScale();
     }
   };
 
@@ -462,7 +618,6 @@ export function CustomPrinting() {
     setModelResult(result);
 
     if (result.success) {
-      // Default to original colors if detected, else single-colour preview
       if (result.hasOriginalColors) {
         setModelColorMode('original');
       } else {
@@ -470,6 +625,7 @@ export function CustomPrinting() {
       }
 
       setScaleFactor(1.0);
+      setSizeMode('original');
       setBaseDimensions(result.dimensions);
       setTargetHeightInput(result.dimensions.z.toFixed(1));
 
@@ -485,9 +641,8 @@ export function CustomPrinting() {
         setModelProcessingState('ready');
       }
 
-      if (currentStep === 1) {
-        setCurrentStep(2);
-      }
+      // Automatically advance to configure tab
+      setActiveTab('configure');
     } else {
       setModelProcessingState('error');
     }
@@ -517,9 +672,10 @@ export function CustomPrinting() {
     setModelProcessingState('idle');
     setModelColorMode('original');
     setScaleFactor(1.0);
+    setSizeMode('original');
     setBaseDimensions(null);
     setTargetHeightInput('');
-    setCurrentStep(1);
+    setActiveTab('upload');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -530,7 +686,6 @@ export function CustomPrinting() {
     if (!file || !modelResult || !quoteBreakdown) return;
 
     if (!user) {
-      // If user is not logged in, prompt sign in or proceed to quote modal
       if (
         confirm(
           'Please sign in to proceed directly to order checkout. Would you like to log in now?\n(Or click Cancel to submit a quote request with your contact info)'
@@ -553,12 +708,12 @@ export function CustomPrinting() {
         setUploadProgress(progress);
       });
 
-      // Add to Cart
+      // Add to Cart with Complete Configuration Metadata
       addToCart(
         {
           id: `custom-${Date.now()}`,
           name: `Custom 3D Print: ${file.name}`,
-          description: `${activeMaterial.name} · ${activeColor.name} · ${activeProfile.name} Quality (${quoteBreakdown.quantity} pcs)`,
+          description: `${activeMaterial.name} · ${activeColor.name} · ${qualityPreset.toUpperCase()} Quality · ${strengthPreset.toUpperCase()} Strength (${quoteBreakdown.quantity} pcs)`,
           price: quoteBreakdown.unitPrice,
           category: 'Custom 3D Print',
           image: '/custom-print-placeholder.png',
@@ -576,6 +731,11 @@ export function CustomPrinting() {
           material: activeMaterial.name,
           color: activeColor.name,
           quality: activeProfile.name,
+          qualityPreset,
+          strengthPreset,
+          supportMode,
+          surfaceFinish,
+          sizeMode,
           infill: effectiveInfill,
           layerHeight: effectiveLayerHeight,
           supports: supportsEnabled,
@@ -601,12 +761,12 @@ export function CustomPrinting() {
     }
   };
 
-  // Submit Quote Flow
+  // Submit Quote Review Flow
   const handleSubmitQuote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !modelResult || !quoteBreakdown) return;
 
-    const customerName = user ? (user.displayName || user.email || 'Customer') : guestName.trim();
+    const customerName = user ? user.displayName || user.email || 'Customer' : guestName.trim();
     const customerEmail = user ? user.email || '' : guestEmail.trim();
     const customerPhone = guestPhone.trim();
 
@@ -620,6 +780,13 @@ export function CustomPrinting() {
       setUploadProgress(15);
 
       const fileKey = await upload3DFile(file, user?.uid || 'guest', (progress) => setUploadProgress(progress));
+
+      const customerNotesWithPresets = [
+        `Selected Presets: Quality=${qualityPreset}, Strength=${strengthPreset}, Support=${supportMode}, Finish=${surfaceFinish}, Size=${sizeMode}`,
+        customerNotes.trim(),
+      ]
+        .filter(Boolean)
+        .join('\n');
 
       await submitQuoteMutation.mutateAsync({
         requestType: '3d-model',
@@ -642,13 +809,15 @@ export function CustomPrinting() {
         estimatedPrintTimeHours,
         systemEstimatedPrice: quoteBreakdown.totalPrice,
         estimatedPrice: quoteBreakdown.totalPrice,
-        dimensions: effectiveDimensions ? {
-          length: effectiveDimensions.x,
-          width: effectiveDimensions.y,
-          height: effectiveDimensions.z,
-          unit: 'mm',
-        } : undefined,
-        notes: customerNotes.trim() || undefined,
+        dimensions: effectiveDimensions
+          ? {
+              length: effectiveDimensions.x,
+              width: effectiveDimensions.y,
+              height: effectiveDimensions.z,
+              unit: 'mm',
+            }
+          : undefined,
+        notes: customerNotesWithPresets || undefined,
         pricingVersion: pricingData.pricingVersion,
       });
 
@@ -769,49 +938,70 @@ export function CustomPrinting() {
       {studioMode === '3d-model' && (
         <>
 
-      {/* 3-Step Process Navigation */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8">
+      {/* 3-Step Process Tab Navigation */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8">
         <nav aria-label="Progress">
           <ol className="grid grid-cols-3 gap-2 sm:gap-4 border border-line dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 p-2 sm:p-3 shadow-xs">
             {[
-              { step: 1, label: '1. Your 3D Model', desc: 'Preview & Dimensions', targetId: 'step-model' },
-              { step: 2, label: '2. Print Options', desc: 'Material, Quality & Strength', targetId: 'step-options' },
-              { step: 3, label: '3. Estimated Quote', desc: 'Verification & Order', targetId: 'step-quote' },
+              {
+                id: 'upload',
+                step: '01',
+                title: 'Upload',
+                desc: '3D CAD Model',
+                canAccess: true,
+              },
+              {
+                id: 'configure',
+                step: '02',
+                title: 'Configure',
+                desc: 'Material & Quality',
+                canAccess: canGoToConfigure,
+              },
+              {
+                id: 'estimate',
+                step: '03',
+                title: 'Estimate',
+                desc: 'Instant Pricing & Quote',
+                canAccess: canGoToEstimate,
+              },
             ].map((item) => {
-              const isActive = currentStep === item.step;
-              const isDone = currentStep > item.step || (item.step === 1 && modelResult?.success);
+              const isActive = activeTab === item.id;
+              const isDone =
+                (item.id === 'upload' && modelResult?.success) ||
+                (item.id === 'configure' && activeTab === 'estimate');
+
               return (
-                <li key={item.step} className="relative">
+                <li key={item.id} className="relative">
                   <button
                     type="button"
-                    onClick={() => {
-                      if (item.step === 1 || modelResult?.success) {
-                        scrollToStep(item.step as StepNumber, item.targetId);
-                      }
-                    }}
-                    disabled={item.step > 1 && !modelResult?.success}
-                    className={`w-full flex items-center gap-2 sm:gap-3 p-2 rounded-xl text-left transition-all cursor-pointer ${
+                    onClick={() => handleTabChange(item.id as StudioTab)}
+                    disabled={!item.canAccess}
+                    className={`w-full flex items-center gap-2 sm:gap-3 p-2.5 rounded-xl text-left transition-all cursor-pointer ${
                       isActive
-                        ? 'bg-brand-50/80 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 ring-1 ring-brand-300 dark:ring-brand-700'
-                        : isDone
-                        ? 'text-ink dark:text-slate-200 hover:bg-shell/50'
-                        : 'text-slate-400 dark:text-slate-600 cursor-not-allowed'
+                        ? 'bg-accent/10 dark:bg-amber-950/40 text-accent ring-1 ring-accent/40 shadow-2xs'
+                        : item.canAccess
+                        ? 'text-ink dark:text-slate-200 hover:bg-shell/60 dark:hover:bg-slate-800/60'
+                        : 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60'
                     }`}
                   >
                     <span
-                      className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center font-mono text-xs font-bold shrink-0 ${
+                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center font-mono text-xs font-bold shrink-0 transition-colors ${
                         isActive
-                          ? 'bg-brand-500 text-white shadow-xs'
+                          ? 'bg-accent text-white shadow-xs'
                           : isDone
                           ? 'bg-emerald-500 text-white'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                          : 'bg-shell dark:bg-slate-800 text-muted dark:text-slate-400'
                       }`}
                     >
-                      {isDone && !isActive ? <CheckCircle2 className="w-4 h-4" /> : item.step}
+                      {isDone && !isActive ? <Check className="w-4 h-4" /> : item.step}
                     </span>
-                    <div className="hidden sm:block">
-                      <p className="text-xs font-bold leading-tight">{item.label}</p>
-                      <p className="text-[10px] text-muted dark:text-slate-400 font-mono">{item.desc}</p>
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm font-display font-bold leading-tight truncate">
+                        {item.title}
+                      </p>
+                      <p className="text-[10px] sm:text-[11px] text-muted dark:text-slate-400 font-sans hidden sm:block truncate">
+                        {item.desc}
+                      </p>
                     </div>
                   </button>
                 </li>
@@ -856,150 +1046,165 @@ export function CustomPrinting() {
         </div>
       )}
 
-      {/* Main 3-Step Layout Grid */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Step 1 (Model & Sizing) + Step 2 (Print Options) */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* STEP 1: Your 3D Model */}
-          <div id="step-model" className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-4 sm:p-5 shadow-xs space-y-4">
-            {/* Step 1 Header */}
-            <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <FileBox className="w-5 h-5 text-accent" />
-                <div>
-                  <h2 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider">
-                    Step 1 — Your 3D Model
-                  </h2>
-                  <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
-                    Upload and preview your 3D CAD design for volume estimation
-                  </p>
-                </div>
-              </div>
+      {/* ========================================================= */}
+      {/* TAB 1: UPLOAD                                             */}
+      {/* ========================================================= */}
+      {activeTab === 'upload' && (
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 space-y-6">
+          <div className="text-center space-y-2">
+            <h2 className="font-display text-2xl sm:text-3xl font-bold text-ink dark:text-white">
+              Upload your 3D model
+            </h2>
+            <p className="text-sm text-muted dark:text-slate-400 font-sans max-w-lg mx-auto">
+              Start with the file you want us to print.
+            </p>
+          </div>
 
-              {/* Processing State Badge */}
-              <div className="flex items-center gap-2">
-                {modelProcessingState === 'uploading' && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-soft text-accent font-mono text-[10px] font-bold">
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    <span>Uploading...</span>
-                  </span>
-                )}
-                {modelProcessingState === 'processing' && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 font-mono text-[10px] font-bold">
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    <span>Analyzing geometry...</span>
-                  </span>
-                )}
-                {modelProcessingState === 'ready' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-mono text-[10px] font-bold border border-emerald-200">
-                    <CheckCircle2 className="w-3 h-3" />
-                    <span>Estimate Ready</span>
-                  </span>
-                )}
-                {modelProcessingState === 'needs_review' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-mono text-[10px] font-bold border border-amber-200">
-                    <AlertTriangle className="w-3 h-3" />
-                    <span>Needs Review</span>
-                  </span>
-                )}
-                {file && (
-                  <button
-                    type="button"
-                    onClick={handleRemoveFile}
-                    className="inline-flex items-center gap-1 text-[11px] font-mono text-rose-600 hover:text-rose-700 hover:underline cursor-pointer ml-1"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                    <span>Remove</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* File Details bar & Replace Model action if file loaded */}
-            {file && (
-              <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono bg-shell/50 dark:bg-slate-800/40 px-3 py-2 rounded-xl border border-line dark:border-slate-800">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="truncate max-w-[220px] text-ink dark:text-slate-200 font-semibold" title={file.name}>
-                    {file.name}
-                  </span>
-                  <span className="text-muted shrink-0">
-                    · {(file.size / (1024 * 1024)).toFixed(2)} MB · {file.name.split('.').pop()?.toUpperCase()}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-[11px] font-mono text-accent hover:underline flex items-center gap-1 cursor-pointer shrink-0"
-                >
-                  <Upload className="w-3 h-3" />
-                  <span>Replace Model</span>
-                </button>
-              </div>
-            )}
-
-            {/* Three.js Canvas Viewer */}
-            <ThreeModelViewer
-              geometry={modelResult?.geometry || null}
-              object3d={modelResult?.object3d || null}
-              hasOriginalColors={modelResult?.hasOriginalColors || false}
-              colorMode={modelColorMode}
-              onColorModeChange={setModelColorMode}
-              colorHex={activeColor.hex}
-              isLoading={isParsing}
-              error={modelResult?.errorMessage}
-              dimensions={effectiveDimensions || undefined}
-              scale={scaleFactor}
-              onOrientedDimensionsChange={handleOrientedDimensionsChange}
-            />
-
-            {/* Original Colours Banner & Model Appearance Toggle */}
-            {modelResult?.success && modelResult?.hasOriginalColors && (
-              <div className="flex flex-wrap items-center justify-between gap-2.5 p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-2 w-2 rounded-full bg-amber-500 shrink-0" />
-                  <div>
-                    <span className="font-mono font-bold text-amber-900 dark:text-amber-300">
-                      Original Model Colours Detected
-                    </span>
-                    <p className="text-[11px] text-amber-800/80 dark:text-amber-400/80 font-sans mt-0.5">
-                      The 3D viewer displays your file's original design colours. Production prints will be crafted using your selected filament colour in Step 2.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 font-mono text-[11px] shrink-0">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold bg-amber-600 text-white shadow-2xs">
-                    <Palette className="w-3.5 h-3.5" />
-                    <span>Original Colours Active</span>
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Empty State when no file selected */}
-            {!file && (
+          {/* Drag and Drop Upload Card */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-6 sm:p-8 shadow-xs space-y-6">
+            {!file ? (
               <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-8 sm:p-10 text-center cursor-pointer transition-all ${
+                className={`border-2 border-dashed rounded-2xl p-10 sm:p-14 text-center cursor-pointer transition-all ${
                   isDragOver
-                    ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/20'
-                    : 'border-line dark:border-slate-800 hover:border-accent hover:bg-shell/30'
+                    ? 'border-accent bg-accent/5 dark:bg-amber-950/20'
+                    : 'border-line dark:border-slate-800 hover:border-accent hover:bg-shell/30 dark:hover:bg-slate-800/40'
                 }`}
               >
-                <div className="w-14 h-14 rounded-2xl bg-shell dark:bg-slate-800 flex items-center justify-center mx-auto text-accent mb-3 shadow-2xs">
-                  <Upload className="w-7 h-7" />
+                <div className="w-16 h-16 rounded-2xl bg-shell dark:bg-slate-800 flex items-center justify-center mx-auto text-accent mb-4 shadow-xs">
+                  <Upload className="w-8 h-8" />
                 </div>
-                <h3 className="font-display font-bold text-sm sm:text-base text-ink dark:text-slate-200">
+                <h3 className="font-display font-bold text-base sm:text-lg text-ink dark:text-slate-200">
                   Drag and drop your 3D CAD model here, or <span className="text-accent underline">browse</span>
                 </h3>
-                <p className="text-xs text-muted dark:text-slate-400 font-mono mt-1">
+                <p className="text-xs text-muted dark:text-slate-400 font-mono mt-2">
                   Supports 3MF (.3mf), OBJ (.obj, .mtl), STL (.stl), &amp; ZIP packages (Max 100 MB)
                 </p>
-                <p className="text-[11px] text-muted dark:text-slate-500 font-sans mt-3 max-w-sm mx-auto leading-relaxed">
-                  Export directly from Blender, Bambu Studio, Fusion 360, Tinkercad, or community repositories. Upload multi-colour 3MF, OBJ with MTL, or ZIP archives with textures.
+                <div className="mt-6 flex flex-wrap justify-center gap-2 text-[11px] font-mono text-muted dark:text-slate-400">
+                  <span className="px-2.5 py-1 rounded-md bg-shell dark:bg-slate-800 border border-line dark:border-slate-700">.STL</span>
+                  <span className="px-2.5 py-1 rounded-md bg-shell dark:bg-slate-800 border border-line dark:border-slate-700">.3MF (Bambu / Prusa)</span>
+                  <span className="px-2.5 py-1 rounded-md bg-shell dark:bg-slate-800 border border-line dark:border-slate-700">.OBJ + .MTL</span>
+                  <span className="px-2.5 py-1 rounded-md bg-shell dark:bg-slate-800 border border-line dark:border-slate-700">.ZIP (Textures)</span>
+                </div>
+                <p className="text-[11px] text-muted dark:text-slate-500 font-sans mt-4 max-w-sm mx-auto leading-relaxed">
+                  Direct export from Bambu Studio, Blender, Fusion 360, Tinkercad, or maker repositories.
                 </p>
+              </div>
+            ) : (
+              /* File Loaded & Parsed State */
+              <div className="space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-shell/50 dark:bg-slate-800/50 border border-line dark:border-slate-800">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-accent/10 dark:bg-amber-950/40 text-accent flex items-center justify-center shrink-0">
+                      <FileBox className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-display font-bold text-sm text-ink dark:text-white truncate" title={file.name}>
+                        {file.name}
+                      </h4>
+                      <p className="text-xs text-muted dark:text-slate-400 font-mono">
+                        {(file.size / (1024 * 1024)).toFixed(2)} MB · {file.name.split('.').pop()?.toUpperCase()}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3 py-1.5 rounded-lg border border-line dark:border-slate-700 hover:border-accent text-xs font-mono text-ink dark:text-slate-200 transition-colors cursor-pointer"
+                    >
+                      Replace Model
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveFile}
+                      className="px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/40 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-xs font-mono text-rose-600 transition-colors cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+
+                {/* Processing State Feedback */}
+                {modelProcessingState === 'processing' || isParsing ? (
+                  <div className="p-8 text-center space-y-3 rounded-xl border border-line dark:border-slate-800 bg-white/40 dark:bg-slate-900/40">
+                    <Loader2 className="w-8 h-8 text-accent animate-spin mx-auto" />
+                    <p className="font-display font-bold text-sm text-ink dark:text-white">Analyzing 3D Geometry...</p>
+                    <p className="text-xs text-muted dark:text-slate-400 font-sans">
+                      Calculating surface mesh, manifold volume, and boundary dimensions.
+                    </p>
+                  </div>
+                ) : modelResult?.success ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-3.5 rounded-xl border border-line dark:border-slate-800 bg-white dark:bg-slate-800/40">
+                        <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">Length (X)</span>
+                        <span className="font-mono text-sm font-bold text-ink dark:text-slate-200">{modelResult.dimensions.x} mm</span>
+                      </div>
+                      <div className="p-3.5 rounded-xl border border-line dark:border-slate-800 bg-white dark:bg-slate-800/40">
+                        <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">Width (Y)</span>
+                        <span className="font-mono text-sm font-bold text-ink dark:text-slate-200">{modelResult.dimensions.y} mm</span>
+                      </div>
+                      <div className="p-3.5 rounded-xl border border-line dark:border-slate-800 bg-white dark:bg-slate-800/40">
+                        <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">Height (Z)</span>
+                        <span className="font-mono text-sm font-bold text-accent">{modelResult.dimensions.z} mm</span>
+                      </div>
+                      <div className="p-3.5 rounded-xl border border-line dark:border-slate-800 bg-white dark:bg-slate-800/40">
+                        <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">Solid Volume</span>
+                        <span className="font-mono text-sm font-bold text-ink dark:text-slate-200">{modelResult.volumeCm3.toFixed(1)} cm³</span>
+                      </div>
+                    </div>
+
+                    {exceedsBuildVolume ? (
+                      <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3.5 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
+                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold block">Exceeds Standard Build Envelope</span>
+                          <span>
+                            This model ({modelResult.dimensions.x} × {modelResult.dimensions.y} × {modelResult.dimensions.z} mm) exceeds our {maxBuildVolume.x} × {maxBuildVolume.y} × {maxBuildVolume.z} mm build volume. You can scale it down in Step 2 or request a custom split quote.
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 dark:bg-emerald-950/20 p-3 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                        <span className="flex items-center gap-2 font-mono text-xs font-semibold">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          Geometry Verified · Ready to Configure
+                        </span>
+                        <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400">
+                          Workshop Printer: {maxBuildVolume.x} × {maxBuildVolume.y} × {maxBuildVolume.z} mm
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Continue Button */}
+                    <div className="pt-4 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleTabChange('configure')}
+                        className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-accent hover:bg-amber-600 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <span>Continue to Configure</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : modelProcessingState === 'error' ? (
+                  <div className="p-4 rounded-xl border border-rose-200 bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-300 text-xs flex items-center justify-between">
+                    <span>{modelResult?.errorMessage || 'Unable to parse 3D model. Please try another file format.'}</span>
+                    <button
+                      type="button"
+                      onClick={handleRemoveFile}
+                      className="font-mono text-xs font-bold underline cursor-pointer"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                ) : null}
               </div>
             )}
 
@@ -1016,146 +1221,216 @@ export function CustomPrinting() {
               }}
               className="hidden"
             />
+          </div>
+        </div>
+      )}
 
-            {/* Dimensions & Sizing (Displayed when model is successfully parsed) */}
-            {modelResult?.success && effectiveDimensions && (
-              <div className="space-y-4 pt-3 border-t border-line dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Maximize2 className="w-4 h-4 text-accent" />
-                    <span className="font-display font-bold text-xs uppercase tracking-wider text-ink dark:text-slate-200">
-                      Model Dimensions & Sizing
+      {/* ========================================================= */}
+      {/* TAB 2: CONFIGURE                                          */}
+      {/* ========================================================= */}
+      {activeTab === 'configure' && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left Column: 3D Model Viewer & Size Settings */}
+            <div className="lg:col-span-5 lg:sticky lg:top-24 space-y-4">
+              {/* 3D Model Viewer Card */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-4 shadow-xs space-y-3">
+                <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-2.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileBox className="w-4 h-4 text-accent shrink-0" />
+                    <span className="font-display font-bold text-xs uppercase tracking-wider text-ink dark:text-white truncate">
+                      {file?.name}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-md">
-                      {Math.round(scaleFactor * 100)}% Scale
+                  <span className="font-mono text-[10px] text-muted shrink-0">
+                    {effectiveVolumeCm3.toFixed(1)} cm³
+                  </span>
+                </div>
+
+                {/* Three.js Canvas Viewer */}
+                <ThreeModelViewer
+                  geometry={modelResult?.geometry || null}
+                  object3d={modelResult?.object3d || null}
+                  hasOriginalColors={modelResult?.hasOriginalColors || false}
+                  colorMode={modelColorMode}
+                  onColorModeChange={setModelColorMode}
+                  colorHex={activeColor.hex}
+                  isLoading={isParsing}
+                  error={modelResult?.errorMessage}
+                  dimensions={effectiveDimensions || undefined}
+                  scale={scaleFactor}
+                  onOrientedDimensionsChange={handleOrientedDimensionsChange}
+                />
+
+                {/* Original Colors Badge */}
+                {modelResult?.success && modelResult?.hasOriginalColors && (
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 text-[11px]">
+                    <span className="font-mono font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                      <Palette className="w-3.5 h-3.5 text-accent" />
+                      Original Model Colours Detected
                     </span>
-                    {scaleFactor !== 1 && (
-                      <button
-                        type="button"
-                        onClick={handleResetScale}
-                        className="text-[10px] font-mono text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer"
-                        title="Reset to original 100% size"
-                      >
-                        <RotateCcw className="w-2.5 h-2.5" />
-                        <span>Reset</span>
-                      </button>
-                    )}
+                    <span className="text-muted text-[10px]">
+                      Filament in Step 2 determines production color
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Size Card */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-4 shadow-xs space-y-3">
+                <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-2.5">
+                  <div>
+                    <h3 className="font-display font-bold text-xs uppercase tracking-wider text-ink dark:text-white flex items-center gap-1.5">
+                      <Maximize2 className="w-3.5 h-3.5 text-accent" />
+                      <span>Size</span>
+                    </h3>
+                    <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
+                      Original dimensions or custom scaled sizing
+                    </p>
+                  </div>
+
+                  {/* Size Mode Toggle */}
+                  <div className="flex items-center p-1 bg-shell dark:bg-slate-800 rounded-xl border border-line dark:border-slate-700">
+                    <button
+                      type="button"
+                      onClick={() => handleSizeModeChange('original')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                        sizeMode === 'original'
+                          ? 'bg-accent text-white shadow-2xs'
+                          : 'text-muted hover:text-ink dark:hover:text-white'
+                      }`}
+                    >
+                      Original
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSizeModeChange('custom')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                        sizeMode === 'custom'
+                          ? 'bg-accent text-white shadow-2xs'
+                          : 'text-muted hover:text-ink dark:hover:text-white'
+                      }`}
+                    >
+                      Custom
+                    </button>
                   </div>
                 </div>
 
-                {/* Dimensions Grid (X, Y, Z in mm) */}
-                <div className="grid grid-cols-3 gap-2 bg-shell/50 dark:bg-slate-800/40 p-3 rounded-xl border border-line dark:border-slate-800 text-center">
-                  <div>
-                    <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                      Length (X)
-                    </span>
-                    <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
-                      {effectiveDimensions.x} <span className="text-[10px] font-normal">mm</span>
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                      Width (Y)
-                    </span>
-                    <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
-                      {effectiveDimensions.y} <span className="text-[10px] font-normal">mm</span>
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                      Height (Z)
-                    </span>
-                    <span className="font-mono text-xs font-bold text-accent">
-                      {effectiveDimensions.z} <span className="text-[10px] font-normal">mm</span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* Scale Controls: Height & Presets */}
-                <div className="space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                {/* Dimensions Preview (X, Y, Z mm) */}
+                {effectiveDimensions && (
+                  <div className="grid grid-cols-3 gap-2 bg-shell/50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-line dark:border-slate-800 text-center">
                     <div>
-                      <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block mb-1">
-                        Target Height (Z in mm)
-                      </label>
-                      <div className="relative flex items-center">
-                        <input
-                          type="number"
-                          step="0.5"
-                          min="5"
-                          max={maxBuildVolume.z}
-                          value={targetHeightInput}
-                          onChange={(e) => handleHeightInputChange(e.target.value)}
-                          className="w-full py-2 px-3 pr-10 rounded-xl border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono font-bold text-ink dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-500 shadow-2xs"
-                        />
-                        <span className="absolute right-3 font-mono text-xs text-muted pointer-events-none">
-                          mm
-                        </span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block mb-1">
-                        Quick Scale Presets
-                      </label>
-                      <div className="flex items-center gap-1.5">
-                        {[50, 75, 100, 150, 200].map((pct) => (
-                          <button
-                            key={pct}
-                            type="button"
-                            onClick={() => handlePresetScale(pct / 100)}
-                            className={`flex-1 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
-                              Math.round(scaleFactor * 100) === pct
-                                ? 'bg-brand-500 text-white shadow-2xs'
-                                : 'bg-shell dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-ink dark:text-slate-200'
-                            }`}
-                          >
-                            {pct}%
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Uniform Scale Slider */}
-                  <div>
-                    <div className="flex justify-between text-[10px] font-mono text-muted mb-1">
-                      <span>25%</span>
-                      <span className="font-bold text-ink dark:text-slate-200">
-                        Uniform Scale: {Math.round(scaleFactor * 100)}%
+                      <span className="text-[9px] font-mono text-muted uppercase tracking-wider block">
+                        Length (X)
                       </span>
-                      <span>300%</span>
+                      <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
+                        {effectiveDimensions.x} <span className="text-[10px] font-normal">mm</span>
+                      </span>
                     </div>
-                    <input
-                      type="range"
-                      min="0.25"
-                      max="3.0"
-                      step="0.05"
-                      value={scaleFactor}
-                      onChange={(e) => handleSliderScale(parseFloat(e.target.value))}
-                      className="w-full accent-brand-500 cursor-pointer"
-                    />
+                    <div>
+                      <span className="text-[9px] font-mono text-muted uppercase tracking-wider block">
+                        Width (Y)
+                      </span>
+                      <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
+                        {effectiveDimensions.y} <span className="text-[10px] font-normal">mm</span>
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-mono text-muted uppercase tracking-wider block">
+                        Height (Z)
+                      </span>
+                      <span className="font-mono text-xs font-bold text-accent">
+                        {effectiveDimensions.z} <span className="text-[10px] font-normal">mm</span>
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {/* Build Volume Envelope Check */}
+                {/* Custom Scale Controls (shown only if custom size selected) */}
+                {sizeMode === 'custom' && (
+                  <div className="space-y-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-center">
+                      <div>
+                        <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block mb-1">
+                          Target Height (Z in mm)
+                        </label>
+                        <div className="relative flex items-center">
+                          <input
+                            type="number"
+                            step="0.5"
+                            min="5"
+                            max={maxBuildVolume.z}
+                            value={targetHeightInput}
+                            onChange={(e) => handleHeightInputChange(e.target.value)}
+                            className="w-full py-1.5 px-3 pr-10 rounded-xl border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono font-bold text-ink dark:text-white focus:outline-hidden focus:ring-2 focus:ring-accent shadow-2xs"
+                          />
+                          <span className="absolute right-3 font-mono text-xs text-muted pointer-events-none">
+                            mm
+                          </span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block mb-1">
+                          Quick Scale Presets
+                        </label>
+                        <div className="flex items-center gap-1">
+                          {[50, 75, 100, 150, 200].map((pct) => (
+                            <button
+                              key={pct}
+                              type="button"
+                              onClick={() => handlePresetScale(pct / 100)}
+                              className={`flex-1 py-1 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer ${
+                                Math.round(scaleFactor * 100) === pct
+                                  ? 'bg-accent text-white shadow-2xs'
+                                  : 'bg-shell dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-ink dark:text-slate-200'
+                              }`}
+                            >
+                              {pct}%
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Uniform Scale Slider */}
+                    <div>
+                      <div className="flex justify-between text-[10px] font-mono text-muted mb-1">
+                        <span>25%</span>
+                        <span className="font-bold text-ink dark:text-slate-200">
+                          Uniform Scale: {Math.round(scaleFactor * 100)}%
+                        </span>
+                        <span>300%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.25"
+                        max="3.0"
+                        step="0.05"
+                        value={scaleFactor}
+                        onChange={(e) => handleSliderScale(parseFloat(e.target.value))}
+                        className="w-full accent-accent cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Build Envelope Warning / Confirmation */}
                 {exceedsBuildVolume ? (
-                  <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                  <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-2.5 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                     <div>
                       <span className="font-bold block">Exceeds Maximum Build Envelope</span>
-                      <span>
-                        Model dimensions ({effectiveDimensions.x} × {effectiveDimensions.y} × {effectiveDimensions.z} mm) exceed our {maxBuildVolume.x} × {maxBuildVolume.y} × {maxBuildVolume.z} mm printer volume. Please scale down or submit for custom split printing review.
+                      <span className="text-[11px]">
+                        Model exceeds {maxBuildVolume.x} × {maxBuildVolume.y} × {maxBuildVolume.z} mm printer volume. Scale down or submit for custom quote review.
                       </span>
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 dark:bg-emerald-950/20 p-2.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 dark:bg-emerald-950/20 p-2 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
                     <span className="flex items-center gap-1.5 font-mono text-[11px] font-semibold">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      Fits Workshop Printer Envelope
+                      Fits Workshop Printer
                     </span>
                     <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400">
                       Max: {maxBuildVolume.x} × {maxBuildVolume.y} × {maxBuildVolume.z} mm
@@ -1163,550 +1438,792 @@ export function CustomPrinting() {
                   </div>
                 )}
               </div>
-            )}
-          </div>
-
-          {/* STEP 2: Choose Printing Options */}
-          <div id="step-options" className="space-y-4">
-            {/* Material & Color Group */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
-                <div>
-                  <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-accent" />
-                    <span>Step 2 — Material & Color</span>
-                  </h3>
-                  <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
-                    Select production filament and color finish
-                  </p>
-                </div>
-                <span className="font-mono text-xs font-bold text-accent bg-accent/10 px-2.5 py-1 rounded-md">
-                  ₹{activeMaterial.pricePerGram}/g
-                </span>
-              </div>
-
-              {/* Material Selection Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                {activeMaterials.map((mat) => {
-                  const isSelected = selectedMaterialId === mat.id;
-                  return (
-                    <button
-                      key={mat.id}
-                      type="button"
-                      onClick={() => handleMaterialChange(mat.id)}
-                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30 ring-1 ring-brand-400 shadow-2xs'
-                          : 'border-line dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-display font-bold text-sm text-ink dark:text-slate-100">
-                          {mat.name}
-                        </span>
-                        <span className="font-mono text-[10px] font-bold text-accent">
-                          ₹{mat.pricePerGram}/g
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-muted dark:text-slate-400 line-clamp-2 leading-relaxed font-sans">
-                        {mat.tagline || mat.description}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Custom Colour Palette */}
-              <div className="pt-3 border-t border-line dark:border-slate-800 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-ink dark:text-slate-200">
-                    Printing Colour:{' '}
-                    <span className="text-accent font-semibold ml-1">
-                      {customColorHex ? `Custom (${customColorHex.toUpperCase()})` : activeColor.name}
-                    </span>
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2.5">
-                  {/* Custom Colour Palette Wheel */}
-                  <label
-                    className="relative flex items-center justify-center w-8 h-8 rounded-full border-2 border-brand-500 scale-105 shadow-sm ring-2 ring-brand-500/30 cursor-pointer transition-all hover:scale-110"
-                    style={{
-                      background:
-                        'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
-                    }}
-                    title="Open custom colour palette"
-                  >
-                    <input
-                      type="color"
-                      value={customColorHex || activeColor.hex || '#1C1917'}
-                      onChange={(e) => {
-                        setCustomColorHex(e.target.value);
-                        setSelectedColorName(`Custom (${e.target.value.toUpperCase()})`);
-                      }}
-                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                    />
-                  </label>
-
-                  {/* Selected Color Swatch & Hex */}
-                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-shell/50 dark:bg-slate-800/50 border border-line dark:border-slate-700 text-xs font-mono">
-                    <span
-                      className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-600 shadow-xs shrink-0"
-                      style={{ backgroundColor: customColorHex || activeColor.hex }}
-                    />
-                    <span className="font-bold text-ink dark:text-slate-200">
-                      {(customColorHex || activeColor.hex).toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-              </div>
             </div>
 
-            {/* Print Quality Group */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-3">
-              <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
-                <div>
-                  <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-accent" />
-                    <span>Print Quality (Layer Height)</span>
-                  </h3>
-                  <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
-                    Finer layers deliver smoother vertical walls with minimal layer lines
-                  </p>
-                </div>
-                <span className="font-mono text-xs text-muted">
-                  {effectiveLayerHeight} mm layer
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                {[
-                  { id: 'budget', name: 'Draft', height: '0.28 mm', desc: 'Fast prototype & rough form testing' },
-                  { id: 'standard', name: 'Standard', height: '0.20 mm', desc: 'Optimal balance of surface quality & speed', recommended: true },
-                  { id: 'premium', name: 'Fine', height: '0.12 mm', desc: 'Smooth surface finish for miniatures & display' },
-                ].map((tier) => {
-                  const isSelected = selectedProfileId === tier.id;
-                  return (
-                    <button
-                      key={tier.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedProfileId(tier.id);
-                        setCustomLayerHeight(null);
-                      }}
-                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30 ring-1 ring-brand-400 shadow-2xs'
-                          : 'border-line dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-display font-bold text-sm text-ink dark:text-slate-100">
-                          {tier.name}
-                        </span>
-                        {tier.recommended && (
-                          <span className="px-1.5 py-0.5 rounded-full bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-300 font-mono text-[9px] font-bold">
-                            Recommended
-                          </span>
-                        )}
-                      </div>
-                      <p className="font-mono text-xs font-semibold text-accent mb-1">
-                        {tier.height}
-                      </p>
-                      <p className="text-[11px] text-muted dark:text-slate-400 leading-relaxed font-sans">
-                        {tier.desc}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Strength (Infill) Group */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-3">
-              <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
-                <div>
-                  <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
-                    <Box className="w-4 h-4 text-accent" />
-                    <span>Part Strength (Infill Density)</span>
-                  </h3>
-                  <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
-                    Internal grid density determines weight, rigidity, and material usage
-                  </p>
-                </div>
-                <span className="font-mono text-xs font-bold text-accent">
-                  {effectiveInfill}% infill
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                {[
-                  { pct: 15, name: 'Lightweight', subtitle: '15% infill', desc: 'Display & decorative · Fastest print · Minimal material' },
-                  { pct: 25, name: 'Balanced', subtitle: '25% infill', desc: 'Standard utility · Great strength-to-weight balance' },
-                  { pct: 50, name: 'Reinforced', subtitle: '50% infill', desc: 'Mechanical & functional · Maximum load resistance' },
-                ].map((tier) => {
-                  const isSelected = effectiveInfill === tier.pct;
-                  return (
-                    <button
-                      key={tier.pct}
-                      type="button"
-                      onClick={() => setCustomInfill(tier.pct)}
-                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30 ring-1 ring-brand-400 shadow-2xs'
-                          : 'border-line dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-display font-bold text-sm text-ink dark:text-slate-100">
-                          {tier.name}
-                        </span>
-                        <span className="font-mono text-xs font-semibold text-accent">
-                          {tier.subtitle}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-muted dark:text-slate-400 leading-relaxed font-sans">
-                        {tier.desc}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Supports Group */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-3">
-              <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
-                <div>
-                  <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-accent" />
-                    <span>Support Structures</span>
-                  </h3>
-                  <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
-                    Temporary scaffolding for steep overhangs and horizontal bridges
-                  </p>
-                </div>
-                <span className="font-mono text-xs font-semibold text-muted">
-                  {supportsEnabled ? 'Auto (Enabled)' : 'None'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setSupportsEnabled(true)}
-                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                    supportsEnabled
-                      ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30 ring-1 ring-brand-400 shadow-2xs'
-                      : 'border-line dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-display font-bold text-sm text-ink dark:text-slate-100">
-                      Auto Supports
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-mono text-[9px] font-bold">
-                      Recommended
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted dark:text-slate-400 leading-relaxed font-sans">
-                    Recommended for steep overhangs (&gt;45°), bridges & complex organic models.
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSupportsEnabled(false)}
-                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                    !supportsEnabled
-                      ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30 ring-1 ring-brand-400 shadow-2xs'
-                      : 'border-line dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-display font-bold text-sm text-ink dark:text-slate-100">
-                      No Supports
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted dark:text-slate-400 leading-relaxed font-sans">
-                    Best for flat-bottom models, geometric primitives, or self-supporting angles.
-                  </p>
-                </button>
-              </div>
-            </div>
-
-            {/* Quantity & Packaging Group */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
-                <div>
-                  <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
-                    <Package className="w-4 h-4 text-accent" />
-                    <span>Quantity & Packaging</span>
-                  </h3>
-                  <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
-                    Bulk volume discounts automatically applied
-                  </p>
-                </div>
-
-                {/* Quantity Stepper */}
-                <div className="flex items-center border border-line dark:border-slate-700 rounded-xl bg-shell/40 dark:bg-slate-800 p-1">
-                  <button
-                    type="button"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-ink dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                  >
-                    −
-                  </button>
-                  <span className="w-10 text-center font-mono font-bold text-sm text-ink dark:text-slate-100">
-                    {quantity}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-ink dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              {/* Protective Packaging Checkbox */}
-              <div className="flex items-center justify-between p-3 rounded-xl border border-line dark:border-slate-800 bg-shell/30 dark:bg-slate-800/30">
-                <div className="flex items-center gap-2.5">
-                  <Package className="w-4 h-4 text-accent shrink-0" />
+            {/* Right Column: Customer-Facing Configuration Cards */}
+            <div className="lg:col-span-7 space-y-4">
+              {/* 1. Material */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-3">
+                <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
                   <div>
-                    <span className="text-xs font-bold text-ink dark:text-slate-200 block">
-                      Protective Bubble & Box Packaging
+                    <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-accent" />
+                      <span>Material</span>
+                    </h3>
+                    <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
+                      Choose the material for your print.
+                    </p>
+                  </div>
+                  <span className="font-mono text-xs font-bold text-accent bg-accent/10 px-2.5 py-1 rounded-md">
+                    ₹{activeMaterial.pricePerGram}/g
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {activeMaterials.map((mat) => {
+                    const isSelected = selectedMaterialId === mat.id;
+                    return (
+                      <button
+                        key={mat.id}
+                        type="button"
+                        onClick={() => handleMaterialChange(mat.id)}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-accent bg-accent/5 dark:bg-amber-950/30 ring-1 ring-accent/60 shadow-2xs'
+                            : 'border-line dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-display font-bold text-sm text-ink dark:text-slate-100">
+                            {mat.name}
+                          </span>
+                          <span className="font-mono text-[10px] font-bold text-accent">
+                            ₹{mat.pricePerGram}/g
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted dark:text-slate-400 line-clamp-2 leading-relaxed font-sans">
+                          {mat.tagline || mat.description}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2. Color */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-3">
+                <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
+                  <div>
+                    <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
+                      <Palette className="w-4 h-4 text-accent" />
+                      <span>Color</span>
+                    </h3>
+                    <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
+                      Choose your preferred color.
+                    </p>
+                  </div>
+                  <span className="font-mono text-xs font-semibold text-accent">
+                    {customColorHex ? `Custom (${customColorHex.toUpperCase()})` : activeColor.name}
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Material Swatches */}
+                  {activeMaterial.colors && activeMaterial.colors.length > 0 && (
+                    <div className="flex flex-wrap gap-2 items-center">
+                      {activeMaterial.colors.map((c) => {
+                        const isSelected = !customColorHex && activeColor.name === c.name;
+                        return (
+                          <button
+                            key={c.name}
+                            type="button"
+                            onClick={() => {
+                              setCustomColorHex(null);
+                              setSelectedColorName(c.name);
+                            }}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-mono transition-all cursor-pointer ${
+                              isSelected
+                                ? 'border-accent bg-accent/10 dark:bg-amber-950/30 text-ink dark:text-white font-bold ring-1 ring-accent'
+                                : 'border-line dark:border-slate-800 bg-shell/40 dark:bg-slate-800/40 text-muted hover:border-slate-300'
+                            }`}
+                          >
+                            <span
+                              className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-600 shadow-2xs shrink-0"
+                              style={{ backgroundColor: c.hex }}
+                            />
+                            <span>{c.name}</span>
+                          </button>
+                        );
+                      })}
+
+                      {/* Custom Color Wheel Picker */}
+                      <label
+                        className="relative flex items-center justify-center w-8 h-8 rounded-full border-2 border-accent scale-105 shadow-sm ring-2 ring-accent/30 cursor-pointer transition-all hover:scale-110 ml-1"
+                        style={{
+                          background:
+                            'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
+                        }}
+                        title="Pick custom color shade"
+                      >
+                        <input
+                          type="color"
+                          value={customColorHex || activeColor.hex || '#1C1917'}
+                          onChange={(e) => {
+                            setCustomColorHex(e.target.value);
+                            setSelectedColorName(`Custom (${e.target.value.toUpperCase()})`);
+                          }}
+                          className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 3. Print Quality Presets */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-3">
+                <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
+                  <div>
+                    <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-accent" />
+                      <span>Print Quality</span>
+                    </h3>
+                    <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
+                      How much detail do you want?
+                    </p>
+                  </div>
+                  <span className="font-mono text-xs font-semibold text-accent capitalize">
+                    {qualityPreset}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {QUALITY_OPTIONS.map((opt) => {
+                    const isSelected = qualityPreset === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          setQualityPreset(opt.id);
+                          setCustomLayerHeight(null);
+                        }}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-accent bg-accent/5 dark:bg-amber-950/30 ring-1 ring-accent/60 shadow-2xs'
+                            : 'border-line dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-display font-bold text-sm text-ink dark:text-slate-100">
+                            {opt.name}
+                          </span>
+                          {opt.badge && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-accent/10 dark:bg-amber-950 text-accent font-mono text-[9px] font-bold">
+                              {opt.badge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted dark:text-slate-400 leading-relaxed font-sans">
+                          {opt.description}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 4. Strength Presets */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-3">
+                <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
+                  <div>
+                    <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-accent" />
+                      <span>Strength</span>
+                    </h3>
+                    <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
+                      How much strength does your part need?
+                    </p>
+                  </div>
+                  <span className="font-mono text-xs font-semibold text-accent capitalize">
+                    {strengthPreset}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {STRENGTH_OPTIONS.map((opt) => {
+                    const isSelected = strengthPreset === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          setStrengthPreset(opt.id);
+                          setCustomInfill(null);
+                        }}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-accent bg-accent/5 dark:bg-amber-950/30 ring-1 ring-accent/60 shadow-2xs'
+                            : 'border-line dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-display font-bold text-sm text-ink dark:text-slate-100">
+                            {opt.name}
+                          </span>
+                          {opt.badge && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-accent/10 dark:bg-amber-950 text-accent font-mono text-[9px] font-bold">
+                              {opt.badge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted dark:text-slate-400 leading-relaxed font-sans">
+                          {opt.description}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 5. Support Options */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-3">
+                <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
+                  <div>
+                    <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-accent" />
+                      <span>Support</span>
+                    </h3>
+                    <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
+                      How should we handle difficult overhangs?
+                    </p>
+                  </div>
+                  <span className="font-mono text-xs font-semibold text-accent capitalize">
+                    {supportMode}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {SUPPORT_OPTIONS.map((opt) => {
+                    const isSelected = supportMode === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setSupportMode(opt.id)}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-accent bg-accent/5 dark:bg-amber-950/30 ring-1 ring-accent/60 shadow-2xs'
+                            : 'border-line dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-display font-bold text-sm text-ink dark:text-slate-100">
+                            {opt.name}
+                          </span>
+                          {opt.badge && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-accent/10 dark:bg-amber-950 text-accent font-mono text-[9px] font-bold">
+                              {opt.badge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted dark:text-slate-400 leading-relaxed font-sans">
+                          {opt.description}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 6. Surface Finish */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-3">
+                <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
+                  <div>
+                    <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-accent" />
+                      <span>Surface Finish</span>
+                    </h3>
+                    <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
+                      What kind of finish do you want?
+                    </p>
+                  </div>
+                  <span className="font-mono text-xs font-semibold text-accent capitalize">
+                    {surfaceFinish}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {FINISH_OPTIONS.map((opt) => {
+                    const isSelected = surfaceFinish === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setSurfaceFinish(opt.id)}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-accent bg-accent/5 dark:bg-amber-950/30 ring-1 ring-accent/60 shadow-2xs'
+                            : 'border-line dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-display font-bold text-sm text-ink dark:text-slate-100">
+                            {opt.name}
+                          </span>
+                          {opt.badge && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-accent/10 dark:bg-amber-950 text-accent font-mono text-[9px] font-bold">
+                              {opt.badge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted dark:text-slate-400 leading-relaxed font-sans">
+                          {opt.description}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 7. Quantity */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider flex items-center gap-2">
+                      <Package className="w-4 h-4 text-accent" />
+                      <span>Quantity</span>
+                    </h3>
+                    <p className="text-[11px] text-muted dark:text-slate-400 font-sans">
+                      Discounts automatically applied on volume orders
+                    </p>
+                  </div>
+
+                  {/* Quantity Stepper */}
+                  <div className="flex items-center border border-line dark:border-slate-700 rounded-xl bg-shell/40 dark:bg-slate-800 p-1">
+                    <button
+                      type="button"
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-ink dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                    >
+                      −
+                    </button>
+                    <span className="w-10 text-center font-mono font-bold text-sm text-ink dark:text-slate-100">
+                      {quantity}
                     </span>
-                    <span className="text-[10px] text-muted">
-                      +₹{pricingData?.pricingConfig?.packagingPrice || 20} per piece · High-durability box with custom padding
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setQuantity(quantity + 1)}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-ink dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                    >
+                      +
+                    </button>
                   </div>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={packagingIncluded}
-                  onChange={(e) => setPackagingIncluded(e.target.checked)}
-                  className="w-4 h-4 rounded text-brand-500 focus:ring-brand-400 cursor-pointer"
-                />
+              </div>
+
+              {/* 8. Advanced Settings (Collapsible / Optional) */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 overflow-hidden shadow-xs">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="w-full p-4 flex items-center justify-between text-left hover:bg-shell/30 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Sliders className="w-4 h-4 text-accent" />
+                    <div>
+                      <span className="font-display font-bold text-xs uppercase tracking-wider text-ink dark:text-white block">
+                        Advanced Settings
+                      </span>
+                      <span className="text-[11px] text-muted dark:text-slate-400 font-sans">
+                        Optional production overrides (hidden by default)
+                      </span>
+                    </div>
+                  </div>
+                  {showAdvanced ? (
+                    <ChevronUp className="w-4 h-4 text-muted" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted" />
+                  )}
+                </button>
+
+                {showAdvanced && (
+                  <div className="p-5 border-t border-line dark:border-slate-800 space-y-4 bg-shell/20 dark:bg-slate-900/40">
+                    <p className="text-[11px] text-muted dark:text-slate-400 font-sans leading-relaxed">
+                      Presets handle these settings automatically. You may optionally override specific values below:
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Custom Layer Height */}
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted">
+                            Layer Height Override
+                          </label>
+                          {customLayerHeight !== null && (
+                            <button
+                              type="button"
+                              onClick={() => setCustomLayerHeight(null)}
+                              className="text-[10px] font-mono text-accent hover:underline"
+                            >
+                              Reset to {activeProfile.layerHeight}mm
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          type="number"
+                          step="0.04"
+                          min="0.08"
+                          max="0.36"
+                          placeholder={`Default (${activeProfile.layerHeight} mm)`}
+                          value={customLayerHeight ?? ''}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            setCustomLayerHeight(!isNaN(val) ? val : null);
+                          }}
+                          className="w-full py-2 px-3 rounded-xl border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono text-ink dark:text-white"
+                        />
+                      </div>
+
+                      {/* Custom Infill Density */}
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted">
+                            Infill Density Override (%)
+                          </label>
+                          {customInfill !== null && (
+                            <button
+                              type="button"
+                              onClick={() => setCustomInfill(null)}
+                              className="text-[10px] font-mono text-accent hover:underline"
+                            >
+                              Reset to preset ({resolvedInfill}%)
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          type="number"
+                          step="5"
+                          min="10"
+                          max="100"
+                          placeholder={`Default (${resolvedInfill}%)`}
+                          value={customInfill ?? ''}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            setCustomInfill(!isNaN(val) ? val : null);
+                          }}
+                          className="w-full py-2 px-3 rounded-xl border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono text-ink dark:text-white"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Protective Box Packaging */}
+                    <div className="flex items-center justify-between p-3 rounded-xl border border-line dark:border-slate-800 bg-white dark:bg-slate-800/40">
+                      <div className="flex items-center gap-2.5">
+                        <Package className="w-4 h-4 text-accent shrink-0" />
+                        <div>
+                          <span className="text-xs font-bold text-ink dark:text-slate-200 block">
+                            Protective Bubble &amp; Box Packaging
+                          </span>
+                          <span className="text-[10px] text-muted">
+                            +₹{pricingData?.pricingConfig?.packagingPrice || 20} per piece · High-durability box with custom foam
+                          </span>
+                        </div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={packagingIncluded}
+                        onChange={(e) => setPackagingIncluded(e.target.checked)}
+                        className="w-4 h-4 rounded text-accent focus:ring-accent cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom Navigation Buttons */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('upload')}
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl border border-line dark:border-slate-700 hover:border-slate-400 bg-white dark:bg-slate-800 text-ink dark:text-slate-200 text-xs font-mono font-bold flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back to Upload</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('estimate')}
+                  className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-accent hover:bg-amber-600 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>Continue to Estimate</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>
         </div>
+      )}
 
-        {/* Right Column: Step 3 — Quotation Card (Sticky on Desktop) */}
-        <div id="step-quote" className="lg:col-span-5 lg:sticky lg:top-24 space-y-4 self-start">
-          {quoteBreakdown && modelResult?.success ? (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-accent/80 p-5 shadow-md space-y-4">
-              {/* Dominant Price Header */}
-              <div className="border-b border-line dark:border-slate-800 pb-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-accent">
-                    Step 3 — Estimated Quotation
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full bg-shell dark:bg-slate-800 text-muted dark:text-slate-300 font-mono text-[10px] font-bold border border-line dark:border-slate-700">
-                    Theoretical Estimate
-                  </span>
+      {/* ========================================================= */}
+      {/* TAB 3: ESTIMATE                                           */}
+      {/* ========================================================= */}
+      {activeTab === 'estimate' && quoteBreakdown && (
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
+          <div className="text-center space-y-1.5">
+            <h2 className="font-display text-2xl sm:text-3xl font-bold text-ink dark:text-white">
+              Your Print Estimate
+            </h2>
+            <p className="text-sm text-muted dark:text-slate-400 font-sans max-w-lg mx-auto">
+              Review your specifications, calculated material usage, and estimated pricing.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left Column: Detailed Specifications Summary */}
+            <div className="lg:col-span-7 space-y-4">
+              {/* Clean Customer Specifications Summary */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <FileBox className="w-4 h-4 text-accent" />
+                    <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider">
+                      Print Summary
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('configure')}
+                    className="text-xs font-mono text-accent hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    Edit configuration →
+                  </button>
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-display font-extrabold text-3xl sm:text-4xl text-ink dark:text-white">
-                    {formatINR(quoteBreakdown.totalPrice)}
-                  </span>
-                  {quantity > 1 && (
-                    <span className="text-xs text-muted font-mono">
-                      ({formatINR(quoteBreakdown.unitPrice)} / piece)
+
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
+                    <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
+                      Material &amp; Color
                     </span>
-                  )}
+                    <div className="flex items-center gap-1.5 mt-0.5 font-bold text-ink dark:text-slate-100">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full border border-slate-300 dark:border-slate-600 shrink-0"
+                        style={{ backgroundColor: customColorHex || activeColor.hex }}
+                      />
+                      <span className="truncate">{activeMaterial.name} · {activeColor.name}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
+                    <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
+                      Print Quality
+                    </span>
+                    <span className="font-bold text-ink dark:text-slate-100 capitalize mt-0.5 block">
+                      {qualityPreset} ({effectiveLayerHeight}mm)
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
+                    <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
+                      Strength
+                    </span>
+                    <span className="font-bold text-ink dark:text-slate-100 capitalize mt-0.5 block">
+                      {strengthPreset}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
+                    <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
+                      Support
+                    </span>
+                    <span className="font-bold text-ink dark:text-slate-100 capitalize mt-0.5 block">
+                      {supportMode}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
+                    <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
+                      Surface Finish
+                    </span>
+                    <span className="font-bold text-ink dark:text-slate-100 capitalize mt-0.5 block">
+                      {surfaceFinish}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
+                    <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
+                      Quantity
+                    </span>
+                    <span className="font-bold text-ink dark:text-slate-100 mt-0.5 block">
+                      {quantity} {quantity === 1 ? 'piece' : 'pieces'}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
+                    <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
+                      Est. Print Time
+                    </span>
+                    <span className="font-bold text-accent mt-0.5 block font-mono">
+                      ~{formatPrintTime(estimatedPrintTimeHours)}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
+                    <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
+                      Est. Material Used
+                    </span>
+                    <span className="font-bold text-accent mt-0.5 block font-mono">
+                      ~{estimatedMaterialUsageGrams} g
+                    </span>
+                  </div>
                 </div>
-                <p className="text-xs font-mono text-muted dark:text-slate-400 mt-1">
-                  For {quantity} {quantity === 1 ? 'piece' : 'pieces'} · {activeMaterial.name} ({activeColor.name}) · {activeProfile.name} quality
-                </p>
-                <p className="text-[11px] text-muted dark:text-slate-400 mt-1.5 leading-relaxed font-sans">
-                  Your estimate changes based on the selected material, print settings, and quantity.
-                </p>
+
+                {/* Dimensions Row */}
+                {effectiveDimensions && (
+                  <div className="p-3 rounded-xl bg-shell/20 dark:bg-slate-800/30 border border-line dark:border-slate-800 flex items-center justify-between text-xs font-mono">
+                    <span className="text-muted">Dimensions:</span>
+                    <span className="font-bold text-ink dark:text-slate-200">
+                      {effectiveDimensions.x} × {effectiveDimensions.y} × {effectiveDimensions.z} mm
+                      {scaleFactor !== 1 && ` (${Math.round(scaleFactor * 100)}% scale)`}
+                    </span>
+                  </div>
+                )}
               </div>
 
-              {/* Compact Breakdown Table */}
-              <div className="rounded-xl border border-line dark:border-slate-800 bg-shell/30 dark:bg-slate-800/30 p-3.5 space-y-2 text-xs">
-                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block">
-                  Print Specifications Breakdown
-                </span>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono text-[11px]">
-                  <div className="flex justify-between">
-                    <span className="text-muted font-sans">Material:</span>
-                    <span className="font-bold text-ink dark:text-slate-200 truncate ml-1">{activeMaterial.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted font-sans">Color:</span>
-                    <span className="font-bold text-ink dark:text-slate-200 truncate ml-1">{activeColor.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted font-sans">Quality:</span>
-                    <span className="font-bold text-ink dark:text-slate-200">{activeProfile.name} ({effectiveLayerHeight}mm)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted font-sans">Strength:</span>
-                    <span className="font-bold text-ink dark:text-slate-200">{effectiveInfill}% infill</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted font-sans">Est. Material:</span>
-                    <span className="font-bold text-accent">~{estimatedMaterialUsageGrams} g</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted font-sans">Est. Print Time:</span>
-                    <span className="font-bold text-accent">~{formatPrintTime(estimatedPrintTimeHours)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted font-sans">Quantity:</span>
-                    <span className="font-bold text-ink dark:text-slate-200">{quantity} {quantity === 1 ? 'piece' : 'pieces'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted font-sans">Packaging:</span>
-                    <span className="font-bold text-ink dark:text-slate-200">{packagingIncluded ? 'Protective Box' : 'Standard'}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Pricing Lines */}
-              <div className="space-y-1.5 text-xs font-sans border-t border-line dark:border-slate-800 pt-3">
-                <div className="flex justify-between text-muted dark:text-slate-400">
-                  <span>Subtotal ({quantity} {quantity === 1 ? 'piece' : 'pieces'})</span>
-                  <span className="font-mono">{formatINR(quoteBreakdown.subtotal)}</span>
-                </div>
-
-                {quoteBreakdown.discountAmount > 0 && (
-                  <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
-                    <span>Bulk Quantity Discount</span>
-                    <span className="font-mono">−{formatINR(quoteBreakdown.discountAmount)}</span>
-                  </div>
-                )}
-
-                {quoteBreakdown.minimumOrderChargeApplied && (
-                  <div className="flex justify-between text-amber-700 dark:text-amber-400 text-[11px] font-mono">
-                    <span>Minimum order adjustment (₹{pricingData?.pricingConfig?.minimumOrderValue || 149})</span>
-                    <span>+{formatINR((pricingData?.pricingConfig?.minimumOrderValue || 149) - quoteBreakdown.discountedSubtotal)}</span>
-                  </div>
-                )}
-
-                {quoteBreakdown.packagingAmount > 0 && (
-                  <div className="flex justify-between text-muted dark:text-slate-400">
-                    <span>Protective Box Packaging ({quantity}x)</span>
-                    <span className="font-mono">+{formatINR(quoteBreakdown.packagingAmount)}</span>
-                  </div>
-                )}
-
-                {quoteBreakdown.gstAmount > 0 && (
-                  <div className="flex justify-between text-muted dark:text-slate-400">
-                    <span>GST ({pricingData?.pricingConfig?.gstRate}%)</span>
-                    <span className="font-mono">+{formatINR(quoteBreakdown.gstAmount)}</span>
-                  </div>
-                )}
-
-                <div className="pt-2 border-t border-line dark:border-slate-800 flex justify-between font-bold text-sm text-ink dark:text-white">
-                  <span>Estimated Total</span>
-                  <span className="font-mono text-base text-accent">
-                    {formatINR(quoteBreakdown.totalPrice)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Short Scannable Verification Notice */}
-              <div className="rounded-xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 p-3 text-xs text-amber-900 dark:text-amber-300 space-y-1">
-                <p className="font-semibold flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              {/* Verification Notice */}
+              <div className="rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 p-4 text-xs text-amber-900 dark:text-amber-300 space-y-1.5">
+                <p className="font-semibold flex items-center gap-1.5 text-sm">
+                  <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
                   <span>We verify your model and confirm the final price before production.</span>
                 </p>
                 <p className="text-[11px] text-amber-800 dark:text-amber-400 leading-relaxed font-sans">
-                  This theoretical estimate is based on geometric volume. Our workshop team verifies slicing toolpaths, wall thicknesses, and print orientation before manufacturing begins.
+                  This theoretical estimate is based on geometric volume and your selected print choices. Our workshop team inspects slicing toolpaths, wall thicknesses, and print orientation before manufacturing begins.
                 </p>
               </div>
+            </div>
 
-              {/* Action Buttons */}
-              <div className="pt-1 space-y-2">
-                {!modelResult?.requiresManualReview && !exceedsBuildVolume ? (
+            {/* Right Column: Prominent Price & Actions Card */}
+            <div className="lg:col-span-5 space-y-4">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-accent/80 p-6 shadow-md space-y-5">
+                {/* Dominant Price Header */}
+                <div className="border-b border-line dark:border-slate-800 pb-4">
+                  <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-accent block mb-1">
+                    Estimated Price
+                  </span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-display font-extrabold text-3xl sm:text-4xl text-ink dark:text-white">
+                      {formatINR(quoteBreakdown.totalPrice)}
+                    </span>
+                    {quantity > 1 && (
+                      <span className="text-xs text-muted font-mono">
+                        ({formatINR(quoteBreakdown.unitPrice)} / piece)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted dark:text-slate-400 font-mono mt-1">
+                    For {quantity} {quantity === 1 ? 'piece' : 'pieces'} · {activeMaterial.name} ({activeColor.name})
+                  </p>
+                </div>
+
+                {/* Transparent Price Breakdown */}
+                <div className="space-y-2 text-xs font-sans">
+                  <div className="flex justify-between text-muted dark:text-slate-400">
+                    <span>Subtotal ({quantity} {quantity === 1 ? 'piece' : 'pieces'})</span>
+                    <span className="font-mono">{formatINR(quoteBreakdown.subtotal)}</span>
+                  </div>
+
+                  {quoteBreakdown.discountAmount > 0 && (
+                    <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <span>Bulk Quantity Discount</span>
+                      <span className="font-mono">−{formatINR(quoteBreakdown.discountAmount)}</span>
+                    </div>
+                  )}
+
+                  {quoteBreakdown.minimumOrderChargeApplied && (
+                    <div className="flex justify-between text-amber-700 dark:text-amber-400 text-[11px] font-mono">
+                      <span>Minimum order adjustment (₹{pricingData?.pricingConfig?.minimumOrderValue || 149})</span>
+                      <span>+{formatINR((pricingData?.pricingConfig?.minimumOrderValue || 149) - quoteBreakdown.discountedSubtotal)}</span>
+                    </div>
+                  )}
+
+                  {quoteBreakdown.packagingAmount > 0 && (
+                    <div className="flex justify-between text-muted dark:text-slate-400">
+                      <span>Protective Box Packaging ({quantity}x)</span>
+                      <span className="font-mono">+{formatINR(quoteBreakdown.packagingAmount)}</span>
+                    </div>
+                  )}
+
+                  {quoteBreakdown.gstAmount > 0 && (
+                    <div className="flex justify-between text-muted dark:text-slate-400">
+                      <span>GST ({pricingData?.pricingConfig?.gstRate}%)</span>
+                      <span className="font-mono">+{formatINR(quoteBreakdown.gstAmount)}</span>
+                    </div>
+                  )}
+
+                  <div className="pt-2 border-t border-line dark:border-slate-800 flex justify-between font-bold text-sm text-ink dark:text-white">
+                    <span>Estimated Total</span>
+                    <span className="font-mono text-base text-accent">
+                      {formatINR(quoteBreakdown.totalPrice)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="pt-2 space-y-2.5">
+                  {!modelResult?.requiresManualReview && !exceedsBuildVolume ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleContinueToOrder}
+                        disabled={isSubmitting}
+                        className="w-full p-4 rounded-xl bg-accent hover:bg-amber-600 text-white text-center shadow-md transition-all cursor-pointer"
+                      >
+                        {isSubmitting ? (
+                          <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold uppercase">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Uploading Model ({uploadProgress || 0}%)...</span>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold uppercase tracking-wider">
+                              <ShoppingCart className="w-4 h-4" />
+                              <span>Place order for verification · {formatINR(quoteBreakdown.totalPrice)}</span>
+                            </div>
+                            <span className="block text-[10px] font-sans font-normal opacity-90 mt-0.5">
+                              Zero upfront charge until engineers verify slicing.
+                            </span>
+                          </div>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowQuoteModal(true)}
+                        disabled={isSubmitting}
+                        className="w-full p-3.5 rounded-xl border border-line hover:border-accent bg-white dark:bg-slate-800 text-ink dark:text-slate-200 text-center shadow-xs transition-all cursor-pointer"
+                      >
+                        <div className="flex items-center justify-center gap-2 font-mono text-xs font-semibold">
+                          <Send className="w-3.5 h-3.5 text-accent" />
+                          <span>Request a quote review</span>
+                        </div>
+                        <span className="block text-[10px] font-sans font-normal text-muted dark:text-slate-400 mt-0.5">
+                          Need custom tolerances or engineer review? Ask us directly.
+                        </span>
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowQuoteModal(true)}
+                      disabled={isSubmitting}
+                      className="w-full p-4 rounded-xl bg-accent hover:bg-amber-600 text-white text-center shadow-md transition-all cursor-pointer"
+                    >
+                      <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold uppercase tracking-wider">
+                        <Send className="w-4 h-4" />
+                        <span>Request Engineer Quote Review</span>
+                      </div>
+                      <span className="block text-[10px] font-sans font-normal opacity-90 mt-0.5">
+                        {exceedsBuildVolume
+                          ? 'Model exceeds standard printer envelope. Our team can split or orient parts.'
+                          : 'Geometry requires engineer inspection before quotation.'}
+                      </span>
+                    </button>
+                  )}
+
                   <button
                     type="button"
-                    onClick={handleContinueToOrder}
-                    disabled={isSubmitting}
-                    className="w-full p-3.5 rounded-xl bg-accent hover:bg-amber-600 text-white text-center shadow-md transition-all cursor-pointer"
+                    onClick={() => handleTabChange('configure')}
+                    className="w-full py-2.5 text-center text-xs font-mono text-muted hover:text-accent transition-colors cursor-pointer"
                   >
-                    {isSubmitting ? (
-                      <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold uppercase">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Uploading Model ({uploadProgress || 0}%)...</span>
-                      </div>
-                    ) : (
-                      <div>
-                        <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold uppercase tracking-wider">
-                          <ShoppingCart className="w-4 h-4" />
-                          <span>Place order for verification · {formatINR(quoteBreakdown.totalPrice)}</span>
-                        </div>
-                        <span className="block text-[10px] font-sans font-normal opacity-90 mt-0.5">
-                          Submit your model and settings. We will verify the details before production.
-                        </span>
-                      </div>
-                    )}
+                    ← Back to Configure
                   </button>
-                ) : null}
-
-                <button
-                  type="button"
-                  onClick={() => setShowQuoteModal(true)}
-                  disabled={isSubmitting}
-                  className="w-full p-3.5 rounded-xl border border-line hover:border-accent bg-white dark:bg-slate-800 text-ink dark:text-slate-200 text-center shadow-xs transition-all cursor-pointer"
-                >
-                  <div className="flex items-center justify-center gap-2 font-mono text-xs font-semibold">
-                    <Send className="w-3.5 h-3.5 text-accent" />
-                    <span>Request a quote review</span>
-                  </div>
-                  <span className="block text-[10px] font-sans font-normal text-muted dark:text-slate-400 mt-0.5">
-                    Not ready to order? Ask us to review your model and quotation.
-                  </span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            /* Empty Quotation Placeholder when no model uploaded */
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 sm:p-6 shadow-xs space-y-4">
-              <div className="flex items-center gap-2 border-b border-line dark:border-slate-800 pb-3">
-                <FileBox className="w-4 h-4 text-accent" />
-                <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider">
-                  Step 3 — Estimated Quotation
-                </h3>
-              </div>
-              <div className="text-center py-6 space-y-3">
-                <div className="w-12 h-12 rounded-full bg-shell dark:bg-slate-800 flex items-center justify-center mx-auto text-accent">
-                  <Sparkles className="w-6 h-6" />
-                </div>
-                <h4 className="font-display font-bold text-base text-ink dark:text-white">
-                  Upload a model to see your instant price
-                </h4>
-                <p className="text-xs text-muted dark:text-slate-400 max-w-xs mx-auto leading-relaxed">
-                  Upload an STL, OBJ, or 3MF file to view estimated material weight, print time, and instant quotation.
-                </p>
-              </div>
-              <div className="rounded-xl bg-shell/40 dark:bg-slate-800/40 p-3 space-y-2 text-xs text-muted dark:text-slate-400">
-                <div className="flex items-center gap-2 font-medium text-ink dark:text-slate-200">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span>Live volume & theoretical cost calculation</span>
-                </div>
-                <div className="flex items-center gap-2 font-medium text-ink dark:text-slate-200">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span>Configurable filament, color, quality & strength</span>
-                </div>
-                <div className="flex items-center gap-2 font-medium text-ink dark:text-slate-200">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span>Workshop engineer verification before production</span>
-                </div>
-                <div className="flex items-center gap-2 font-medium text-ink dark:text-slate-200">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span>Zero upfront charge until final confirmation</span>
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Quote Request Modal */}
       {showQuoteModal && (
@@ -1817,7 +2334,7 @@ export function CustomPrinting() {
       )}
 
       {/* Sticky Bottom Bar for Mobile Devices */}
-      {quoteBreakdown && (
+      {studioMode === '3d-model' && quoteBreakdown && (activeTab === 'configure' || activeTab === 'estimate') && (
         <div className="fixed bottom-0 left-0 right-0 lg:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-line dark:border-slate-800 p-3 shadow-lg z-40 flex items-center justify-between gap-3">
           <div>
             <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
@@ -1827,18 +2344,29 @@ export function CustomPrinting() {
               {formatINR(quoteBreakdown.totalPrice)}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={
-              modelResult?.requiresManualReview || exceedsBuildVolume
-                ? () => setShowQuoteModal(true)
-                : handleContinueToOrder
-            }
-            className="px-5 py-2.5 rounded-xl bg-accent hover:bg-amber-600 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-md flex items-center gap-1.5 cursor-pointer"
-          >
-            <span>{modelResult?.requiresManualReview || exceedsBuildVolume ? 'Request Quote Review' : 'Place Order for Verification'}</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          {activeTab === 'configure' ? (
+            <button
+              type="button"
+              onClick={() => handleTabChange('estimate')}
+              className="px-5 py-2.5 rounded-xl bg-accent hover:bg-amber-600 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-md flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>View Estimate</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={
+                modelResult?.requiresManualReview || exceedsBuildVolume
+                  ? () => setShowQuoteModal(true)
+                  : handleContinueToOrder
+              }
+              className="px-5 py-2.5 rounded-xl bg-accent hover:bg-amber-600 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-md flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>{modelResult?.requiresManualReview || exceedsBuildVolume ? 'Request Review' : 'Place Order'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
         </div>
       )}
         </>

@@ -62,6 +62,11 @@ export type CustomPrintData = {
   material?: string;
   color?: string;
   quality?: string;
+  qualityPreset?: string;
+  strengthPreset?: string;
+  supportMode?: string;
+  surfaceFinish?: string;
+  sizeMode?: string;
 
   infill?: number;
   layerHeight?: number;

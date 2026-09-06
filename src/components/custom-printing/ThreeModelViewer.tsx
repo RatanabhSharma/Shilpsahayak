@@ -82,13 +82,14 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
 
     const size = new THREE.Vector3();
     box.getSize(size);
-    const maxDim = Math.max(size.x, size.y, size.z, 25);
+    // Frame both the model and the build plate nicely
+    const maxDim = Math.max(size.x, size.y, size.z, 140);
 
     const fov = camera.fov * (Math.PI / 180);
     let distance = Math.abs(maxDim / Math.sin(fov / 2));
-    distance = Math.min(Math.max(distance * 0.95, 45), 900);
+    distance = Math.min(Math.max(distance * 0.85, 60), 850);
 
-    camera.position.set(center.x + distance * 0.75, center.y + distance * 0.65, center.z + distance * 0.85);
+    camera.position.set(center.x + distance * 0.75, center.y + distance * 0.6, center.z + distance * 0.8);
     camera.lookAt(center);
     controls.target.copy(center);
     controls.update();
@@ -346,8 +347,10 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     displayObj.position.set(-initialCenter.x, -initialCenter.y, -initialCenter.z);
     pivot.add(displayObj);
 
-    // Apply rotation & scale to the centered pivot
-    const radX = (rotation.x * Math.PI) / 180;
+    // Apply CAD Z-up to Three.js Y-up conversion so 3D print models stand upright on build plate
+    // (In 3D CAD/slicers like Bambu Studio / 3MF / STL, Z is vertical; in Three.js, Y is vertical)
+    const baseRotationX = -Math.PI / 2;
+    const radX = baseRotationX + (rotation.x * Math.PI) / 180;
     const radY = (rotation.y * Math.PI) / 180;
     const radZ = (rotation.z * Math.PI) / 180;
 
@@ -369,30 +372,26 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     scene.add(pivot);
     modelRef.current = pivot;
 
-    // Compute oriented dimensions
-    const finalBBox = new THREE.Box3().setFromObject(pivot);
-    const orientedWidth = Math.round((finalBBox.max.x - finalBBox.min.x) * 10) / 10;
-    const orientedDepth = Math.round((finalBBox.max.z - finalBBox.min.z) * 10) / 10;
-    const orientedHeight = Math.round((finalBBox.max.y - finalBBox.min.y) * 10) / 10;
+    // Compute unscaled oriented dimensions (at scale = 1.0) to report to parent
+    // without circular scaling feedback loops!
+    const currentScale = scale > 0 ? scale : 1.0;
+    const unscaledWidth = Math.round(((bbox.max.x - bbox.min.x) / currentScale) * 10) / 10;
+    const unscaledDepth = Math.round(((bbox.max.z - bbox.min.z) / currentScale) * 10) / 10;
+    const unscaledHeight = Math.round(((bbox.max.y - bbox.min.y) / currentScale) * 10) / 10;
 
-    const newDims = {
-      x: orientedWidth,
-      y: orientedDepth,
-      z: orientedHeight,
+    const unscaledDims = {
+      x: unscaledWidth,
+      y: unscaledDepth,
+      z: unscaledHeight,
     };
 
-    setCurrentDims((prev) => {
-      if (prev && prev.x === orientedWidth && prev.y === orientedDepth && prev.z === orientedHeight) {
-        return prev;
-      }
-      return newDims;
-    });
+    setCurrentDims(unscaledDims);
 
     const last = lastNotifiedDimsRef.current;
-    if (!last || last.x !== orientedWidth || last.y !== orientedDepth || last.z !== orientedHeight) {
-      lastNotifiedDimsRef.current = newDims;
+    if (!last || last.x !== unscaledWidth || last.y !== unscaledDepth || last.z !== unscaledHeight) {
+      lastNotifiedDimsRef.current = unscaledDims;
       if (onOrientedDimensionsChangeRef.current) {
-        onOrientedDimensionsChangeRef.current(newDims);
+        onOrientedDimensionsChangeRef.current(unscaledDims);
       }
     }
 
@@ -429,7 +428,15 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
   };
 
   const isRotated = rotation.x !== 0 || rotation.y !== 0 || rotation.z !== 0;
-  const displayDimensions = currentDims || dimensions;
+  const displayDimensions =
+    dimensions ||
+    (currentDims
+      ? {
+          x: Math.round(currentDims.x * scale * 10) / 10,
+          y: Math.round(currentDims.y * scale * 10) / 10,
+          z: Math.round(currentDims.z * scale * 10) / 10,
+        }
+      : null);
 
   return (
     <div className="relative w-full h-[320px] sm:h-[400px] md:h-[450px] bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-inner flex items-center justify-center">
@@ -439,7 +446,7 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
       {/* Loading Overlay */}
       {isLoading && (
         <div className="absolute inset-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xs flex flex-col items-center justify-center gap-3 z-10">
-          <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
           <span className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
             Analysing 3D Mesh Geometry...
           </span>
@@ -464,122 +471,118 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
       {/* Viewer Overlay Controls */}
       {(geometry || object3d) && !isLoading && !error && (
         <>
-          {/* Top-Center: Original Colours Indicator */}
-          {hasOriginalColors && (
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center bg-white/95 dark:bg-slate-800/95 backdrop-blur-md px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs z-10">
-              <span className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-slate-700 dark:text-slate-200">
-                <Palette className="w-3.5 h-3.5 text-amber-500" />
-                <span>Original Colours</span>
+          {/* Top Header Bar: Responsive Non-Overlapping Controls */}
+          <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1.5 pointer-events-none z-10">
+            {/* Left: Rotation Toolbar */}
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-900/90 dark:bg-slate-900/95 text-white backdrop-blur-md px-2 py-1 rounded-xl border border-slate-700/60 shadow-md pointer-events-auto">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 px-1 hidden sm:inline">
+                Rotate:
               </span>
-            </div>
-          )}
-
-          {/* Top-Left: Model Orientation Toolbar */}
-          <div className="absolute top-3 left-3 flex items-center gap-1 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md px-2 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs z-10">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1 hidden sm:inline">
-              Rotate:
-            </span>
-            <button
-              type="button"
-              onClick={() => handleRotateAxis('x')}
-              className="px-2 py-1 rounded-lg text-xs font-mono font-bold text-slate-700 dark:text-slate-200 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-              title="Rotate 90° along X axis (Pitch / Tilt)"
-            >
-              X 90°
-            </button>
-            <button
-              type="button"
-              onClick={() => handleRotateAxis('y')}
-              className="px-2 py-1 rounded-lg text-xs font-mono font-bold text-slate-700 dark:text-slate-200 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-              title="Rotate 90° along Y axis (Yaw / Turn)"
-            >
-              Y 90°
-            </button>
-            <button
-              type="button"
-              onClick={() => handleRotateAxis('z')}
-              className="px-2 py-1 rounded-lg text-xs font-mono font-bold text-slate-700 dark:text-slate-200 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-              title="Rotate 90° along Z axis (Roll)"
-            >
-              Z 90°
-            </button>
-            {isRotated && (
-              <>
-                <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-700 mx-0.5" />
-                <button
-                  type="button"
-                  onClick={handleResetRotation}
-                  className="p-1 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                  title="Reset Model Orientation (0°, 0°, 0°)"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* Top-Right: Camera & Display Toolbar */}
-          <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md px-2 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs z-10">
-            <button
-              type="button"
-              onClick={fitCameraToObject}
-              className="p-1.5 rounded-lg text-slate-600 hover:text-brand-600 dark:text-slate-300 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-              title="Reset Camera View"
-            >
-              <Compass className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsWireframe(!isWireframe)}
-              className={`p-1.5 rounded-lg transition-colors ${
-                isWireframe
-                  ? 'bg-brand-500 text-white'
-                  : 'text-slate-600 hover:text-brand-600 dark:text-slate-300 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-700'
-              }`}
-              title="Toggle Wireframe"
-            >
-              <Eye className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowGrid(!showGrid)}
-              className={`p-1.5 rounded-lg transition-colors ${
-                showGrid
-                  ? 'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/30'
-                  : 'text-slate-400 hover:text-slate-600'
-              }`}
-              title="Toggle Build Plate Grid"
-            >
-              <Grid className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={fitCameraToObject}
-              className="p-1.5 rounded-lg text-slate-600 hover:text-brand-600 dark:text-slate-300 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-              title="Fit to View"
-            >
-              <Maximize2 className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Bottom-Left Bounding Dimension Pill */}
-          {displayDimensions && (displayDimensions.x > 0 || displayDimensions.y > 0 || displayDimensions.z > 0) && (
-            <div className="absolute bottom-3 left-3 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs z-10 flex items-center gap-2 font-mono text-[11px] font-bold text-slate-700 dark:text-slate-200">
-              <span className="w-2 h-2 rounded-full bg-brand-500" />
-              <span>
-                {displayDimensions.x} × {displayDimensions.y} × {displayDimensions.z} mm
-              </span>
+              <button
+                type="button"
+                onClick={() => handleRotateAxis('x')}
+                className="px-2 py-1 rounded-lg text-xs font-mono font-bold text-slate-200 hover:text-amber-400 hover:bg-slate-800 transition-colors"
+                title="Rotate 90° along X axis (Pitch)"
+              >
+                X 90°
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRotateAxis('y')}
+                className="px-2 py-1 rounded-lg text-xs font-mono font-bold text-slate-200 hover:text-amber-400 hover:bg-slate-800 transition-colors"
+                title="Rotate 90° along Y axis (Yaw)"
+              >
+                Y 90°
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRotateAxis('z')}
+                className="px-2 py-1 rounded-lg text-xs font-mono font-bold text-slate-200 hover:text-amber-400 hover:bg-slate-800 transition-colors"
+                title="Rotate 90° along Z axis (Roll)"
+              >
+                Z 90°
+              </button>
               {isRotated && (
-                <span className="text-[9px] font-semibold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/50 px-1.5 py-0.5 rounded-md border border-brand-200/50 dark:border-brand-800/50">
-                  Rotated ({rotation.x}°, {rotation.y}°, {rotation.z}°)
-                </span>
+                <>
+                  <div className="w-[1px] h-3.5 bg-slate-700 mx-0.5" />
+                  <button
+                    type="button"
+                    onClick={handleResetRotation}
+                    className="p-1 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 transition-colors"
+                    title="Reset Orientation"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </button>
+                </>
               )}
             </div>
-          )}
 
-          {/* Bottom-Right Touch/Mouse Hint */}
-          <div className="absolute bottom-3 right-3 hidden sm:block text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xs px-2 py-1 rounded-md border border-slate-200/50 dark:border-slate-800/50">
-            Rotate: Left Click · Pan: Right Click · Zoom: Scroll
+            {/* Right: Camera & View Toolbar */}
+            <div className="flex items-center gap-1 bg-slate-900/90 dark:bg-slate-900/95 text-white backdrop-blur-md px-2 py-1 rounded-xl border border-slate-700/60 shadow-md pointer-events-auto">
+              <button
+                type="button"
+                onClick={fitCameraToObject}
+                className="p-1.5 rounded-lg text-slate-300 hover:text-amber-400 hover:bg-slate-800 transition-colors"
+                title="Reset Camera View"
+              >
+                <Compass className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsWireframe(!isWireframe)}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  isWireframe
+                    ? 'bg-amber-600 text-white'
+                    : 'text-slate-300 hover:text-amber-400 hover:bg-slate-800'
+                }`}
+                title="Toggle Wireframe"
+              >
+                <Eye className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowGrid(!showGrid)}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  showGrid
+                    ? 'text-amber-400 bg-amber-950/50'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="Toggle Build Plate Grid"
+              >
+                <Grid className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={fitCameraToObject}
+                className="p-1.5 rounded-lg text-slate-300 hover:text-amber-400 hover:bg-slate-800 transition-colors"
+                title="Fit to View"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Bottom Bar: Dimensions Pill + Interaction Hint */}
+          <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between gap-2 pointer-events-none z-10">
+            {/* Bottom-Left Bounding Dimension Pill */}
+            {displayDimensions && (displayDimensions.x > 0 || displayDimensions.y > 0 || displayDimensions.z > 0) && (
+              <div className="bg-slate-900/90 dark:bg-slate-900/95 text-white backdrop-blur-md px-2.5 py-1 rounded-xl border border-slate-700/60 shadow-md pointer-events-auto flex items-center gap-1.5 font-mono text-[11px] font-bold">
+                <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                <span>
+                  {displayDimensions.x} × {displayDimensions.y} × {displayDimensions.z} mm
+                </span>
+                {isRotated && (
+                  <span className="text-[9px] font-semibold text-amber-400 bg-amber-950/50 px-1 py-0.5 rounded-md border border-amber-800/50 ml-1">
+                    Rotated
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Bottom-Right Touch/Mouse Hint (Only when screen allows) */}
+            <div className="hidden md:block text-[9px] font-mono text-slate-400 bg-slate-900/80 backdrop-blur-xs px-2 py-1 rounded-lg border border-slate-800/70 pointer-events-auto shrink-0">
+              Left Click: Rotate · Right Click: Pan · Scroll: Zoom
+            </div>
           </div>
         </>
       )}
