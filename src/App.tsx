@@ -19,6 +19,12 @@ import { Contact } from './pages/storefront/Contact';
 import { Login } from './pages/storefront/Login';
 import { Account } from './pages/storefront/Account';
 
+// Legal Pages
+import { PrivacyPolicy } from './pages/storefront/PrivacyPolicy';
+import { TermsAndConditions } from './pages/storefront/TermsAndConditions';
+import { RefundPolicy } from './pages/storefront/RefundPolicy';
+import { CookiePolicy } from './pages/storefront/CookiePolicy';
+
 // Admin
 import { AdminLogin } from './pages/admin/AdminLogin';
 import { Dashboard } from './pages/admin/Dashboard';
@@ -67,9 +73,16 @@ export function App() {
               </CustomerRoute>
             }
           />
+
+          {/* Legal Pages */}
+          <Route path="privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="terms-and-conditions" element={<TermsAndConditions />} />
+          <Route path="refund-policy" element={<RefundPolicy />} />
+          <Route path="cookie-policy" element={<CookiePolicy />} />
         </Route>
 
         <Route path="/admin/login" element={<AdminLogin />} />
+
 
         <Route
           path="/admin"

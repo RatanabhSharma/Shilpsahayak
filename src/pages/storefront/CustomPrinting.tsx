@@ -1518,7 +1518,7 @@ export function CustomPrinting() {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Rahul Sharma"
+                      placeholder="Enter your name"
                       value={guestName}
                       onChange={(e) => setGuestName(e.target.value)}
                       className="w-full py-2 px-3 rounded-lg border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-ink dark:text-white"
@@ -1543,7 +1543,7 @@ export function CustomPrinting() {
                     </label>
                     <input
                       type="tel"
-                      placeholder="+91 98765 43210"
+                      placeholder="Enter your number"
                       value={guestPhone}
                       onChange={(e) => setGuestPhone(e.target.value)}
                       className="w-full py-2 px-3 rounded-lg border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-ink dark:text-white"
@@ -1915,7 +1915,7 @@ export function CustomPrinting() {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Rajesh Kumar"
+                      placeholder="Enter your name"
                       value={assistedName}
                       onChange={(e) => setAssistedName(e.target.value)}
                       className="w-full py-2.5 px-3 rounded-lg border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-ink dark:text-white"
@@ -1928,7 +1928,7 @@ export function CustomPrinting() {
                     <input
                       type="email"
                       required
-                      placeholder="rajesh@example.com"
+                      placeholder="you@example.com"
                       value={assistedEmail}
                       onChange={(e) => setAssistedEmail(e.target.value)}
                       className="w-full py-2.5 px-3 rounded-lg border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-ink dark:text-white"
@@ -1940,7 +1940,7 @@ export function CustomPrinting() {
                     </label>
                     <input
                       type="tel"
-                      placeholder="+91 98765 43210"
+                      placeholder="Enter your number"
                       value={assistedPhone}
                       onChange={(e) => setAssistedPhone(e.target.value)}
                       className="w-full py-2.5 px-3 rounded-lg border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-ink dark:text-white"

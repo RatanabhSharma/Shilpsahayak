@@ -12,7 +12,6 @@ import {
   Lock,
   Mail,
   RefreshCw,
-  ShieldCheck,
   User as UserIcon,
 } from 'lucide-react';
 
@@ -503,6 +502,7 @@ export function Login() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -542,7 +542,7 @@ export function Login() {
                       <input
                         type="text"
                         required
-                        placeholder="Ratanabh Sharma"
+                        placeholder="Enter your name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         className="w-full h-11 rounded-xl border border-line bg-shell/40 pl-10 pr-4 font-sans text-xs text-ink outline-none focus:border-accent focus:bg-white transition-colors"
@@ -584,7 +584,7 @@ export function Login() {
                         type="tel"
                         required
                         maxLength={10}
-                        placeholder="98765 43210"
+                        placeholder="Enter your number"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                         className="w-full h-11 bg-transparent font-mono text-xs font-bold text-ink placeholder:font-sans placeholder:font-normal placeholder:text-muted outline-none"
@@ -647,11 +647,47 @@ export function Login() {
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                         className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink cursor-pointer"
                       >
                         {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
+                  </div>
+
+                  {/* Terms & Privacy Consent — required */}
+                  <div className="rounded-xl border border-line bg-shell/40 p-3">
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        required
+                        className="mt-0.5 h-4 w-4 shrink-0 rounded border-line accent-accent cursor-pointer"
+                        aria-describedby="signup-consent-desc"
+                      />
+                      <span id="signup-consent-desc" className="font-sans text-xs text-muted leading-relaxed">
+                        I have read and agree to the{' '}
+                        <Link
+                          to="/terms-and-conditions"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-accent hover:underline font-semibold"
+                        >
+                          Terms &amp; Conditions
+                        </Link>{' '}
+                        and{' '}
+                        <Link
+                          to="/privacy-policy"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-accent hover:underline font-semibold"
+                        >
+                          Privacy Policy
+                        </Link>
+                        , including the collection of my name, email, and mobile number for account
+                        creation and order fulfilment.{' '}
+                        <strong className="text-ink">*</strong>
+                      </span>
+                    </label>
                   </div>
 
                   <div className="pt-2">
@@ -663,7 +699,7 @@ export function Login() {
                       disabled={isLoading}
                       className="w-full font-bold uppercase tracking-wider text-xs"
                     >
-                      <span>Create Account & Verify</span>
+                      <span>Create Account &amp; Verify</span>
                       <ArrowRight className="w-4 h-4 ml-1.5" />
                     </Button>
                   </div>
@@ -714,6 +750,7 @@ export function Login() {
                         inputMode="numeric"
                         maxLength={1}
                         value={digit}
+                        aria-label={`OTP digit ${idx + 1} of 6`}
                         onChange={(e) => handleOtpChange(idx, e.target.value)}
                         onKeyDown={(e) => handleOtpKeyDown(idx, e)}
                         onPaste={idx === 0 ? handleOtpPaste : undefined}
@@ -813,12 +850,6 @@ export function Login() {
               </Button>
             </form>
           )}
-
-          {/* Studio Guarantee Badge */}
-          <div className="pt-2 border-t border-line/60 flex items-center justify-center gap-2 text-muted font-mono text-[10px]">
-            <ShieldCheck className="w-3.5 h-3.5 text-accent" />
-            <span>256-Bit Encrypted · Verified Customer Studio</span>
-          </div>
         </div>
       </div>
     </div>

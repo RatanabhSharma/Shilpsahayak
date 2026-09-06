@@ -104,8 +104,8 @@ img, svg, video, canvas {
 }
 
 ::selection {
-  background-color: var(--accent-soft);
-  color: var(--accent);
+  background-color: #dde1e7;
+  color: inherit;
 }
 
 :focus-visible {

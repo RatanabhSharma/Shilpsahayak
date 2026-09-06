@@ -242,7 +242,7 @@ export function PhoneVerificationModal({
                       required
                       maxLength={10}
                       autoFocus
-                      placeholder="98765 43210"
+                      placeholder="Enter your number"
                       value={phoneNumber}
                       onChange={(e) =>
                         setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))

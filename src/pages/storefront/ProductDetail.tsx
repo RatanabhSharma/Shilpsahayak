@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Minus,
   Plus,
+  RotateCcw,
   ShieldCheck,
   ShoppingCart,
   Sparkles,
@@ -639,7 +640,7 @@ export function ProductDetail() {
                             id="custom-notes"
                             value={customNotes}
                             onChange={(e) => setCustomNotes(e.target.value)}
-                            placeholder="e.g. Inscribe 'Happy Birthday Riya'..."
+                            placeholder="e.g. Custom name inscription, custom dimensions, or special requests..."
                             rows={2}
                             className="text-xs bg-white border border-line focus:border-accent rounded-xl"
                           />
@@ -823,6 +824,22 @@ export function ProductDetail() {
                     <h4 className="text-xs font-bold text-ink font-display">100% Quality Inspected</h4>
                     <p className="text-[11px] text-muted font-sans">
                       Every print is dimensionally verified before packing.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <RotateCcw className="h-5 w-5 text-accent shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-xs font-bold text-ink font-display">7-Day Defect Return Policy</h4>
+                    <p className="text-[11px] text-muted font-sans">
+                      Manufacturing defect? We'll replace or refund within 7 days of delivery.{' '}
+                      <a
+                        href="/refund-policy"
+                        className="text-accent hover:underline font-semibold"
+                      >
+                        See full policy →
+                      </a>
                     </p>
                   </div>
                 </div>

@@ -215,7 +215,11 @@ export function Contact() {
           <div className="lg:col-span-7">
             <div className="rounded-3xl border border-line bg-white p-7 sm:p-9 shadow-soft">
               {submitted ? (
-                <div className="flex min-h-[400px] flex-col items-center justify-center text-center p-6">
+                <div
+                  className="flex min-h-[400px] flex-col items-center justify-center text-center p-6"
+                  role="status"
+                  aria-live="polite"
+                >
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
                     <CheckCircle2 className="h-10 w-10" />
                   </div>
@@ -257,14 +261,14 @@ export function Contact() {
                       <Input
                         name="name"
                         label="Full Name *"
-                        placeholder="e.g. Aditi Sharma"
+                        placeholder="Enter your name"
                         required
                       />
                       <Input
                         name="email"
                         type="email"
                         label="Email Address *"
-                        placeholder="aditi@example.com"
+                        placeholder="you@example.com"
                         required
                       />
                     </div>
@@ -274,7 +278,7 @@ export function Contact() {
                         name="phone"
                         type="tel"
                         label="Phone / WhatsApp Number *"
-                        placeholder="+91 98765 43210"
+                        placeholder="Enter your number"
                         required
                       />
                       <Input
@@ -295,7 +299,17 @@ export function Contact() {
 
                     <div className="flex flex-col gap-4 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
                       <p className="font-mono text-[11px] text-muted leading-relaxed max-w-sm">
-                        🔒 Shilp Sahayak respects your IP. All CAD concepts and designs remain 100% confidential.
+                        🔒 Your details will only be used to respond to this inquiry and will be
+                        kept confidential. See our{' '}
+                        <a
+                          href="/privacy-policy"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-accent hover:underline font-semibold"
+                        >
+                          Privacy Policy
+                        </a>
+                        .
                       </p>
 
                       <Button type="submit" size="md" variant="primary">

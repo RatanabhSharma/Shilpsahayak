@@ -806,14 +806,6 @@ export function Catalog() {
               </p>
             </div>
 
-            <div className="shrink-0 rounded-2xl border border-line bg-shell p-4 font-mono">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted block">
-                Total Stock
-              </span>
-              <span className="font-display text-2xl font-bold text-ink">
-                {activeProducts.length} {activeProducts.length === 1 ? 'Piece' : 'Pieces'}
-              </span>
-            </div>
           </div>
 
 

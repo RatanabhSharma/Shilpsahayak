@@ -543,7 +543,7 @@ export function Checkout() {
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(normalizePhone(e.target.value))}
-                      placeholder="10-digit mobile number"
+                      placeholder="Enter your number"
                       maxLength={10}
                       inputMode="numeric"
                       autoComplete="tel"
@@ -715,6 +715,30 @@ export function Checkout() {
                   rows={2}
                 />
               </div>
+
+              {/* Consent notice */}
+              <p className="font-sans text-[11px] text-muted leading-relaxed text-center px-2">
+                By placing this order you agree to our{' '}
+                <a
+                  href="/terms-and-conditions"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent hover:underline font-semibold"
+                >
+                  Terms &amp; Conditions
+                </a>{' '}
+                and{' '}
+                <a
+                  href="/privacy-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent hover:underline font-semibold"
+                >
+                  Privacy Policy
+                </a>
+                . Your name, address, and phone number will be shared with our courier partner
+                for delivery.
+              </p>
 
               {/* Submit CTA */}
               <Button

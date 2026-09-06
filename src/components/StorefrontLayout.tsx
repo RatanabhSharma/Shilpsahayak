@@ -2,6 +2,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useCallback,
 } from 'react';
 import {
   Link,
@@ -241,6 +242,24 @@ export function StorefrontLayout() {
 
   const currentYear = new Date().getFullYear();
 
+  // Cookie consent banner — shown once, stored in localStorage
+  const [showCookieBanner, setShowCookieBanner] = useState<boolean>(() => {
+    try {
+      return !localStorage.getItem('shilp_cookie_notice_dismissed');
+    } catch {
+      return false;
+    }
+  });
+
+  const dismissCookieBanner = useCallback(() => {
+    try {
+      localStorage.setItem('shilp_cookie_notice_dismissed', '1');
+    } catch {
+      // ignore (private browsing)
+    }
+    setShowCookieBanner(false);
+  }, []);
+
   const isAuthenticated = !authLoading && !!user;
   const showAdmin = !authLoading && !roleLoading && isAuthenticated && isAdmin;
 
@@ -250,6 +269,47 @@ export function StorefrontLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-paper text-ink">
+      {/* ── Cookie Notice Banner ─────────────────────────────── */}
+      {showCookieBanner && (
+        <div
+          role="region"
+          aria-label="Cookie notice"
+          aria-live="polite"
+          className="fixed bottom-0 left-0 right-0 z-[60] bg-dark border-t border-zinc-700 px-5 py-3 sm:px-8 lg:px-10"
+        >
+          <div className="mx-auto max-w-[1440px] flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+            <p className="font-sans text-xs text-zinc-300 leading-relaxed">
+              🍪 We use only{' '}
+              <strong className="text-white">strictly necessary</strong> browser storage (Firebase
+              auth session &amp; cart) — no advertising or analytics cookies.{' '}
+              <Link
+                to="/cookie-policy"
+                className="text-accent hover:underline font-medium"
+                onClick={dismissCookieBanner}
+              >
+                Learn more
+              </Link>
+              {' '}·{' '}
+              <Link
+                to="/privacy-policy"
+                className="text-accent hover:underline font-medium"
+                onClick={dismissCookieBanner}
+              >
+                Privacy Policy
+              </Link>
+            </p>
+            <button
+              type="button"
+              onClick={dismissCookieBanner}
+              className="shrink-0 self-start sm:self-auto rounded-xl bg-zinc-700 hover:bg-zinc-600 px-4 py-2 font-mono text-xs font-bold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
+              aria-label="Dismiss cookie notice"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Accessibility Skip Link */}
       <a
         href="#main-content"
@@ -643,15 +703,19 @@ export function StorefrontLayout() {
             </div>
           </div>
 
-          {/* Minimal Copyright Strip */}
+          {/* Minimal Copyright Strip with Legal Links */}
           <div className="mt-12 sm:mt-16 flex flex-col gap-3 border-t border-zinc-800/80 pt-6 sm:flex-row sm:items-center sm:justify-between text-xs text-zinc-500 font-mono">
             <p>
               © {currentYear} {businessName}. All rights reserved.
             </p>
-            <div className="flex flex-wrap items-center gap-3 text-[11px] text-zinc-500">
-              <span>Pan-India Tracked Dispatch</span>
-              <span className="text-zinc-700 hidden sm:inline">•</span>
-              <span>Patiala Workshop, India</span>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px]">
+              <Link to="/privacy-policy" className="hover:text-zinc-300 transition-colors">Privacy Policy</Link>
+              <span className="text-zinc-700 hidden sm:inline">·</span>
+              <Link to="/terms-and-conditions" className="hover:text-zinc-300 transition-colors">Terms &amp; Conditions</Link>
+              <span className="text-zinc-700 hidden sm:inline">·</span>
+              <Link to="/refund-policy" className="hover:text-zinc-300 transition-colors">Refund Policy</Link>
+              <span className="text-zinc-700 hidden sm:inline">·</span>
+              <Link to="/cookie-policy" className="hover:text-zinc-300 transition-colors">Cookie Policy</Link>
             </div>
           </div>
         </div>
@@ -704,6 +768,7 @@ export function StorefrontLayout() {
                 <input
                   type="text"
                   autoFocus
+                  aria-label="Search products"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search lamps, lithophanes, desk decor, keychains..."
@@ -714,6 +779,7 @@ export function StorefrontLayout() {
                     type="button"
                     onClick={() => setSearchQuery('')}
                     className="text-muted hover:text-ink"
+                    aria-label="Clear search"
                   >
                     <X className="h-4 w-4" />
                   </button>

@@ -43,10 +43,10 @@ const fadeInUp = {
    TRUST STRIP MARQUEE ITEMS
    ============================================================ */
 const MARQUEE_ITEMS = [
-  { icon: Cpu, text: '±50µm Precision Calibration' },
+  { icon: Cpu, text: 'Up to ±50µm Precision Calibration' },
   { icon: Sparkles, text: '100% Eco-Plant PLA+ & Bio-Resin' },
   { icon: Zap, text: 'Instant CAD Slicing & Price Estimator' },
-  { icon: ShieldCheck, text: '100% Encrypted & Confidential CAD Vault' },
+  { icon: ShieldCheck, text: 'Industry-Standard Encrypted CAD Vault' },
   { icon: Box, text: 'Pan-India Express Tracked Dispatch' },
   { icon: Flame, text: 'Hand-Inspected & Deburred in Patiala' },
 ];
@@ -720,6 +720,8 @@ export function Home() {
                         key={mat.id}
                         type="button"
                         onClick={() => setSelectedMaterial(mat.id)}
+                        aria-pressed={selectedMaterial === mat.id}
+                        aria-label={`Select ${mat.name} material`}
                         className={`py-1.5 px-1 rounded-xl font-mono text-xs font-bold transition-all ${
                           selectedMaterial === mat.id
                             ? 'bg-white text-ink shadow-md scale-105'
