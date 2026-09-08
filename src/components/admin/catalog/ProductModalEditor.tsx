@@ -20,6 +20,7 @@ import {
   ProductStatus,
 } from '../../../hooks/useProducts';
 import { uploadProductImage } from '../../../utils/uploadFile';
+import { cleanFirestorePayload } from '../../../utils/cleanFirestorePayload';
 
 export interface ProductModalEditorProps {
   isOpen: boolean;
@@ -43,14 +44,11 @@ const emptyVariant = (): ProductVariant => ({
   label: '',
   sku: '',
   price: 0,
-  originalPrice: 0,
-  costPrice: 0,
   stock: 0,
   image: '',
   theme: '',
   color: '',
   size: '',
-  weight: 0,
 });
 
 function slugify(text: string): string {
@@ -157,9 +155,9 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
       setImage(product.image || '');
       setImages(product.images || []);
 
-      setPrice(product.price || 0);
-      setOriginalPrice(product.originalPrice || '');
-      setCostPrice(product.costPrice || '');
+      setPrice(typeof product.price === 'number' ? product.price : 0);
+      setOriginalPrice(typeof product.originalPrice === 'number' && !isNaN(product.originalPrice) && product.originalPrice > 0 ? product.originalPrice : '');
+      setCostPrice(typeof product.costPrice === 'number' && !isNaN(product.costPrice) ? product.costPrice : '');
 
       setStock(product.stock || 0);
       setLowStockThreshold(product.lowStockThreshold ?? 5);
@@ -262,11 +260,11 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
     ? variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
     : Number(stock) || 0;
 
-  // Variant Helpers
   const addVariantRow = () => {
     const newVar = emptyVariant();
     newVar.price = priceNum;
-    newVar.costPrice = costNum;
+    if (costNum > 0) newVar.costPrice = costNum;
+    if (origPriceNum > 0) newVar.originalPrice = origPriceNum;
     newVar.stock = 5;
     newVar.sku = `${sku || 'VAR'}-${variants.length + 1}`;
     setVariants([...variants, newVar]);
@@ -311,23 +309,32 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
 
     setSaving(true);
     try {
-      const cleanVariants = hasVariants
+      const cleanVariants: ProductVariant[] = hasVariants
         ? variants
             .filter((v) => v.label.trim())
-            .map((v) => ({
-              id: v.id || crypto.randomUUID(),
-              label: v.label.trim(),
-              sku: v.sku?.trim() || undefined,
-              price: Number(v.price) || 0,
-              originalPrice: Number(v.originalPrice) || 0,
-              costPrice: Number(v.costPrice) || 0,
-              stock: Number(v.stock) || 0,
-              image: v.image?.trim() || '',
-              theme: v.theme || '',
-              color: v.color || '',
-              size: v.size || '',
-              weight: Number(v.weight) || 0,
-            }))
+            .map((v) => {
+              const item: ProductVariant = {
+                id: v.id || crypto.randomUUID(),
+                label: v.label.trim(),
+                price: Number(v.price) || 0,
+                stock: Number(v.stock) || 0,
+                image: v.image?.trim() || '',
+                theme: v.theme || '',
+                color: v.color || '',
+                size: v.size || '',
+              };
+              if (v.sku?.trim()) item.sku = v.sku.trim();
+              if (typeof v.originalPrice === 'number' && !isNaN(v.originalPrice) && v.originalPrice > 0) {
+                item.originalPrice = v.originalPrice;
+              }
+              if (typeof v.costPrice === 'number' && !isNaN(v.costPrice) && v.costPrice >= 0) {
+                item.costPrice = v.costPrice;
+              }
+              if (typeof v.weight === 'number' && !isNaN(v.weight) && v.weight > 0) {
+                item.weight = v.weight;
+              }
+              return item;
+            })
         : [];
 
       let finalPrice = priceNum;
@@ -344,50 +351,67 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
         .map((t) => t.trim())
         .filter(Boolean);
 
-      const payload: Partial<Product> = {
+      const payload: Record<string, any> = {
         name: name.trim(),
         slug: (slug || slugify(name)).trim(),
         sku: sku.trim() || generateSku(category, name),
         shortDescription: shortDescription.trim(),
         description: description.trim(),
         price: finalPrice,
-        originalPrice: finalOrigPrice,
-        costPrice: costNum > 0 ? costNum : undefined,
         category: category || 'General',
-        subcategory: subcategory.trim() || undefined,
         image: image.trim(),
         images: images.filter(Boolean),
         stock: totalStock,
         lowStockThreshold: typeof lowStockThreshold === 'number' ? lowStockThreshold : 5,
         material: material.trim(),
-        occasion: occasion.trim() || undefined,
         status,
         active: status === 'Active',
-        badge: badge.trim() || undefined,
         featured,
         isCustomizable,
         isCancellable,
         hasVariants,
         variants: cleanVariants,
-        weight: typeof weight === 'number' ? weight : undefined,
-        dimensions:
-          length || width || height
-            ? {
-                length: Number(length) || 0,
-                width: Number(width) || 0,
-                height: Number(height) || 0,
-                unit: dimUnit,
-              }
-            : undefined,
-        leadTimeDays: typeof leadTimeDays === 'number' ? leadTimeDays : undefined,
-        packagingNotes: packagingNotes.trim() || undefined,
         tags: tagsArray,
         seoTitle: (seoTitle || name).trim(),
         seoDescription: (seoDescription || shortDescription || description.slice(0, 160)).trim(),
         updatedAt: new Date().toISOString(),
       };
 
-      await onSave(payload);
+      if (typeof finalOrigPrice === 'number' && !isNaN(finalOrigPrice) && finalOrigPrice > 0) {
+        payload.originalPrice = finalOrigPrice;
+      }
+      if (typeof costPrice === 'number' && !isNaN(costPrice) && costPrice >= 0) {
+        payload.costPrice = costPrice;
+      }
+      if (subcategory.trim()) {
+        payload.subcategory = subcategory.trim();
+      }
+      if (occasion.trim()) {
+        payload.occasion = occasion.trim();
+      }
+      if (badge.trim()) {
+        payload.badge = badge.trim();
+      }
+      if (typeof weight === 'number' && !isNaN(weight) && weight > 0) {
+        payload.weight = weight;
+      }
+      if (length || width || height) {
+        payload.dimensions = {
+          length: Number(length) || 0,
+          width: Number(width) || 0,
+          height: Number(height) || 0,
+          unit: dimUnit,
+        };
+      }
+      if (typeof leadTimeDays === 'number' && !isNaN(leadTimeDays) && leadTimeDays > 0) {
+        payload.leadTimeDays = leadTimeDays;
+      }
+      if (packagingNotes.trim()) {
+        payload.packagingNotes = packagingNotes.trim();
+      }
+
+      const cleanedPayload = cleanFirestorePayload(payload);
+      await onSave(cleanedPayload);
       onClose();
     } catch (err: any) {
       console.error('Failed to save product:', err);

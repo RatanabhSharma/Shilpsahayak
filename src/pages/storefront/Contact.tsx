@@ -7,9 +7,12 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock,
-  Sparkles,
   Phone,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 import {
   Button,
@@ -22,6 +25,8 @@ import { useSettings } from '../../hooks/useSettings';
 export function Contact() {
   const { data: settings } = useSettings();
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const businessName = settings?.businessName || 'Shilp Sahayak';
   const whatsappNumber = settings?.whatsappNumber || '';
@@ -35,9 +40,37 @@ export function Contact() {
       )}`
     : '#';
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSubmitted(true);
+    setSubmitError(null);
+    setSubmitting(true);
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const name = String(formData.get('name') || '').trim();
+    const emailVal = String(formData.get('email') || '').trim();
+    const phoneVal = String(formData.get('phone') || '').trim();
+    const subject = String(formData.get('subject') || '').trim();
+    const message = String(formData.get('message') || '').trim();
+
+    try {
+      await addDoc(collection(db, 'inquiries'), {
+        name,
+        email: emailVal,
+        phone: phoneVal,
+        subject,
+        message,
+        status: 'unread',
+        createdAt: new Date().toISOString(),
+      });
+      setSubmitted(true);
+      form.reset();
+    } catch (err: any) {
+      console.error('Failed to submit contact inquiry:', err);
+      setSubmitError(err?.message || 'Failed to dispatch inquiry. Please try again or reach out on WhatsApp.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -193,21 +226,26 @@ export function Contact() {
               )}
             </div>
 
-            {/* Custom Print Quick Box */}
-            <div className="rounded-3xl border border-accent/30 bg-accent-soft p-6 space-y-3">
+            {/* Instant WhatsApp Quick Box */}
+            <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/5 p-6 space-y-3">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-accent" />
-                <h4 className="font-display text-sm font-bold text-ink">Have a 3D File Ready?</h4>
+                <MessageCircle className="h-4 w-4 text-emerald-600" />
+                <h4 className="font-display text-sm font-bold text-ink">Prefer Instant Messaging?</h4>
               </div>
               <p className="font-sans text-xs text-muted leading-relaxed">
-                Skip the contact form and upload your STL directly to our automated slicing calculator for instant transparent pricing.
+                Connect directly with our workshop team on WhatsApp for quick inquiries, material guidance, or order status updates.
               </p>
-              <Link to="/shilp-studio" className="inline-block">
-                <Button size="sm" variant="primary">
-                  Launch 3D File Uploader
+              <a
+                href={whatsappLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block"
+              >
+                <Button size="sm" variant="primary" className="bg-emerald-600 hover:bg-emerald-700 border-emerald-600">
+                  <span>Chat on WhatsApp</span>
                   <ArrowRight className="ml-1 h-3.5 w-3.5" />
                 </Button>
-              </Link>
+              </a>
             </div>
           </div>
 
@@ -297,6 +335,13 @@ export function Contact() {
                       required
                     />
 
+                    {submitError && (
+                      <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 text-rose-700 text-xs font-mono border border-rose-200">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <span>{submitError}</span>
+                      </div>
+                    )}
+
                     <div className="flex flex-col gap-4 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
                       <p className="font-mono text-[11px] text-muted leading-relaxed max-w-sm">
                         🔒 Your details will only be used to respond to this inquiry and will be
@@ -312,9 +357,23 @@ export function Contact() {
                         .
                       </p>
 
-                      <Button type="submit" size="md" variant="primary">
-                        <span>Send Inquiry</span>
-                        <ArrowRight className="w-4 h-4" />
+                      <Button
+                        type="submit"
+                        size="md"
+                        variant="primary"
+                        disabled={submitting}
+                      >
+                        {submitting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                            <span>Sending...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Send Inquiry</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </>
+                        )}
                       </Button>
                     </div>
                   </form>
@@ -341,9 +400,9 @@ export function Contact() {
               </p>
             </div>
 
-            <Link to="/shilp-studio">
+            <Link to="/shop">
               <Button size="lg" variant="primary">
-                <span>Explore Custom Studio</span>
+                <span>Browse 3D Catalog</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>

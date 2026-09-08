@@ -72,9 +72,9 @@ export function About() {
                     <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>
                 </Link>
-                <Link to="/shilp-studio">
+                <Link to="/reach-us">
                   <Button size="lg" variant="outline" className="font-bold">
-                    Start Custom Print
+                    Contact Studio
                   </Button>
                 </Link>
               </div>
@@ -221,17 +221,17 @@ export function About() {
                 Ready to Fabricate?
               </span>
               <h2 className="mt-2 font-display text-2xl font-bold text-ink sm:text-3xl">
-                Have a 3D File Ready to Print?
+                Looking for Custom Fabrication?
               </h2>
               <p className="mt-2 font-sans text-xs sm:text-sm text-muted leading-relaxed">
-                Upload your STL file to calculate exact volume, weight, and price in seconds, or speak with our engineers for custom projects.
+                Browse our curated functional catalog or reach out directly to our engineering studio in Patiala for bespoke batch production.
               </p>
             </div>
 
             <div className="flex flex-wrap gap-3 shrink-0">
-              <Link to="/shilp-studio">
+              <Link to="/shop">
                 <Button size="lg" variant="primary">
-                  <span>Upload 3D Model</span>
+                  <span>Explore Shop</span>
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>

@@ -83,8 +83,8 @@ export const DEFAULT_HERO_SLIDES: HomepageHeroSlide[] = [
       'High-detail FDM and SLA additive manufacturing across PLA, PETG, ABS, and UV resins for creators, startups, and engineering teams.',
     image:
       'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?auto=format&fit=crop&w=1200&q=80',
-    buttonText: 'Upload CAD for Quote',
-    buttonLink: '/shilp-studio',
+    buttonText: 'Browse Prototypes',
+    buttonLink: '/shop',
   },
   {
     id: 'hero-3',
@@ -95,8 +95,8 @@ export const DEFAULT_HERO_SLIDES: HomepageHeroSlide[] = [
       'Turn concept sketches, CAD models, or replacement part ideas into finished, production-grade physical objects.',
     image:
       'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=1200&q=80',
-    buttonText: 'Get Custom 3D Quote',
-    buttonLink: '/shilp-studio',
+    buttonText: 'Contact Our Studio',
+    buttonLink: '/reach-us',
   },
 ];
 
@@ -178,8 +178,8 @@ export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
   featuredSubtitle: 'Handcrafted 3D printed lighting, desk accessories, and customized keepsakes.',
   customPromoTitle: 'Have a 3D Model? Upload your STL & get an instant quote.',
   customPromoSubtitle: 'Our interactive custom printing pipeline computes volume, estimates material weight, and generates transparent pricing in real time for PLA, PETG, ABS, and Resin.',
-  customPromoButtonText: 'Upload 3D File',
-  customPromoButtonLink: '/shilp-studio',
+  customPromoButtonText: 'Explore Collection',
+  customPromoButtonLink: '/shop',
 
   testimonials: DEFAULT_HOMEPAGE_TESTIMONIALS,
   faqs: DEFAULT_HOMEPAGE_FAQS,

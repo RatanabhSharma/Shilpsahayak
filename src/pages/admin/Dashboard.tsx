@@ -194,7 +194,7 @@ export function Dashboard() {
     let customPrintingRevenue = 0;
 
     validFilteredOrders.forEach((order) => {
-      let isCustomOrder = Boolean(order.quoteId);
+      const isCustomOrder = Boolean(order.quoteId);
       (order.items || []).forEach((item) => {
         const itemSubtotal = (Number(item.price) || 0) * (Number(item.quantity) || 1);
         if (item.quoteId || item.customPrint || isCustomOrder) {

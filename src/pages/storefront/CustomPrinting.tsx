@@ -36,7 +36,6 @@ import {
   formatINR,
   formatPrintTime,
 } from '../../services/pricing/pricingUtils';
-import { calculateCustomerQuote } from '../../services/pricing/calculateQuote';
 import { useStore } from '../../store';
 import { useAuth } from '../../hooks/useAuth';
 import { upload3DFile } from '../../utils/uploadFile';
@@ -804,7 +803,7 @@ export function CustomPrinting() {
   // Submit Quote Review Flow
   const handleSubmitQuote = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !modelResult || !quoteBreakdown) return;
+    if (!file) return;
 
     const customerName = user ? user.displayName || user.email || 'Customer' : guestName.trim();
     const customerEmail = user ? user.email || '' : guestEmail.trim();
@@ -824,6 +823,7 @@ export function CustomPrinting() {
       const customerNotesWithPresets = [
         `Selected Presets: Quality=${qualityPreset}, Strength=${strengthPreset}, Support=${supportMode}, Finish=${surfaceFinish}, Size=${sizeMode}`,
         customerNotes.trim(),
+        slicerError ? `Automated Slicing Notice: ${slicerError}` : '',
       ]
         .filter(Boolean)
         .join('\n');
@@ -844,11 +844,11 @@ export function CustomPrinting() {
         supports: supportsEnabled,
         quantity,
         packagingIncluded,
-        volume: effectiveVolumeCm3,
-        estimatedWeight: actualFilamentGrams ?? estimatedMaterialUsageGrams,
-        estimatedPrintTimeHours: actualPrintTimeHours ?? estimatedPrintTimeHours,
-        systemEstimatedPrice: quoteBreakdown.totalPrice,
-        estimatedPrice: quoteBreakdown.totalPrice,
+        volume: effectiveVolumeCm3 || 0,
+        estimatedWeight: actualFilamentGrams ?? (estimatedMaterialUsageGrams || 0),
+        estimatedPrintTimeHours: actualPrintTimeHours ?? (estimatedPrintTimeHours || 0),
+        systemEstimatedPrice: quoteBreakdown ? quoteBreakdown.totalPrice : 0,
+        estimatedPrice: quoteBreakdown ? quoteBreakdown.totalPrice : 0,
         dimensions: effectiveDimensions
           ? {
               length: effectiveDimensions.x,
@@ -2311,7 +2311,7 @@ export function CustomPrinting() {
       )}
 
       {/* Slicer Processing or Failure State Banner in Tab 3 */}
-      {activeTab === 'estimate' && !quoteBreakdown && (
+      {activeTab === 'estimate' && !quoteBreakdown && !quoteSuccess && (
         <div className="max-w-2xl mx-auto px-4 py-16 text-center space-y-6">
           {isSlicing ? (
             <div className="bg-white dark:bg-slate-900 rounded-3xl border border-line dark:border-slate-800 p-8 shadow-sm space-y-4">

@@ -167,5 +167,15 @@ match /mail/{mailId} {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // =========================================================
+    // INQUIRIES / CONTACT SUBMISSIONS
+    // =========================================================
+    match /inquiries/{inquiryId} {
+      allow create: if request.resource.data.name is string
+                    && request.resource.data.email is string
+                    && request.resource.data.message is string;
+      allow read, update, delete: if isAdmin();
+    }
   }
 }

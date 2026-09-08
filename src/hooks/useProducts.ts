@@ -8,6 +8,7 @@ import {
   doc
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { cleanFirestorePayload } from '../utils/cleanFirestorePayload';
 
 export type ProductStatus = 'Draft' | 'Active' | 'Archived';
 
@@ -203,8 +204,9 @@ export function useAddProduct() {
 
   return useMutation({
     mutationFn: async (product: Omit<Product, 'id'>) => {
-      const docRef = await addDoc(collection(db, 'products'), product);
-      return { id: docRef.id, ...product };
+      const cleaned = cleanFirestorePayload(product);
+      const docRef = await addDoc(collection(db, 'products'), cleaned);
+      return { id: docRef.id, ...cleaned };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -218,7 +220,8 @@ export function useUpdateProduct() {
 
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<Product> & { id: string }) => {
-      await updateDoc(doc(db, 'products', id), data);
+      const cleaned = cleanFirestorePayload(data);
+      await updateDoc(doc(db, 'products', id), cleaned);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });

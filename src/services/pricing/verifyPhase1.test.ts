@@ -1,17 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
-import { detectOriginalColors } from 'd:/Shilp buss/firebase/Shilpsahayak-main/Shilpsahayak-main/src/services/model/modelParser.ts';
+import { detectOriginalColors } from '../model/modelParser';
 import {
   estimateMaterialUsage,
   estimatePrintTime,
-} from 'd:/Shilp buss/firebase/Shilpsahayak-main/Shilpsahayak-main/src/services/pricing/pricingUtils.ts';
-import { calculateCustomerQuote, checkBuildVolume } from 'd:/Shilp buss/firebase/Shilpsahayak-main/Shilpsahayak-main/src/services/pricing/calculateQuote.ts';
+} from './pricingUtils';
+import { calculateCustomerQuote, checkBuildVolume } from './calculateQuote';
 import {
   DEFAULT_PRICING_CONFIG,
   DEFAULT_MATERIALS,
   DEFAULT_PRINT_PROFILES,
   DEFAULT_QUANTITY_DISCOUNTS,
-} from 'd:/Shilp buss/firebase/Shilpsahayak-main/Shilpsahayak-main/src/services/pricing/pricingConfig.ts';
+} from './pricingConfig';
 
 describe('Shilp Studio Phase 1 Comprehensive Test Suite', () => {
   describe('Suite 1: Original Colour Detection', () => {

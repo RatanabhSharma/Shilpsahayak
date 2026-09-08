@@ -17,7 +17,6 @@ import {
   ShoppingBag,
   User,
   X,
-  Sparkles,
   Phone,
   Mail,
   Search,
@@ -53,10 +52,6 @@ const NAV_ITEMS: NavItem[] = [
   {
     name: 'Shop',
     path: '/shop',
-  },
-  {
-    name: 'Shilp Studio',
-    path: '/shilp-studio',
   },
   {
     name: 'Our Story',
@@ -149,7 +144,6 @@ export function StorefrontLayout() {
     const PAGE_TITLES: Record<string, string> = {
       '/':             'Where Ideas Come to Life',
       '/shop':         'Shop',
-      '/shilp-studio': 'Shilp Studio',
       '/our-story':    'Our Story',
       '/reach-us':     'Reach Us',
       '/cart':         'Cart',
@@ -530,12 +524,12 @@ export function StorefrontLayout() {
 
                 <div className="pt-3">
                   <Link
-                    to="/shilp-studio"
+                    to="/shop"
                     onClick={handleNavClick}
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3.5 text-sm font-bold text-white shadow-md hover:bg-accent-dark transition-colors"
                   >
-                    <Sparkles className="h-4 w-4" />
-                    <span>Get Custom 3D Print Quote</span>
+                    <span>Browse 3D Catalog</span>
+                    <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
               </nav>
@@ -635,8 +629,8 @@ export function StorefrontLayout() {
                   </Link>
                 </li>
                 <li>
-                  <Link to="/shilp-studio" className="text-accent hover:text-accent-light transition-colors font-medium">
-                    Custom 3D Printing
+                  <Link to="/reach-us" className="text-accent hover:text-accent-light transition-colors font-medium">
+                    Custom Inquiries
                   </Link>
                 </li>
               </ul>
@@ -649,8 +643,8 @@ export function StorefrontLayout() {
               </h3>
               <ul className="space-y-2 text-xs sm:text-sm font-sans text-zinc-400">
                 <li>
-                  <Link to="/shilp-studio" className="hover:text-white transition-colors">
-                    Shilp Studio (3D Printing)
+                  <Link to="/our-story" className="hover:text-white transition-colors">
+                    Studio Philosophy
                   </Link>
                 </li>
                 <li>

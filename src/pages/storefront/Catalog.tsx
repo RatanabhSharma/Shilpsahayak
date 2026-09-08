@@ -796,13 +796,7 @@ export function Catalog() {
               </h1>
 
               <p className="mt-3 max-w-2xl font-sans text-sm leading-relaxed text-muted sm:text-base">
-                Browse our curated line of precision 3D printed products. Have a custom STL or CAD model you want us to produce instead?{' '}
-                <Link
-                  to="/shilp-studio"
-                  className="font-bold text-accent underline underline-offset-4 hover:text-accent-dark transition-colors"
-                >
-                  Upload CAD for Instant Quote →
-                </Link>
+                Browse our curated line of precision 3D printed products, functional tools, and bespoke decor.
               </p>
             </div>
 
@@ -988,10 +982,10 @@ export function Catalog() {
                     Clear Filters
                   </Button>
 
-                  <Link to="/shilp-studio">
+                  <Link to="/reach-us">
                     <Button className="font-display font-bold">
                       <Sparkles className="mr-2 h-4 w-4" />
-                      Get Custom 3D Quote
+                      Contact Studio
                     </Button>
                   </Link>
                 </div>

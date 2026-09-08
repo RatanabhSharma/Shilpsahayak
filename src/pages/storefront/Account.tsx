@@ -562,10 +562,10 @@ export function Account() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Link to="/shilp-studio">
+              <Link to="/shop">
                 <Button size="sm" variant="primary">
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>New Custom Print</span>
+                  <span>Browse Shop</span>
                 </Button>
               </Link>
 
@@ -784,9 +784,9 @@ export function Account() {
                 </p>
               </div>
 
-              <Link to="/shilp-studio">
+              <Link to="/reach-us">
                 <Button size="sm" variant="primary">
-                  Upload New Model
+                  Custom Inquiry
                 </Button>
               </Link>
             </div>
@@ -801,10 +801,10 @@ export function Account() {
                 <FileText className="mx-auto h-12 w-12 text-muted" />
                 <h3 className="mt-4 font-display text-xl font-bold text-ink">No quotes requested</h3>
                 <p className="mt-1 font-sans text-xs text-muted">
-                  Upload an STL/OBJ model or share reference images for an instant or engineer-verified quote.
+                  Have a custom 3D requirement? Reach out to our studio team for feasibility and bulk estimates.
                 </p>
-                <Link to="/shilp-studio" className="mt-5 inline-block">
-                  <Button variant="primary">Request Custom Quote</Button>
+                <Link to="/reach-us" className="mt-5 inline-block">
+                  <Button variant="primary">Contact Studio</Button>
                 </Link>
               </div>
             ) : (
@@ -906,15 +906,15 @@ export function Account() {
                                   </Button>
                                 </div>
                               ) : quote.status === 'Quoted' && isExpired ? (
-                                <Link to="/shilp-studio">
+                                <Link to="/reach-us">
                                   <Button size="sm" variant="outline" className="font-mono text-xs text-accent border-accent/40 hover:bg-accent-soft">
-                                    Request Re-quote
+                                    Contact Studio
                                   </Button>
                                 </Link>
                               ) : (
-                                <Link to="/shilp-studio">
+                                <Link to="/reach-us">
                                   <Button size="sm" variant="ghost">
-                                    New Quote
+                                    Inquire
                                   </Button>
                                 </Link>
                               )}

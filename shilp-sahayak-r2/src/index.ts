@@ -43,7 +43,10 @@ function getCorsHeaders(request: Request): Headers {
     origin.startsWith("http://127.0.0.1:") ||
     origin.endsWith(".web.app") ||
     origin.endsWith(".firebaseapp.com") ||
-    origin.endsWith(".shilpsahayak.com");
+    origin.endsWith(".vercel.app") ||
+    origin.endsWith(".shilpsahayak.com") ||
+    origin === "https://shilpsahayak.com" ||
+    origin === "https://shilpsahayak.vercel.app";
 
   const allowedOrigin = isAllowed ? (origin || "*") : ALLOWED_ORIGINS[0];
 

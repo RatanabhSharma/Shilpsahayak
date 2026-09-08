@@ -1,4 +1,12 @@
 {
+  "redirects": [
+    { "source": "/catalog", "destination": "/shop", "permanent": true },
+    { "source": "/about", "destination": "/our-story", "permanent": true },
+    { "source": "/contact", "destination": "/reach-us", "permanent": true },
+    { "source": "/shilp-studio", "destination": "/shop", "permanent": false },
+    { "source": "/custom-printing", "destination": "/shop", "permanent": false },
+    { "source": "/custom-service", "destination": "/shop", "permanent": false }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

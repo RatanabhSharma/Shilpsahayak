@@ -13,7 +13,7 @@ import { Catalog } from './pages/storefront/Catalog';
 import { ProductDetail } from './pages/storefront/ProductDetail';
 import { Cart } from './pages/storefront/Cart';
 import { Checkout } from './pages/storefront/Checkout';
-import { CustomPrinting } from './pages/storefront/CustomPrinting';
+// CustomPrinting route paused: import { CustomPrinting } from './pages/storefront/CustomPrinting';
 import { About } from './pages/storefront/About';
 import { Contact } from './pages/storefront/Contact';
 import { Login } from './pages/storefront/Login';
@@ -50,9 +50,15 @@ export function App() {
           <Route path="cart" element={<Cart />} />
           <Route path="checkout" element={<Checkout />} />
 
-          {/* Shilp Studio: Instant 3D Printing Quote & Assisted Design */}
-          <Route path="shilp-studio" element={<CustomPrinting />} />
-          <Route path="custom-printing" element={<Navigate to="/shilp-studio" replace />} />
+          {/* Legacy & Relocated Routes */}
+          <Route path="catalog" element={<Navigate to="/shop" replace />} />
+          <Route path="about" element={<Navigate to="/our-story" replace />} />
+          <Route path="contact" element={<Navigate to="/reach-us" replace />} />
+
+          {/* Shilp Studio: Paused customer-facing workflow, gracefully redirecting to shop */}
+          <Route path="shilp-studio" element={<Navigate to="/shop" replace />} />
+          <Route path="custom-printing" element={<Navigate to="/shop" replace />} />
+          <Route path="custom-service" element={<Navigate to="/shop" replace />} />
 
           <Route path="our-story" element={<About />} />
           <Route path="reach-us" element={<Contact />} />
