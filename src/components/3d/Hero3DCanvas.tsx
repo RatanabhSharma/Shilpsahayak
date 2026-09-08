@@ -307,13 +307,13 @@ export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
       <div className="absolute top-3 inset-x-3 sm:top-4 sm:inset-x-4 flex items-center justify-between gap-2 pointer-events-none z-10">
         <div className="flex items-center gap-1.5 bg-black/75 backdrop-blur-md px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full border border-white/10 text-white font-mono text-[9px] sm:text-[10px] shadow-xs">
           <span className="h-1.5 w-1.5 rounded-full bg-accent animate-ping" />
-          <span className="font-bold text-accent">REAL-TIME 3D CAD</span>
+          <span className="font-bold text-accent">REAL-TIME 3D CAD ENGINE</span>
           <span className="text-zinc-500 hidden sm:inline">| Drag to tilt</span>
         </div>
 
-        <div className="flex items-center gap-1 bg-accent/20 backdrop-blur-md px-2 py-1 rounded-full border border-accent/40 text-accent font-mono text-[9px] sm:text-[10px] font-bold shadow-xs">
+        <div className="flex items-center gap-1 bg-accent/20 backdrop-blur-md px-2.5 py-1 rounded-full border border-accent/40 text-accent font-mono text-[9px] sm:text-[10px] font-bold shadow-xs">
           <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-          <span>G-Code Sim</span>
+          <span>G-Code Simulation</span>
         </div>
       </div>
 
@@ -324,29 +324,29 @@ export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
           <button
             type="button"
             onClick={() => setActiveShape('gear')}
-            className={`px-2 sm:px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all ${
+            className={`px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all ${
               activeShape === 'gear' ? 'bg-accent text-white shadow-xs' : 'bg-zinc-800/80 text-zinc-400 hover:text-white'
             }`}
           >
-            Gear
+            Gear Wheel
           </button>
           <button
             type="button"
             onClick={() => setActiveShape('gem')}
-            className={`px-2 sm:px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all ${
+            className={`px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all ${
               activeShape === 'gem' ? 'bg-accent text-white shadow-xs' : 'bg-zinc-800/80 text-zinc-400 hover:text-white'
             }`}
           >
-            Gem
+            Facet Gem
           </button>
           <button
             type="button"
             onClick={() => setActiveShape('vase')}
-            className={`px-2 sm:px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all ${
+            className={`px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all ${
               activeShape === 'vase' ? 'bg-accent text-white shadow-xs' : 'bg-zinc-800/80 text-zinc-400 hover:text-white'
             }`}
           >
-            Vase
+            Twisted Vase
           </button>
         </div>
 

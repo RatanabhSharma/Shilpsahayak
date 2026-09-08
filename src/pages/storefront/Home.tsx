@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform, useReducedMotion } from 'framer-motion';
 import {
   ChevronLeft,
   ChevronRight,
@@ -12,6 +12,9 @@ import {
   Box,
   Flame,
   Zap,
+  UploadCloud,
+  CheckCircle2,
+  MessageSquare,
 } from 'lucide-react';
 
 import { useProducts } from '../../hooks/useProducts';
@@ -21,6 +24,7 @@ import { useReviews } from '../../hooks/useReviews';
 import { buttonVariants } from '../../components/ui';
 import { ProductCard } from '../../components/product/ProductCard';
 import { FeaturedProductSkeleton } from '../../components/loading/ProductSkeleton';
+import { Hero3DCanvas } from '../../components/3d/Hero3DCanvas';
 import demoVideo from '../../assets/videos/demo_video2.mp4';
 
 /* ============================================================
@@ -41,10 +45,52 @@ const fadeInUp = {
 const MARQUEE_ITEMS = [
   { icon: Cpu, text: 'Up to ±50µm Precision Calibration' },
   { icon: Sparkles, text: '100% Eco-Plant PLA+ & Bio-Resin' },
-  { icon: Zap, text: 'Same-Day Dispatch on In-Stock Items' },
-  { icon: ShieldCheck, text: 'Carefully Packaged & Shock-Proof Delivery' },
+  { icon: Zap, text: 'Instant CAD Slicing & Price Estimator' },
+  { icon: ShieldCheck, text: 'Industry-Standard Encrypted CAD Vault' },
   { icon: Box, text: 'Pan-India Express Tracked Dispatch' },
   { icon: Flame, text: 'Hand-Inspected & Deburred in Patiala' },
+];
+
+/* ============================================================
+   INTERACTIVE MATERIAL SHOWCASE DATA
+   ============================================================ */
+const MATERIALS_PREVIEW = [
+  {
+    id: 'pla',
+    name: 'PLA+',
+    tag: 'Aesthetic & Decor',
+    density: '1.24 g/cm³',
+    finish: 'Smooth Matte / Satin',
+    bestFor: 'Lithophanes, Lamps & Desk Art',
+    badgeClass: 'text-amber-400 bg-amber-400/10 border-amber-400/30',
+  },
+  {
+    id: 'petg',
+    name: 'PETG',
+    tag: 'Tough & Functional',
+    density: '1.27 g/cm³',
+    finish: 'Impact & Heat Resistant',
+    bestFor: 'Enclosures, Mounts & Drone Parts',
+    badgeClass: 'text-blue-400 bg-blue-400/10 border-blue-400/30',
+  },
+  {
+    id: 'abs',
+    name: 'ABS',
+    tag: 'Engineering Grade',
+    density: '1.04 g/cm³',
+    finish: 'High Temperature Tolerance',
+    bestFor: 'Automotive & Mechanical Brackets',
+    badgeClass: 'text-rose-400 bg-rose-400/10 border-rose-400/30',
+  },
+  {
+    id: 'resin',
+    name: 'UV Resin',
+    tag: 'Ultra-High Detail',
+    density: '1.18 g/cm³',
+    finish: '50µm Injection-Like Finish',
+    bestFor: 'Intricate Miniatures & Jewelry',
+    badgeClass: 'text-purple-400 bg-purple-400/10 border-purple-400/30',
+  },
 ];
 
 /* ============================================================
@@ -276,6 +322,12 @@ export function Home() {
   const activeProducts = useMemo(
     () => products.filter((product) => product.active !== false),
     [products]
+  );
+
+  const [selectedMaterial, setSelectedMaterial] = useState('pla');
+  const activeMaterialData = useMemo(
+    () => MATERIALS_PREVIEW.find((m) => m.id === selectedMaterial) || MATERIALS_PREVIEW[0],
+    [selectedMaterial]
   );
 
   const [isMobile, setIsMobile] = useState(false);
@@ -596,7 +648,143 @@ export function Home() {
       </motion.section>
 
       {/* =====================================================
-          4. SHOP BY COLLECTION (CURATED CATEGORIES)
+          4. CUSTOM 3D PRINTING + THREE.JS INTERACTIVE 3D CAD ENGINE
+      ====================================================== */}
+      <motion.section
+        variants={fadeInUp}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: '-40px' }}
+        style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 650px' }}
+        className="bg-[#F0F4F8] py-14 border-t border-line"
+      >
+        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
+          <div className="relative rounded-3xl overflow-hidden border border-zinc-800 bg-[#0e0e11] grid-plate p-6 sm:p-10 lg:p-14 text-white shadow-2xl">
+            <div className="relative z-10 grid gap-10 lg:grid-cols-2 lg:items-center">
+              {/* Left Column: Interactive Three.js 3D Viewport */}
+              <div className="space-y-4">
+                <Hero3DCanvas className="h-[360px] sm:h-[420px] w-full" />
+                <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 px-2">
+                  <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> WebGL Hardware Accelerated
+                  </span>
+                  <span>Drag model to inspect surfaces</span>
+                </div>
+              </div>
+
+              {/* Right Column: Instant Slicer Pitch & Material Matrix */}
+              <div className="space-y-5">
+                <span className="inline-flex items-center gap-2 rounded-full bg-accent/20 border border-accent/30 px-3.5 py-1 font-mono text-xs font-bold text-accent-light">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Instant STL Slicer &amp; Estimator
+                </span>
+                <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight">
+                  {homepageSettings?.customPromoTitle || (
+                    <>
+                      Have a 3D Model?
+                      <br />
+                      <span className="text-zinc-300 text-2xl sm:text-3xl lg:text-4xl font-normal block mt-1">
+                        Upload your CAD file &amp; get an instant quote.
+                      </span>
+                    </>
+                  )}
+                </h2>
+                <p className="font-sans text-xs sm:text-sm text-zinc-300 max-w-lg leading-relaxed">
+                  Upload your 3D CAD file for instant geometric volume analysis, theoretical weight calculation, and workshop pricing.
+                </p>
+
+                {/* 3-Step Visual CAD Pipeline */}
+                <div className="grid grid-cols-3 gap-2.5 pt-1 font-mono text-[11px]">
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-3 text-center space-y-1 group/step hover:border-accent/40 transition-colors">
+                    <span className="text-accent font-bold block text-xs group-hover/step:scale-105 transition-transform">01. Upload</span>
+                    <span className="text-zinc-400 text-[10px]">STL / OBJ / 3MF</span>
+                  </div>
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-3 text-center space-y-1 group/step hover:border-accent/40 transition-colors">
+                    <span className="text-accent font-bold block text-xs group-hover/step:scale-105 transition-transform">02. Configure</span>
+                    <span className="text-zinc-400 text-[10px]">Material &amp; Infill</span>
+                  </div>
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-3 text-center space-y-1 group/step hover:border-accent/40 transition-colors">
+                    <span className="text-accent font-bold block text-xs group-hover/step:scale-105 transition-transform">03. Fabricate</span>
+                    <span className="text-zinc-400 text-[10px]">Fast Dispatch</span>
+                  </div>
+                </div>
+
+                {/* Interactive Material Selector Tabs */}
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-zinc-300">
+                      Material Matrix
+                    </span>
+                    <span className="font-mono text-[10px] text-zinc-500">Tap to switch</span>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {MATERIALS_PREVIEW.map((mat) => (
+                      <button
+                        key={mat.id}
+                        type="button"
+                        onClick={() => setSelectedMaterial(mat.id)}
+                        aria-pressed={selectedMaterial === mat.id}
+                        aria-label={`Select ${mat.name} material`}
+                        className={`py-1.5 px-1 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer ${
+                          selectedMaterial === mat.id
+                            ? 'bg-white text-ink shadow-md scale-105'
+                            : 'bg-zinc-800/80 text-zinc-400 hover:text-white'
+                        }`}
+                      >
+                        {mat.name}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Active Material Specs */}
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={activeMaterialData.id}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.2 }}
+                      className="grid grid-cols-2 gap-2 text-[11px] font-mono"
+                    >
+                      <div className="bg-zinc-950/60 p-2.5 rounded-xl border border-zinc-800">
+                        <span className="text-zinc-500 block text-[9px]">DENSITY</span>
+                        <span className="text-white font-bold">{activeMaterialData.density}</span>
+                      </div>
+                      <div className="bg-zinc-950/60 p-2.5 rounded-xl border border-zinc-800">
+                        <span className="text-zinc-500 block text-[9px]">TEXTURE</span>
+                        <span className="text-white font-bold truncate block">{activeMaterialData.finish}</span>
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+
+                <div className="flex flex-wrap gap-3 pt-1">
+                  <Link
+                    to={homepageSettings?.customPromoButtonLink || '/shilp-studio'}
+                    className={buttonVariants({ variant: 'primary', size: 'md' })}
+                  >
+                    <UploadCloud className="w-4 h-4" />
+                    <span>{homepageSettings?.customPromoButtonText || 'Launch Shilp Studio'}</span>
+                  </Link>
+                  <a
+                    href={whatsappLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={buttonVariants({ variant: 'whatsapp', size: 'md' })}
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>Consult on WhatsApp</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* =====================================================
+          5. SHOP BY COLLECTION (CURATED CATEGORIES)
       ====================================================== */}
       <motion.section
         variants={fadeInUp}
@@ -791,7 +979,7 @@ export function Home() {
               Have an idea?<br />Let's make it real.
             </h2>
             <p className="font-sans text-xs sm:text-sm text-muted max-w-md mx-auto leading-relaxed">
-              Explore our ready-to-ship 3D printed catalog or contact our studio for custom fabrication projects.
+              Explore our ready-to-ship 3D printed catalog or upload your CAD file for custom fabrication.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
               <Link
@@ -801,12 +989,19 @@ export function Home() {
                 <span>Shop Catalog</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
+              <Link
+                to="/shilp-studio"
+                className={buttonVariants({ variant: 'secondary', size: 'lg' })}
+              >
+                <span>Start a Custom Print</span>
+              </Link>
               <a
                 href={whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={buttonVariants({ variant: 'secondary', size: 'lg' })}
+                className={buttonVariants({ variant: 'outline', size: 'lg' })}
               >
+                <MessageSquare className="w-4 h-4" />
                 <span>Chat on WhatsApp</span>
               </a>
             </div>

@@ -335,6 +335,7 @@ export function applyBambuProjectMaterials(
   }
 
   const usedColorsSet = new Set<string>();
+  const materialCache = new Map<string, THREE.MeshStandardMaterial>();
 
   for (let i = 0; i < meshes.length; i++) {
     const mesh = meshes[i];
@@ -344,25 +345,17 @@ export function applyBambuProjectMaterials(
     const hex = filamentColors[slot] || '#AAAAAA';
     usedColorsSet.add(hex);
 
-    const c = new THREE.Color(hex);
-    mesh.material = new THREE.MeshStandardMaterial({
-      color: c,
-      roughness: 0.55,
-      metalness: 0.05,
-      side: THREE.DoubleSide,
-    });
-
-    // Also populate vertex colors on the geometry so mergeGeometries preserves them
-    if (mesh.geometry && mesh.geometry.attributes.position) {
-      const count = mesh.geometry.attributes.position.count;
-      const colArr = new Float32Array(count * 3);
-      for (let v = 0; v < count; v++) {
-        colArr[v * 3] = c.r;
-        colArr[v * 3 + 1] = c.g;
-        colArr[v * 3 + 2] = c.b;
-      }
-      mesh.geometry.setAttribute('color', new THREE.BufferAttribute(colArr, 3));
+    let mat = materialCache.get(hex);
+    if (!mat) {
+      mat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(hex),
+        roughness: 0.55,
+        metalness: 0.05,
+        side: THREE.DoubleSide,
+      });
+      materialCache.set(hex, mat);
     }
+    mesh.material = mat;
   }
 
   const detectedColors = Array.from(usedColorsSet);
@@ -370,7 +363,7 @@ export function applyBambuProjectMaterials(
     detectedColors.length > 1 ||
     (detectedColors.length === 1 && detectedColors[0] !== '#AAAAAA' && detectedColors[0] !== '#FFFFFF');
 
-  return { hasColors: true, detectedColors };
+  return { hasColors, detectedColors };
 }
 
 /**

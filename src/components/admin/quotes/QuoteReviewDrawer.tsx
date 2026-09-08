@@ -320,6 +320,7 @@ export const QuoteReviewDrawer: React.FC<QuoteReviewDrawerProps> = ({
                 ) : quote.fileUrl ? (
                   <div>
                     <ThreeModelViewer
+                      modelResult={parsedModel}
                       geometry={parsedModel?.geometry || null}
                       colorHex={colorHex}
                       isLoading={isLoadingModel}

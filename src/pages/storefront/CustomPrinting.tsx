@@ -27,7 +27,6 @@ import {
   Sliders,
   Lock,
   Unlock,
-  RefreshCw,
 } from 'lucide-react';
 import { usePricingSettings } from '../../hooks/usePricingSettings';
 import { parse3DModel } from '../../services/model/modelParser';
@@ -283,6 +282,7 @@ export function CustomPrinting() {
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [modelResult, setModelResult] = useState<ParsedModelResult | null>(null);
+  const [activePlateId, setActivePlateId] = useState<string | undefined>(undefined);
   const [isDragOver, setIsDragOver] = useState(false);
 
   // Real Slicer Service Integration State (Phase 2B/2C)
@@ -736,6 +736,12 @@ export function CustomPrinting() {
         setModelColorMode('single');
       }
 
+      if (result.previewMode === 'multi_plate' && result.plates && result.plates.length > 0) {
+        setActivePlateId(result.plates[0].id);
+      } else {
+        setActivePlateId(undefined);
+      }
+
       setScaleFactor(1.0);
       setScaleX(1.0);
       setScaleY(1.0);
@@ -767,6 +773,19 @@ export function CustomPrinting() {
     }
   };
 
+  const handleActivePlateChange = (plateId: string) => {
+    setActivePlateId(plateId);
+    if (modelResult?.plates) {
+      const plate = modelResult.plates.find((p) => p.id === plateId);
+      if (plate) {
+        setBaseDimensions(plate.dimensions);
+        setDimInputX(plate.dimensions.x.toFixed(1));
+        setDimInputY(plate.dimensions.y.toFixed(1));
+        setDimInputZ(plate.dimensions.z.toFixed(1));
+      }
+    }
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);
@@ -788,12 +807,15 @@ export function CustomPrinting() {
   const handleRemoveFile = () => {
     setFile(null);
     setModelResult(null);
+    setActivePlateId(undefined);
     setModelProcessingState('idle');
     setModelColorMode('original');
     setScaleFactor(1.0);
     setSizeMode('original');
     setBaseDimensions(null);
-    setTargetHeightInput('');
+    setDimInputX('');
+    setDimInputY('');
+    setDimInputZ('');
     setActiveTab('upload');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -1328,19 +1350,6 @@ export function CustomPrinting() {
               </div>
             )}
 
-            {/* Hidden File Input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".stl,.obj,.3mf,.mtl,.zip"
-              multiple
-              onChange={(e) => {
-                if (e.target.files && e.target.files.length > 0) {
-                  handleFile(e.target.files);
-                }
-              }}
-              className="hidden"
-            />
           </div>
         </div>
       )}
@@ -1361,6 +1370,11 @@ export function CustomPrinting() {
                     <span className="font-display font-bold text-xs uppercase tracking-wider text-ink dark:text-white truncate">
                       {file?.name}
                     </span>
+                    {modelResult?.previewMode === 'multi_plate' && modelResult.plates && (
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+                        {modelResult.plates.length} Plates
+                      </span>
+                    )}
                   </div>
                   <span className="font-mono text-[10px] text-muted shrink-0">
                     {effectiveVolumeCm3.toFixed(1)} cm³
@@ -1369,6 +1383,9 @@ export function CustomPrinting() {
 
                 {/* Three.js Canvas Viewer */}
                 <ThreeModelViewer
+                  modelResult={modelResult}
+                  activePlateId={activePlateId}
+                  onActivePlateChange={handleActivePlateChange}
                   geometry={modelResult?.geometry || null}
                   object3d={modelResult?.object3d || null}
                   hasOriginalColors={modelResult?.hasOriginalColors || false}
@@ -3155,6 +3172,20 @@ export function CustomPrinting() {
           )}
         </div>
       )}
+
+      {/* Persistent Hidden File Input for uploading/replacing model */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".stl,.obj,.3mf,.mtl,.zip"
+        multiple
+        onChange={(e) => {
+          if (e.target.files && e.target.files.length > 0) {
+            handleFile(e.target.files);
+          }
+        }}
+        className="hidden"
+      />
     </div>
   );
 }

@@ -9,9 +9,15 @@ import {
   Loader2,
   Box,
   Compass,
+  Layers,
 } from 'lucide-react';
+import { ParsedModelResult } from '../../services/model/modelTypes';
+import { buildSceneForPlate, buildSceneForModel } from '../../services/model/sceneBuilder';
 
 export interface ThreeModelViewerProps {
+  modelResult?: ParsedModelResult | null;
+  activePlateId?: string;
+  onActivePlateChange?: (plateId: string) => void;
   geometry: THREE.BufferGeometry | null;
   object3d?: THREE.Object3D | null;
   hasOriginalColors?: boolean;
@@ -28,6 +34,9 @@ export interface ThreeModelViewerProps {
 }
 
 export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
+  modelResult = null,
+  activePlateId,
+  onActivePlateChange,
   geometry,
   object3d = null,
   hasOriginalColors = false,
@@ -49,6 +58,11 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
   const controlsRef = useRef<OrbitControls | null>(null);
   const modelRef = useRef<THREE.Object3D | null>(null);
   const gridHelperRef = useRef<THREE.GridHelper | null>(null);
+  const displayObjRef = useRef<THREE.Object3D | null>(null);
+  const pivotRef = useRef<THREE.Group | null>(null);
+  const initialCenterRef = useRef<THREE.Vector3>(new THREE.Vector3());
+  const originalMaterialsMapRef = useRef<Map<THREE.Mesh, THREE.Material | THREE.Material[]>>(new Map());
+  const singleMaterialRef = useRef<THREE.MeshStandardMaterial | null>(null);
 
   const [isWireframe, setIsWireframe] = useState(initialWireframe);
   const [showGrid, setShowGrid] = useState(true);
@@ -65,10 +79,10 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
   onOrientedDimensionsChangeRef.current = onOrientedDimensionsChange;
   const lastNotifiedDimsRef = useRef<{ x: number; y: number; z: number } | null>(null);
 
-  // Reset rotation when geometry or object3d changes
+  // Reset rotation when geometry, object3d, or active plate changes
   useEffect(() => {
     setRotation({ x: 0, y: 0, z: 0 });
-  }, [geometry, object3d]);
+  }, [geometry, object3d, modelResult, activePlateId]);
 
   // Camera framing function
   const fitCameraToObject = useCallback(() => {
@@ -121,8 +135,6 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     // Critical: output colour space must match texture colour space (sRGB).
-    // Without this, sRGB textures are double-gamma-corrected and appear nearly
-    // black — which is exactly what we saw with the Spider-Man 3MF model.
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
@@ -137,7 +149,6 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     controlsRef.current = controls;
 
     // 5. Lights — boosted for textured / multi-material models
-    // Ambient at 1.2 ensures textures are fully visible from all angles.
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
     scene.add(ambientLight);
 
@@ -212,152 +223,192 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     };
   }, []);
 
-  // Update Geometry, Materials, Color Mode, Scaling, and Rotation
+  // 1. Setup Model Mesh/Group (Runs when modelResult, activePlateId, geometry, or object3d changes)
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene) return;
 
-    // Remove existing model and dispose resources
-    if (modelRef.current) {
-      scene.remove(modelRef.current);
-      modelRef.current.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          const m = child as THREE.Mesh;
-          if (m.geometry) m.geometry.dispose();
-          if (m.material) {
-            if (Array.isArray(m.material)) {
-              m.material.forEach((mat) => mat.dispose());
-            } else {
-              m.material.dispose();
-            }
-          }
-        }
-      });
+    // Remove existing model from scene
+    if (pivotRef.current) {
+      scene.remove(pivotRef.current);
+      pivotRef.current = null;
       modelRef.current = null;
+      displayObjRef.current = null;
     }
 
-    if (!geometry && !object3d) return;
+    originalMaterialsMapRef.current.clear();
+    if (!modelResult && !geometry && !object3d) return;
 
-    let displayObj: THREE.Object3D;
-    const isOriginalMode = hasOriginalColors ? colorMode !== 'single' : colorMode === 'original';
+    let displayObj: THREE.Object3D | null = null;
 
-    if (isOriginalMode && object3d) {
-      // 1. Cloned 3D Group/Mesh preserving original materials, textures, and vertex colors
-      displayObj = object3d.clone(true);
-      displayObj.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          const m = child as THREE.Mesh;
-          m.castShadow = true;
-          m.receiveShadow = true;
-          if (m.material) {
-            const mats = Array.isArray(m.material) ? m.material : [m.material];
-            mats.forEach((mat) => {
-              const sm = mat as THREE.MeshStandardMaterial;
-              if ('wireframe' in sm) sm.wireframe = isWireframe;
-              sm.side = THREE.DoubleSide;
-
-              // Ensure textures are decoded with correct colour space.
-              // Three.js r152+ requires explicit SRGBColorSpace on loaded
-              // textures when renderer.outputColorSpace = SRGBColorSpace.
-              if (sm.map) {
-                sm.map.colorSpace = THREE.SRGBColorSpace;
-                sm.map.needsUpdate = true;
-              }
-              if (sm.emissiveMap) {
-                sm.emissiveMap.colorSpace = THREE.SRGBColorSpace;
-                sm.emissiveMap.needsUpdate = true;
-              }
-
-              // Apply reasonable surface defaults if not already set
-              if (sm.roughness === undefined || sm.roughness > 0.95) sm.roughness = 0.55;
-              if (sm.metalness === undefined) sm.metalness = 0.0;
-
-              // Activate vertex colours if geometry carries them
-              if (m.geometry && m.geometry.hasAttribute('color')) {
-                sm.vertexColors = true;
-              }
-              sm.needsUpdate = true;
-            });
-          }
-        }
-      });
-    } else if (isOriginalMode && geometry && geometry.hasAttribute('color')) {
-      // 2. Vertex-colored geometry (STL with VisCAM/Magics or raw vertex colors)
-      const clonedGeometry = geometry.clone();
-      clonedGeometry.center();
-      clonedGeometry.computeVertexNormals();
-
-      const material = new THREE.MeshStandardMaterial({
-        vertexColors: true,
-        roughness: 0.4,
-        metalness: 0.05,
-        wireframe: isWireframe,
-        side: THREE.DoubleSide,
-      });
-
-      const mesh = new THREE.Mesh(clonedGeometry, material);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      displayObj = mesh;
-    } else if (geometry) {
-      // 3. Single-colour preview with selected filament color
-      const clonedGeometry = geometry.clone();
-      clonedGeometry.center();
-      clonedGeometry.computeVertexNormals();
-
-      const material = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(colorHex),
-        roughness: 0.35,
-        metalness: 0.05,
-        wireframe: isWireframe,
-        side: THREE.DoubleSide,
-      });
-
-      const mesh = new THREE.Mesh(clonedGeometry, material);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      displayObj = mesh;
-    } else if (object3d) {
-      // 4. Single-colour override on parsed object3d
-      displayObj = object3d.clone(true);
-      const overrideMat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(colorHex),
-        roughness: 0.35,
-        metalness: 0.05,
-        wireframe: isWireframe,
-        side: THREE.DoubleSide,
-      });
-      displayObj.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          const m = child as THREE.Mesh;
-          m.castShadow = true;
-          m.receiveShadow = true;
-          m.material = overrideMat;
-        }
-      });
-    } else {
-      return;
+    // Strategy A: File-Aware Scene Builder via modelResult
+    if (modelResult) {
+      if (
+        modelResult.previewMode === 'multi_plate' &&
+        modelResult.plates &&
+        modelResult.plates.length > 0
+      ) {
+        const targetPlateId =
+          activePlateId || modelResult.activePlateId || modelResult.plates[0].id;
+        displayObj = buildSceneForPlate(modelResult, targetPlateId, {
+          colorMode,
+          singleColorHex: colorHex,
+          wireframe: isWireframe,
+        });
+      } else if (modelResult.objects && modelResult.objects.length > 0) {
+        displayObj = buildSceneForModel(modelResult, {
+          colorMode,
+          singleColorHex: colorHex,
+          wireframe: isWireframe,
+        });
+      }
     }
 
-    // 1. Measure unscaled object first
+    // Strategy B: Fallback to existing object3d or geometry if sceneBuilder wasn't applicable
+    if (!displayObj) {
+      if (object3d) {
+        displayObj = object3d.clone(true);
+      } else if (geometry) {
+        const clonedGeometry = geometry.clone();
+        clonedGeometry.center();
+        clonedGeometry.computeVertexNormals();
+        clonedGeometry.computeBoundingBox();
+
+        const mat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(colorHex),
+          roughness: 0.35,
+          metalness: 0.05,
+          side: THREE.DoubleSide,
+          vertexColors: geometry.hasAttribute('color'),
+        });
+
+        const mesh = new THREE.Mesh(clonedGeometry, mat);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        displayObj = mesh;
+      }
+    }
+
+    if (!displayObj) return;
+
+    displayObj.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const m = child as THREE.Mesh;
+        m.castShadow = true;
+        m.receiveShadow = true;
+        if (m.geometry) {
+          m.geometry.computeBoundingBox();
+        }
+        if (m.material) {
+          originalMaterialsMapRef.current.set(m, m.material);
+          const mats = Array.isArray(m.material) ? m.material : [m.material];
+          mats.forEach((mat) => {
+            const sm = mat as THREE.MeshStandardMaterial;
+            sm.side = THREE.DoubleSide;
+            if (sm.map) {
+              sm.map.colorSpace = THREE.SRGBColorSpace;
+              sm.map.needsUpdate = true;
+            }
+            if (sm.emissiveMap) {
+              sm.emissiveMap.colorSpace = THREE.SRGBColorSpace;
+              sm.emissiveMap.needsUpdate = true;
+            }
+            if (sm.roughness === undefined || sm.roughness > 0.95) sm.roughness = 0.55;
+            if (sm.metalness === undefined) sm.metalness = 0.0;
+            if (m.geometry && m.geometry.hasAttribute('color')) {
+              sm.vertexColors = true;
+            }
+            sm.needsUpdate = true;
+          });
+        }
+      }
+    });
+
     displayObj.scale.set(1, 1, 1);
     const initialBox = new THREE.Box3().setFromObject(displayObj);
     const initialCenter = new THREE.Vector3();
     initialBox.getCenter(initialCenter);
+    initialCenterRef.current.copy(initialCenter);
 
-    // Apply scale to displayObj
+    const pivot = new THREE.Group();
+    displayObj.position.set(-initialCenter.x, -initialCenter.y, -initialCenter.z);
+    pivot.add(displayObj);
+
+    // Initial CAD Z-up to Three.js Y-up conversion
+    pivot.rotation.set(-Math.PI / 2, 0, 0);
+    pivot.updateMatrixWorld(true);
+
+    const initialBbox = new THREE.Box3().setFromObject(pivot);
+    const center = new THREE.Vector3();
+    initialBbox.getCenter(center);
+    pivot.position.x = -center.x;
+    pivot.position.z = -center.z;
+    pivot.position.y = -initialBbox.min.y;
+    pivot.updateMatrixWorld(true);
+
+    scene.add(pivot);
+    pivotRef.current = pivot;
+    modelRef.current = pivot;
+    displayObjRef.current = displayObj;
+
+    // Initial camera framing
+    fitCameraToObject();
+  }, [geometry, object3d, modelResult, activePlateId]);
+
+  // 2. Update Materials (Runs on colorMode, colorHex, isWireframe - NO geometry cloning)
+  useEffect(() => {
+    const displayObj = displayObjRef.current;
+    if (!displayObj) return;
+
+    const isOriginalMode = hasOriginalColors ? colorMode !== 'single' : colorMode === 'original';
+
+    if (!singleMaterialRef.current) {
+      singleMaterialRef.current = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(colorHex),
+        roughness: 0.35,
+        metalness: 0.05,
+        side: THREE.DoubleSide,
+      });
+    } else {
+      singleMaterialRef.current.color.set(colorHex);
+    }
+    singleMaterialRef.current.wireframe = isWireframe;
+
+    displayObj.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const m = child as THREE.Mesh;
+        if (isOriginalMode) {
+          const orig = originalMaterialsMapRef.current.get(m);
+          if (orig) {
+            m.material = orig;
+            const mats = Array.isArray(orig) ? orig : [orig];
+            mats.forEach((mat) => {
+              if ('wireframe' in mat) {
+                (mat as any).wireframe = isWireframe;
+              }
+            });
+          }
+        } else {
+          m.material = singleMaterialRef.current!;
+        }
+      }
+    });
+  }, [colorMode, colorHex, isWireframe, hasOriginalColors]);
+
+  // 3. Update Transforms (Runs on scale, scaleVector, rotation - NO geometry cloning, NO camera jumping)
+  useEffect(() => {
+    const displayObj = displayObjRef.current;
+    const pivot = pivotRef.current;
+    if (!displayObj || !pivot) return;
+
+    const initialCenter = initialCenterRef.current;
     const sx = scaleVector ? scaleVector.x : (scale > 0 ? scale : 1.0);
     const sy = scaleVector ? scaleVector.y : (scale > 0 ? scale : 1.0);
     const sz = scaleVector ? scaleVector.z : (scale > 0 ? scale : 1.0);
+
     displayObj.scale.set(sx, sy, sz);
-
-    // Wrap model in a pivot group centered at model's geometric center
-    const pivot = new THREE.Group();
     displayObj.position.set(-initialCenter.x * sx, -initialCenter.y * sy, -initialCenter.z * sz);
-    pivot.add(displayObj);
 
-    // Apply CAD Z-up to Three.js Y-up conversion so 3D print models stand upright on build plate
-    // (In 3D CAD/slicers like Bambu Studio / 3MF / STL, Z is vertical; in Three.js, Y is vertical)
     const baseRotationX = -Math.PI / 2;
     const radX = baseRotationX + (rotation.x * Math.PI) / 180;
     const radY = (rotation.y * Math.PI) / 180;
@@ -365,9 +416,9 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
 
     pivot.rotation.set(radX, radY, radZ);
     pivot.scale.set(1, 1, 1);
+    pivot.position.set(0, 0, 0);
     pivot.updateMatrixWorld(true);
 
-    // Compute bounding box in transformed world orientation
     const bbox = new THREE.Box3().setFromObject(pivot);
     const center = new THREE.Vector3();
     bbox.getCenter(center);
@@ -377,9 +428,6 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     pivot.position.z = -center.z;
     pivot.position.y = -bbox.min.y;
     pivot.updateMatrixWorld(true);
-
-    scene.add(pivot);
-    modelRef.current = pivot;
 
     // Compute unscaled oriented dimensions (at scale = 1.0) to report to parent
     const unscaledWidth = Math.round(((bbox.max.x - bbox.min.x) / (sx > 0 ? sx : 1)) * 10) / 10;
@@ -401,23 +449,7 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
         onOrientedDimensionsChangeRef.current(unscaledDims);
       }
     }
-
-    // Fit camera on orientation / geometry / mode changes
-    fitCameraToObject();
-  }, [
-    geometry,
-    object3d,
-    hasOriginalColors,
-    colorMode,
-    colorHex,
-    isWireframe,
-    scale,
-    scaleVector?.x,
-    scaleVector?.y,
-    scaleVector?.z,
-    rotation,
-    fitCameraToObject,
-  ]);
+  }, [scale, scaleVector?.x, scaleVector?.y, scaleVector?.z, rotation]);
 
   // Toggle Grid
   useEffect(() => {
@@ -479,7 +511,7 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
       )}
 
       {/* Viewer Overlay Controls */}
-      {(geometry || object3d) && !isLoading && !error && (
+      {(geometry || object3d || modelResult) && !isLoading && !error && (
         <>
           {/* Top Header Bar: Responsive Non-Overlapping Controls */}
           <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1.5 pointer-events-none z-10">
@@ -572,22 +604,78 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
             </div>
           </div>
 
+          {/* Plate Selector Bar for Multi-Plate Projects */}
+          {modelResult?.previewMode === 'multi_plate' &&
+            modelResult.plates &&
+            modelResult.plates.length > 1 && (
+              <div className="absolute top-[52px] left-2.5 right-2.5 flex items-center gap-1.5 overflow-x-auto py-1 px-1.5 bg-slate-900/90 dark:bg-slate-900/95 backdrop-blur-md rounded-xl border border-slate-700/60 shadow-md z-10 scrollbar-none pointer-events-auto">
+                <div className="flex items-center gap-1 text-[10px] font-mono font-bold text-slate-400 px-1 shrink-0">
+                  <Layers className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Plates:</span>
+                </div>
+                {modelResult.plates.map((plate) => {
+                  const isActive =
+                    (activePlateId || modelResult.plates![0].id) === plate.id;
+                  return (
+                    <button
+                      key={plate.id}
+                      type="button"
+                      onClick={() =>
+                        onActivePlateChange && onActivePlateChange(plate.id)
+                      }
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                        isActive
+                          ? 'bg-amber-500 text-slate-950 shadow-sm'
+                          : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                      }`}
+                      title={`${plate.name} (${plate.objectIds.length} parts, ${plate.volumeCm3} cm³)`}
+                    >
+                      <span>{plate.name}</span>
+                      <span
+                        className={`text-[9px] px-1 py-0.2 rounded font-mono ${
+                          isActive
+                            ? 'bg-amber-600/40 text-slate-950 font-bold'
+                            : 'bg-slate-800 text-slate-400'
+                        }`}
+                      >
+                        {plate.objectIds.length}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
           {/* Bottom Bar: Dimensions Pill + Interaction Hint */}
           <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between gap-2 pointer-events-none z-10">
             {/* Bottom-Left Bounding Dimension Pill */}
-            {displayDimensions && (displayDimensions.x > 0 || displayDimensions.y > 0 || displayDimensions.z > 0) && (
-              <div className="bg-slate-900/90 dark:bg-slate-900/95 text-white backdrop-blur-md px-2.5 py-1 rounded-xl border border-slate-700/60 shadow-md pointer-events-auto flex items-center gap-1.5 font-mono text-[11px] font-bold">
-                <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                <span>
-                  {displayDimensions.x} × {displayDimensions.y} × {displayDimensions.z} mm
-                </span>
-                {isRotated && (
-                  <span className="text-[9px] font-semibold text-amber-400 bg-amber-950/50 px-1 py-0.5 rounded-md border border-amber-800/50 ml-1">
-                    Rotated
+            {displayDimensions &&
+              (displayDimensions.x > 0 ||
+                displayDimensions.y > 0 ||
+                displayDimensions.z > 0) && (
+                <div className="bg-slate-900/90 dark:bg-slate-900/95 text-white backdrop-blur-md px-2.5 py-1 rounded-xl border border-slate-700/60 shadow-md pointer-events-auto flex items-center gap-1.5 font-mono text-[11px] font-bold">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                  <span>
+                    {displayDimensions.x} × {displayDimensions.y} ×{' '}
+                    {displayDimensions.z} mm
                   </span>
-                )}
-              </div>
-            )}
+                  {modelResult?.previewMode === 'multi_plate' &&
+                    modelResult.plates && (
+                      <span className="text-[9px] font-semibold text-amber-400 border-l border-slate-700 pl-1.5 ml-0.5">
+                        {modelResult.plates.find(
+                          (p) =>
+                            p.id ===
+                            (activePlateId || modelResult.plates![0].id)
+                        )?.name || 'Plate'}
+                      </span>
+                    )}
+                  {isRotated && (
+                    <span className="text-[9px] font-semibold text-amber-400 bg-amber-950/50 px-1 py-0.5 rounded-md border border-amber-800/50 ml-1">
+                      Rotated
+                    </span>
+                  )}
+                </div>
+              )}
 
             {/* Bottom-Right Touch/Mouse Hint (Only when screen allows) */}
             <div className="hidden md:block text-[9px] font-mono text-slate-400 bg-slate-900/80 backdrop-blur-xs px-2 py-1 rounded-lg border border-slate-800/70 pointer-events-auto shrink-0">
