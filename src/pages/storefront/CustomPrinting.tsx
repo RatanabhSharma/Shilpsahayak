@@ -174,7 +174,7 @@ export function CustomPrinting() {
   const [assistedSub, setAssistedSub] = useState<'has-reference' | 'idea-only'>('has-reference');
   const [assistedFile, setAssistedFile] = useState<File | null>(null);
   const [assistedDesc, setAssistedDesc] = useState('');
-  const [assistedMaterial, setAssistedMaterial] = useState('PLA');
+  const assistedMaterial = 'To be advised by Shilp team';
   const [assistedQuantity, setAssistedQuantity] = useState(1);
   const [assistedName, setAssistedName] = useState('');
   const [assistedEmail, setAssistedEmail] = useState('');
@@ -363,6 +363,24 @@ export function CustomPrinting() {
       hex,
     };
   }, [customColorHex, selectedColorName]);
+
+  // Active Plate and contextual detected colors for plate-aware palette filtering
+  const activePlate = useMemo(() => {
+    if (modelResult?.previewMode === 'multi_plate' && activePlateId && modelResult.plates) {
+      return modelResult.plates.find((p) => p.id === activePlateId) || null;
+    }
+    return null;
+  }, [modelResult, activePlateId]);
+
+  const displayedDetectedColors = useMemo(() => {
+    if (!modelResult) return [];
+    if (modelResult.previewMode === 'multi_plate' && activePlate) {
+      if (activePlate.detectedColors && activePlate.detectedColors.length > 0) {
+        return activePlate.detectedColors;
+      }
+    }
+    return modelResult.detectedColors || [];
+  }, [modelResult, activePlate]);
 
   // Active Profiles & Profile Resolution from Customer Quality Preset
   const activeProfiles = useMemo(
@@ -1405,7 +1423,7 @@ export function CustomPrinting() {
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 text-[11px]">
                     <span className="font-mono font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
                       <Palette className="w-3.5 h-3.5 text-accent" />
-                      Original Colours ({modelResult.detectedColors?.length || modelResult.originalColorCount || 'Multi'})
+                      Original Colours ({displayedDetectedColors.length || modelResult.detectedColors?.length || modelResult.originalColorCount || 'Multi'})
                     </span>
                     <div className="flex items-center gap-1 bg-white/80 dark:bg-slate-900/80 p-0.5 rounded-lg border border-amber-200/60 dark:border-amber-900/50">
                       <button
@@ -1735,22 +1753,22 @@ export function CustomPrinting() {
                 </div>
 
                 {/* Detected Model Colours Section */}
-                {modelResult?.detectedColors && modelResult.detectedColors.length > 0 && (
+                {displayedDetectedColors && displayedDetectedColors.length > 0 && (
                   <div className="p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Palette className="w-4 h-4 text-accent" />
                         <span className="font-display font-bold text-xs uppercase tracking-wider text-ink dark:text-white">
-                          Colours Detected in Model File
+                          {activePlate ? `Colours on ${activePlate.name}` : 'Colours Detected in Model File'}
                         </span>
                       </div>
                       <span className="font-mono text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded">
-                        {modelResult.detectedColors.length} {modelResult.detectedColors.length === 1 ? 'Colour' : 'Colours'}
+                        {displayedDetectedColors.length} {displayedDetectedColors.length === 1 ? 'Colour' : 'Colours'}
                       </span>
                     </div>
 
                     <div className="flex flex-wrap gap-2.5">
-                      {modelResult.detectedColors.map((colHex) => {
+                      {displayedDetectedColors.map((colHex) => {
                         const hexUpper = colHex.toUpperCase();
                         const isSelectedAsFilament = customColorHex.toUpperCase() === hexUpper;
                         return (
@@ -1781,7 +1799,41 @@ export function CustomPrinting() {
                       })}
                     </div>
 
-                    {modelResult.detectedColors.length > 1 && (
+                    {/* Clear distinction and switch between Original Model Colours and Production Filament Preview */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-amber-200/60 dark:border-amber-900/30 text-[11px]">
+                      <span className="text-amber-900 dark:text-amber-300">
+                        {modelColorMode === 'original' ? (
+                          <>
+                            Production filament set to <span className="font-mono font-bold">{customColorHex ? customColorHex.toUpperCase() : activeColor.name}</span>. Viewer is currently displaying <strong>Model Colours</strong>.
+                          </>
+                        ) : (
+                          <>
+                            Viewer is currently rendering with selected filament: <span className="font-mono font-bold">{customColorHex ? customColorHex.toUpperCase() : activeColor.name}</span>.
+                          </>
+                        )}
+                      </span>
+                      {modelColorMode === 'original' ? (
+                        <button
+                          type="button"
+                          onClick={() => setModelColorMode('single')}
+                          className="px-2.5 py-1 rounded-lg bg-accent text-white font-mono font-bold text-[10px] hover:bg-accent/90 transition-all cursor-pointer shadow-xs shrink-0"
+                          title="Preview model in selected production filament"
+                        >
+                          Preview as Filament Colour →
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setModelColorMode('original')}
+                          className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-line dark:border-slate-700 text-ink dark:text-white font-mono font-bold text-[10px] hover:border-accent transition-all cursor-pointer shrink-0"
+                          title="Restore original multi-colour model appearance"
+                        >
+                          Back to Model Colours
+                        </button>
+                      )}
+                    </div>
+
+                    {modelResult?.detectedColors && modelResult.detectedColors.length > 1 && (
                       <div className="flex items-start gap-2 pt-2 border-t border-amber-200/60 dark:border-amber-900/30 text-[11px] text-amber-900 dark:text-amber-300">
                         <AlertTriangle className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                         <div>
@@ -2987,82 +3039,24 @@ export function CustomPrinting() {
                 </div>
               </div>
 
-              {/* Step 2 Card: Material & Quantity */}
-              <div className="rounded-3xl border border-line dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-xs space-y-6">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
-                    2
-                  </span>
-                  <h2 className="font-display text-lg sm:text-xl font-bold text-ink dark:text-white">
-                    Preferred Material & Quantity
-                  </h2>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {[
-                    {
-                      id: 'PLA',
-                      name: 'PLA Filament',
-                      badge: 'Popular',
-                      tag: 'Smooth & Everyday',
-                      desc: 'Perfect for display items, figurines, prototypes, and decorative pieces.',
-                    },
-                    {
-                      id: 'PETG',
-                      name: 'PETG Filament',
-                      badge: 'Durable',
-                      tag: 'Tough & Heat Resistant',
-                      desc: 'Great for functional parts, phone stands, brackets, and outdoor use.',
-                    },
-                    {
-                      id: 'TPU',
-                      name: 'TPU Flexible',
-                      badge: 'Elastic',
-                      tag: 'Rubber-like Flexibility',
-                      desc: 'Best for shock absorbers, gaskets, phone cases, and bendable items.',
-                    },
-                  ].map((mat) => {
-                    const isSelected = assistedMaterial === mat.id;
-                    return (
-                      <button
-                        key={mat.id}
-                        type="button"
-                        onClick={() => setAssistedMaterial(mat.id)}
-                        className={`rounded-2xl border p-4 text-left transition-all cursor-pointer ${
-                          isSelected
-                            ? 'border-accent bg-accent-soft/40 dark:bg-amber-950/20 ring-1 ring-accent'
-                            : 'border-line dark:border-slate-800 bg-white dark:bg-slate-800/40 hover:border-accent/40'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-display text-sm font-bold text-ink dark:text-white">
-                            {mat.name}
-                          </span>
-                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-shell dark:bg-slate-700 text-muted">
-                            {mat.badge}
-                          </span>
-                        </div>
-                        <p className="mt-1 font-mono text-[11px] font-semibold text-accent">
-                          {mat.tag}
-                        </p>
-                        <p className="mt-1 font-sans text-xs text-muted dark:text-slate-400">
-                          {mat.desc}
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-line dark:border-slate-800">
-                  <div>
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block">
-                      Quantity
-                    </label>
-                    <span className="text-xs font-sans text-muted">
-                      Number of physical pieces required
+              {/* Step 2 Card: Quantity */}
+              <div className="rounded-3xl border border-line dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white shrink-0">
+                      2
                     </span>
+                    <div>
+                      <h2 className="font-display text-lg sm:text-xl font-bold text-ink dark:text-white">
+                        Quantity
+                      </h2>
+                      <p className="text-xs font-sans text-muted dark:text-slate-400">
+                        Number of physical pieces required
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex items-center border border-line dark:border-slate-700 rounded-xl overflow-hidden bg-shell/50 dark:bg-slate-800">
+
+                  <div className="flex items-center self-start sm:self-auto border border-line dark:border-slate-700 rounded-xl overflow-hidden bg-shell/50 dark:bg-slate-800">
                     <button
                       type="button"
                       onClick={() => setAssistedQuantity(Math.max(1, assistedQuantity - 1))}

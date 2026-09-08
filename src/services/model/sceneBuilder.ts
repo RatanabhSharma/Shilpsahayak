@@ -136,16 +136,40 @@ export function buildMeshForObject(
     }
   } else {
     const hasVertexColors = !!obj.geometry.color && obj.geometry.color.length > 0;
-    const hexColor = isOriginalMode ? (obj.color || '#94A3B8') : (options?.singleColorHex || '#2563EB');
 
-    mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(hexColor),
-      vertexColors: hasVertexColors && isOriginalMode,
-      roughness: 0.38,
-      metalness: 0.05,
-      wireframe: !!options?.wireframe,
-      side: THREE.DoubleSide,
-    });
+    if (isOriginalMode) {
+      if (hasVertexColors) {
+        // In Three.js, diffuseColor.rgb = mat.color.rgb * vColor.rgb.
+        // Pure white (0xFFFFFF) acts as an identity multiplier so vertex colours are not darkened.
+        mat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(0xffffff),
+          vertexColors: true,
+          roughness: 0.38,
+          metalness: 0.05,
+          wireframe: !!options?.wireframe,
+          side: THREE.DoubleSide,
+        });
+      } else {
+        mat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(obj.color || '#94A3B8'),
+          vertexColors: false,
+          roughness: 0.38,
+          metalness: 0.05,
+          wireframe: !!options?.wireframe,
+          side: THREE.DoubleSide,
+        });
+      }
+    } else {
+      // Single production filament mode: disable vertex colors and render solid singleColorHex
+      mat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(options?.singleColorHex || '#2563EB'),
+        vertexColors: false,
+        roughness: 0.38,
+        metalness: 0.05,
+        wireframe: !!options?.wireframe,
+        side: THREE.DoubleSide,
+      });
+    }
   }
 
   const mesh = new THREE.Mesh(geom, mat);

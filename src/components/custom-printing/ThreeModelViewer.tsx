@@ -274,12 +274,15 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
         clonedGeometry.computeVertexNormals();
         clonedGeometry.computeBoundingBox();
 
+        const hasVertexColors = geometry.hasAttribute('color');
+        const isInitialOriginal = hasOriginalColors ? colorMode !== 'single' : colorMode === 'original';
+
         const mat = new THREE.MeshStandardMaterial({
-          color: new THREE.Color(colorHex),
+          color: (hasVertexColors && isInitialOriginal) ? new THREE.Color(0xffffff) : new THREE.Color(colorHex),
           roughness: 0.35,
           metalness: 0.05,
           side: THREE.DoubleSide,
-          vertexColors: geometry.hasAttribute('color'),
+          vertexColors: hasVertexColors && isInitialOriginal,
         });
 
         const mesh = new THREE.Mesh(clonedGeometry, mat);
@@ -317,6 +320,7 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
             if (sm.metalness === undefined) sm.metalness = 0.0;
             if (m.geometry && m.geometry.hasAttribute('color')) {
               sm.vertexColors = true;
+              sm.color.setHex(0xffffff);
             }
             sm.needsUpdate = true;
           });
@@ -368,9 +372,11 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
         roughness: 0.35,
         metalness: 0.05,
         side: THREE.DoubleSide,
+        vertexColors: false,
       });
     } else {
       singleMaterialRef.current.color.set(colorHex);
+      singleMaterialRef.current.vertexColors = false;
     }
     singleMaterialRef.current.wireframe = isWireframe;
 
