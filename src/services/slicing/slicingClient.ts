@@ -44,6 +44,16 @@ export interface SlicingSuccessResult {
   quote: AuthoritativeQuote;
   slicerVersion: string;
   profileApplied: string;
+  /** Echoes the pricingVersion sent in the request, for audit/order persistence. */
+  pricingVersion?: string;
+  /** True only if the backend actually used live admin config. */
+  pricingSourceIsLiveAdminConfig?: boolean;
+  /** Explicit pricing source label: "live_admin_config" when using Firestore admin settings. */
+  pricingSource?: string;
+  /** ISO timestamp of when the admin pricing config was last updated, for display and audit. */
+  pricingUpdatedAt?: string | null;
+  /** Authoritative build envelope read from the active printer profile (mm). */
+  activeEnvelope?: { x: number; y: number; z: number } | null;
 }
 
 export interface SlicingFailureResult {
@@ -68,6 +78,16 @@ export interface SliceJobParams {
   supportMode?: string;
   packagingIncluded: boolean;
   onProgress?: (stageMessage: string) => void;
+  /**
+   * Live admin-configured pricing data from Firestore (settings/pricing, via
+   * usePricingSettings()). MUST be supplied on every real customer request -
+   * the backend falls back to its own hardcoded defaults if omitted, which
+   * will silently drift from whatever the admin has actually configured.
+   */
+  pricingConfig?: unknown;
+  materials?: { id: string; pricePerGram: number; density: number }[];
+  quantityDiscounts?: { minQuantity: number; maxQuantity?: number; discountPercent: number }[];
+  pricingVersion?: string;
 }
 
 /**
@@ -86,6 +106,21 @@ export async function executeSlicingJob(params: SliceJobParams): Promise<Slicing
     formData.append('quantity', String(params.quantity));
     formData.append('supportMode', params.supportMode || 'auto');
     formData.append('packagingIncluded', String(params.packagingIncluded));
+
+    // Forward the live admin pricing config so the backend prices this job
+    // using today's actual settings, not its own hardcoded fallback numbers.
+    if (params.pricingConfig) {
+      formData.append('pricingConfigJson', JSON.stringify(params.pricingConfig));
+    }
+    if (params.materials) {
+      formData.append('materialsJson', JSON.stringify(params.materials));
+    }
+    if (params.quantityDiscounts) {
+      formData.append('quantityDiscountsJson', JSON.stringify(params.quantityDiscounts));
+    }
+    if (params.pricingVersion) {
+      formData.append('pricingVersion', params.pricingVersion);
+    }
 
     // 1. Submit job to queue
     params.onProgress?.('Preparing model for slicing engine...');
@@ -128,6 +163,11 @@ export async function executeSlicingJob(params: SliceJobParams): Promise<Slicing
           quote: pollData.result.quote,
           slicerVersion: pollData.result.slicerVersion,
           profileApplied: pollData.result.profileApplied,
+          pricingVersion: pollData.result.pricingVersion,
+          pricingSourceIsLiveAdminConfig: pollData.result.pricingSourceIsLiveAdminConfig,
+          pricingSource: pollData.result.pricingSource,
+          pricingUpdatedAt: pollData.result.pricingUpdatedAt ?? null,
+          activeEnvelope: pollData.result.activeEnvelope ?? null,
         };
       }
 
@@ -154,3 +194,25 @@ export async function executeSlicingJob(params: SliceJobParams): Promise<Slicing
     };
   }
 }
+
+/**
+ * Fetch the active printer profile envelope directly from the slicing backend.
+ */
+export async function fetchActiveProfileEnvelope(): Promise<{ x: number; y: number; z: number } | null> {
+  try {
+    const res = await fetch(`${SLICER_SERVICE_URL}/api/health`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.active_envelope && data.active_envelope.x && data.active_envelope.y && data.active_envelope.z) {
+      return {
+        x: Number(data.active_envelope.x),
+        y: Number(data.active_envelope.y),
+        z: Number(data.active_envelope.z),
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+

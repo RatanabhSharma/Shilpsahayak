@@ -54,6 +54,10 @@ const NAV_ITEMS: NavItem[] = [
     path: '/shop',
   },
   {
+    name: 'Shilp Studio',
+    path: '/shilp-studio',
+  },
+  {
     name: 'Our Story',
     path: '/our-story',
   },
@@ -144,6 +148,7 @@ export function StorefrontLayout() {
     const PAGE_TITLES: Record<string, string> = {
       '/':             'Where Ideas Come to Life',
       '/shop':         'Shop',
+      '/shilp-studio': 'Shilp Studio — Custom 3D Printing',
       '/our-story':    'Our Story',
       '/reach-us':     'Reach Us',
       '/cart':         'Cart',

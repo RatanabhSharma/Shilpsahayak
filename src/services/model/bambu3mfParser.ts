@@ -136,6 +136,105 @@ function dominantState(node: PaintTreeNode): number {
 }
 
 /**
+ * Parses a 12-element 3MF affine transform string into a THREE.Matrix4.
+ * 3MF transform order: m00 m01 m02 m10 m11 m12 m20 m21 m22 m30 m31 m32
+ */
+function parse3MFTransformMatrix(transformStr?: string | null): THREE.Matrix4 {
+  if (!transformStr) return new THREE.Matrix4();
+  const t = transformStr.trim().split(/\s+/).map(Number);
+  if (t.length !== 12 || t.some(isNaN)) return new THREE.Matrix4();
+  const m = new THREE.Matrix4();
+  m.set(
+    t[0], t[3], t[6], t[9],
+    t[1], t[4], t[7], t[10],
+    t[2], t[5], t[8], t[11],
+    0, 0, 0, 1
+  );
+  return m;
+}
+
+/**
+ * Resolves the effective 3MF transformation matrix for a model/component entry
+ * by traversing <build><item> and <resources><object><components><component>
+ * in the root 3D/3dmodel.model file.
+ */
+function resolve3MFTransform(
+  zip: Record<string, Uint8Array>,
+  modelEntry: string
+): THREE.Matrix4 {
+  try {
+    const rootKey = Object.keys(zip).find((k) =>
+      k.toLowerCase().endsWith('3dmodel.model')
+    );
+    if (!rootKey) return new THREE.Matrix4();
+
+    const rootXml = new TextDecoder().decode(zip[rootKey]);
+    const normalizedTarget = modelEntry.replace(/^\//, '').toLowerCase();
+
+    // 1. Search for <component ... p:path="..." ... /> referencing this model file
+    const compRegex = /<component\s+([\s\S]*?)(?:\/>|>[\s\S]*?<\/component>)/gi;
+    const objRegex = /<object\s+([^>]*)>([\s\S]*?)<\/object>/gi;
+
+    let parentObjectId: string | null = null;
+    let compTransform = new THREE.Matrix4();
+
+    let om: RegExpExecArray | null;
+    while ((om = objRegex.exec(rootXml)) !== null) {
+      const objAttrs = om[1];
+      const objBody = om[2];
+      const idMatch = objAttrs.match(/id="([^"]+)"/i);
+      if (!idMatch) continue;
+
+      let cm: RegExpExecArray | null;
+      while ((cm = compRegex.exec(objBody)) !== null) {
+        const cAttrs = cm[1];
+        const pathMatch = cAttrs.match(/(?:p:)?path="([^"]+)"/i);
+        if (pathMatch) {
+          const cPath = pathMatch[1].replace(/^\//, '').toLowerCase();
+          if (
+            cPath === normalizedTarget ||
+            normalizedTarget.endsWith(cPath) ||
+            cPath.endsWith(normalizedTarget)
+          ) {
+            parentObjectId = idMatch[1];
+            const transMatch = cAttrs.match(/transform="([^"]+)"/i);
+            if (transMatch) {
+              compTransform = parse3MFTransformMatrix(transMatch[1]);
+            }
+            break;
+          }
+        }
+      }
+      if (parentObjectId) break;
+    }
+
+    // 2. Find <item> in <build> referencing parentObjectId (or modelEntry if no components)
+    let itemTransform = new THREE.Matrix4();
+    const buildMatch = rootXml.match(/<build[^>]*>([\s\S]*?)<\/build>/i);
+    if (buildMatch) {
+      const itemRegex = /<item\s+([\s\S]*?)(?:\/>|>[\s\S]*?<\/item>)/gi;
+      let im: RegExpExecArray | null;
+      while ((im = itemRegex.exec(buildMatch[1])) !== null) {
+        const iAttrs = im[1];
+        const oIdMatch = iAttrs.match(/objectid="([^"]+)"/i);
+        if (oIdMatch && (!parentObjectId || oIdMatch[1] === parentObjectId)) {
+          const transMatch = iAttrs.match(/transform="([^"]+)"/i);
+          if (transMatch) {
+            itemTransform = parse3MFTransformMatrix(transMatch[1]);
+          }
+          break;
+        }
+      }
+    }
+
+    return itemTransform.clone().multiply(compTransform);
+  } catch (err) {
+    console.warn('Failed to resolve 3MF transform matrix:', err);
+    return new THREE.Matrix4();
+  }
+}
+
+/**
  * Parse a Bambu Studio 3MF ArrayBuffer and reconstruct vertex colours
  * from the proprietary paint_color face attributes.
  */
@@ -197,12 +296,16 @@ export async function parseBambu3MF(
       if (extMatch) defaultExtruder = parseInt(extMatch[1]) || 1;
     }
 
-    // ── 4. Parse vertices ─────────────────────────────────────────────────
+    // ── 4. Parse vertices and apply 3MF transformations ───────────────────
+    const transformMatrix = resolve3MFTransform(zip, modelEntry);
     const vertexRegex = /<vertex\s+x="([^"]+)"\s+y="([^"]+)"\s+z="([^"]+)"/g;
     const positions: number[] = [];
     let vm: RegExpExecArray | null;
+    const tempVec = new THREE.Vector3();
     while ((vm = vertexRegex.exec(xmlText)) !== null) {
-      positions.push(parseFloat(vm[1]), parseFloat(vm[2]), parseFloat(vm[3]));
+      tempVec.set(parseFloat(vm[1]), parseFloat(vm[2]), parseFloat(vm[3]));
+      tempVec.applyMatrix4(transformMatrix);
+      positions.push(tempVec.x, tempVec.y, tempVec.z);
     }
 
     if (positions.length === 0) {

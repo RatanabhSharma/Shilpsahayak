@@ -40,7 +40,7 @@ import { useStore } from '../../store';
 import { useAuth } from '../../hooks/useAuth';
 import { upload3DFile } from '../../utils/uploadFile';
 import { useSubmitQuote } from '../../hooks/useQuotes';
-import { executeSlicingJob, SlicingSuccessResult } from '../../services/slicing/slicingClient';
+import { executeSlicingJob, fetchActiveProfileEnvelope, SlicingSuccessResult } from '../../services/slicing/slicingClient';
 
 export type StudioTab = 'upload' | 'configure' | 'estimate';
 export type QualityPreset = 'draft' | 'standard' | 'fine';
@@ -287,6 +287,13 @@ export function CustomPrinting() {
   const [slicingStageMessage, setSlicingStageMessage] = useState<string>('');
   const [slicerResult, setSlicerResult] = useState<SlicingSuccessResult | null>(null);
   const [slicerError, setSlicerError] = useState<string | null>(null);
+  const [backendActiveEnvelope, setBackendActiveEnvelope] = useState<{ x: number; y: number; z: number } | null>(null);
+
+  useEffect(() => {
+    fetchActiveProfileEnvelope().then((env) => {
+      if (env) setBackendActiveEnvelope(env);
+    });
+  }, []);
 
   // Model Sizing & Scale State
   const [sizeMode, setSizeMode] = useState<SizeMode>('original');
@@ -422,10 +429,16 @@ export function CustomPrinting() {
     return Math.max(0.01, Math.round(modelResult.volumeCm3 * Math.pow(scaleFactor, 3) * 100) / 100);
   }, [modelResult, scaleFactor]);
 
-  // Max build volume verification
-  const maxBuildVolume = pricingData?.pricingConfig?.maxBuildVolume || { x: 256, y: 256, z: 256 };
+  // Max build volume — use backend-returned envelope from the active profile when available,
+  // then fall back to health-check active envelope, then Firestore pricingConfig.
+  const maxBuildVolume = slicerResult?.activeEnvelope ||
+    backendActiveEnvelope ||
+    pricingData?.pricingConfig?.maxBuildVolume ||
+    null;
+
   const exceedsBuildVolume = useMemo(() => {
     if (!modelResult?.success || !effectiveDimensions) return false;
+    if (!maxBuildVolume) return false;
     return (
       effectiveDimensions.x > maxBuildVolume.x ||
       effectiveDimensions.y > maxBuildVolume.y ||
@@ -505,6 +518,14 @@ export function CustomPrinting() {
       supportMode,
       packagingIncluded,
       onProgress: (msg) => setSlicingStageMessage(msg),
+      // Forward the live admin pricing config (Firestore settings/pricing) so
+      // the backend prices this job with today's actual rates/markup, not its
+      // own hardcoded fallback defaults. Without this, an admin changing
+      // markup or material price in Settings silently stops affecting quotes.
+      pricingConfig: pricingData?.pricingConfig,
+      materials: pricingData?.materials,
+      quantityDiscounts: pricingData?.quantityDiscounts,
+      pricingVersion: pricingData?.pricingVersion,
     });
 
     setIsSlicing(false);
@@ -522,11 +543,11 @@ export function CustomPrinting() {
     }
   };
 
-  // Reset slicer result if configuration changes
+  // Reset slicer result if configuration changes (including colour mode)
   useEffect(() => {
     setSlicerResult(null);
     setSlicerError(null);
-  }, [selectedMaterialId, qualityPreset, strengthPreset, supportMode, scaleFactor, quantity, packagingIncluded]);
+  }, [selectedMaterialId, qualityPreset, strengthPreset, supportMode, scaleFactor, quantity, packagingIncluded, modelColorMode]);
 
   // Navigation State Guards
   const canGoToConfigure = Boolean(file && modelResult?.success);
@@ -668,7 +689,9 @@ export function CustomPrinting() {
       setBaseDimensions(result.dimensions);
       setTargetHeightInput(result.dimensions.z.toFixed(1));
 
-      const activeMaxVolume = pricingData?.pricingConfig?.maxBuildVolume || { x: 256, y: 256, z: 256 };
+      const activeMaxVolume = backendActiveEnvelope ||
+        pricingData?.pricingConfig?.maxBuildVolume ||
+        { x: 256, y: 256, z: 200 };
       const isOversized =
         result.dimensions.x > activeMaxVolume.x ||
         result.dimensions.y > activeMaxVolume.y ||
@@ -1399,7 +1422,6 @@ export function CustomPrinting() {
                             type="number"
                             step="0.5"
                             min="5"
-                            max={maxBuildVolume.z}
                             value={targetHeightInput}
                             onChange={(e) => handleHeightInputChange(e.target.value)}
                             className="w-full py-1.5 px-3 pr-10 rounded-xl border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono font-bold text-ink dark:text-white focus:outline-hidden focus:ring-2 focus:ring-accent shadow-2xs"
@@ -2039,6 +2061,23 @@ export function CustomPrinting() {
             <p className="text-sm text-muted dark:text-slate-400 font-sans max-w-lg mx-auto">
               Review your specifications, calculated material usage, and estimated pricing.
             </p>
+            {/* Live pricing badge — shown when quote used Firestore admin config */}
+            {slicerResult?.pricingSourceIsLiveAdminConfig && (
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-mono font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:border-emerald-700/50 dark:text-emerald-400">
+                <Shield className="h-3 w-3" aria-hidden="true" />
+                Live Admin Pricing
+                {slicerResult.profileApplied && (
+                  <span className="text-emerald-500 dark:text-emerald-500">
+                    · {slicerResult.profileApplied.replace('.ini', '')}
+                  </span>
+                )}
+                {slicerResult.activeEnvelope && (
+                  <span className="text-emerald-500 dark:text-emerald-500">
+                    · {slicerResult.activeEnvelope.x}×{slicerResult.activeEnvelope.y}×{slicerResult.activeEnvelope.z}mm
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

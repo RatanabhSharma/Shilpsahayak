@@ -28,3 +28,19 @@ yarn-error.log*
 
 # Vite
 .vite/
+
+# Python
+__pycache__/
+*.pyc
+
+# Slicer service: runtime job storage (customer-uploaded files, ephemeral) —
+# never commit real or test uploads here. See slicer-service/app/storage/.
+slicer-service/app/storage/*
+!slicer-service/app/storage/.gitkeep
+slicer-service/poc/storage/*
+
+# Slicer service: bundled PrusaSlicer binary distribution (~200MB, Windows-only).
+# Do NOT commit this. Each dev/deploy target installs PrusaSlicer separately -
+# see slicer-service/README.md for the download + PRUSASLICER_PATH setup.
+slicer-service/poc/bin/
+slicer-service/app/bin/

@@ -35,7 +35,7 @@ export const DEFAULT_PRICING_CONFIG: MachinePricingConfig = {
   maxBuildVolume: {
     x: 256,
     y: 256,
-    z: 256,
+    z: 200,
   },
 };
 

@@ -1,5 +1,5 @@
-﻿"""
-Enhanced Slicing Core (Phase 2B)
+"""
+Enhanced Slicing Core (Phase 2D)
 Supports:
 - Model physical dimension parsing (--info)
 - Support material modes (auto, none, required)
@@ -7,6 +7,7 @@ Supports:
 - Quality profiles (draft, standard, fine)
 - Isolated temporary directories and subprocess timeouts
 - Parsing statistics from G-code comments
+- Dynamic build envelope reading from active printer profile INI
 """
 
 import os
@@ -42,6 +43,65 @@ def find_prusaslicer_executable() -> Optional[str]:
             return found
 
     return None
+
+def read_profile_envelope(profile_path: str) -> Dict[str, float]:
+    """
+    Parse the printer profile INI file and return the authoritative build envelope.
+
+    Reads:
+    - bed_shape: comma-separated corner coordinates (e.g. 0x0,256x0,256x256,0x256)
+      The max X and Y are extracted from the coordinate pairs.
+    - max_print_height: the Z limit in mm.
+
+    Returns:
+        {"x": float, "y": float, "z": float}
+
+    Falls back to an empty dict if the profile cannot be read or parsed.
+    """
+    envelope: Dict[str, float] = {}
+    if not profile_path or not os.path.exists(profile_path):
+        return envelope
+
+    try:
+        with open(profile_path, "r", encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                line = line.strip()
+
+                # bed_shape = 0x0,256x0,256x256,0x256
+                if line.lower().startswith("bed_shape"):
+                    parts = line.split("=", 1)
+                    if len(parts) < 2:
+                        continue
+                    corners_str = parts[1].strip()
+                    x_vals = []
+                    y_vals = []
+                    for corner in corners_str.split(","):
+                        corner = corner.strip()
+                        if "x" in corner.lower():
+                            xy = corner.lower().split("x")
+                            try:
+                                x_vals.append(float(xy[0]))
+                                y_vals.append(float(xy[1]))
+                            except (ValueError, IndexError):
+                                pass
+                    if x_vals and y_vals:
+                        envelope["x"] = round(max(x_vals), 2)
+                        envelope["y"] = round(max(y_vals), 2)
+
+                # max_print_height = 200
+                elif line.lower().startswith("max_print_height"):
+                    parts = line.split("=", 1)
+                    if len(parts) < 2:
+                        continue
+                    try:
+                        envelope["z"] = round(float(parts[1].strip()), 2)
+                    except ValueError:
+                        pass
+
+    except Exception:
+        pass
+
+    return envelope
 
 def get_model_info(model_path: str) -> Dict[str, Any]:
     slicer_exe = find_prusaslicer_executable()
@@ -145,6 +205,9 @@ def run_slice_test(
             "error": f"Model file not found: {model_path}"
         }
 
+    # Read the authoritative build envelope from the active profile
+    active_envelope = read_profile_envelope(printer_ini) if printer_ini else {}
+
     # Extract dimensions first
     dims = get_model_info(model_path)
     if scale != 1.0 and dims:
@@ -219,6 +282,7 @@ def run_slice_test(
                 "model_path": model_path,
                 "dimensions": dims,
                 "statistics": stats,
+                "active_envelope": active_envelope,
                 "gcode_reference": f"gcode_sha_{abs(hash(output_gcode)) % 1000000}"
             }
 

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Shilp Sahayak Authoritative Backend Pricing Engine
 Pure python pricing calculation mirroring shop economics, adhering strictly to:
 Actual filament grams + Actual print hours + Workshop costs + Margin = Reliable Estimate
@@ -61,15 +61,53 @@ def calculate_authoritative_quote(
     packaging_included: bool = False,
     config: Optional[Dict[str, Any]] = None,
     discount_tiers: Optional[List[Dict[str, Any]]] = None,
-    dimensions: Optional[Dict[str, float]] = None
+    dimensions: Optional[Dict[str, float]] = None,
+    materials: Optional[Dict[str, Dict[str, float]]] = None,
+    filament_mm: float = 0.0,
+    active_envelope: Optional[Dict[str, float]] = None
 ) -> Dict[str, Any]:
+    """
+    Calculate an authoritative print quote using live admin config.
+
+    Filament weight source of truth:
+    - If the slicer returned authoritative filament_grams (> 0), use that directly.
+    - Only if filament_grams is absent/zero AND filament_mm is available, calculate
+      weight using the standard formula for 1.75 mm filament:
+        volume_cm3 = filament_mm * π * (1.75/2)² / 1000
+        weight_g   = volume_cm3 * density_g_per_cm3
+    - Do NOT apply density to filament_grams — the slicer already accounts for it.
+
+    `config`, `discount_tiers`, and `materials` must be the LIVE admin-configured
+    values forwarded from Firestore. The DEFAULT_PRICING_CONFIG and MATERIAL_RATES
+    constants are retained only for local/dev testing (e.g. running poc scripts
+    directly). The main slicing service enforces live config before calling here.
+    """
+    import math as _math
+
     cfg = {**DEFAULT_PRICING_CONFIG, **(config or {})}
     qty = max(1, quantity)
 
-    mat_info = MATERIAL_RATES.get(material_key.lower(), MATERIAL_RATES["pla"])
+    active_materials = materials if materials else MATERIAL_RATES
+    mat_info = active_materials.get(material_key.lower()) or MATERIAL_RATES.get(material_key.lower(), MATERIAL_RATES["pla"])
     price_per_gram = float(mat_info.get("pricePerGram", 4.5))
+    density = float(mat_info.get("density", 1.24))
 
-    valid_weight = max(0.0, float(filament_grams or 0.0))
+    # Authoritative filament weight: use grams directly if available
+    raw_grams = float(filament_grams or 0.0)
+    if raw_grams > 0.0:
+        # Slicer-authoritative weight — use directly, no density adjustment
+        valid_weight = max(0.0, raw_grams)
+        weight_source = "slicer_grams"
+    elif float(filament_mm or 0.0) > 0.0:
+        # Fallback: calculate from filament length using 1.75 mm diameter
+        filament_diameter_mm = 1.75
+        volume_cm3 = float(filament_mm) * _math.pi * (filament_diameter_mm / 2) ** 2 / 1000.0
+        valid_weight = max(0.0, volume_cm3 * density)
+        weight_source = "length_formula"
+    else:
+        valid_weight = 0.0
+        weight_source = "unavailable"
+
     valid_hours = max(0.0, float(print_time_hours or 0.0))
 
     # 1. Material Cost
@@ -141,13 +179,17 @@ def calculate_authoritative_quote(
 
     total_price = subtotal_before_gst + gst_amount
 
-    # Exceeds build volume check
-    max_vol = cfg.get("maxBuildVolume", {"x": 256, "y": 256, "z": 256})
+    # Exceeds build volume check — use active profile-derived envelope when available
+    if active_envelope and all(k in active_envelope for k in ("x", "y", "z")):
+        max_vol = active_envelope
+    else:
+        max_vol = cfg.get("maxBuildVolume", {"x": 256.0, "y": 256.0, "z": 200.0})
+
     exceeds_build_volume = False
     if dimensions:
         if (dimensions.get("x", 0) > max_vol.get("x", 256) or
             dimensions.get("y", 0) > max_vol.get("y", 256) or
-            dimensions.get("z", 0) > max_vol.get("z", 256)):
+            dimensions.get("z", 0) > max_vol.get("z", 200)):
             exceeds_build_volume = True
 
     return {
@@ -162,6 +204,7 @@ def calculate_authoritative_quote(
         "gstAmount": gst_amount,
         "totalPrice": total_price,
         "exceedsBuildVolume": exceeds_build_volume,
+        "weightSource": weight_source,
         "pricingBreakdown": {
             "materialCost": round(material_cost, 2),
             "electricityCost": round(electricity_cost, 2),
@@ -173,3 +216,4 @@ def calculate_authoritative_quote(
             "unitMarkupAmount": round(raw_unit_selling - unit_prod_cost_without_pack, 2)
         }
     }
+

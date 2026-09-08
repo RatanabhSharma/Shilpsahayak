@@ -1,11 +1,14 @@
-﻿"""
-Enhanced Model Intelligence & Deep Content Inspector (Phase 2B)
+"""
+Enhanced Model Intelligence & Deep Content Inspector (Phase 2D)
 Inspects file structure, internal archive headers, XML elements, and toolpaths to distinguish:
 - STL / OBJ
 - Clean 3MF models
 - Slicer project 3MF (Bambu Studio, Orca, PrusaSlicer) - extracts usable geometry safely
-- Pre-sliced files (G-code, G-code in 3MF, slice_info.config) - returns unsupported_pre_sliced_file
+- Pre-sliced files (G-code, G-code in 3MF, slice_info.config) - classified as pre_sliced_toolpath
 - STEP files - marks compatibility gate status
+
+Classification is based on whether the project can be safely re-sliced, not merely
+on the presence of slicer metadata.
 """
 
 import os
@@ -14,11 +17,12 @@ import re
 from typing import Dict, Any, List, Optional
 
 class ModelClassification:
-    ORIGINAL_MODEL = "original_model"
-    SLICER_PROJECT = "slicer_project"
-    SLICED_FILE = "unsupported_pre_sliced_file"
+    ORIGINAL_MODEL = "geometry_bearing_project"
+    SLICER_PROJECT = "geometry_bearing_project"
+    SLICED_FILE = "pre_sliced_toolpath"
     CAD_STEP = "cad_step"
-    UNSUPPORTED_OR_UNKNOWN = "unsupported_or_unknown"
+    UNSUPPORTED_OR_UNKNOWN = "unsupported_or_invalid"
+
 
 def inspect_file(file_path: str) -> Dict[str, Any]:
     if not os.path.exists(file_path):
@@ -108,11 +112,14 @@ def inspect_file(file_path: str) -> Dict[str, Any]:
             with zipfile.ZipFile(file_path, "r") as zf:
                 namelist = zf.namelist()
                 
-                # Check for sliced toolpaths or slice_info
-                has_slice_info = any("slice_info.config" in name.lower() for name in namelist)
+                # Check if usable 3D model geometry exists
+                has_3dmodel = any(name.lower().startswith("3d/") and name.lower().endswith(".model") for name in namelist)
+
+                # Check for embedded gcode toolpath files
                 has_embedded_gcode = any(name.lower().endswith(".gcode") for name in namelist)
-                
-                if has_slice_info or has_embedded_gcode:
+
+                # If the file contains actual pre-sliced toolpath G-code or lacks usable geometry
+                if has_embedded_gcode:
                     return {
                         "success": True,
                         "classification": ModelClassification.SLICED_FILE,
@@ -124,11 +131,8 @@ def inspect_file(file_path: str) -> Dict[str, Any]:
                     }
 
                 # Check for Bambu / Orca / Prusa project configurations
-                has_bambu_project = any("model_settings.config" in name.lower() or "project_settings.config" in name.lower() for name in namelist)
+                has_bambu_project = any("model_settings.config" in name.lower() or "project_settings.config" in name.lower() or "slice_info.config" in name.lower() for name in namelist)
                 has_prusa_project = any("prusaslicer.ini" in name.lower() or "slic3r.ini" in name.lower() for name in namelist)
-
-                # Check if usable 3D model geometry exists
-                has_3dmodel = any(name.lower().startswith("3d/") and name.lower().endswith(".model") for name in namelist)
 
                 if has_bambu_project or has_prusa_project:
                     if has_3dmodel:
