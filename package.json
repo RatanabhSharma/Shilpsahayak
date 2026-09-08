@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "npx vite",
+    "slicer:dev": "python -m uvicorn main:app --app-dir slicer-service/app --host 127.0.0.1 --port 8000 --reload",
     "worker:dev": "cd shilp-sahayak-r2 && npx wrangler dev --port 8787 --local",
     "git:fix": "powershell -Command \"Remove-Item .git/index -Force -ErrorAction SilentlyContinue; git reset; git status\"",
     "build": "npx vite build",

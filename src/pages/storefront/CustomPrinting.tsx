@@ -41,6 +41,7 @@ import { useStore } from '../../store';
 import { useAuth } from '../../hooks/useAuth';
 import { upload3DFile } from '../../utils/uploadFile';
 import { useSubmitQuote } from '../../hooks/useQuotes';
+import { executeSlicingJob, SlicingSuccessResult } from '../../services/slicing/slicingClient';
 
 export type StudioTab = 'upload' | 'configure' | 'estimate';
 export type QualityPreset = 'draft' | 'standard' | 'fine';
@@ -282,6 +283,12 @@ export function CustomPrinting() {
   const [modelResult, setModelResult] = useState<ParsedModelResult | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
+  // Real Slicer Service Integration State (Phase 2B/2C)
+  const [isSlicing, setIsSlicing] = useState<boolean>(false);
+  const [slicingStageMessage, setSlicingStageMessage] = useState<string>('');
+  const [slicerResult, setSlicerResult] = useState<SlicingSuccessResult | null>(null);
+  const [slicerError, setSlicerError] = useState<string | null>(null);
+
   // Model Sizing & Scale State
   const [sizeMode, setSizeMode] = useState<SizeMode>('original');
   const [scaleFactor, setScaleFactor] = useState<number>(1.0);
@@ -451,38 +458,80 @@ export function CustomPrinting() {
     return estimatePrintTime(estimatedMaterialUsageGrams, adjustedProfile);
   }, [estimatedMaterialUsageGrams, activeProfile, surfaceFinish]);
 
-  // Live Pricing Engine Calculation (null until a valid 3D model is analyzed)
+  // Authoritative Pricing Engine Calculation: Powered by Real PrusaSlicer Output
+  // Rule: When real slicer succeeds, use authoritative quote.
   const quoteBreakdown = useMemo(() => {
-    if (!pricingData?.pricingConfig) return null;
-    if (!modelResult?.success || !effectiveVolumeCm3 || effectiveVolumeCm3 <= 0) return null;
+    if (slicerResult?.status === 'completed' && slicerResult.quote) {
+      const q = slicerResult.quote;
+      return {
+        unitPrice: q.unitPrice,
+        quantity: q.quantity,
+        subtotal: q.subtotal,
+        discountAmount: q.discountAmount,
+        discountedSubtotal: q.discountedSubtotal,
+        packagingAmount: q.packagingAmount,
+        subtotalBeforeGst: q.subtotalBeforeGst,
+        minimumOrderChargeApplied: q.minimumOrderChargeApplied,
+        gstAmount: q.gstAmount,
+        totalPrice: q.totalPrice,
+        isEstimate: false,
+        requiresManualReview: Boolean(q.exceedsBuildVolume),
+        reviewReason: q.exceedsBuildVolume ? 'Model exceeds maximum printer volume.' : undefined,
+      };
+    }
+    return null;
+  }, [slicerResult]);
 
-    return calculateCustomerQuote(
-      {
-        materialWeightGrams: estimatedMaterialUsageGrams,
-        printTimeHours: estimatedPrintTimeHours,
-        material: activeMaterial,
-        quantity,
-        packagingIncluded,
-        exceedsBuildVolume: exceedsBuildVolume || Boolean(modelResult?.exceedsBuildVolume),
-      },
-      pricingData.pricingConfig,
-      pricingData.quantityDiscounts
-    );
-  }, [
-    pricingData,
-    modelResult,
-    effectiveVolumeCm3,
-    estimatedMaterialUsageGrams,
-    estimatedPrintTimeHours,
-    activeMaterial,
-    quantity,
-    packagingIncluded,
-    exceedsBuildVolume,
-  ]);
+  // Actual Slicer-calculated filament weight and print time (no heuristics)
+  const actualFilamentGrams = slicerResult?.statistics?.filament_grams ?? null;
+  const actualPrintTimeHours = slicerResult?.statistics?.print_time_hours ?? null;
+  const actualPrintTimeMinutes = slicerResult?.statistics?.print_time_minutes ?? null;
+
+  // Real Slicer Invocation Trigger
+  const triggerRealSlicing = async () => {
+    if (!file) return;
+
+    setIsSlicing(true);
+    setSlicerError(null);
+    setSlicingStageMessage('Preparing model for slicing engine...');
+
+    const res = await executeSlicingJob({
+      file,
+      fileName: file.name,
+      material: selectedMaterialId,
+      qualityProfile: qualityPreset,
+      infillPercent: effectiveInfill,
+      scaleFactor,
+      quantity,
+      supportMode,
+      packagingIncluded,
+      onProgress: (msg) => setSlicingStageMessage(msg),
+    });
+
+    setIsSlicing(false);
+
+    if (res.status === 'completed') {
+      setSlicerResult(res);
+      setSlicerError(null);
+      setActiveTab('estimate');
+      window.scrollTo({ top: 300, behavior: 'smooth' });
+    } else {
+      setSlicerResult(null);
+      setSlicerError(res.error || 'Unable to calculate estimate using the slicing engine.');
+      setActiveTab('estimate');
+      window.scrollTo({ top: 300, behavior: 'smooth' });
+    }
+  };
+
+  // Reset slicer result if configuration changes
+  useEffect(() => {
+    setSlicerResult(null);
+    setSlicerError(null);
+  }, [selectedMaterialId, qualityPreset, strengthPreset, supportMode, scaleFactor, quantity, packagingIncluded]);
 
   // Navigation State Guards
   const canGoToConfigure = Boolean(file && modelResult?.success);
-  const canGoToEstimate = Boolean(file && modelResult?.success && quoteBreakdown);
+  const canGoToEstimate = Boolean(file && modelResult?.success && (quoteBreakdown || isSlicing || slicerError));
 
   // Tab Navigation Handler
   const handleTabChange = (tab: StudioTab) => {
@@ -495,9 +544,11 @@ export function CustomPrinting() {
         window.scrollTo({ top: 300, behavior: 'smooth' });
       }
     } else if (tab === 'estimate') {
-      if (canGoToEstimate) {
+      if (slicerResult) {
         setActiveTab('estimate');
         window.scrollTo({ top: 300, behavior: 'smooth' });
+      } else if (canGoToConfigure) {
+        triggerRealSlicing();
       }
     }
   };
@@ -506,14 +557,10 @@ export function CustomPrinting() {
   useEffect(() => {
     if (activeTab === 'configure' && !canGoToConfigure) {
       setActiveTab('upload');
-    } else if (activeTab === 'estimate' && !canGoToEstimate) {
-      if (canGoToConfigure) {
-        setActiveTab('configure');
-      } else {
-        setActiveTab('upload');
-      }
+    } else if (activeTab === 'estimate' && !canGoToConfigure) {
+      setActiveTab('upload');
     }
-  }, [activeTab, canGoToConfigure, canGoToEstimate]);
+  }, [activeTab, canGoToConfigure]);
 
   // Handle Height & Scale adjustments
   const handleHeightInputChange = (val: string) => {
@@ -734,11 +781,11 @@ export function CustomPrinting() {
           supports: supportsEnabled,
           dimensions: effectiveDimensions || undefined,
           volume: effectiveVolumeCm3,
-          estimatedWeight: estimatedMaterialUsageGrams,
-          estimatedPrintTimeHours,
+          estimatedWeight: actualFilamentGrams ?? estimatedMaterialUsageGrams,
+          estimatedPrintTimeHours: actualPrintTimeHours ?? estimatedPrintTimeHours,
           packagingIncluded,
           pricingVersion: pricingData.pricingVersion,
-          isEstimate: true,
+          isEstimate: false,
           customPrice: quoteBreakdown.totalPrice,
         }
       );
@@ -798,8 +845,8 @@ export function CustomPrinting() {
         quantity,
         packagingIncluded,
         volume: effectiveVolumeCm3,
-        estimatedWeight: estimatedMaterialUsageGrams,
-        estimatedPrintTimeHours,
+        estimatedWeight: actualFilamentGrams ?? estimatedMaterialUsageGrams,
+        estimatedPrintTimeHours: actualPrintTimeHours ?? estimatedPrintTimeHours,
         systemEstimatedPrice: quoteBreakdown.totalPrice,
         estimatedPrice: quoteBreakdown.totalPrice,
         dimensions: effectiveDimensions
@@ -1958,11 +2005,21 @@ export function CustomPrinting() {
 
                 <button
                   type="button"
-                  onClick={() => handleTabChange('estimate')}
-                  className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-accent hover:bg-amber-600 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  onClick={triggerRealSlicing}
+                  disabled={isSlicing}
+                  className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-accent hover:bg-amber-600 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                 >
-                  <span>Continue to Estimate</span>
-                  <ArrowRight className="w-4 h-4" />
+                  {isSlicing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{slicingStageMessage || 'Calculating Print with Slicer...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Calculate Slicer Estimate</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -2066,19 +2123,23 @@ export function CustomPrinting() {
 
                   <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
                     <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                      Est. Print Time
+                      Actual Print Time
                     </span>
                     <span className="font-bold text-accent mt-0.5 block font-mono">
-                      ~{formatPrintTime(estimatedPrintTimeHours)}
+                      {actualPrintTimeMinutes !== null
+                        ? `${slicerResult?.statistics?.raw_time_string || `${actualPrintTimeMinutes}m`} (Sliced)`
+                        : `~${formatPrintTime(estimatedPrintTimeHours)}`}
                     </span>
                   </div>
 
                   <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
                     <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                      Est. Material Used
+                      Actual Filament
                     </span>
                     <span className="font-bold text-accent mt-0.5 block font-mono">
-                      ~{estimatedMaterialUsageGrams} g
+                      {actualFilamentGrams !== null
+                        ? `${actualFilamentGrams} g (Calibrated)`
+                        : `~${estimatedMaterialUsageGrams} g`}
                     </span>
                   </div>
                 </div>
@@ -2246,6 +2307,76 @@ export function CustomPrinting() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Slicer Processing or Failure State Banner in Tab 3 */}
+      {activeTab === 'estimate' && !quoteBreakdown && (
+        <div className="max-w-2xl mx-auto px-4 py-16 text-center space-y-6">
+          {isSlicing ? (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-line dark:border-slate-800 p-8 shadow-sm space-y-4">
+              <Loader2 className="w-10 h-10 text-accent animate-spin mx-auto" />
+              <div className="space-y-1.5">
+                <h3 className="font-display text-xl font-bold text-ink dark:text-white">
+                  Calculating Real Print Metrics...
+                </h3>
+                <p className="text-xs text-muted dark:text-slate-400 font-mono">
+                  {slicingStageMessage || 'Running PrusaSlicer engine on your model...'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border-2 border-rose-400/40 p-8 shadow-sm space-y-5 text-left">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-display text-lg font-bold text-ink dark:text-white">
+                    Unable to Calculate Automated Estimate
+                  </h3>
+                  <p className="text-xs text-muted dark:text-slate-400 font-sans leading-relaxed">
+                    {slicerError || 'The slicing engine could not verify this model for production printing.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-shell/30 dark:bg-slate-800/40 border border-line dark:border-slate-800 text-xs font-mono space-y-1 text-muted dark:text-slate-300">
+                <div className="font-bold text-ink dark:text-slate-100">Workshop Reliability Standard:</div>
+                <p className="text-[11px] font-sans">
+                  Shilp Studio does not produce guess-based estimates. If our slicer detects non-manifold geometry, pre-sliced files, or cannot generate toolpaths, we require human workshop review rather than showing an inaccurate number.
+                </p>
+              </div>
+
+              <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                <button
+                  type="button"
+                  onClick={triggerRealSlicing}
+                  className="flex-1 py-3 px-4 rounded-xl bg-accent hover:bg-amber-600 text-white font-mono text-xs font-bold uppercase tracking-wider text-center transition-all cursor-pointer"
+                >
+                  Retry Slicing Calculation
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowQuoteModal(true)}
+                  className="flex-1 py-3 px-4 rounded-xl border border-line hover:border-slate-400 bg-white dark:bg-slate-800 text-ink dark:text-slate-200 font-mono text-xs font-bold text-center transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Send className="w-3.5 h-3.5 text-accent" />
+                  <span>Request Workshop Review</span>
+                </button>
+              </div>
+
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('configure')}
+                  className="text-xs font-mono text-muted hover:text-accent transition-colors cursor-pointer"
+                >
+                  ← Return to Configure Print Settings
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

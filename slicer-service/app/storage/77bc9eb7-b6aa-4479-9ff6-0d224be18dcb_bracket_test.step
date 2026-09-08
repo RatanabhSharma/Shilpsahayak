@@ -1,0 +1,11 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('Shilp Studio STEP Test Part'),'2;1');
+FILE_NAME('bracket_test.step','2026-09-07T12:00:00',('Shilp Sahayak'),('Engineer'),'PrusaSlicer STEP Compatibility Test','OpenCASCADE','');
+FILE_SCHEMA(('CONFIG_CONTROL_DESIGN'));
+ENDSEC;
+DATA;
+#10=APPLICATION_CONTEXT('configuration controlled 3D design');
+#20=APPLICATION_PROTOCOL_DEFINITION('international standard','config_control_design',1994,#10);
+ENDSEC;
+END-ISO-10303-21;
