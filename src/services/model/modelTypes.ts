@@ -6,6 +6,7 @@ export type ParsedModelResult = {
   object3d?: THREE.Object3D;
   hasOriginalColors?: boolean;
   originalColorCount?: number;
+  detectedColors?: string[];
   fileName: string;
   fileSizeBytes: number;
   fileType: 'stl' | 'obj' | '3mf' | 'zip' | 'unknown';

@@ -25,6 +25,9 @@ import {
   ChevronUp,
   Shield,
   Sliders,
+  Lock,
+  Unlock,
+  RefreshCw,
 } from 'lucide-react';
 import { usePricingSettings } from '../../hooks/usePricingSettings';
 import { parse3DModel } from '../../services/model/modelParser';
@@ -297,9 +300,15 @@ export function CustomPrinting() {
 
   // Model Sizing & Scale State
   const [sizeMode, setSizeMode] = useState<SizeMode>('original');
+  const [lockAspectRatio, setLockAspectRatio] = useState<boolean>(true);
   const [scaleFactor, setScaleFactor] = useState<number>(1.0);
+  const [scaleX, setScaleX] = useState<number>(1.0);
+  const [scaleY, setScaleY] = useState<number>(1.0);
+  const [scaleZ, setScaleZ] = useState<number>(1.0);
   const [baseDimensions, setBaseDimensions] = useState<{ x: number; y: number; z: number } | null>(null);
-  const [targetHeightInput, setTargetHeightInput] = useState<string>('');
+  const [dimInputX, setDimInputX] = useState<string>('');
+  const [dimInputY, setDimInputY] = useState<string>('');
+  const [dimInputZ, setDimInputZ] = useState<string>('');
   const [modelColorMode, setModelColorMode] = useState<'original' | 'single'>('original');
 
   // Customer-Facing Configuration Presets
@@ -405,11 +414,19 @@ export function CustomPrinting() {
         }
         return unscaled;
       });
-      const currentScale = scaleFactorRef.current > 0 ? scaleFactorRef.current : 1;
-      setTargetHeightInput((unscaled.z * currentScale).toFixed(1));
     },
     []
   );
+
+  // Sync inputs whenever base dimensions change
+  useEffect(() => {
+    const base = baseDimensions || modelResult?.dimensions;
+    if (base) {
+      setDimInputX((base.x * scaleX).toFixed(1));
+      setDimInputY((base.y * scaleY).toFixed(1));
+      setDimInputZ((base.z * scaleZ).toFixed(1));
+    }
+  }, [baseDimensions, modelResult?.dimensions]);
 
   // Effective scaled dimensions
   const effectiveDimensions = useMemo(() => {
@@ -417,17 +434,17 @@ export function CustomPrinting() {
     const base = baseDimensions || modelResult?.dimensions;
     if (!base) return null;
     return {
-      x: Math.round(base.x * scaleFactor * 10) / 10,
-      y: Math.round(base.y * scaleFactor * 10) / 10,
-      z: Math.round(base.z * scaleFactor * 10) / 10,
+      x: Math.round(base.x * scaleX * 10) / 10,
+      y: Math.round(base.y * scaleY * 10) / 10,
+      z: Math.round(base.z * scaleZ * 10) / 10,
     };
-  }, [baseDimensions, modelResult, scaleFactor]);
+  }, [baseDimensions, modelResult, scaleX, scaleY, scaleZ]);
 
-  // Effective scaled volume (scales cubically with scaleFactor^3)
+  // Effective scaled volume (scales with scaleX * scaleY * scaleZ)
   const effectiveVolumeCm3 = useMemo(() => {
     if (!modelResult?.volumeCm3) return 0;
-    return Math.max(0.01, Math.round(modelResult.volumeCm3 * Math.pow(scaleFactor, 3) * 100) / 100);
-  }, [modelResult, scaleFactor]);
+    return Math.max(0.01, Math.round(modelResult.volumeCm3 * scaleX * scaleY * scaleZ * 100) / 100);
+  }, [modelResult, scaleX, scaleY, scaleZ]);
 
   // Max build volume — use backend-returned envelope from the active profile when available,
   // then fall back to health-check active envelope, then Firestore pricingConfig.
@@ -514,6 +531,10 @@ export function CustomPrinting() {
       qualityProfile: qualityPreset,
       infillPercent: effectiveInfill,
       scaleFactor,
+      scaleX,
+      scaleY,
+      scaleZ,
+      requestedDimensions: effectiveDimensions || undefined,
       quantity,
       supportMode,
       packagingIncluded,
@@ -543,11 +564,11 @@ export function CustomPrinting() {
     }
   };
 
-  // Reset slicer result if configuration changes (including colour mode)
+  // Reset slicer result if configuration changes (including dimensions & colour mode)
   useEffect(() => {
     setSlicerResult(null);
     setSlicerError(null);
-  }, [selectedMaterialId, qualityPreset, strengthPreset, supportMode, scaleFactor, quantity, packagingIncluded, modelColorMode]);
+  }, [selectedMaterialId, qualityPreset, strengthPreset, supportMode, scaleFactor, scaleX, scaleY, scaleZ, quantity, packagingIncluded, modelColorMode]);
 
   // Navigation State Guards
   const canGoToConfigure = Boolean(file && modelResult?.success);
@@ -582,38 +603,69 @@ export function CustomPrinting() {
     }
   }, [activeTab, canGoToConfigure]);
 
-  // Handle Height & Scale adjustments
-  const handleHeightInputChange = (val: string) => {
-    setTargetHeightInput(val);
+  // Handle Dimension & Scale adjustments
+  const handleDimChange = (axis: 'x' | 'y' | 'z', val: string) => {
+    if (axis === 'x') setDimInputX(val);
+    if (axis === 'y') setDimInputY(val);
+    if (axis === 'z') setDimInputZ(val);
+
     const parsed = parseFloat(val);
     const base = baseDimensions || modelResult?.dimensions;
-    if (!isNaN(parsed) && parsed > 0 && base && base.z > 0) {
-      const newScale = Math.min(Math.max(parsed / base.z, 0.05), 5.0);
-      setScaleFactor(Math.round(newScale * 100) / 100);
+    if (!isNaN(parsed) && parsed > 0 && base && base[axis] > 0) {
+      if (lockAspectRatio) {
+        const ratio = Math.min(Math.max(parsed / base[axis], 0.05), 5.0);
+        setScaleFactor(Math.round(ratio * 1000) / 1000);
+        setScaleX(ratio);
+        setScaleY(ratio);
+        setScaleZ(ratio);
+        if (axis !== 'x') setDimInputX((base.x * ratio).toFixed(1));
+        if (axis !== 'y') setDimInputY((base.y * ratio).toFixed(1));
+        if (axis !== 'z') setDimInputZ((base.z * ratio).toFixed(1));
+      } else {
+        const axisRatio = Math.min(Math.max(parsed / base[axis], 0.05), 5.0);
+        if (axis === 'x') setScaleX(axisRatio);
+        if (axis === 'y') setScaleY(axisRatio);
+        if (axis === 'z') setScaleZ(axisRatio);
+      }
     }
   };
 
   const handleSliderScale = (newScale: number) => {
     setScaleFactor(newScale);
+    setScaleX(newScale);
+    setScaleY(newScale);
+    setScaleZ(newScale);
     const base = baseDimensions || modelResult?.dimensions;
-    if (base && base.z > 0) {
-      setTargetHeightInput((base.z * newScale).toFixed(1));
+    if (base) {
+      setDimInputX((base.x * newScale).toFixed(1));
+      setDimInputY((base.y * newScale).toFixed(1));
+      setDimInputZ((base.z * newScale).toFixed(1));
     }
   };
 
   const handlePresetScale = (presetScale: number) => {
     setScaleFactor(presetScale);
+    setScaleX(presetScale);
+    setScaleY(presetScale);
+    setScaleZ(presetScale);
     const base = baseDimensions || modelResult?.dimensions;
-    if (base && base.z > 0) {
-      setTargetHeightInput((base.z * presetScale).toFixed(1));
+    if (base) {
+      setDimInputX((base.x * presetScale).toFixed(1));
+      setDimInputY((base.y * presetScale).toFixed(1));
+      setDimInputZ((base.z * presetScale).toFixed(1));
     }
   };
 
   const handleResetScale = () => {
     setScaleFactor(1.0);
+    setScaleX(1.0);
+    setScaleY(1.0);
+    setScaleZ(1.0);
     const base = baseDimensions || modelResult?.dimensions;
     if (base) {
-      setTargetHeightInput(base.z.toFixed(1));
+      setDimInputX(base.x.toFixed(1));
+      setDimInputY(base.y.toFixed(1));
+      setDimInputZ(base.z.toFixed(1));
     }
   };
 
@@ -685,9 +737,14 @@ export function CustomPrinting() {
       }
 
       setScaleFactor(1.0);
+      setScaleX(1.0);
+      setScaleY(1.0);
+      setScaleZ(1.0);
       setSizeMode('original');
       setBaseDimensions(result.dimensions);
-      setTargetHeightInput(result.dimensions.z.toFixed(1));
+      setDimInputX(result.dimensions.x.toFixed(1));
+      setDimInputY(result.dimensions.y.toFixed(1));
+      setDimInputZ(result.dimensions.z.toFixed(1));
 
       const activeMaxVolume = backendActiveEnvelope ||
         pricingData?.pricingConfig?.maxBuildVolume ||
@@ -1322,19 +1379,41 @@ export function CustomPrinting() {
                   error={modelResult?.errorMessage}
                   dimensions={effectiveDimensions || undefined}
                   scale={scaleFactor}
+                  scaleVector={{ x: scaleX, y: scaleY, z: scaleZ }}
                   onOrientedDimensionsChange={handleOrientedDimensionsChange}
                 />
 
-                {/* Original Colors Badge */}
+                {/* Original Colors Badge with Viewer Switch */}
                 {modelResult?.success && modelResult?.hasOriginalColors && (
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 text-[11px]">
                     <span className="font-mono font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
                       <Palette className="w-3.5 h-3.5 text-accent" />
-                      Original Model Colours Detected
+                      Original Colours ({modelResult.detectedColors?.length || modelResult.originalColorCount || 'Multi'})
                     </span>
-                    <span className="text-muted text-[10px]">
-                      Filament in Step 2 determines production color
-                    </span>
+                    <div className="flex items-center gap-1 bg-white/80 dark:bg-slate-900/80 p-0.5 rounded-lg border border-amber-200/60 dark:border-amber-900/50">
+                      <button
+                        type="button"
+                        onClick={() => setModelColorMode('original')}
+                        className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                          modelColorMode === 'original'
+                            ? 'bg-accent text-white shadow-2xs'
+                            : 'text-muted hover:text-ink dark:hover:text-white'
+                        }`}
+                      >
+                        Model Colours
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModelColorMode('single')}
+                        className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                          modelColorMode === 'single'
+                            ? 'bg-accent text-white shadow-2xs'
+                            : 'text-muted hover:text-ink dark:hover:text-white'
+                        }`}
+                      >
+                        Filament Colour
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1379,88 +1458,127 @@ export function CustomPrinting() {
                   </div>
                 </div>
 
-                {/* Dimensions Preview (X, Y, Z mm) */}
-                {effectiveDimensions && (
-                  <div className="grid grid-cols-3 gap-2 bg-shell/50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-line dark:border-slate-800 text-center">
-                    <div>
-                      <span className="text-[9px] font-mono text-muted uppercase tracking-wider block">
-                        Length (X)
-                      </span>
-                      <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
-                        {effectiveDimensions.x} <span className="text-[10px] font-normal">mm</span>
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[9px] font-mono text-muted uppercase tracking-wider block">
-                        Width (Y)
-                      </span>
-                      <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
-                        {effectiveDimensions.y} <span className="text-[10px] font-normal">mm</span>
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[9px] font-mono text-muted uppercase tracking-wider block">
-                        Height (Z)
-                      </span>
-                      <span className="font-mono text-xs font-bold text-accent">
-                        {effectiveDimensions.z} <span className="text-[10px] font-normal">mm</span>
-                      </span>
-                    </div>
-                  </div>
-                )}
-
                 {/* Custom Scale Controls (shown only if custom size selected) */}
-                {sizeMode === 'custom' && (
+                {sizeMode === 'custom' ? (
                   <div className="space-y-3 pt-1">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-center">
+                    {/* Header: Dimensions & Lock Ratio Toggle */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400">
+                        Editable Dimensions (mm)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setLockAspectRatio(!lockAspectRatio)}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer border ${
+                          lockAspectRatio
+                            ? 'bg-accent/10 border-accent/30 text-accent font-bold'
+                            : 'bg-shell dark:bg-slate-800 border-line dark:border-slate-700 text-muted hover:text-ink'
+                        }`}
+                        title={lockAspectRatio ? 'Click to unlock independent X, Y, Z scaling' : 'Click to lock aspect ratio'}
+                      >
+                        {lockAspectRatio ? (
+                          <>
+                            <Lock className="w-3.5 h-3.5 text-accent" />
+                            <span>Ratio Locked</span>
+                          </>
+                        ) : (
+                          <>
+                            <Unlock className="w-3.5 h-3.5" />
+                            <span>Ratio Unlocked</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* 3 Editable Inputs: Length (X), Width (Y), Height (Z) */}
+                    <div className="grid grid-cols-3 gap-2">
                       <div>
-                        <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block mb-1">
-                          Target Height (Z in mm)
+                        <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block mb-1">
+                          Length (X)
                         </label>
                         <div className="relative flex items-center">
                           <input
                             type="number"
                             step="0.5"
-                            min="5"
-                            value={targetHeightInput}
-                            onChange={(e) => handleHeightInputChange(e.target.value)}
-                            className="w-full py-1.5 px-3 pr-10 rounded-xl border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono font-bold text-ink dark:text-white focus:outline-hidden focus:ring-2 focus:ring-accent shadow-2xs"
+                            min="1"
+                            value={dimInputX}
+                            onChange={(e) => handleDimChange('x', e.target.value)}
+                            className="w-full py-1.5 px-2.5 pr-8 rounded-xl border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono font-bold text-ink dark:text-white focus:outline-hidden focus:ring-2 focus:ring-accent shadow-2xs"
                           />
-                          <span className="absolute right-3 font-mono text-xs text-muted pointer-events-none">
+                          <span className="absolute right-2 font-mono text-[10px] text-muted pointer-events-none">
                             mm
                           </span>
                         </div>
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block mb-1">
-                          Quick Scale Presets
+                        <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block mb-1">
+                          Width (Y)
                         </label>
-                        <div className="flex items-center gap-1">
-                          {[50, 75, 100, 150, 200].map((pct) => (
-                            <button
-                              key={pct}
-                              type="button"
-                              onClick={() => handlePresetScale(pct / 100)}
-                              className={`flex-1 py-1 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer ${
-                                Math.round(scaleFactor * 100) === pct
-                                  ? 'bg-accent text-white shadow-2xs'
-                                  : 'bg-shell dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-ink dark:text-slate-200'
-                              }`}
-                            >
-                              {pct}%
-                            </button>
-                          ))}
+                        <div className="relative flex items-center">
+                          <input
+                            type="number"
+                            step="0.5"
+                            min="1"
+                            value={dimInputY}
+                            onChange={(e) => handleDimChange('y', e.target.value)}
+                            className="w-full py-1.5 px-2.5 pr-8 rounded-xl border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono font-bold text-ink dark:text-white focus:outline-hidden focus:ring-2 focus:ring-accent shadow-2xs"
+                          />
+                          <span className="absolute right-2 font-mono text-[10px] text-muted pointer-events-none">
+                            mm
+                          </span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block mb-1">
+                          Height (Z)
+                        </label>
+                        <div className="relative flex items-center">
+                          <input
+                            type="number"
+                            step="0.5"
+                            min="1"
+                            value={dimInputZ}
+                            onChange={(e) => handleDimChange('z', e.target.value)}
+                            className="w-full py-1.5 px-2.5 pr-8 rounded-xl border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono font-bold text-ink dark:text-white focus:outline-hidden focus:ring-2 focus:ring-accent shadow-2xs"
+                          />
+                          <span className="absolute right-2 font-mono text-[10px] text-muted pointer-events-none">
+                            mm
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Uniform Scale Slider */}
+                    {/* Quick Scale Presets */}
+                    <div>
+                      <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block mb-1">
+                        Quick Scale Presets
+                      </label>
+                      <div className="flex items-center gap-1">
+                        {[50, 75, 100, 150, 200].map((pct) => (
+                          <button
+                            key={pct}
+                            type="button"
+                            onClick={() => handlePresetScale(pct / 100)}
+                            className={`flex-1 py-1 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer ${
+                              Math.round(scaleFactor * 100) === pct && scaleX === scaleY && scaleY === scaleZ
+                                ? 'bg-accent text-white shadow-2xs'
+                                : 'bg-shell dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-ink dark:text-slate-200'
+                            }`}
+                          >
+                            {pct}%
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Optional Uniform Scale Slider */}
                     <div>
                       <div className="flex justify-between text-[10px] font-mono text-muted mb-1">
                         <span>10%</span>
                         <span className="font-bold text-ink dark:text-slate-200">
-                          Uniform Scale: {Math.round(scaleFactor * 100)}%
+                          Slider (Uniform): {Math.round(scaleFactor * 100)}%
                         </span>
                         <span>300%</span>
                       </div>
@@ -1475,6 +1593,36 @@ export function CustomPrinting() {
                       />
                     </div>
                   </div>
+                ) : (
+                  /* Dimensions Preview (X, Y, Z mm) for Original Mode */
+                  effectiveDimensions && (
+                    <div className="grid grid-cols-3 gap-2 bg-shell/50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-line dark:border-slate-800 text-center">
+                      <div>
+                        <span className="text-[9px] font-mono text-muted uppercase tracking-wider block">
+                          Length (X)
+                        </span>
+                        <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
+                          {effectiveDimensions.x} <span className="text-[10px] font-normal">mm</span>
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-mono text-muted uppercase tracking-wider block">
+                          Width (Y)
+                        </span>
+                        <span className="font-mono text-xs font-bold text-ink dark:text-slate-200">
+                          {effectiveDimensions.y} <span className="text-[10px] font-normal">mm</span>
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-mono text-muted uppercase tracking-wider block">
+                          Height (Z)
+                        </span>
+                        <span className="font-mono text-xs font-bold text-accent">
+                          {effectiveDimensions.z} <span className="text-[10px] font-normal">mm</span>
+                        </span>
+                      </div>
+                    </div>
+                  )
                 )}
 
                 {/* Build Envelope Warning / Confirmation */}
@@ -1566,6 +1714,84 @@ export function CustomPrinting() {
                   </div>
                   <span className="font-mono text-xs font-bold text-accent px-2.5 py-1 rounded-md bg-accent/10 border border-accent/20">
                     {customColorHex ? customColorHex.toUpperCase() : activeColor.name}
+                  </span>
+                </div>
+
+                {/* Detected Model Colours Section */}
+                {modelResult?.detectedColors && modelResult.detectedColors.length > 0 && (
+                  <div className="p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Palette className="w-4 h-4 text-accent" />
+                        <span className="font-display font-bold text-xs uppercase tracking-wider text-ink dark:text-white">
+                          Colours Detected in Model File
+                        </span>
+                      </div>
+                      <span className="font-mono text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded">
+                        {modelResult.detectedColors.length} {modelResult.detectedColors.length === 1 ? 'Colour' : 'Colours'}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2.5">
+                      {modelResult.detectedColors.map((colHex) => {
+                        const hexUpper = colHex.toUpperCase();
+                        const isSelectedAsFilament = customColorHex.toUpperCase() === hexUpper;
+                        return (
+                          <button
+                            key={colHex}
+                            type="button"
+                            onClick={() => {
+                              setCustomColorHex(hexUpper);
+                              setSelectedColorName(hexUpper);
+                            }}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-mono transition-all cursor-pointer ${
+                              isSelectedAsFilament
+                                ? 'border-accent bg-accent/10 ring-1 ring-accent text-accent font-bold shadow-2xs'
+                                : 'border-line dark:border-slate-800 bg-white dark:bg-slate-900 text-ink dark:text-slate-200 hover:border-slate-400'
+                            }`}
+                            title={`Set ${hexUpper} as production filament`}
+                          >
+                            <span
+                              className="w-4 h-4 rounded-full border border-black/10 dark:border-white/20 shadow-xs shrink-0"
+                              style={{ backgroundColor: colHex }}
+                            />
+                            <span>{hexUpper}</span>
+                            {isSelectedAsFilament && (
+                              <Check className="w-3.5 h-3.5 text-accent" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {modelResult.detectedColors.length > 1 && (
+                      <div className="flex items-start gap-2 pt-2 border-t border-amber-200/60 dark:border-amber-900/30 text-[11px] text-amber-900 dark:text-amber-300">
+                        <AlertTriangle className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold">Multi-Colour Project Detected: </span>
+                          <span>
+                            Our instant workshop profile produces single-material prints using your selected production filament below ({activeColor.name}). For true multi-material printing, submit for{' '}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAssistedSub('has-reference');
+                                setActiveTab('upload');
+                              }}
+                              className="underline font-bold hover:text-accent cursor-pointer"
+                            >
+                              Workshop Review
+                            </button>
+                            .
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="pt-1">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted dark:text-slate-400 block mb-1">
+                    Production Filament Selection (Single-Colour Production)
                   </span>
                 </div>
 
@@ -2177,11 +2403,20 @@ export function CustomPrinting() {
                     </span>
                     <span className="font-bold text-accent mt-0.5 block font-mono">
                       {actualFilamentGrams !== null
-                        ? `${actualFilamentGrams} g (Calibrated)`
+                        ? `${actualFilamentGrams} g (Authoritative Slicer)`
                         : `~${estimatedMaterialUsageGrams} g`}
                     </span>
                   </div>
                 </div>
+
+                {actualFilamentGrams !== null && (
+                  <div className="text-[11px] font-mono text-muted dark:text-slate-400 bg-shell/30 dark:bg-slate-800/30 p-2.5 rounded-xl border border-line dark:border-slate-800 flex items-center justify-between">
+                    <span>Toolpath Filament Breakdown:</span>
+                    <span className="font-bold text-ink dark:text-slate-200">
+                      Authoritative G-code toolpath ({effectiveInfill}% infill + workshop perimeters + supports)
+                    </span>
+                  </div>
+                )}
 
                 {/* Dimensions Row */}
                 {effectiveDimensions && (
@@ -2189,7 +2424,8 @@ export function CustomPrinting() {
                     <span className="text-muted">Dimensions:</span>
                     <span className="font-bold text-ink dark:text-slate-200">
                       {effectiveDimensions.x} × {effectiveDimensions.y} × {effectiveDimensions.z} mm
-                      {scaleFactor !== 1 && ` (${Math.round(scaleFactor * 100)}% scale)`}
+                      {(scaleX !== 1 || scaleY !== 1 || scaleZ !== 1) &&
+                        ` (${scaleX === scaleY && scaleY === scaleZ ? `${Math.round(scaleX * 100)}% scale` : `X=${Math.round(scaleX * 100)}% Y=${Math.round(scaleY * 100)}% Z=${Math.round(scaleZ * 100)}%`})`}
                     </span>
                   </div>
                 )}

@@ -74,6 +74,10 @@ export interface SliceJobParams {
   qualityProfile: string;
   infillPercent: number;
   scaleFactor: number;
+  scaleX?: number;
+  scaleY?: number;
+  scaleZ?: number;
+  requestedDimensions?: { x: number; y: number; z: number };
   quantity: number;
   supportMode?: string;
   packagingIncluded: boolean;
@@ -103,6 +107,12 @@ export async function executeSlicingJob(params: SliceJobParams): Promise<Slicing
     formData.append('qualityProfile', params.qualityProfile);
     formData.append('infillPercent', String(params.infillPercent));
     formData.append('scaleFactor', String(params.scaleFactor));
+    if (params.scaleX !== undefined) formData.append('scaleX', String(params.scaleX));
+    if (params.scaleY !== undefined) formData.append('scaleY', String(params.scaleY));
+    if (params.scaleZ !== undefined) formData.append('scaleZ', String(params.scaleZ));
+    if (params.requestedDimensions) {
+      formData.append('requestedDimensionsJson', JSON.stringify(params.requestedDimensions));
+    }
     formData.append('quantity', String(params.quantity));
     formData.append('supportMode', params.supportMode || 'auto');
     formData.append('packagingIncluded', String(params.packagingIncluded));

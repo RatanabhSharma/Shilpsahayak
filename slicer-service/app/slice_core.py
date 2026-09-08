@@ -183,12 +183,73 @@ def parse_gcode_statistics(gcode_path: str) -> Dict[str, Any]:
         "raw_time_string": raw_time_str
     }
 
+def apply_nonuniform_scale(input_path: str, output_path: str, sx: float, sy: float, sz: float) -> bool:
+    """
+    Applies non-uniform X, Y, Z scaling to 3MF or STL models.
+    """
+    import zipfile
+    import struct
+    import re
+
+    lower = input_path.lower()
+    if lower.endswith(".3mf"):
+        with zipfile.ZipFile(input_path, 'r') as zin, zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                data = zin.read(item.filename)
+                if item.filename.lower().endswith('.model'):
+                    def repl(m):
+                        attrs = m.group(0)
+                        tf_m = re.search(r'transform="([^"]+)"', attrs)
+                        if tf_m:
+                            vals = [float(v) for v in tf_m.group(1).split()]
+                            if len(vals) == 12:
+                                vals[0] *= sx; vals[1] *= sx; vals[2] *= sx
+                                vals[3] *= sy; vals[4] *= sy; vals[5] *= sy
+                                vals[6] *= sz; vals[7] *= sz; vals[8] *= sz
+                                new_tf = ' '.join(f'{v:.6f}' for v in vals)
+                                return attrs[:tf_m.start(1)] + new_tf + attrs[tf_m.end(1):]
+                        return attrs.rstrip('/>') + f' transform="{sx:.6f} 0 0 0 {sy:.6f} 0 0 0 {sz:.6f} 0 0 0"/>'
+                    data_str = data.decode('utf-8', errors='ignore')
+                    data_str = re.sub(r'<item\b[^>]*/>', repl, data_str)
+                    data = data_str.encode('utf-8')
+                zout.writestr(item, data)
+        return True
+    elif lower.endswith(".stl"):
+        with open(input_path, "rb") as f:
+            header = f.read(80)
+            count_bytes = f.read(4)
+            if len(count_bytes) == 4:
+                num_triangles = struct.unpack("<I", count_bytes)[0]
+                expected_size = 84 + num_triangles * 50
+                f.seek(0, os.SEEK_END)
+                if f.tell() == expected_size:
+                    f.seek(84)
+                    out_bytes = bytearray(f.read())
+                    for i in range(num_triangles):
+                        offset = i * 50 + 12
+                        for v in range(3):
+                            v_off = offset + v * 12
+                            x, y, z = struct.unpack_from("<3f", out_bytes, v_off)
+                            struct.pack_into("<3f", out_bytes, v_off, x * sx, y * sy, z * sz)
+                    with open(output_path, "wb") as fout:
+                        fout.write(header)
+                        fout.write(count_bytes)
+                        fout.write(out_bytes)
+                    return True
+        import shutil
+        shutil.copyfile(input_path, output_path)
+        return True
+    return False
+
 def run_slice_test(
     model_path: str,
     printer_ini: Optional[str] = None,
     filament_ini: Optional[str] = None,
     print_ini: Optional[str] = None,
     scale: float = 1.0,
+    scale_x: Optional[float] = None,
+    scale_y: Optional[float] = None,
+    scale_z: Optional[float] = None,
     infill_pct: Optional[int] = None,
     support_mode: str = "auto"
 ) -> Dict[str, Any]:
@@ -208,21 +269,35 @@ def run_slice_test(
     # Read the authoritative build envelope from the active profile
     active_envelope = read_profile_envelope(printer_ini) if printer_ini else {}
 
-    # Extract dimensions first
-    dims = get_model_info(model_path)
-    if scale != 1.0 and dims:
-        dims["x"] = round(dims.get("x", 0) * scale, 2)
-        dims["y"] = round(dims.get("y", 0) * scale, 2)
-        dims["z"] = round(dims.get("z", 0) * scale, 2)
+    sx = scale_x if scale_x is not None else scale
+    sy = scale_y if scale_y is not None else scale
+    sz = scale_z if scale_z is not None else scale
+    is_nonuniform = abs(sx - sy) > 1e-4 or abs(sx - sz) > 1e-4
 
     with tempfile.TemporaryDirectory() as temp_dir:
         output_gcode = os.path.join(temp_dir, "output.gcode")
+        active_model_path = model_path
+
+        if is_nonuniform:
+            ext = os.path.splitext(model_path)[1]
+            scaled_model_path = os.path.join(temp_dir, f"scaled_model{ext}")
+            if apply_nonuniform_scale(model_path, scaled_model_path, sx, sy, sz):
+                active_model_path = scaled_model_path
+                dims = get_model_info(active_model_path)
+            else:
+                dims = get_model_info(model_path)
+        else:
+            dims = get_model_info(model_path)
+            if sx != 1.0 and dims:
+                dims["x"] = round(dims.get("x", 0) * sx, 2)
+                dims["y"] = round(dims.get("y", 0) * sy, 2)
+                dims["z"] = round(dims.get("z", 0) * sz, 2)
 
         cmd = [
             slicer_exe,
             "--export-gcode",
             "--output", output_gcode,
-            model_path
+            active_model_path
         ]
 
         if printer_ini and os.path.exists(printer_ini):
@@ -232,8 +307,9 @@ def run_slice_test(
         if print_ini and os.path.exists(print_ini):
             cmd.extend(["--load", print_ini])
 
-        if scale != 1.0:
-            cmd.extend(["--scale", str(scale)])
+        # If uniform scaling was applied, pass --scale flag to PrusaSlicer
+        if not is_nonuniform and sx != 1.0:
+            cmd.extend(["--scale", str(sx)])
 
         if infill_pct is not None:
             cmd.extend(["--fill-density", f"{infill_pct}%"])

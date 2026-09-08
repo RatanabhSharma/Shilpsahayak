@@ -157,11 +157,25 @@ def process_slicing_job(job_id: str, file_path: str, params: Dict[str, Any]):
 
         # 4. Extract dimensions and check build volume against profile-derived envelope
         dims = get_model_info(file_path)
-        scale = params.get("scaleFactor", 1.0)
-        if scale != 1.0 and dims:
-            dims["x"] = round(dims.get("x", 0) * scale, 2)
-            dims["y"] = round(dims.get("y", 0) * scale, 2)
-            dims["z"] = round(dims.get("z", 0) * scale, 2)
+        scale = float(params.get("scaleFactor", 1.0))
+        scale_x = float(params.get("scaleX", scale))
+        scale_y = float(params.get("scaleY", scale))
+        scale_z = float(params.get("scaleZ", scale))
+        requested_dims = params.get("requestedDimensions")
+
+        if requested_dims and isinstance(requested_dims, dict):
+            try:
+                dims = {
+                    "x": round(float(requested_dims["x"]), 2),
+                    "y": round(float(requested_dims["y"]), 2),
+                    "z": round(float(requested_dims["z"]), 2),
+                }
+            except (KeyError, ValueError, TypeError):
+                pass
+        elif dims:
+            dims["x"] = round(dims.get("x", 0) * scale_x, 2)
+            dims["y"] = round(dims.get("y", 0) * scale_y, 2)
+            dims["z"] = round(dims.get("z", 0) * scale_z, 2)
 
         if dims and (
             dims.get("x", 0) > active_envelope["x"] or
@@ -187,6 +201,9 @@ def process_slicing_job(job_id: str, file_path: str, params: Dict[str, Any]):
             model_path=file_path,
             printer_ini=profile_path,
             scale=scale,
+            scale_x=scale_x,
+            scale_y=scale_y,
+            scale_z=scale_z,
             infill_pct=params.get("infillPercent", 20),
             support_mode=params.get("supportMode", "auto")
         )
@@ -336,7 +353,11 @@ async def create_slice_job(
     pricingConfigJson: Optional[str] = Form(None),
     materialsJson: Optional[str] = Form(None),
     quantityDiscountsJson: Optional[str] = Form(None),
-    pricingVersion: Optional[str] = Form(None)
+    pricingVersion: Optional[str] = Form(None),
+    scaleX: Optional[float] = Form(None),
+    scaleY: Optional[float] = Form(None),
+    scaleZ: Optional[float] = Form(None),
+    requestedDimensionsJson: Optional[str] = Form(None)
 ):
     job_id = str(uuid.uuid4())
     ext = os.path.splitext(file.filename)[1]
@@ -354,6 +375,10 @@ async def create_slice_job(
         "qualityProfile": qualityProfile,
         "infillPercent": infillPercent,
         "scaleFactor": scaleFactor,
+        "scaleX": scaleX if scaleX is not None else scaleFactor,
+        "scaleY": scaleY if scaleY is not None else scaleFactor,
+        "scaleZ": scaleZ if scaleZ is not None else scaleFactor,
+        "requestedDimensions": _safe_json(requestedDimensionsJson),
         "quantity": quantity,
         "supportMode": supportMode,
         "packagingIncluded": packagingIncluded,

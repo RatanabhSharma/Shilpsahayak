@@ -23,6 +23,7 @@ export interface ThreeModelViewerProps {
   error?: string | null;
   dimensions?: { x: number; y: number; z: number };
   scale?: number;
+  scaleVector?: { x: number; y: number; z: number };
   onOrientedDimensionsChange?: (dimensions: { x: number; y: number; z: number }) => void;
 }
 
@@ -38,6 +39,7 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
   error = null,
   dimensions,
   scale = 1.0,
+  scaleVector,
   onOrientedDimensionsChange,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -237,7 +239,7 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     if (!geometry && !object3d) return;
 
     let displayObj: THREE.Object3D;
-    const isOriginalMode = hasOriginalColors || colorMode === 'original';
+    const isOriginalMode = hasOriginalColors ? colorMode !== 'single' : colorMode === 'original';
 
     if (isOriginalMode && object3d) {
       // 1. Cloned 3D Group/Mesh preserving original materials, textures, and vertex colors
@@ -337,13 +339,21 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
       return;
     }
 
-    // Wrap model in a pivot group centered at model's geometric center
-    const pivot = new THREE.Group();
+    // 1. Measure unscaled object first
+    displayObj.scale.set(1, 1, 1);
     const initialBox = new THREE.Box3().setFromObject(displayObj);
     const initialCenter = new THREE.Vector3();
     initialBox.getCenter(initialCenter);
 
-    displayObj.position.set(-initialCenter.x, -initialCenter.y, -initialCenter.z);
+    // Apply scale to displayObj
+    const sx = scaleVector ? scaleVector.x : (scale > 0 ? scale : 1.0);
+    const sy = scaleVector ? scaleVector.y : (scale > 0 ? scale : 1.0);
+    const sz = scaleVector ? scaleVector.z : (scale > 0 ? scale : 1.0);
+    displayObj.scale.set(sx, sy, sz);
+
+    // Wrap model in a pivot group centered at model's geometric center
+    const pivot = new THREE.Group();
+    displayObj.position.set(-initialCenter.x * sx, -initialCenter.y * sy, -initialCenter.z * sz);
     pivot.add(displayObj);
 
     // Apply CAD Z-up to Three.js Y-up conversion so 3D print models stand upright on build plate
@@ -354,7 +364,7 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     const radZ = (rotation.z * Math.PI) / 180;
 
     pivot.rotation.set(radX, radY, radZ);
-    pivot.scale.set(scale, scale, scale);
+    pivot.scale.set(1, 1, 1);
     pivot.updateMatrixWorld(true);
 
     // Compute bounding box in transformed world orientation
@@ -372,11 +382,9 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     modelRef.current = pivot;
 
     // Compute unscaled oriented dimensions (at scale = 1.0) to report to parent
-    // without circular scaling feedback loops!
-    const currentScale = scale > 0 ? scale : 1.0;
-    const unscaledWidth = Math.round(((bbox.max.x - bbox.min.x) / currentScale) * 10) / 10;
-    const unscaledDepth = Math.round(((bbox.max.z - bbox.min.z) / currentScale) * 10) / 10;
-    const unscaledHeight = Math.round(((bbox.max.y - bbox.min.y) / currentScale) * 10) / 10;
+    const unscaledWidth = Math.round(((bbox.max.x - bbox.min.x) / (sx > 0 ? sx : 1)) * 10) / 10;
+    const unscaledDepth = Math.round(((bbox.max.z - bbox.min.z) / (sy > 0 ? sy : 1)) * 10) / 10;
+    const unscaledHeight = Math.round(((bbox.max.y - bbox.min.y) / (sz > 0 ? sz : 1)) * 10) / 10;
 
     const unscaledDims = {
       x: unscaledWidth,
@@ -404,6 +412,9 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     colorHex,
     isWireframe,
     scale,
+    scaleVector?.x,
+    scaleVector?.y,
+    scaleVector?.z,
     rotation,
     fitCameraToObject,
   ]);

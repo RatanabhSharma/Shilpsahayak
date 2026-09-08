@@ -9,7 +9,7 @@ import { ParsedModelResult } from './modelTypes';
 import { checkBuildVolume } from '../pricing/calculateQuote';
 import { DEFAULT_PRICING_CONFIG } from '../pricing/pricingConfig';
 import { getModelLocally } from '../../utils/uploadFile';
-import { parseBambu3MF } from './bambu3mfParser';
+import { parseBambu3MF, applyBambuProjectMaterials } from './bambu3mfParser';
 
 
 function signedVolumeOfTriangle(
@@ -31,10 +31,14 @@ function signedVolumeOfTriangle(
 export function detectOriginalColors(
   geometry?: THREE.BufferGeometry | null,
   object3d?: THREE.Object3D | null
-): { hasColors: boolean; colorCount: number; hasTextures: boolean } {
+): { hasColors: boolean; colorCount: number; hasTextures: boolean; detectedColors: string[] } {
   let hasColors = false;
   let hasTextures = false;
   const uniqueColors = new Set<string>();
+  const hexColorsSet = new Set<string>();
+
+  const toHex = (r: number, g: number, b: number) =>
+    '#' + [r, g, b].map((x) => Math.max(0, Math.min(255, x)).toString(16).padStart(2, '0')).join('').toUpperCase();
 
   // 1. Check BufferGeometry vertex colors (STL & single mesh OBJ/3MF)
   if (geometry && geometry.hasAttribute('color')) {
@@ -46,6 +50,7 @@ export function detectOriginalColors(
         const g = Math.round(colorAttr.getY(i) * 255);
         const b = Math.round(colorAttr.getZ(i) * 255);
         uniqueColors.add(`${r},${g},${b}`);
+        hexColorsSet.add(toHex(r, g, b));
       }
       if (
         uniqueColors.size > 1 ||
@@ -72,6 +77,7 @@ export function detectOriginalColors(
               const g = Math.round(colorAttr.getY(i) * 255);
               const b = Math.round(colorAttr.getZ(i) * 255);
               uniqueColors.add(`${r},${g},${b}`);
+              hexColorsSet.add(toHex(r, g, b));
             }
             if (
               uniqueColors.size > 1 ||
@@ -99,6 +105,7 @@ export function detectOriginalColors(
           if (m.color instanceof THREE.Color) {
             const hex = m.color.getHexString();
             uniqueColors.add(hex);
+            hexColorsSet.add('#' + hex.toUpperCase());
             if (
               hex !== 'ffffff' &&
               hex !== 'cccccc' &&
@@ -125,6 +132,7 @@ export function detectOriginalColors(
     hasColors,
     colorCount: uniqueColors.size,
     hasTextures,
+    detectedColors: Array.from(hexColorsSet),
   };
 }
 
@@ -144,7 +152,8 @@ export function analyzeGeometry(
   maxBuildVolume = DEFAULT_PRICING_CONFIG.maxBuildVolume,
   object3d?: THREE.Object3D,
   hasOriginalColors = false,
-  originalColorCount = 0
+  originalColorCount = 0,
+  detectedColors?: string[]
 ): ParsedModelResult {
   try {
     geometry.computeBoundingBox();
@@ -225,6 +234,7 @@ export function analyzeGeometry(
       object3d,
       hasOriginalColors,
       originalColorCount,
+      detectedColors: detectedColors && detectedColors.length > 0 ? detectedColors : undefined,
       fileName,
       fileSizeBytes,
       fileType,
@@ -289,7 +299,8 @@ export function parseSTLArrayBuffer(
       maxBuildVolume,
       undefined,
       colorInfo.hasColors,
-      colorInfo.colorCount
+      colorInfo.colorCount,
+      colorInfo.detectedColors
     );
   } catch (err: any) {
     console.error('Failed to parse STL buffer:', err);
@@ -391,7 +402,8 @@ export function parseOBJText(
       maxBuildVolume,
       objGroup,
       colorInfo.hasColors,
-      colorInfo.colorCount
+      colorInfo.colorCount,
+      colorInfo.detectedColors
     );
   } catch (err: any) {
     console.error('Failed to parse OBJ text:', err);
@@ -455,7 +467,8 @@ export async function parse3MFArrayBuffer(
         maxBuildVolume,
         undefined, // no separate object3d — geometry already has vertex colours
         true,       // hasOriginalColors
-        bambu.colors.length
+        bambu.colors.length,
+        bambu.colors
       );
     }
     // If Bambu parse succeeded but has no colours (single-colour model),
@@ -470,7 +483,8 @@ export async function parse3MFArrayBuffer(
         maxBuildVolume,
         undefined,
         false,
-        1
+        1,
+        bambu.colors && bambu.colors.length > 0 ? bambu.colors : undefined
       );
     }
   } catch (bambuErr) {
@@ -482,6 +496,15 @@ export async function parse3MFArrayBuffer(
   try {
     const loader = new ThreeMFLoader();
     const group = loader.parse(arrayBuffer);
+
+    // Apply Bambu Studio / OrcaSlicer project extruder colors and vertex colors if present
+    let bambuResult: { hasColors: boolean; detectedColors: string[] } | null = null;
+    try {
+      const zip = unzipSync(new Uint8Array(arrayBuffer));
+      bambuResult = applyBambuProjectMaterials(zip, group);
+    } catch (bambuMatErr) {
+      console.warn('Could not inspect 3MF package for Bambu project materials:', bambuMatErr);
+    }
 
     // Walk the group and fix texture colour spaces for sRGB textures.
     group.traverse((child) => {
@@ -531,6 +554,11 @@ export async function parse3MFArrayBuffer(
     }
 
     const colorInfo = detectOriginalColors(unifiedGeometry, group);
+    const finalHasColors = (bambuResult && bambuResult.hasColors) || colorInfo.hasColors;
+    const finalDetectedColors =
+      bambuResult && bambuResult.detectedColors && bambuResult.detectedColors.length > 0
+        ? bambuResult.detectedColors
+        : colorInfo.detectedColors;
 
     return analyzeGeometry(
       unifiedGeometry,
@@ -539,8 +567,9 @@ export async function parse3MFArrayBuffer(
       '3mf',
       maxBuildVolume,
       group,
-      colorInfo.hasColors,
-      colorInfo.colorCount
+      finalHasColors,
+      finalDetectedColors.length,
+      finalDetectedColors
     );
   } catch (err: any) {
     console.error('Failed to parse 3MF buffer:', err);

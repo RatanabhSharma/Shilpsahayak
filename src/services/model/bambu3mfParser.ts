@@ -237,6 +237,145 @@ function resolve3MFTransform(
 /**
  * Parse a Bambu Studio 3MF ArrayBuffer and reconstruct vertex colours
  * from the proprietary paint_color face attributes.
+/**
+ * Extracts the palette of filament hex colors from Metadata/project_settings.config
+ */
+export function extractBambuFilamentColors(zip: Record<string, Uint8Array>): string[] {
+  const projEntry = Object.keys(zip).find((k) =>
+    k.toLowerCase().includes('project_settings.config')
+  );
+  if (!projEntry) return [];
+
+  try {
+    const projText = new TextDecoder().decode(zip[projEntry]);
+    try {
+      const data = JSON.parse(projText);
+      const fc = data.filament_colour;
+      if (Array.isArray(fc)) {
+        const valid = fc.filter(
+          (c: any) => typeof c === 'string' && /^#[0-9A-Fa-f]{6}$/i.test(c)
+        );
+        if (valid.length > 0) return valid;
+      }
+    } catch {
+      // ignore json parse error and fallback to regex
+    }
+    const hexes = projText.match(/#[0-9A-Fa-f]{6}/g);
+    if (hexes && hexes.length > 0) {
+      return Array.from(new Set(hexes));
+    }
+  } catch (err) {
+    console.warn('Failed to extract Bambu filament colors:', err);
+  }
+  return [];
+}
+
+/**
+ * Applies Bambu Studio / OrcaSlicer project extruder colors and vertex colors
+ * to a THREE.Group loaded via ThreeMFLoader (multi-object assemblies, plates, etc.).
+ */
+export function applyBambuProjectMaterials(
+  zip: Record<string, Uint8Array>,
+  group: THREE.Group
+): { hasColors: boolean; detectedColors: string[] } {
+  const filamentColors = extractBambuFilamentColors(zip);
+  if (filamentColors.length === 0) {
+    return { hasColors: false, detectedColors: [] };
+  }
+
+  // 1. Extract object extruders from model_settings.config
+  const objectExtruders = new Map<string, number>();
+  const settingsEntry = Object.keys(zip).find((k) =>
+    k.toLowerCase().includes('model_settings.config')
+  );
+  if (settingsEntry) {
+    const settingsXml = new TextDecoder().decode(zip[settingsEntry]);
+    const objRegex = /<object\s+id="([^"]+)">([\s\S]*?)<\/object>/gi;
+    let om: RegExpExecArray | null;
+    while ((om = objRegex.exec(settingsXml)) !== null) {
+      const oid = om[1];
+      const body = om[2];
+      const extMatch = body.match(/key="extruder"\s+value="(\d+)"/i);
+      if (extMatch) {
+        objectExtruders.set(oid, parseInt(extMatch[1], 10));
+      }
+    }
+  }
+
+  // 2. Extract build item object IDs from 3D/3dmodel.model
+  const buildItemObjectIds: string[] = [];
+  const rootKey = Object.keys(zip).find((k) =>
+    k.toLowerCase().endsWith('3dmodel.model')
+  );
+  if (rootKey) {
+    const rootXml = new TextDecoder().decode(zip[rootKey]);
+    const buildMatch = rootXml.match(/<build[^>]*>([\s\S]*?)<\/build>/i);
+    if (buildMatch) {
+      const itemRegex = /<item\s+([^>]+)(?:\/>|>[\s\S]*?<\/item>)/gi;
+      let im: RegExpExecArray | null;
+      while ((im = itemRegex.exec(buildMatch[1])) !== null) {
+        const oIdMatch = im[1].match(/objectid="([^"]+)"/i);
+        if (oIdMatch) {
+          buildItemObjectIds.push(oIdMatch[1]);
+        }
+      }
+    }
+  }
+
+  // 3. Collect all meshes from the group
+  const meshes: THREE.Mesh[] = [];
+  group.traverse((child) => {
+    if ((child as THREE.Mesh).isMesh) {
+      meshes.push(child as THREE.Mesh);
+    }
+  });
+
+  if (meshes.length === 0) {
+    return { hasColors: false, detectedColors: [] };
+  }
+
+  const usedColorsSet = new Set<string>();
+
+  for (let i = 0; i < meshes.length; i++) {
+    const mesh = meshes[i];
+    const oid = i < buildItemObjectIds.length ? buildItemObjectIds[i] : String(i + 1);
+    const extruder1Based = objectExtruders.get(oid) ?? 1;
+    const slot = Math.max(0, Math.min(extruder1Based - 1, filamentColors.length - 1));
+    const hex = filamentColors[slot] || '#AAAAAA';
+    usedColorsSet.add(hex);
+
+    const c = new THREE.Color(hex);
+    mesh.material = new THREE.MeshStandardMaterial({
+      color: c,
+      roughness: 0.55,
+      metalness: 0.05,
+      side: THREE.DoubleSide,
+    });
+
+    // Also populate vertex colors on the geometry so mergeGeometries preserves them
+    if (mesh.geometry && mesh.geometry.attributes.position) {
+      const count = mesh.geometry.attributes.position.count;
+      const colArr = new Float32Array(count * 3);
+      for (let v = 0; v < count; v++) {
+        colArr[v * 3] = c.r;
+        colArr[v * 3 + 1] = c.g;
+        colArr[v * 3 + 2] = c.b;
+      }
+      mesh.geometry.setAttribute('color', new THREE.BufferAttribute(colArr, 3));
+    }
+  }
+
+  const detectedColors = Array.from(usedColorsSet);
+  const hasColors =
+    detectedColors.length > 1 ||
+    (detectedColors.length === 1 && detectedColors[0] !== '#AAAAAA' && detectedColors[0] !== '#FFFFFF');
+
+  return { hasColors: true, detectedColors };
+}
+
+/**
+ * Parse a Bambu Studio 3MF ArrayBuffer and reconstruct vertex colours
+ * from the proprietary paint_color face attributes.
  */
 export async function parseBambu3MF(
   arrayBuffer: ArrayBuffer
@@ -245,22 +384,9 @@ export async function parseBambu3MF(
     const zip = unzipSync(new Uint8Array(arrayBuffer));
 
     // ── 1. Read filament colours from project_settings.config ─────────────
-    let filamentColors: string[] = ['#AAAAAA'];
-    const projEntry = Object.keys(zip).find((k) =>
-      k.toLowerCase().includes('project_settings.config')
-    );
-    if (projEntry) {
-      const projText = new TextDecoder().decode(zip[projEntry]);
-      const colorMatch = projText.match(/"filament_colour"\s*:\s*\[([\s\S]*?)\]/);
-      if (colorMatch) {
-        const extracted =
-          colorMatch[1]
-            .match(/"(#[0-9A-Fa-f]{3,8})"/g)
-            ?.map((s) => s.replace(/"/g, '')) ?? [];
-        if (extracted.length > 0) {
-          filamentColors = extracted;
-        }
-      }
+    let filamentColors = extractBambuFilamentColors(zip);
+    if (filamentColors.length === 0) {
+      filamentColors = ['#AAAAAA'];
     }
 
     // ── 2. Find the geometry object file ──────────────────────────────────
