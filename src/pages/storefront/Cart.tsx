@@ -9,6 +9,7 @@ import {
   Truck,
   ShieldCheck,
   Sparkles,
+  Paperclip,
 } from 'lucide-react';
 
 import {
@@ -147,7 +148,8 @@ export function Cart() {
                   ? item.product.variants?.find((v) => v.id === item.variantId)
                   : undefined;
                 const availableStock = selectedVariant?.stock ?? item.product.stock;
-                const isCustomPrint = Boolean(item.customPrint);
+                const isPureCustomPrint = item.product.id === 'custom-3d-print';
+                const hasCustomAttachment = Boolean(item.customPrint);
                 const itemPrice = getItemPrice(item);
                 const maxQuantity = availableStock > 0 ? availableStock : 999;
                 const lineTotal = itemPrice * item.quantity;
@@ -159,7 +161,7 @@ export function Cart() {
                   >
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
                       {/* Image / Icon */}
-                      {isCustomPrint ? (
+                      {isPureCustomPrint ? (
                         <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-line bg-shell">
                           <div className="flex h-full w-full flex-col items-center justify-center bg-accent-soft text-accent">
                             <FileBox className="h-8 w-8" />
@@ -197,11 +199,15 @@ export function Cart() {
                       {/* Details */}
                       <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          {isCustomPrint ? (
+                          {isPureCustomPrint ? (
                             <Badge variant="brand">Custom 3D Print</Badge>
                           ) : item.product.category ? (
                             <Badge variant="default">{item.product.category}</Badge>
                           ) : null}
+
+                          {hasCustomAttachment && !isPureCustomPrint && (
+                            <Badge variant="brand">Customized</Badge>
+                          )}
 
                           {item.variantLabel && (
                             <span className="font-mono text-xs font-bold text-muted">
@@ -210,7 +216,7 @@ export function Cart() {
                           )}
                         </div>
 
-                        {isCustomPrint ? (
+                        {isPureCustomPrint ? (
                           <span className="font-display text-lg font-bold text-ink block line-clamp-1">
                             {item.product.name}
                           </span>
@@ -230,17 +236,48 @@ export function Cart() {
                           </span>
                         </p>
 
-                        {/* Custom print metadata */}
-                        {isCustomPrint && item.customPrint && (
+                        {/* Pure Custom 3D Print Metadata */}
+                        {isPureCustomPrint && item.customPrint && (
                           <div className="mt-2 rounded-xl bg-shell border border-line p-2.5 text-xs text-ink font-mono text-[11px]">
                             <div className="flex flex-wrap gap-x-4 gap-y-1">
                               <span>File: <strong>{item.customPrint.fileName}</strong></span>
-                              <span>Mat: <strong>{item.customPrint.material}</strong></span>
-                              <span>Infill: <strong>{item.customPrint.infill}%</strong></span>
+                              {item.customPrint.material && (
+                                <span>Mat: <strong>{item.customPrint.material}</strong></span>
+                              )}
+                              {item.customPrint.infill !== undefined && (
+                                <span>Infill: <strong>{item.customPrint.infill}%</strong></span>
+                              )}
                               {item.customPrint.volume && (
                                 <span>Vol: <strong>{item.customPrint.volume.toFixed(1)} cm³</strong></span>
                               )}
                             </div>
+                          </div>
+                        )}
+
+                        {/* Catalog Product Custom Attachment Pill */}
+                        {!isPureCustomPrint && item.customPrint && (
+                          <div className="mt-2 flex flex-wrap items-center gap-2 font-mono text-[11px]">
+                            {item.customPrint.fileUrl ? (
+                              <a
+                                href={item.customPrint.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-accent/25 bg-accent-soft px-2.5 py-1 text-accent font-bold hover:underline transition-all"
+                                title="View uploaded custom file"
+                              >
+                                <Paperclip className="h-3 w-3 shrink-0" />
+                                <span>
+                                  {item.customPrint.fileType === 'image'
+                                    ? `Image Reference: ${item.customPrint.fileName || 'Attachment'}`
+                                    : `3D CAD File: ${item.customPrint.fileName || 'Attachment'}`}
+                                </span>
+                              </a>
+                            ) : item.customPrint.fileName ? (
+                              <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-shell px-2.5 py-1 text-muted">
+                                <Paperclip className="h-3 w-3 shrink-0" />
+                                <span>File: {item.customPrint.fileName}</span>
+                              </span>
+                            ) : null}
                           </div>
                         )}
 

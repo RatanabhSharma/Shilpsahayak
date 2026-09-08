@@ -471,4 +471,111 @@ export async function deleteUploadedFile(fileKey: string): Promise<void> {
   }
 }
 
+/* -------------------------------------------------------------------------- */
+/* Product-Level Customization File Uploads (Images & CAD)                     */
+/* -------------------------------------------------------------------------- */
+
+export const CUSTOM_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'] as const;
+export const CUSTOM_CAD_EXTENSIONS = ['.stl', '.obj', '.3mf'] as const;
+export const MAX_CUSTOM_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+
+export type CustomFileType = 'image' | 'cad';
+
+/**
+ * Detect whether a file is a reference image, a 3D CAD model, or unsupported.
+ */
+export function detectCustomFileType(file: File): CustomFileType | null {
+  if (!file || !file.name) return null;
+  const lowerName = file.name.toLowerCase();
+
+  const isImageExt = CUSTOM_IMAGE_EXTENSIONS.some((ext) => lowerName.endsWith(ext));
+  if (isImageExt) {
+    return 'image';
+  }
+
+  const isCadExt = CUSTOM_CAD_EXTENSIONS.some((ext) => lowerName.endsWith(ext));
+  if (isCadExt) {
+    return 'cad';
+  }
+
+  return null;
+}
+
+export type CustomFileValidationResult = {
+  valid: boolean;
+  fileType?: CustomFileType;
+  error?: string;
+};
+
+/**
+ * Validates a custom attachment file on file selection or prior to upload.
+ */
+export function validateProductCustomFile(file: File): CustomFileValidationResult {
+  if (!file) {
+    return { valid: false, error: 'No file selected.' };
+  }
+
+  if (file.size > MAX_CUSTOM_FILE_SIZE) {
+    return {
+      valid: false,
+      error: 'File is too large. Maximum allowed size is 5 MB.',
+    };
+  }
+
+  const fileType = detectCustomFileType(file);
+  if (!fileType) {
+    return {
+      valid: false,
+      error: 'Unsupported file type. Please upload an image (JPG, PNG, WEBP) or 3D CAD file (STL, OBJ, 3MF).',
+    };
+  }
+
+  return { valid: true, fileType };
+}
+
+export type CustomFileUploadResult = {
+  url: string;
+  fileType: CustomFileType;
+  fileName: string;
+  fileSize: number;
+};
+
+/**
+ * Uploads a customer-provided customization file (image or 3D CAD) up to 5 MB.
+ * - Reference images are routed to the image upload pipeline.
+ * - 3D CAD files are routed to the CAD file upload pipeline.
+ * - Neither cross-contaminates the other's parsers or compressors.
+ */
+export async function uploadProductCustomFile(
+  file: File,
+  userId?: string,
+  onProgress?: (progress: number) => void
+): Promise<CustomFileUploadResult> {
+  const validation = validateProductCustomFile(file);
+  if (!validation.valid || !validation.fileType) {
+    throw new Error(validation.error || 'Invalid file.');
+  }
+
+  const { fileType } = validation;
+
+  let url = '';
+
+  if (fileType === 'image') {
+    // Uses the image upload pipeline (R2 worker POST /upload with fallback to WebP Data URL)
+    // NEVER passes image to 3D model parser
+    url = await uploadProductImage(file, onProgress);
+  } else {
+    // Uses CAD upload pipeline (R2 worker POST /upload with fallback to local IndexedDB)
+    // NEVER passes CAD file to image canvas / compression
+    url = await upload3DFile(file, userId, onProgress);
+  }
+
+  return {
+    url,
+    fileType,
+    fileName: file.name,
+    fileSize: file.size,
+  };
+}
+
 

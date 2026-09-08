@@ -20,7 +20,7 @@ import {
   Upload,
   X,
   Loader2,
-  FileBox,
+  AlertCircle,
 } from 'lucide-react';
 import {
   Link,
@@ -36,7 +36,10 @@ import { useStore } from '../../store';
 import { useSettings } from '../../hooks/useSettings';
 import { usePincodeLookup } from '../../hooks/usePincodeLookup';
 import { useAuth } from '../../hooks/useAuth';
-import { upload3DFile } from '../../utils/uploadFile';
+import {
+  uploadProductCustomFile,
+  validateProductCustomFile,
+} from '../../utils/uploadFile';
 import {
   Button,
   Badge,
@@ -80,10 +83,21 @@ export function ProductDetail() {
   const [customNotes, setCustomNotes] = useState('');
   const [showCustomText, setShowCustomText] = useState(false);
   const [customFile, setCustomFile] = useState<File | null>(null);
+  const [customFilePreview, setCustomFilePreview] = useState<string | null>(null);
+  const [customFileError, setCustomFileError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [added, setAdded] = useState(false);
   const [pincodeCheck, setPincodeCheck] = useState('');
+
+  /* Cleanup object URL preview */
+  useEffect(() => {
+    return () => {
+      if (customFilePreview) {
+        URL.revokeObjectURL(customFilePreview);
+      }
+    };
+  }, [customFilePreview]);
 
   const {
     location: deliveryLocation,
@@ -194,7 +208,11 @@ export function ProductDetail() {
   const handleAddToCart = async () => {
     if (!product || outOfStock) return;
 
-    let fileUrl: string | undefined = undefined;
+    let uploadedCustomFile: {
+      url: string;
+      fileType: 'image' | 'cad';
+      fileName: string;
+    } | undefined = undefined;
 
     if (product.isCustomizable && customFile) {
       if (!user) {
@@ -206,9 +224,14 @@ export function ProductDetail() {
       setUploading(true);
       setUploadProgress(0);
       try {
-        fileUrl = await upload3DFile(customFile, user.uid, (progress) => {
+        const uploadResult = await uploadProductCustomFile(customFile, user.uid, (progress) => {
           setUploadProgress(progress);
         });
+        uploadedCustomFile = {
+          url: uploadResult.url,
+          fileType: uploadResult.fileType,
+          fileName: uploadResult.fileName,
+        };
       } catch (error: any) {
         console.error('File upload failed:', error);
         alert(error?.message || 'Failed to upload custom file. Please try again.');
@@ -220,9 +243,10 @@ export function ProductDetail() {
       setUploadProgress(null);
     }
 
-    const customPrintData = (product.isCustomizable && customFile) ? {
-      fileName: customFile.name,
-      fileUrl: fileUrl,
+    const customPrintData = (product.isCustomizable && customFile && uploadedCustomFile) ? {
+      fileName: uploadedCustomFile.fileName,
+      fileUrl: uploadedCustomFile.url,
+      fileType: uploadedCustomFile.fileType,
       customPrice: currentPrice,
     } : undefined;
 
@@ -248,7 +272,11 @@ export function ProductDetail() {
   const handleBuyNow = async () => {
     if (!product || outOfStock) return;
 
-    let fileUrl: string | undefined = undefined;
+    let uploadedCustomFile: {
+      url: string;
+      fileType: 'image' | 'cad';
+      fileName: string;
+    } | undefined = undefined;
 
     if (product.isCustomizable && customFile) {
       if (!user) {
@@ -260,9 +288,14 @@ export function ProductDetail() {
       setUploading(true);
       setUploadProgress(0);
       try {
-        fileUrl = await upload3DFile(customFile, user.uid, (progress) => {
+        const uploadResult = await uploadProductCustomFile(customFile, user.uid, (progress) => {
           setUploadProgress(progress);
         });
+        uploadedCustomFile = {
+          url: uploadResult.url,
+          fileType: uploadResult.fileType,
+          fileName: uploadResult.fileName,
+        };
       } catch (error: any) {
         console.error('File upload failed:', error);
         alert(error?.message || 'Failed to upload custom file. Please try again.');
@@ -274,9 +307,10 @@ export function ProductDetail() {
       setUploadProgress(null);
     }
 
-    const customPrintData = (product.isCustomizable && customFile) ? {
-      fileName: customFile.name,
-      fileUrl: fileUrl,
+    const customPrintData = (product.isCustomizable && customFile && uploadedCustomFile) ? {
+      fileName: uploadedCustomFile.fileName,
+      fileUrl: uploadedCustomFile.url,
+      fileType: uploadedCustomFile.fileType,
       customPrice: currentPrice,
     } : undefined;
 
@@ -665,43 +699,131 @@ export function ProductDetail() {
 
                     {/* File Upload Option */}
                     <div className="space-y-2 border-t border-accent/15 pt-3">
-                      <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
-                        Upload Image or 3D CAD File (Max 5MB)
-                      </label>
+                      <div className="space-y-0.5">
+                        <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
+                          Upload an image or 3D CAD file (max 5 MB)
+                        </label>
+                        <p className="text-[11px] text-muted">
+                          Supports JPG, PNG, WEBP reference images or STL, OBJ, 3MF 3D CAD models.
+                        </p>
+                      </div>
+
                       <input
                         id="product-file-input"
                         type="file"
-                        accept=".png,.jpg,.jpeg,.gif,.webp,.stl,.obj,.3mf"
+                        accept=".png,.jpg,.jpeg,.webp,.stl,.obj,.3mf"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
-                          if (file.size > 5 * 1024 * 1024) {
-                            alert('File is too large. Maximum supported size is 5MB.');
+                          setCustomFileError(null);
+                          const validation = validateProductCustomFile(file);
+                          if (!validation.valid || !validation.fileType) {
+                            setCustomFileError(
+                              validation.error ||
+                                'Unsupported file type or size. Please choose an image (JPG, PNG, WEBP) or 3D CAD file (STL, OBJ, 3MF).'
+                            );
+                            setCustomFile(null);
+                            if (customFilePreview) {
+                              URL.revokeObjectURL(customFilePreview);
+                              setCustomFilePreview(null);
+                            }
                             e.target.value = '';
                             return;
+                          }
+
+                          if (customFilePreview) {
+                            URL.revokeObjectURL(customFilePreview);
+                            setCustomFilePreview(null);
+                          }
+
+                          if (validation.fileType === 'image') {
+                            setCustomFilePreview(URL.createObjectURL(file));
                           }
                           setCustomFile(file);
                         }}
                         className="hidden"
                       />
 
-                      {customFile ? (
-                        <div className="flex items-center justify-between p-3 rounded-xl border border-accent/20 bg-white">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <FileBox className="h-5 w-5 text-accent shrink-0" />
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold text-ink truncate font-mono">
-                                {customFile.name}
-                              </p>
-                              <p className="text-[10px] text-muted font-mono">
-                                {(customFile.size / 1024 / 1024).toFixed(2)} MB
-                              </p>
-                            </div>
+                      {/* Validation Error Banner */}
+                      {customFileError && (
+                        <div className="flex items-start gap-2 p-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs animate-fadeIn">
+                          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-rose-500" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium leading-relaxed">{customFileError}</p>
                           </div>
                           <button
                             type="button"
-                            onClick={() => setCustomFile(null)}
-                            className="p-1 rounded-lg text-muted hover:text-rose-600 hover:bg-rose-50"
+                            onClick={() => setCustomFileError(null)}
+                            className="text-rose-500 hover:text-rose-800 p-0.5"
+                            aria-label="Dismiss error"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* File Card Preview */}
+                      {customFile ? (
+                        <div className="flex items-center justify-between p-3 rounded-xl border border-accent/20 bg-white shadow-xs">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            {customFilePreview ? (
+                              <img
+                                src={customFilePreview}
+                                alt={customFile.name}
+                                className="h-12 w-12 rounded-xl object-cover border border-line bg-shell shrink-0"
+                              />
+                            ) : (
+                              <div className="h-12 w-12 rounded-xl border border-accent/20 bg-accent-soft flex flex-col items-center justify-center shrink-0 text-accent">
+                                <Box className="h-5 w-5" />
+                                <span className="font-mono text-[8px] font-bold uppercase tracking-wider mt-0.5">
+                                  {customFile.name.split('.').pop()?.toUpperCase() || 'CAD'}
+                                </span>
+                              </div>
+                            )}
+
+                            <div className="min-w-0 flex-1 pr-2">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                {customFilePreview ? (
+                                  <Badge
+                                    variant="default"
+                                    className="bg-sky-50 text-sky-700 border border-sky-200 font-mono text-[10px] px-1.5 py-0"
+                                  >
+                                    Reference Image
+                                  </Badge>
+                                ) : (
+                                  <Badge
+                                    variant="brand"
+                                    className="font-mono text-[10px] px-1.5 py-0"
+                                  >
+                                    3D CAD ({customFile.name.split('.').pop()?.toUpperCase()})
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs font-bold text-ink truncate font-mono" title={customFile.name}>
+                                {customFile.name}
+                              </p>
+                              <p className="text-[10px] text-muted font-mono mt-0.5">
+                                {(customFile.size / (1024 * 1024)).toFixed(2)} MB
+                              </p>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (customFilePreview) {
+                                URL.revokeObjectURL(customFilePreview);
+                                setCustomFilePreview(null);
+                              }
+                              setCustomFile(null);
+                              setCustomFileError(null);
+                              const inputEl = document.getElementById(
+                                'product-file-input'
+                              ) as HTMLInputElement | null;
+                              if (inputEl) inputEl.value = '';
+                            }}
+                            className="p-1.5 rounded-lg text-muted hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                            aria-label="Remove uploaded file"
                           >
                             <X className="h-4 w-4" />
                           </button>
@@ -713,15 +835,15 @@ export function ProductDetail() {
                         >
                           <Upload className="h-4 w-4 text-accent" />
                           <span className="font-sans text-xs font-semibold text-ink">
-                            Choose Image / 3D File
+                            Choose Image or 3D CAD File
                           </span>
                         </label>
                       )}
 
                       {uploading && (
-                        <div className="flex items-center gap-2 font-mono text-[10px] text-accent mt-1 bg-accent-soft p-2 rounded-lg border border-accent/10">
-                          <Loader2 className="h-3 w-3 animate-spin shrink-0" />
-                          <span>Uploading custom file to studio: {uploadProgress}%</span>
+                        <div className="flex items-center gap-2 font-mono text-[10px] text-accent mt-2 bg-accent-soft p-2.5 rounded-xl border border-accent/20">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                          <span>Uploading custom file to R2: {uploadProgress}%</span>
                         </div>
                       )}
                     </div>

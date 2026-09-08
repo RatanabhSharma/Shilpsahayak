@@ -58,6 +58,7 @@ export type CustomPrintData = {
   fileName?: string;
   fileUrl?: string;
   fileKey?: string;
+  fileType?: 'image' | 'cad';
 
   material?: string;
   color?: string;
