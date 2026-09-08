@@ -1,5 +1,4 @@
-import { auth, storage } from '../lib/firebase';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { auth } from '../lib/firebase';
 
 /**
  * Cloudflare R2 Worker URL.
@@ -13,7 +12,7 @@ import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
  */
 const CLOUDFLARE_WORKER_URL =
   import.meta.env.VITE_CLOUDFLARE_WORKER_URL ||
-  'http://127.0.0.1:8787';
+  'https://shilp-sahayak-r2.shilpsahayaktech.workers.dev';
 
 const ALLOWED_EXTENSIONS = [
   '.stl',
@@ -353,84 +352,66 @@ export async function uploadProductImage(
     throw new Error('Image file is too large. Maximum allowed size is 15 MB.');
   }
 
-  // 1. First attempt: Firebase Storage (native, authenticated, reliable)
-  try {
-    if (storage) {
-      const timestamp = Date.now();
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const storageRef = ref(storage, `products/${timestamp}_${safeName}`);
-      const uploadTask = uploadBytesResumable(storageRef, file, {
-        contentType: file.type || 'image/jpeg',
-      });
-
-      const downloadUrl = await new Promise<string>((resolve, reject) => {
-        uploadTask.on(
-          'state_changed',
-          (snapshot) => {
-            if (snapshot.totalBytes > 0 && onProgress) {
-              const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-              onProgress(Math.min(99, Math.max(0, progress)));
-            }
-          },
-          (error) => reject(error),
-          async () => {
-            try {
-              const url = await getDownloadURL(uploadTask.snapshot.ref);
-              resolve(url);
-            } catch (err) {
-              reject(err);
-            }
-          }
-        );
-      });
-
-      if (downloadUrl) {
-        onProgress?.(100);
-        return downloadUrl;
-      }
-    }
-  } catch (firebaseErr) {
-    console.warn('[Storage] Firebase Storage upload unviable, checking alternative:', firebaseErr);
-  }
-
-  // 2. Second attempt: Remote Cloudflare Worker (if configured on a remote host)
+  // 1. Primary: Upload directly to Cloudflare R2 Worker
   const user = auth.currentUser;
-  const isWorkerRemote =
-    Boolean(CLOUDFLARE_WORKER_URL) &&
-    !CLOUDFLARE_WORKER_URL.includes('127.0.0.1') &&
-    !CLOUDFLARE_WORKER_URL.includes('localhost');
-
-  if (user && isWorkerRemote) {
+  if (user && CLOUDFLARE_WORKER_URL) {
     try {
       const idToken = await user.getIdToken();
       const r2Url = await new Promise<string>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
+        let settled = false;
+
         xhr.upload.addEventListener('progress', (e) => {
           if (e.lengthComputable && onProgress) {
             const percent = Math.round((e.loaded / e.total) * 100);
-            onProgress(Math.min(99, percent));
+            onProgress(Math.min(99, Math.max(1, percent)));
           }
         });
+
         xhr.addEventListener('load', () => {
+          if (settled) return;
+          settled = true;
           try {
             const resp = JSON.parse(xhr.responseText);
             if (xhr.status === 200 && resp?.success && resp?.key) {
-              resolve(`${CLOUDFLARE_WORKER_URL}/file?key=${encodeURIComponent(resp.key)}`);
+              const fullUrl = `${CLOUDFLARE_WORKER_URL}/file?key=${encodeURIComponent(resp.key)}`;
+              resolve(fullUrl);
               return;
             }
+            reject(new Error(resp?.error || `Upload returned HTTP ${xhr.status}`));
           } catch {
-            // response was not valid JSON
+            reject(new Error(`Upload returned non-JSON response (HTTP ${xhr.status})`));
           }
-          reject(new Error('Worker upload failed'));
         });
-        xhr.addEventListener('error', () => reject(new Error('Network error')));
-        xhr.addEventListener('timeout', () => reject(new Error('Timeout')));
-        xhr.timeout = 8000;
-        xhr.open('POST', `${CLOUDFLARE_WORKER_URL}/upload`);
-        xhr.setRequestHeader('Authorization', `Bearer ${idToken}`);
-        xhr.setRequestHeader('X-File-Name', file.name);
-        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-        xhr.send(file);
+
+        xhr.addEventListener('error', () => {
+          if (settled) return;
+          settled = true;
+          reject(new Error('Network connection error to R2 storage worker'));
+        });
+
+        xhr.addEventListener('timeout', () => {
+          if (settled) return;
+          settled = true;
+          reject(new Error('R2 storage upload timed out'));
+        });
+
+        // 12-second timeout to promptly recover if network is constrained
+        xhr.timeout = 12000;
+
+        try {
+          xhr.open('POST', `${CLOUDFLARE_WORKER_URL}/upload`, true);
+          xhr.setRequestHeader('Authorization', `Bearer ${idToken}`);
+          xhr.setRequestHeader('X-File-Name', file.name);
+          xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+          if (onProgress) onProgress(5);
+          xhr.send(file);
+        } catch (err: any) {
+          if (!settled) {
+            settled = true;
+            reject(err);
+          }
+        }
       });
 
       if (r2Url) {
@@ -438,11 +419,11 @@ export async function uploadProductImage(
         return r2Url;
       }
     } catch (r2Err) {
-      console.warn('[Storage] Cloudflare Worker upload unviable:', r2Err);
+      console.warn('[Storage] Cloudflare R2 upload failed, optimizing as permanent inline image:', r2Err);
     }
   }
 
-  // 3. Guaranteed permanent fallback: Optimized Base64 WebP Data URL
+  // 2. Guaranteed permanent fallback: Optimized Base64 WebP Data URL
   // NEVER use URL.createObjectURL(file) which breaks upon browser reload.
   onProgress?.(50);
   const dataUrl = await fileToOptimizedDataUrl(file);
