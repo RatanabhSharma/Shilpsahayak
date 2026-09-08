@@ -174,8 +174,21 @@ export function Cart() {
                           className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-line bg-shell"
                         >
                           <img
-                            src={item.product.image}
+                            src={
+                              item.product.image &&
+                              !item.product.image.startsWith('blob:') &&
+                              !item.product.image.startsWith('local:')
+                                ? item.product.image
+                                : 'https://images.unsplash.com/photo-1581291518655-9523c932deda?auto=format&fit=crop&w=400&q=80'
+                            }
                             alt={item.product.name}
+                            onError={(e) => {
+                              const img = e.currentTarget;
+                              if (img.dataset.fallbackApplied) return;
+                              img.dataset.fallbackApplied = 'true';
+                              img.src =
+                                'https://images.unsplash.com/photo-1581291518655-9523c932deda?auto=format&fit=crop&w=400&q=80';
+                            }}
                             className="h-full w-full object-cover"
                           />
                         </Link>

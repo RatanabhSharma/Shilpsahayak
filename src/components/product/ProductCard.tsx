@@ -40,14 +40,22 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
       ? Math.round(((compareAtPrice - regularPrice) / compareAtPrice) * 100)
       : 0;
 
-  const primaryImage =
-    product.image ||
-    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80';
+  const FALLBACK_IMAGE =
+    'https://images.unsplash.com/photo-1581291518655-9523c932deda?auto=format&fit=crop&w=800&q=80';
+
+  const getCleanImage = (url?: string | null) => {
+    if (!url || typeof url !== 'string') return FALLBACK_IMAGE;
+    const trimmed = url.trim();
+    if (trimmed.startsWith('blob:') || trimmed.startsWith('local:')) return FALLBACK_IMAGE;
+    return trimmed;
+  };
+
+  const primaryImage = getCleanImage(product.image);
   const secondaryImage =
     product.images && product.images.length > 0
-      ? product.images[0] !== primaryImage
-        ? product.images[0]
-        : product.images[1] || primaryImage
+      ? getCleanImage(
+          product.images[0] !== product.image ? product.images[0] : product.images[1]
+        )
       : primaryImage;
 
   const displayImage = isHovered ? secondaryImage : primaryImage;
@@ -80,6 +88,12 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
               src={displayImage}
               alt={product.name}
               loading="lazy"
+              onError={(e) => {
+                const img = e.currentTarget;
+                if (img.dataset.fallbackApplied) return;
+                img.dataset.fallbackApplied = 'true';
+                img.src = FALLBACK_IMAGE;
+              }}
               className="h-full w-full object-cover transition-all duration-500 group-hover/card:scale-105"
             />
 

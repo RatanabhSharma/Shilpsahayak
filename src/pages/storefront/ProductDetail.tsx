@@ -104,7 +104,11 @@ export function ProductDetail() {
     }
 
     setSelectedVariant(null);
-    setActiveImage(product.image);
+    const initialImg =
+      product.image && !product.image.startsWith('blob:') && !product.image.startsWith('local:')
+        ? product.image
+        : '';
+    setActiveImage(initialImg);
     setQuantity(1);
   }, [product, hasVariants]);
 
@@ -113,9 +117,16 @@ export function ProductDetail() {
     if (!product) return [];
     const images = new Set<string>();
 
-    if (product.image) images.add(product.image);
-    product.images?.forEach((img) => img && images.add(img));
-    product.variants?.forEach((v) => v.image && images.add(v.image));
+    const isValid = (url?: string | null): url is string =>
+      Boolean(url && typeof url === 'string' && !url.startsWith('blob:') && !url.startsWith('local:'));
+
+    if (isValid(product.image)) images.add(product.image);
+    product.images?.forEach((img) => {
+      if (isValid(img)) images.add(img);
+    });
+    product.variants?.forEach((v) => {
+      if (isValid(v.image)) images.add(v.image);
+    });
 
     return Array.from(images);
   }, [product]);
@@ -364,7 +375,11 @@ export function ProductDetail() {
             <div className="overflow-hidden rounded-2xl sm:rounded-3xl border border-line bg-white p-2 sm:p-3 shadow-soft">
               <div className="relative aspect-[4/3] sm:aspect-square overflow-hidden rounded-xl sm:rounded-2xl bg-shell">
                 <img
-                  src={activeImage || product.image}
+                  src={
+                    (activeImage && !activeImage.startsWith('blob:') && !activeImage.startsWith('local:') ? activeImage : null) ||
+                    (product.image && !product.image.startsWith('blob:') && !product.image.startsWith('local:') ? product.image : null) ||
+                    'https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&q=80&w=1200'
+                  }
                   alt={product.name}
                   className="h-full w-full object-contain bg-shell/50 transition-transform duration-500 hover:scale-105"
                   onError={(e) => {

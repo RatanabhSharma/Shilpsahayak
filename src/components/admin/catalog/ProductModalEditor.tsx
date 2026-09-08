@@ -307,6 +307,12 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
       return;
     }
 
+    if (image.startsWith('blob:') || image.startsWith('local:')) {
+      alert('The current image is a temporary session link that cannot be viewed by customers. Please re-upload the image or provide a direct image URL.');
+      setActiveTab('media');
+      return;
+    }
+
     setSaving(true);
     try {
       const cleanVariants: ProductVariant[] = hasVariants
@@ -831,9 +837,15 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
                             <span className="font-mono text-xs font-bold text-ink block">
                               Primary Product Display
                             </span>
-                            <span className="font-mono text-[10px] text-emerald-600 font-bold">
-                              ✓ Ready
-                            </span>
+                            {image.startsWith('blob:') || image.startsWith('local:') ? (
+                              <span className="font-mono text-[10px] text-amber-600 font-bold block mt-0.5">
+                                ⚠️ Temporary session link. Please re-upload or enter URL!
+                              </span>
+                            ) : (
+                              <span className="font-mono text-[10px] text-emerald-600 font-bold">
+                                ✓ Ready & Validated
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -855,7 +867,7 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
                           <div className="flex flex-col items-center gap-2">
                             <Loader2 className="w-6 h-6 animate-spin text-accent" />
                             <span className="font-mono text-xs text-accent">
-                              Uploading image: {imageUploadProgress}%
+                              Uploading & optimizing image: {imageUploadProgress}%
                             </span>
                           </div>
                         ) : (
@@ -865,7 +877,7 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
                               Upload Primary Image (PNG, JPG, WEBP)
                             </span>
                             <span className="text-[10px] font-mono text-muted">
-                              Recommended 1000×1000px square ratio
+                              Auto-optimized for instant, permanent loading across devices
                             </span>
                           </div>
                         )}
@@ -889,21 +901,46 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
                 </div>
 
                 {/* Add Gallery Image Row */}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <input
                     type="url"
                     value={newGalleryImageUrl}
                     onChange={(e) => setNewGalleryImageUrl(e.target.value)}
                     placeholder="Enter additional photo URL (https://...)"
-                    className="flex-1 px-3 py-2 text-xs font-mono text-ink bg-white border border-line rounded-xl outline-none focus:border-accent"
+                    className="flex-1 min-w-[200px] px-3 py-2 text-xs font-mono text-ink bg-white border border-line rounded-xl outline-none focus:border-accent"
                   />
                   <button
                     type="button"
                     onClick={addGalleryImage}
                     className="px-4 py-2 rounded-xl bg-accent/10 hover:bg-accent/20 text-accent font-mono text-xs font-bold transition-colors cursor-pointer"
                   >
-                    + Add Image
+                    + Add URL
                   </button>
+
+                  <input
+                    id="gallery-file-input"
+                    type="file"
+                    accept=".png,.jpg,.jpeg,.webp"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const url = await uploadProductImage(file);
+                        setImages((prev) => [...prev, url]);
+                      } catch (err: any) {
+                        alert(err?.message || 'Failed to upload gallery image.');
+                      }
+                      e.target.value = '';
+                    }}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="gallery-file-input"
+                    className="px-4 py-2 rounded-xl bg-shell hover:bg-shell/80 border border-line text-ink font-mono text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-muted" />
+                    <span>Upload Image File</span>
+                  </label>
                 </div>
 
                 {/* Gallery Preview Grid */}
