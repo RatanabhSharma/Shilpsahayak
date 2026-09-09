@@ -33,11 +33,9 @@ import { parse3DModel } from '../../services/model/modelParser';
 import { ParsedModelResult } from '../../services/model/modelTypes';
 import { ThreeModelViewer } from '../../components/custom-printing/ThreeModelViewer';
 import {
-  estimateMaterialUsage,
-  estimatePrintTime,
   formatINR,
-  formatPrintTime,
 } from '../../services/pricing/pricingUtils';
+import { QuoteSnapshot } from '../../services/pricing/pricingTypes';
 import { useStore } from '../../store';
 import { useAuth } from '../../hooks/useAuth';
 import { upload3DFile } from '../../utils/uploadFile';
@@ -410,7 +408,6 @@ export function CustomPrinting() {
   const effectiveInfill = resolvedInfill;
   const effectiveLayerHeight = customLayerHeight ?? activeProfile.layerHeight;
   const supportsEnabled = supportMode !== 'none';
-  const supportMultiplier = supportMode === 'none' ? 1.0 : supportMode === 'required' ? 1.25 : 1.15;
 
   // Keep stable ref to scaleFactor to prevent recreation of handleOrientedDimensionsChange
   const scaleFactorRef = useRef(scaleFactor);
@@ -481,32 +478,8 @@ export function CustomPrinting() {
     );
   }, [modelResult, effectiveDimensions, maxBuildVolume]);
 
-  // Real-time geometry estimations using scaled volume and customer choices
-  const estimatedMaterialUsageGrams = useMemo(() => {
-    if (!modelResult?.success || !effectiveVolumeCm3) return 0;
-    const baseUsage = estimateMaterialUsage(
-      effectiveVolumeCm3,
-      activeMaterial.density,
-      activeProfile
-    );
-    // Modulate based on infill ratio (relative to standard 20%) and support multiplier
-    const infillRatio = effectiveInfill / 20;
-    const adjusted = baseUsage * (0.75 + 0.25 * infillRatio) * supportMultiplier;
-    return Math.max(1, Math.round(adjusted * 10) / 10);
-  }, [modelResult, effectiveVolumeCm3, activeMaterial, activeProfile, effectiveInfill, supportMultiplier]);
-
-  const estimatedPrintTimeHours = useMemo(() => {
-    if (!estimatedMaterialUsageGrams) return 0;
-    const surfaceTimeFactor = surfaceFinish === 'smooth' ? 1.06 : 1.0;
-    const adjustedProfile = {
-      ...activeProfile,
-      printTimeFactor: (activeProfile.printTimeFactor || 1.0) * surfaceTimeFactor,
-    };
-    return estimatePrintTime(estimatedMaterialUsageGrams, adjustedProfile);
-  }, [estimatedMaterialUsageGrams, activeProfile, surfaceFinish]);
-
   // Authoritative Pricing Engine Calculation: Powered by Real PrusaSlicer Output
-  // Rule: When real slicer succeeds, use authoritative quote.
+  // Rule: Customer quotes are generated ONLY when real slicer succeeds.
   const quoteBreakdown = useMemo(() => {
     if (slicerResult?.status === 'completed' && slicerResult.quote) {
       const q = slicerResult.quote;
@@ -521,18 +494,26 @@ export function CustomPrinting() {
         minimumOrderChargeApplied: q.minimumOrderChargeApplied,
         gstAmount: q.gstAmount,
         totalPrice: q.totalPrice,
+        quoteStatus: q.quoteStatus || (q.exceedsBuildVolume ? 'manual_review' : 'production_verified'),
         isEstimate: false,
         requiresManualReview: Boolean(q.exceedsBuildVolume),
-        reviewReason: q.exceedsBuildVolume ? 'Model exceeds maximum printer volume.' : undefined,
+        reviewReason: q.exceedsBuildVolume
+          ? `Model dimensions exceed the active printer build envelope (${maxBuildVolume?.x || 256} × ${maxBuildVolume?.y || 256} × ${maxBuildVolume?.z || 200} mm). Requires manual review.`
+          : undefined,
+        pricingBreakdown: q.pricingBreakdown,
       };
     }
     return null;
-  }, [slicerResult]);
+  }, [slicerResult, maxBuildVolume]);
 
-  // Actual Slicer-calculated filament weight and print time (no heuristics)
-  const actualFilamentGrams = slicerResult?.statistics?.filament_grams ?? null;
-  const actualPrintTimeHours = slicerResult?.statistics?.print_time_hours ?? null;
-  const actualPrintTimeMinutes = slicerResult?.statistics?.print_time_minutes ?? null;
+  // Actual Slicer-calculated filament weight and print duration (no heuristics)
+  const actualFilamentGrams = slicerResult?.filament_grams ?? slicerResult?.statistics?.filament_grams ?? null;
+  const actualFilamentMm = slicerResult?.filament_mm ?? slicerResult?.statistics?.filament_mm ?? null;
+  const actualPrintTimeSeconds = slicerResult?.print_time_seconds ?? slicerResult?.statistics?.print_time_seconds ?? null;
+  const actualPrintTimeHours = slicerResult?.statistics?.print_time_hours ?? (actualPrintTimeSeconds ? actualPrintTimeSeconds / 3600 : null);
+  const actualPrintTimeMinutes = slicerResult?.statistics?.print_time_minutes ?? (actualPrintTimeSeconds ? Math.round(actualPrintTimeSeconds / 60) : null);
+  const actualPrintTimeString = slicerResult?.raw_time_string ?? slicerResult?.statistics?.raw_time_string ?? null;
+  const actualDimensions = slicerResult?.dimensions ?? effectiveDimensions;
 
   // Real Slicer Invocation Trigger
   const triggerRealSlicing = async () => {
@@ -858,6 +839,51 @@ export function CustomPrinting() {
       }
     }
 
+    // Pre-Payment / Pre-Order Validation (Section 3A)
+    if (!slicerResult || slicerResult.status !== 'completed') {
+      setSlicerResult(null);
+      alert('Slicing must be completed before an order can be placed. Please calculate estimate again.');
+      return;
+    }
+
+    const filamentVal = actualFilamentGrams ?? 0;
+    if (filamentVal <= 0 && (!actualFilamentMm || actualFilamentMm <= 0)) {
+      setSlicerResult(null);
+      alert('Authoritative filament data is missing from the slicer result.');
+      return;
+    }
+
+    const timeVal = actualPrintTimeSeconds ?? 0;
+    if (timeVal <= 0) {
+      setSlicerResult(null);
+      alert('Authoritative print duration is missing from the slicer result.');
+      return;
+    }
+
+    if (!actualDimensions || actualDimensions.x <= 0 || actualDimensions.y <= 0 || actualDimensions.z <= 0) {
+      setSlicerResult(null);
+      alert('Authoritative model dimensions are missing from the slicer result.');
+      return;
+    }
+
+    if (exceedsBuildVolume || slicerResult.quote?.exceedsBuildVolume) {
+      setSlicerResult(null);
+      alert('Model dimensions exceed the printer build envelope. Please request a Workshop Review.');
+      return;
+    }
+
+    if (!pricingData?.pricingConfig) {
+      setSlicerResult(null);
+      alert('Pricing configuration is unavailable. Please refresh the page.');
+      return;
+    }
+
+    if (!quoteBreakdown) {
+      setSlicerResult(null);
+      alert('Quote has been invalidated. Please re-slice your model.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setUploadProgress(10);
@@ -867,7 +893,85 @@ export function CustomPrinting() {
         setUploadProgress(progress);
       });
 
-      // Add to Cart with Complete Configuration Metadata
+      // Construct Complete Immutable QuoteSnapshot (Section 3A)
+      const quoteSnapshot: QuoteSnapshot = {
+        quoteId: `quote-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        fileReference: {
+          fileKey,
+          fileName: file.name,
+          fileSizeBytes: file.size,
+          modelHash: `${file.name}-${file.size}-${file.lastModified}`,
+        },
+        dimensions: {
+          x: actualDimensions.x,
+          y: actualDimensions.y,
+          z: actualDimensions.z,
+        },
+        scale: {
+          scaleFactor,
+          scaleX,
+          scaleY,
+          scaleZ,
+        },
+        rotation: { x: 0, y: 0, z: 0 },
+        filamentGrams: actualFilamentGrams ?? 0,
+        filamentMm: actualFilamentMm ?? undefined,
+        printTimeSeconds: actualPrintTimeSeconds ?? 0,
+        rawTimeString: actualPrintTimeString || '',
+        weightSource: slicerResult.weight_source || 'slicer_grams',
+        timeSource: 'slicer_toolpath',
+        printerId: slicerResult.printer_id || 'bambu_production',
+        profileId: slicerResult.profile_id || activeProfile.id,
+        profileName: slicerResult.profileApplied || activeProfile.name,
+        profileVersion: slicerResult.profile_version || '2026-09-07-v1',
+        nozzleDiameterMm: 0.4,
+        activeEnvelope: slicerResult.activeEnvelope || maxBuildVolume || { x: 256, y: 256, z: 200 },
+        material: {
+          id: activeMaterial.id,
+          name: activeMaterial.name,
+          pricePerGram: activeMaterial.pricePerGram,
+          density: activeMaterial.density,
+          color: activeColor.name,
+          colorHex: customColorHex || activeColor.hex,
+        },
+        qualityPreset,
+        layerHeight: effectiveLayerHeight,
+        infillPercent: effectiveInfill,
+        wallCount: activeProfile.wallCount,
+        supportMode,
+        quantity,
+        packagingIncluded,
+        pricingVersion: pricingData.pricingVersion,
+        pricingUpdatedAt: pricingData.updatedAt,
+        costBreakdown: {
+          materialCost: quoteBreakdown.pricingBreakdown?.materialCost || 0,
+          electricityCost: quoteBreakdown.pricingBreakdown?.electricityCost || 0,
+          machineWearCost: quoteBreakdown.pricingBreakdown?.machineWearCost || 0,
+          failureBufferCost: quoteBreakdown.pricingBreakdown?.failureBufferCost || 0,
+          labourCost: quoteBreakdown.pricingBreakdown?.labourCost || 0,
+          packagingCost: quoteBreakdown.packagingAmount,
+          baseServiceFee: quoteBreakdown.pricingBreakdown?.baseServiceFee || 0,
+          productionCost:
+            quoteBreakdown.pricingBreakdown?.productionCost ??
+            quoteBreakdown.pricingBreakdown?.unitProductionCost ??
+            0,
+          markupAmount:
+            quoteBreakdown.pricingBreakdown?.markupAmount ??
+            quoteBreakdown.pricingBreakdown?.unitMarkupAmount ??
+            0,
+          subtotal: quoteBreakdown.subtotal,
+          discountAmount: quoteBreakdown.discountAmount,
+          discountedSubtotal: quoteBreakdown.discountedSubtotal,
+          minimumOrderChargeApplied: quoteBreakdown.minimumOrderChargeApplied,
+          gstAmount: quoteBreakdown.gstAmount,
+          totalPrice: quoteBreakdown.totalPrice,
+          unitPrice: quoteBreakdown.unitPrice,
+        },
+        quoteStatus: 'production_verified',
+        createdAt: new Date().toISOString(),
+      };
+
+      // Add to Cart with Complete Configuration Metadata & Immutable Snapshot
       addToCart(
         {
           id: `custom-${Date.now()}`,
@@ -898,14 +1002,15 @@ export function CustomPrinting() {
           infill: effectiveInfill,
           layerHeight: effectiveLayerHeight,
           supports: supportsEnabled,
-          dimensions: effectiveDimensions || undefined,
+          dimensions: actualDimensions,
           volume: effectiveVolumeCm3,
-          estimatedWeight: actualFilamentGrams ?? estimatedMaterialUsageGrams,
-          estimatedPrintTimeHours: actualPrintTimeHours ?? estimatedPrintTimeHours,
+          estimatedWeight: actualFilamentGrams ?? 0,
+          estimatedPrintTimeHours: actualPrintTimeHours ?? 0,
           packagingIncluded,
           pricingVersion: pricingData.pricingVersion,
           isEstimate: false,
           customPrice: quoteBreakdown.totalPrice,
+          quoteSnapshot,
         }
       );
 
@@ -965,15 +1070,15 @@ export function CustomPrinting() {
         quantity,
         packagingIncluded,
         volume: effectiveVolumeCm3 || 0,
-        estimatedWeight: actualFilamentGrams ?? (estimatedMaterialUsageGrams || 0),
-        estimatedPrintTimeHours: actualPrintTimeHours ?? (estimatedPrintTimeHours || 0),
+        estimatedWeight: actualFilamentGrams ?? 0,
+        estimatedPrintTimeHours: actualPrintTimeHours ?? 0,
         systemEstimatedPrice: quoteBreakdown ? quoteBreakdown.totalPrice : 0,
         estimatedPrice: quoteBreakdown ? quoteBreakdown.totalPrice : 0,
-        dimensions: effectiveDimensions
+        dimensions: actualDimensions
           ? {
-              length: effectiveDimensions.x,
-              width: effectiveDimensions.y,
-              height: effectiveDimensions.z,
+              length: actualDimensions.x,
+              width: actualDimensions.y,
+              height: actualDimensions.z,
               unit: 'mm',
             }
           : undefined,
@@ -2351,28 +2456,26 @@ export function CustomPrinting() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
           <div className="text-center space-y-1.5">
             <h2 className="font-display text-2xl sm:text-3xl font-bold text-ink dark:text-white">
-              Your Print Estimate
+              Production-Verified Quote
             </h2>
             <p className="text-sm text-muted dark:text-slate-400 font-sans max-w-lg mx-auto">
-              Review your specifications, calculated material usage, and estimated pricing.
+              Authoritative manufacturing metrics derived directly from actual slicer toolpaths and real-time workshop pricing.
             </p>
             {/* Live pricing badge — shown when quote used Firestore admin config */}
-            {slicerResult?.pricingSourceIsLiveAdminConfig && (
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-mono font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:border-emerald-700/50 dark:text-emerald-400">
-                <Shield className="h-3 w-3" aria-hidden="true" />
-                Live Admin Pricing
-                {slicerResult.profileApplied && (
-                  <span className="text-emerald-500 dark:text-emerald-500">
-                    · {slicerResult.profileApplied.replace('.ini', '')}
-                  </span>
-                )}
-                {slicerResult.activeEnvelope && (
-                  <span className="text-emerald-500 dark:text-emerald-500">
-                    · {slicerResult.activeEnvelope.x}×{slicerResult.activeEnvelope.y}×{slicerResult.activeEnvelope.z}mm
-                  </span>
-                )}
-              </div>
-            )}
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-mono font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:border-emerald-700/50 dark:text-emerald-400">
+              <Shield className="h-3 w-3" aria-hidden="true" />
+              PRODUCTION-VERIFIED QUOTE
+              {slicerResult?.profileApplied && (
+                <span className="text-emerald-600 dark:text-emerald-400">
+                  · {slicerResult.profileApplied.replace('.ini', '')}
+                </span>
+              )}
+              {slicerResult?.activeEnvelope && (
+                <span className="text-emerald-600 dark:text-emerald-400">
+                  · {slicerResult.activeEnvelope.x}×{slicerResult.activeEnvelope.y}×{slicerResult.activeEnvelope.z}mm
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -2461,8 +2564,8 @@ export function CustomPrinting() {
                     </span>
                     <span className="font-bold text-accent mt-0.5 block font-mono">
                       {actualPrintTimeMinutes !== null
-                        ? `${slicerResult?.statistics?.raw_time_string || `${actualPrintTimeMinutes}m`} (Sliced)`
-                        : `~${formatPrintTime(estimatedPrintTimeHours)}`}
+                        ? `${slicerResult?.statistics?.raw_time_string || `${actualPrintTimeMinutes}m`} (Authoritative Slicer Toolpath)`
+                        : 'Pending Slicing'}
                     </span>
                   </div>
 
@@ -2472,8 +2575,8 @@ export function CustomPrinting() {
                     </span>
                     <span className="font-bold text-accent mt-0.5 block font-mono">
                       {actualFilamentGrams !== null
-                        ? `${actualFilamentGrams} g (Authoritative Slicer)`
-                        : `~${estimatedMaterialUsageGrams} g`}
+                        ? `${actualFilamentGrams} g ${activeMaterial.name} (Authoritative Slicer)`
+                        : 'Pending Slicing'}
                     </span>
                   </div>
                 </div>
@@ -2500,14 +2603,14 @@ export function CustomPrinting() {
                 )}
               </div>
 
-              {/* Verification Notice */}
-              <div className="rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 p-4 text-xs text-amber-900 dark:text-amber-300 space-y-1.5">
-                <p className="font-semibold flex items-center gap-1.5 text-sm">
-                  <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>We verify your model and confirm the final price before production.</span>
+              {/* Authoritative Manufacturing Verification Notice */}
+              <div className="rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/40 p-4 text-xs text-emerald-900 dark:text-emerald-300 space-y-1.5">
+                <p className="font-semibold flex items-center gap-1.5 text-sm text-emerald-800 dark:text-emerald-300">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Authoritative Manufacturing Verification</span>
                 </p>
-                <p className="text-[11px] text-amber-800 dark:text-amber-400 leading-relaxed font-sans">
-                  This theoretical estimate is based on geometric volume and your selected print choices. Our workshop team inspects slicing toolpaths, wall thicknesses, and print orientation before manufacturing begins.
+                <p className="text-[11px] text-emerald-800/90 dark:text-emerald-400 leading-relaxed font-sans">
+                  This quote is calculated directly from actual G-code toolpaths generated for your exact model geometry and selected workshop profile. Material weight, layer times, and machine wear are fully verified.
                 </p>
               </div>
             </div>
@@ -2518,7 +2621,7 @@ export function CustomPrinting() {
                 {/* Dominant Price Header */}
                 <div className="border-b border-line dark:border-slate-800 pb-4">
                   <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-accent block mb-1">
-                    Estimated Price
+                    Production Quote
                   </span>
                   <div className="flex items-baseline gap-2">
                     <span className="font-display font-extrabold text-3xl sm:text-4xl text-ink dark:text-white">
@@ -2571,7 +2674,7 @@ export function CustomPrinting() {
                   )}
 
                   <div className="pt-2 border-t border-line dark:border-slate-800 flex justify-between font-bold text-sm text-ink dark:text-white">
-                    <span>Estimated Total</span>
+                    <span>Total Production Price</span>
                     <span className="font-mono text-base text-accent">
                       {formatINR(quoteBreakdown.totalPrice)}
                     </span>
@@ -2597,10 +2700,10 @@ export function CustomPrinting() {
                           <div>
                             <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold uppercase tracking-wider">
                               <ShoppingCart className="w-4 h-4" />
-                              <span>Place order for verification · {formatINR(quoteBreakdown.totalPrice)}</span>
+                              <span>Order for Production · {formatINR(quoteBreakdown.totalPrice)}</span>
                             </div>
                             <span className="block text-[10px] font-sans font-normal opacity-90 mt-0.5">
-                              Zero upfront charge until engineers verify slicing.
+                              Production-verified quote. Ready for manufacturing.
                             </span>
                           </div>
                         )}
@@ -2677,7 +2780,7 @@ export function CustomPrinting() {
                 </div>
                 <div className="space-y-1">
                   <h3 className="font-display text-lg font-bold text-ink dark:text-white">
-                    Unable to Calculate Automated Estimate
+                    Unable to Calculate Production-Verified Quote
                   </h3>
                   <p className="text-xs text-muted dark:text-slate-400 font-sans leading-relaxed">
                     {slicerError || 'The slicing engine could not verify this model for production printing.'}

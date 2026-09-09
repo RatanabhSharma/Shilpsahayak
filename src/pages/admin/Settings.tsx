@@ -14,7 +14,6 @@ import {
   Layers,
   Bell,
   ShieldCheck,
-  DollarSign,
   Users,
   Key,
 } from 'lucide-react';
@@ -263,88 +262,7 @@ export function Settings() {
 
       {/* Tab Content */}
       {activeTab === 'pricing' ? (
-        <div className="space-y-6">
-          {/* General Pricing Rules Banner */}
-          <div className="rounded-xl border border-line bg-white p-5 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 border-b border-line pb-3">
-              <DollarSign className="w-4 h-4 text-accent" />
-              <h3 className="font-display font-bold text-sm text-ink uppercase tracking-wider">
-                Storefront Minimums & Default Tax Rates
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-sans text-xs">
-              <div>
-                <label className="block font-mono text-[10px] font-bold uppercase text-muted mb-1">
-                  Base Setup Fee (₹)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.baseFee ?? 100}
-                  onChange={(e) => updateField('baseFee', Number(e.target.value))}
-                  className="w-full py-2 px-3 border border-line rounded-lg bg-white font-mono text-ink"
-                />
-                <span className="text-[10px] text-muted font-mono mt-0.5 block">
-                  Applied to slicing machine startup
-                </span>
-              </div>
-
-              <div>
-                <label className="block font-mono text-[10px] font-bold uppercase text-muted mb-1">
-                  Minimum Order Value (₹)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.minimumOrderValue ?? 299}
-                  onChange={(e) => updateField('minimumOrderValue', Number(e.target.value))}
-                  className="w-full py-2 px-3 border border-line rounded-lg bg-white font-mono text-ink"
-                />
-                <span className="text-[10px] text-muted font-mono mt-0.5 block">
-                  Minimum cart checkout limit
-                </span>
-              </div>
-
-              <div>
-                <label className="block font-mono text-[10px] font-bold uppercase text-muted mb-1">
-                  Default GST Rate (%)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="28"
-                  value={form.defaultGSTRate ?? 18}
-                  onChange={(e) => updateField('defaultGSTRate', Number(e.target.value))}
-                  className="w-full py-2 px-3 border border-line rounded-lg bg-white font-mono text-ink"
-                />
-                <span className="text-[10px] text-muted font-mono mt-0.5 block">
-                  Standard 18% HSN 3926 / 8477
-                </span>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await updateSettings.mutateAsync(form);
-                    alert('Base fees and minimum order settings saved!');
-                  } catch (e) {
-                    alert('Failed to save settings');
-                  }
-                }}
-                className="px-3.5 py-1.5 rounded-lg bg-accent text-white font-mono text-xs font-semibold hover:bg-accent-dark transition-colors shadow-xs cursor-pointer"
-              >
-                Save Sizing Rules
-              </button>
-            </div>
-          </div>
-
-          {/* Full Integrated Pricing Settings Tab */}
-          <PricingSettingsTab />
-        </div>
+        <PricingSettingsTab />
       ) : (
         <form
           id="settings-main-form"

@@ -21,6 +21,8 @@ export interface InternalPricingBreakdown {
   baseServiceFee: number;
   unitProductionCost: number;
   unitMarkupAmount: number;
+  productionCost?: number;
+  markupAmount?: number;
 }
 
 export interface AuthoritativeQuote {
@@ -35,24 +37,36 @@ export interface AuthoritativeQuote {
   gstAmount: number;
   totalPrice: number;
   exceedsBuildVolume: boolean;
+  weightSource?: 'slicer_grams' | 'slicer_length_density';
+  timeSource?: 'slicer_toolpath';
+  quoteStatus: 'production_verified' | 'manual_review';
   pricingBreakdown: InternalPricingBreakdown;
 }
 
 export interface SlicingSuccessResult {
   status: 'completed';
+  slicing_status: 'completed';
+  dimensions: { x: number; y: number; z: number };
+  filament_grams: number;
+  filament_mm?: number;
+  print_time_seconds: number;
+  raw_time_string: string;
+  profile_id: string;
+  profile_version?: string;
+  printer_id?: string;
+  active_envelope?: { x: number; y: number; z: number } | null;
+  classification?: string;
+  weight_source: 'slicer_grams' | 'slicer_length_density';
+  time_source: 'slicer_toolpath';
+  quoteStatus: 'production_verified' | 'manual_review';
   statistics: SlicingStatistics;
   quote: AuthoritativeQuote;
   slicerVersion: string;
   profileApplied: string;
-  /** Echoes the pricingVersion sent in the request, for audit/order persistence. */
   pricingVersion?: string;
-  /** True only if the backend actually used live admin config. */
   pricingSourceIsLiveAdminConfig?: boolean;
-  /** Explicit pricing source label: "live_admin_config" when using Firestore admin settings. */
   pricingSource?: string;
-  /** ISO timestamp of when the admin pricing config was last updated, for display and audit. */
   pricingUpdatedAt?: string | null;
-  /** Authoritative build envelope read from the active printer profile (mm). */
   activeEnvelope?: { x: number; y: number; z: number } | null;
 }
 
@@ -167,17 +181,32 @@ export async function executeSlicingJob(params: SliceJobParams): Promise<Slicing
       }
 
       if (pollData.status === 'completed') {
+        const res = pollData.result;
         return {
           status: 'completed',
-          statistics: pollData.result.statistics,
-          quote: pollData.result.quote,
-          slicerVersion: pollData.result.slicerVersion,
-          profileApplied: pollData.result.profileApplied,
-          pricingVersion: pollData.result.pricingVersion,
-          pricingSourceIsLiveAdminConfig: pollData.result.pricingSourceIsLiveAdminConfig,
-          pricingSource: pollData.result.pricingSource,
-          pricingUpdatedAt: pollData.result.pricingUpdatedAt ?? null,
-          activeEnvelope: pollData.result.activeEnvelope ?? null,
+          slicing_status: 'completed',
+          dimensions: res.dimensions || { x: 0, y: 0, z: 0 },
+          filament_grams: res.filament_grams ?? res.statistics?.filament_grams ?? 0,
+          filament_mm: res.filament_mm ?? res.statistics?.filament_mm,
+          print_time_seconds: res.print_time_seconds ?? res.statistics?.print_time_seconds ?? 0,
+          raw_time_string: res.raw_time_string ?? res.statistics?.raw_time_string ?? '',
+          profile_id: res.profile_id || res.profileApplied || 'standard',
+          profile_version: res.profile_version || res.profileVersion,
+          printer_id: res.printer_id || 'bambu_production',
+          active_envelope: res.active_envelope || res.activeEnvelope || null,
+          classification: res.classification,
+          weight_source: res.weight_source || res.quote?.weightSource || 'slicer_grams',
+          time_source: res.time_source || 'slicer_toolpath',
+          quoteStatus: res.quote?.quoteStatus || 'production_verified',
+          statistics: res.statistics,
+          quote: res.quote,
+          slicerVersion: res.slicerVersion || '2.9.0',
+          profileApplied: res.profileApplied || 'standard',
+          pricingVersion: res.pricingVersion,
+          pricingSourceIsLiveAdminConfig: res.pricingSourceIsLiveAdminConfig,
+          pricingSource: res.pricingSource,
+          pricingUpdatedAt: res.pricingUpdatedAt ?? null,
+          activeEnvelope: res.activeEnvelope ?? res.active_envelope ?? null,
         };
       }
 

@@ -16,42 +16,38 @@ const BASE_EXTRUSION_GRAMS_PER_HOUR = 15.0;
 const MIN_WARMUP_HOURS = 0.2;
 
 /**
- * Estimate material usage from geometric volume, density, and print profile.
- *
- * Formula:
- * Estimated Solid Weight = volumeCm3 × material density
- * Estimated Material Usage = Estimated Solid Weight × profile.materialUsageFactor
+ * @deprecated PROHIBITED IN PRODUCTION CUSTOMER QUOTATION PATH.
+ * The customer-facing quote must never be calculated from guessed/estimated print weight,
+ * model volume heuristics, or profile multipliers. Retained only for legacy reference.
  */
 export function estimateMaterialUsage(
   volumeCm3: number,
   density: number,
-  profile: PrintProfile
+  profile?: PrintProfile
 ): number {
   if (volumeCm3 <= 0 || density <= 0) {
     return 0;
   }
   const solidWeight = volumeCm3 * density;
-  const usage = solidWeight * (profile.materialUsageFactor || 0.45);
+  const usage = solidWeight * (profile?.materialUsageFactor || 0.45);
   return Math.round(usage * 10) / 10; // 1 decimal place
 }
 
 /**
- * Estimate print duration in hours based on material usage and print profile speed factor.
- *
- * Formula:
- * Raw Hours = (materialUsageGrams / baseExtrusionRate) × profile.printTimeFactor
- * Total Hours = Raw Hours + Warmup Duration
+ * @deprecated PROHIBITED IN PRODUCTION CUSTOMER QUOTATION PATH.
+ * Production print time must come strictly from the actual slicer toolpath.
+ * Retained only for legacy reference.
  */
 export function estimatePrintTime(
   materialUsageGrams: number,
-  profile: PrintProfile
+  profile?: PrintProfile
 ): number {
   if (materialUsageGrams <= 0) {
     return 0;
   }
   const rawHours =
     (materialUsageGrams / BASE_EXTRUSION_GRAMS_PER_HOUR) *
-    (profile.printTimeFactor || 1.0);
+    (profile?.printTimeFactor || 1.0);
   const total = rawHours + MIN_WARMUP_HOURS;
   return Math.round(total * 100) / 100; // 2 decimal places
 }

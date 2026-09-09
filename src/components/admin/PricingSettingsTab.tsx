@@ -505,12 +505,17 @@ export function PricingSettingsTab() {
             <div className="flex items-center justify-between border-b-2 border-ink pb-3">
               <div className="flex items-center gap-2">
                 <Calculator className="w-5 h-5 text-accent" />
-                <h3 className="font-display font-bold text-base text-ink uppercase tracking-tight">
-                  Real Cost & Profit Simulator
-                </h3>
+                <div>
+                  <h3 className="font-display font-bold text-base text-ink uppercase tracking-tight">
+                    Pricing Simulator — Manual Scenario
+                  </h3>
+                  <p className="text-[10px] text-muted font-sans font-normal mt-0.5">
+                    For internal scenario testing. Customer quotes are generated from actual slicer toolpaths.
+                  </p>
+                </div>
               </div>
-              <span className="text-[10px] font-mono font-bold bg-amber-200 px-2 py-0.5 rounded text-ink">
-                LIVE
+              <span className="text-[10px] font-mono font-bold bg-amber-200 px-2 py-0.5 rounded text-ink shrink-0">
+                SCENARIO
               </span>
             </div>
 

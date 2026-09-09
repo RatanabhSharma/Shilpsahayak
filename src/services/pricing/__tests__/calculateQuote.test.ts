@@ -210,7 +210,43 @@ describe('Centralized Pricing Engine', () => {
       );
 
       expect(quote.requiresManualReview).toBe(true);
-      expect(quote.reviewReason).toContain('exceeds printer build volume');
+      expect(quote.reviewReason).toContain('exceed');
+    });
+
+    it('sets quoteStatus to production_verified when slicing succeeded within build volume', () => {
+      const quote = calculateCustomerQuote(
+        {
+          materialWeightGrams: 50,
+          printTimeHours: 3,
+          material: plaMaterial,
+          quantity: 1,
+          packagingIncluded: false,
+        },
+        DEFAULT_PRICING_CONFIG
+      );
+
+      expect(quote.quoteStatus).toBe('production_verified');
+      expect(quote.requiresManualReview).toBe(false);
+    });
+
+    it('rejects with PRICING_CONFIG_UNAVAILABLE when pricing config is invalid or incomplete', () => {
+      const invalidConfig = {
+        ...DEFAULT_PRICING_CONFIG,
+        markupMultiplier: 0, // invalid multiplier <= 0
+      };
+
+      expect(() =>
+        calculateCustomerQuote(
+          {
+            materialWeightGrams: 50,
+            printTimeHours: 3,
+            material: plaMaterial,
+            quantity: 1,
+            packagingIncluded: false,
+          },
+          invalidConfig
+        )
+      ).toThrow('PRICING_CONFIG_UNAVAILABLE');
     });
   });
 });

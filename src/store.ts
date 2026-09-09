@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { QuoteSnapshot } from './services/pricing/pricingTypes';
 
 /* -------------------------------------------------------------------------- */
 /* Product Types                                                              */
@@ -82,6 +83,7 @@ export type CustomPrintData = {
   pricingVersion?: string;
   isEstimate?: boolean;
   quoteId?: string;
+  quoteSnapshot?: QuoteSnapshot;
 
   /**
    * Price calculated specifically

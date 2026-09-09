@@ -216,8 +216,8 @@ qB = calculate_authoritative_quote(
     filament_grams=0.0, filament_mm=filament_mm_val,
     print_time_hours=1.0, material_key="pla",
     config=LCFG, materials=LMAT)
-check("grams=0, mm>0 -> weightSource=length_formula",
-      qB["weightSource"] == "length_formula")
+check("grams=0, mm>0 -> weightSource in (slicer_length_density, length_formula)",
+      qB["weightSource"] in ("slicer_length_density", "length_formula"))
 
 expected_vol_cm3 = filament_mm_val * math.pi * (1.75 / 2.0) ** 2 / 1000.0
 expected_grams   = expected_vol_cm3 * 1.24

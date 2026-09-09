@@ -9,16 +9,44 @@ import { getQuantityDiscount } from './pricingUtils';
 import { DEFAULT_QUANTITY_DISCOUNTS } from './pricingConfig';
 
 /**
+ * Validates that an administrative pricing configuration contains all required
+ * non-negative and non-null numeric properties without relying on silent fallbacks.
+ */
+export function isPricingConfigValid(config?: MachinePricingConfig | null): boolean {
+  if (!config) return false;
+  return (
+    typeof config.printerCost === 'number' && config.printerCost >= 0 &&
+    typeof config.printerLifespanHours === 'number' && config.printerLifespanHours > 0 &&
+    typeof config.printerPowerWatts === 'number' && config.printerPowerWatts >= 0 &&
+    typeof config.electricityRatePerKwh === 'number' && config.electricityRatePerKwh >= 0 &&
+    typeof config.failureBufferPercent === 'number' && config.failureBufferPercent >= 0 &&
+    typeof config.labourRatePerHour === 'number' && config.labourRatePerHour >= 0 &&
+    typeof config.finishingMinutes === 'number' && config.finishingMinutes >= 0 &&
+    typeof config.baseServiceFee === 'number' && config.baseServiceFee >= 0 &&
+    typeof config.minimumOrderValue === 'number' && config.minimumOrderValue >= 0 &&
+    typeof config.markupMultiplier === 'number' && config.markupMultiplier > 0 &&
+    typeof config.packagingPrice === 'number' && config.packagingPrice >= 0
+  );
+}
+
+/**
  * Calculate the complete internal cost breakdown for 1 unit of a 3D print.
  *
  * This function calculates real-world production physics:
- * Plastic + Power + Machine Amortization + Failure Buffer + Finishing Labour + Base Fee.
+ * Plastic + Power + Machine Amortization + Failure/Waste Buffer + Finishing Labour + Base Fee.
  * Internal parameters are strictly kept private for shop analytics and admin use.
+ *
+ * Enforces NO silent fallback defaults. If config or material pricing is missing/invalid,
+ * throws PRICING_CONFIG_UNAVAILABLE.
  */
 export function calculateInternalCost(
   input: QuoteCalculationInput,
   config: MachinePricingConfig
 ): InternalCostBreakdown {
+  if (!isPricingConfigValid(config)) {
+    throw new Error('PRICING_CONFIG_UNAVAILABLE');
+  }
+
   const {
     materialWeightGrams,
     printTimeHours,
@@ -27,36 +55,38 @@ export function calculateInternalCost(
     customMarkupMultiplier,
   } = input;
 
+  if (!material || typeof material.pricePerGram !== 'number' || material.pricePerGram < 0) {
+    throw new Error('PRICING_CONFIG_UNAVAILABLE');
+  }
+
   const validWeight = Math.max(0, materialWeightGrams || 0);
   const validHours = Math.max(0, printTimeHours || 0);
-  const pricePerGram = material?.pricePerGram || 4.5;
+  const pricePerGram = material.pricePerGram;
 
-  // 1. Material Cost
+  // 1. Material Cost: exact weight (g) × price per gram
   const materialCost = validWeight * pricePerGram;
 
   // 2. Electricity Cost: kWh × rate
-  const electricityKwh = (validHours * (config.printerPowerWatts || 100)) / 1000;
-  const electricityCost = electricityKwh * (config.electricityRatePerKwh || 8.0);
+  const electricityKwh = (validHours * config.printerPowerWatts) / 1000;
+  const electricityCost = electricityKwh * config.electricityRatePerKwh;
 
   // 3. Machine Depreciation / Wear: hours × (printerCost / lifespanHours)
-  const lifespan = Math.max(1, config.printerLifespanHours || 5000);
-  const machineCostPerHour = (config.printerCost || 25000) / lifespan;
+  const machineCostPerHour = config.printerCost / config.printerLifespanHours;
   const machineWearCost = validHours * machineCostPerHour;
 
-  // 4. Failure Buffer: applied on machine production subtotal
-  const failurePercent = (config.failureBufferPercent || 10) / 100;
+  // 4. Failure & Waste Buffer: applied on raw machine production subtotal
+  const failurePercent = config.failureBufferPercent / 100;
   const failureBufferCost =
     (materialCost + electricityCost + machineWearCost) * failurePercent;
 
   // 5. Finishing Labour: minutes ÷ 60 × labour rate
-  const finishingMins = config.finishingMinutes || 5;
-  const labourCost = (finishingMins / 60) * (config.labourRatePerHour || 200);
+  const labourCost = (config.finishingMinutes / 60) * config.labourRatePerHour;
 
-  // 6. Packaging (if included)
-  const packagingCost = packagingIncluded ? (config.packagingPrice || 20) : 0;
+  // 6. Packaging (if included in unit cost)
+  const packagingCost = packagingIncluded ? config.packagingPrice : 0;
 
   // 7. Base Service / Setup Fee
-  const baseServiceFee = config.baseServiceFee || 30;
+  const baseServiceFee = config.baseServiceFee;
 
   // 8. Total Production Cost
   const productionCost =
@@ -69,7 +99,7 @@ export function calculateInternalCost(
     baseServiceFee;
 
   // 9. Selling Price with Business Markup
-  const markupMultiplier = customMarkupMultiplier || config.markupMultiplier || 2.2;
+  const markupMultiplier = customMarkupMultiplier || config.markupMultiplier;
   const sellingPriceBeforeDiscount = productionCost * markupMultiplier;
   const markupAmount = sellingPriceBeforeDiscount - productionCost;
 
@@ -97,16 +127,23 @@ export function calculateInternalCost(
 /**
  * Calculate the customer-facing quote breakdown.
  *
- * Follows the exact formula pipeline:
+ * Follows the exact deterministic formula pipeline:
  * Production cost -> Base fee -> Markup -> Unit selling price ->
  * Quantity × unit price -> Quantity discount -> Optional packaging ->
- * Minimum order value check (on order subtotal) -> GST -> Final estimated price.
+ * Minimum order value check (on order subtotal) -> GST -> Final customer price.
+ *
+ * Returns quoteStatus = 'production_verified' only when slicing metrics exist,
+ * build volume is valid, and pricing config is valid.
  */
 export function calculateCustomerQuote(
   input: QuoteCalculationInput,
   config: MachinePricingConfig,
   discountTiers: QuantityDiscountTier[] = DEFAULT_QUANTITY_DISCOUNTS
 ): CustomerQuoteBreakdown {
+  if (!isPricingConfigValid(config) || !input.material || typeof input.material.pricePerGram !== 'number') {
+    throw new Error('PRICING_CONFIG_UNAVAILABLE');
+  }
+
   const quantity = Math.max(1, input.quantity || 1);
 
   // 1. Calculate internal base unit cost without packaging
@@ -127,20 +164,20 @@ export function calculateCustomerQuote(
   const discountedSubtotal = subtotal - discountAmount;
 
   // 5. Minimum Order Value Check (applies to base print order)
-  const minOrder = config.minimumOrderValue || 149;
+  const minOrder = config.minimumOrderValue;
   const minimumOrderChargeApplied = discountedSubtotal < minOrder;
   const printSubtotalAfterMinOrder = Math.max(discountedSubtotal, minOrder);
 
   // 6. Optional packaging: add-on calculated per piece as configured
   const packagingAmount = input.packagingIncluded
-    ? (config.packagingPrice || 20) * quantity
+    ? config.packagingPrice * quantity
     : 0;
 
   // 7. Subtotal before GST (Print subtotal + optional packaging add-on)
   const subtotalBeforeGst = printSubtotalAfterMinOrder + packagingAmount;
 
   // 8. GST (if enabled)
-  const gstRate = (config.gstRate || 18) / 100;
+  const gstRate = config.gstRate / 100;
   const gstAmount = config.gstEnabled
     ? Math.round(subtotalBeforeGst * gstRate)
     : 0;
@@ -148,21 +185,35 @@ export function calculateCustomerQuote(
   // 9. Final Total Price
   const totalPrice = subtotalBeforeGst + gstAmount;
 
-  // 10. Safety check flags
-  const requiresManualReview = Boolean(
+  // 10. Dynamic Build Envelope Validation
+  const activeEnv = input.activeEnvelope || config.maxBuildVolume || { x: 256, y: 256, z: 200 };
+  const exceedsBuildVolume = Boolean(
     input.exceedsBuildVolume ||
-      input.materialWeightGrams <= 0 ||
-      input.printTimeHours <= 0
+    (input.dimensions && checkBuildVolume(input.dimensions, activeEnv))
   );
 
+  // 11. Verification & Safety Flags
+  const hasZeroWeight = !input.materialWeightGrams || input.materialWeightGrams <= 0;
+  const hasZeroTime = !input.printTimeHours || input.printTimeHours <= 0;
+  const requiresManualReview = Boolean(exceedsBuildVolume || hasZeroWeight || hasZeroTime);
+
   let reviewReason: string | undefined;
-  if (input.exceedsBuildVolume) {
-    reviewReason =
-      'Model exceeds printer build volume (256 × 256 × 256 mm). Requires manual review.';
-  } else if (input.materialWeightGrams <= 0) {
-    reviewReason =
-      'Invalid model geometry or volume calculation. Requires manual review.';
+  if (exceedsBuildVolume) {
+    const dimStr = input.dimensions
+      ? ` (${input.dimensions.x.toFixed(1)} × ${input.dimensions.y.toFixed(1)} × ${input.dimensions.z.toFixed(1)} mm)`
+      : '';
+    const envStr = ` (${activeEnv.x} × ${activeEnv.y} × ${activeEnv.z} mm)`;
+    reviewReason = `Model dimensions${dimStr} exceed the active printer build envelope${envStr}. Requires manual review.`;
+  } else if (hasZeroWeight) {
+    reviewReason = 'Invalid model geometry or missing filament statistics. Requires manual review.';
+  } else if (hasZeroTime) {
+    reviewReason = 'Invalid print duration or missing toolpath statistics. Requires manual review.';
   }
+
+  const quoteStatus: 'production_verified' | 'manual_review' =
+    !requiresManualReview && !exceedsBuildVolume && !hasZeroWeight && !hasZeroTime
+      ? 'production_verified'
+      : 'manual_review';
 
   return {
     unitPrice,
@@ -175,9 +226,11 @@ export function calculateCustomerQuote(
     minimumOrderChargeApplied,
     gstAmount,
     totalPrice,
-    isEstimate: true,
+    quoteStatus,
+    isEstimate: quoteStatus !== 'production_verified',
     requiresManualReview,
     reviewReason,
+    pricingBreakdown: baseInternal,
   };
 }
 

@@ -69,10 +69,10 @@ export type PrintProfile = {
   /** Default infill percentage (e.g. 15, 20, 25) */
   infillPercent: number;
   wallCount: number;
-  /** Fraction of solid volume consumed (e.g. 0.35, 0.45, 0.55) */
-  materialUsageFactor: number;
-  /** Multiplier affecting print duration (e.g. 0.8, 1.0, 1.3) */
-  printTimeFactor: number;
+  /** @deprecated Removed from authoritative quote path. Slicer generates toolpath directly. */
+  materialUsageFactor?: number;
+  /** @deprecated Removed from authoritative quote path. Slicer generates toolpath directly. */
+  printTimeFactor?: number;
   enabled: boolean;
   tagline?: string;
 };
@@ -91,9 +91,6 @@ export type GeometryAnalysisResult = {
   };
   volumeCm3: number;
   triangleCount: number;
-
-  estimatedWeightGrams: number;
-  estimatedPrintTimeHours: number;
 
   exceedsBuildVolume: boolean;
   requiresManualReview: boolean;
@@ -144,9 +141,14 @@ export type CustomerQuoteBreakdown = {
   /** Final total amount to be charged */
   totalPrice: number;
 
-  isEstimate: boolean;
+  /** Authoritative quote verification status */
+  quoteStatus: 'production_verified' | 'manual_review';
+  /** @deprecated Kept for transition backward compatibility, false for verified quotes */
+  isEstimate?: boolean;
   requiresManualReview: boolean;
   reviewReason?: string;
+  weightSource?: 'slicer_grams' | 'slicer_length_density';
+  pricingBreakdown?: InternalCostBreakdown;
 };
 
 export type QuoteCalculationInput = {
@@ -157,5 +159,111 @@ export type QuoteCalculationInput = {
   packagingIncluded: boolean;
   exceedsBuildVolume?: boolean;
   customMarkupMultiplier?: number;
+  activeEnvelope?: { x: number; y: number; z: number };
+  dimensions?: { x: number; y: number; z: number };
+};
+
+export type AuthoritativeSliceResult = {
+  dimensions: {
+    x: number;
+    y: number;
+    z: number;
+  };
+  filamentGrams: number;
+  filamentMm?: number;
+  printTimeSeconds: number;
+  rawTimeString: string;
+  profileId: string;
+  profileVersion?: string;
+  printerId?: string;
+  activeEnvelope: {
+    x: number;
+    y: number;
+    z: number;
+  };
+  classification: string;
+  weightSource: 'slicer_grams' | 'slicer_length_density';
+  timeSource: 'slicer_toolpath';
+  slicingStatus: 'completed' | 'failed';
+  quoteStatus?: 'production_verified' | 'manual_review';
+};
+
+export type QuoteSnapshot = {
+  quoteId: string;
+  fileReference: {
+    fileKey?: string;
+    fileName: string;
+    fileSizeBytes?: number;
+    modelHash?: string;
+  };
+  dimensions: {
+    x: number;
+    y: number;
+    z: number;
+  };
+  scale: {
+    scaleFactor: number;
+    scaleX: number;
+    scaleY: number;
+    scaleZ: number;
+  };
+  rotation?: {
+    x: number;
+    y: number;
+    z: number;
+  };
+  filamentGrams: number;
+  filamentMm?: number;
+  printTimeSeconds: number;
+  rawTimeString: string;
+  weightSource: 'slicer_grams' | 'slicer_length_density';
+  timeSource: 'slicer_toolpath';
+  printerId?: string;
+  profileId: string;
+  profileName?: string;
+  profileVersion?: string;
+  nozzleDiameterMm?: number;
+  activeEnvelope: {
+    x: number;
+    y: number;
+    z: number;
+  };
+  material: {
+    id: string;
+    name: string;
+    pricePerGram: number;
+    density: number;
+    color?: string;
+    colorHex?: string;
+  };
+  qualityPreset?: string;
+  layerHeight: number;
+  infillPercent: number;
+  wallCount?: number;
+  supportMode: string;
+  quantity: number;
+  packagingIncluded: boolean;
+  pricingVersion: string;
+  pricingUpdatedAt?: string;
+  costBreakdown: {
+    materialCost: number;
+    electricityCost: number;
+    machineWearCost: number;
+    failureBufferCost: number;
+    labourCost: number;
+    packagingCost: number;
+    baseServiceFee: number;
+    productionCost: number;
+    markupAmount: number;
+    subtotal: number;
+    discountAmount: number;
+    discountedSubtotal: number;
+    minimumOrderChargeApplied: boolean;
+    gstAmount: number;
+    totalPrice: number;
+    unitPrice: number;
+  };
+  quoteStatus: 'production_verified' | 'manual_review';
+  createdAt: string;
 };
 

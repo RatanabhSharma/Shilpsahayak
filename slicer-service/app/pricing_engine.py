@@ -103,7 +103,7 @@ def calculate_authoritative_quote(
         filament_diameter_mm = 1.75
         volume_cm3 = float(filament_mm) * _math.pi * (filament_diameter_mm / 2) ** 2 / 1000.0
         valid_weight = max(0.0, volume_cm3 * density)
-        weight_source = "length_formula"
+        weight_source = "slicer_length_density"
     else:
         valid_weight = 0.0
         weight_source = "unavailable"
@@ -192,6 +192,8 @@ def calculate_authoritative_quote(
             dimensions.get("z", 0) > max_vol.get("z", 200)):
             exceeds_build_volume = True
 
+    quote_status = "production_verified" if (not exceeds_build_volume and valid_weight > 0 and valid_hours > 0) else "manual_review"
+
     return {
         "unitPrice": unit_price,
         "quantity": qty,
@@ -205,6 +207,8 @@ def calculate_authoritative_quote(
         "totalPrice": total_price,
         "exceedsBuildVolume": exceeds_build_volume,
         "weightSource": weight_source,
+        "timeSource": "slicer_toolpath",
+        "quoteStatus": quote_status,
         "pricingBreakdown": {
             "materialCost": round(material_cost, 2),
             "electricityCost": round(electricity_cost, 2),

@@ -156,18 +156,13 @@ describe('Shilp Studio Phase 1 Comprehensive Test Suite', () => {
       expect(petgQuote.totalPrice).toBeGreaterThanOrEqual(plaQuote.totalPrice);
     });
 
-    it('scales print duration appropriately across quality tiers: Draft < Standard < Fine', () => {
-      const sampleWeight = 30.0;
+    it('scales layer heights appropriately across quality tiers: Draft (0.28mm) > Standard (0.20mm) > Fine (0.12mm)', () => {
       const draftProfile = DEFAULT_PRINT_PROFILES.find((p) => p.id === 'budget') || DEFAULT_PRINT_PROFILES[0];
       const standardProfile = DEFAULT_PRINT_PROFILES.find((p) => p.id === 'standard') || DEFAULT_PRINT_PROFILES[1];
       const fineProfile = DEFAULT_PRINT_PROFILES.find((p) => p.id === 'premium') || DEFAULT_PRINT_PROFILES[2];
 
-      const draftHours = estimatePrintTime(sampleWeight, draftProfile);
-      const standardHours = estimatePrintTime(sampleWeight, standardProfile);
-      const fineHours = estimatePrintTime(sampleWeight, fineProfile);
-
-      expect(draftHours).toBeLessThan(standardHours);
-      expect(standardHours).toBeLessThan(fineHours);
+      expect(draftProfile.layerHeight).toBeGreaterThan(standardProfile.layerHeight);
+      expect(standardProfile.layerHeight).toBeGreaterThan(fineProfile.layerHeight);
     });
 
     it('applies support material buffer when supports are enabled', () => {
