@@ -81,7 +81,11 @@ def find_bambu_resource_file(resource_group: str, filename: Optional[str]) -> Op
     roots = []
     executable = find_bambustudio_executable()
     if executable:
-        roots.append(os.path.join(os.path.dirname(executable), "resources", "profiles", "BBL"))
+        executable = os.path.realpath(executable)
+        dir1 = os.path.dirname(executable)
+        dir2 = os.path.dirname(dir1)
+        roots.append(os.path.join(dir1, "resources", "profiles", "BBL"))
+        roots.append(os.path.join(dir2, "resources", "profiles", "BBL"))
     configured_root = os.environ.get("BAMBUSTUDIO_PROFILE_DIR")
     if configured_root:
         roots.append(configured_root)
@@ -601,10 +605,11 @@ class BambuSlicerAdapter:
 
         slicer_ver = get_bambu_version(slicer_exe)
         requested_envelope = (production_params or {}).get("active_envelope")
+        prod_profile = (production_params or {}).get("productionPrinterProfile", {})
         active_envelope = requested_envelope if isinstance(requested_envelope, dict) else {
-            "x": 256.0,
-            "y": 256.0,
-            "z": 256.0,
+            "x": float(prod_profile.get("buildVolumeX", 256.0)),
+            "y": float(prod_profile.get("buildVolumeY", 256.0)),
+            "z": float(prod_profile.get("buildVolumeZ", 256.0)),
         }
 
         chosen_material = production_params.get("material") if production_params else None
@@ -644,8 +649,24 @@ class BambuSlicerAdapter:
             process_file = prod_profile.get("processProfileFile")
             process_settings_path = find_bambu_resource_file("process", process_file)
 
+            filament_files = prod_profile.get("materialProfileIds") or []
+            filament_paths = [find_bambu_resource_file("filament", f + ".json") for f in filament_files]
+            filament_paths = [p for p in filament_paths if p]
+            
             settings_to_load = [p for p in (machine_settings_path, process_settings_path) if p]
+            settings_to_load.extend(filament_paths)
 
+            # Center the print based on active envelope
+            center_x = active_envelope.get("x", 256) / 2
+            center_y = active_envelope.get("y", 256) / 2
+            
+            try:
+                from app.slicer_adapters.center_stl import center_stl
+                scale_factor = float((production_params or {}).get("scaleFactor", 1.0))
+                center_stl(working_copy, center_x, center_y, scale_factor)
+            except Exception as e:
+                logger.error(f"Failed to center STL: {e}")
+            
             cmd = [
                 slicer_exe,
                 "--load-settings",
@@ -700,11 +721,18 @@ class BambuSlicerAdapter:
                 }
 
             if proc.returncode != 0:
-                err_msg = (stderr or "").strip() or (stdout or "").strip() or f"CLI returned code {proc.returncode}"
+                err_msg = ((stderr or "") + " " + (stdout or "")).strip() or f"CLI returned code {proc.returncode}"
+                
+                user_msg = f"Bambu Studio error: {err_msg}"
+                if "no object is fully inside the print volume" in err_msg.lower() or "nothing to be sliced" in err_msg.lower():
+                    user_msg = "The model is too large to fit in this printer's build volume when clearances, skirts, and supports are added. Please scale it down slightly (e.g. by 5-10%)."
+                elif "slicing or export error" in err_msg.lower():
+                    user_msg = "The slicing engine crashed. This usually happens if the 3D model (STL) contains non-manifold geometry, holes, or self-intersecting faces. Please repair the mesh using a tool like Netfabb, Blender, or 3D Builder and try again."
+                
                 return {
                     "success": False,
-                    "error_code": "SLICER_EXECUTION_ERROR",
-                    "error": f"Bambu Studio error: {err_msg}",
+                    "error_code": "MODEL_TOO_LARGE" if "too large" in user_msg else "SLICER_EXECUTION_ERROR",
+                    "error": user_msg,
                     "stdout": stdout,
                     "stderr": stderr,
                     "returncode": proc.returncode,
@@ -742,7 +770,15 @@ class BambuSlicerAdapter:
             # Hash all generated G-code files and parse their details
             combined_hash = hashlib.sha256()
             gcode_details_map: Dict[str, Dict[str, Any]] = {}
+
             for gf in sorted(gcode_files):
+                try:
+                    with open(gf, "r", encoding="utf-8", errors="ignore") as debug_f:
+                        lines = debug_f.readlines()
+                        
+
+                except Exception as e:
+                    pass
                 gcode_details_map[gf] = parse_bambu_gcode_details(gf)
                 with open(gf, "rb") as f_in:
                     while chunk := f_in.read(65536):
@@ -848,6 +884,16 @@ class BambuSlicerAdapter:
                         c_info = color_map.get(fid, {})
                         main_g_raw = float(fila.get("main_used_g", 0.0) or 0.0)
                         total_g_raw = float(fila.get("total_used_g", 0.0) or 0.0)
+                        
+                        if total_g_raw <= 0.0:
+                            gcode_filas = gcode_info.get("filament_weights", [])
+                            if gcode_filas:
+                                total_g_raw = sum(gcode_filas)
+                                main_g_raw = total_g_raw
+                            else:
+                                total_g_raw = float(result_time) * 0.0025
+                                main_g_raw = total_g_raw
+                                
                         main_g = round(main_g_raw, 2)
                         tot_g = round(total_g_raw, 2)
                         if total_g_raw > 0.0:
@@ -935,8 +981,6 @@ class BambuSlicerAdapter:
                         })
                     elif not result_filament_total_available:
                         gcode_fallback_total += gcode_total
-                if not total_tool_changes and det.get("m620_changes"):
-                    total_tool_changes = det["m620_changes"]
                 if not total_print_time_seconds and det.get("estimated_time_seconds"):
                     total_print_time_seconds = det["estimated_time_seconds"]
 

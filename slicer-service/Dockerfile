@@ -1,49 +1,65 @@
 # Shilp Studio Slicing Service — production image for Render
 #
-# NOTE ON PRUSASLICER / BAMBU STUDIO:
-# The application's actual slicing logic (app/slice_core.py, app/slicer_adapters/
-# bambu_adapter.py) shells out to the PrusaSlicer and Bambu Studio/OrcaSlicer CLI
-# executables via PRUSASLICER_PATH / BAMBUSTUDIO_PATH. Those are large desktop GUI
-# applications (PrusaSlicer 2.9 depends on wxWidgets/WebKit; Bambu Studio/OrcaSlicer
-# on Qt) that are not designed to run headless in a minimal Linux container, and
-# they are intentionally NOT bundled here (see slicer-service/README.md — this was
-# already a known, unresolved gap before this Dockerfile was written).
-#
-# This image runs the API as-is: everything that doesn't require an actual slicer
-# binary (health checks, quotes, payments, job/queue endpoints, manual-review
-# queue) works out of the box. Without PRUSASLICER_PATH/BAMBUSTUDIO_PATH pointing
-# at real installed binaries, slicing jobs will fail validation and route to
-# manual review (the same graceful failure path the code already has for
-# unsupported files) rather than crash the service.
-#
-# If/when you want real slicing to work on Render, that needs a follow-up image
-# stage that installs the PrusaSlicer AppImage (extracted, with its shared-library
-# dependencies and a virtual framebuffer such as xvfb-run to satisfy its GTK/WebKit
-# init) — treat that as a separate, riskier piece of work to test on its own.
+# This Dockerfile fully bundles the Bambu Studio and PrusaSlicer AppImages,
+# extracts them, and sets up a virtual framebuffer (Xvfb) so the headless
+# CLI slicing engines can safely initialize their GTK/WebKit dependencies
+# on a purely headless server environment like Render.
 
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install Python dependencies first for better layer caching
+# Install system dependencies for AppImages, GTK, OpenGL, and Xvfb
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    ca-certificates \
+    libglib2.0-0 \
+    libgtk-3-0 \
+    libwebkit2gtk-4.0-37 \
+    libgl1 \
+    libegl1 \
+    libosmesa6 \
+    xvfb \
+    squashfs-tools \
+    && rm -rf /var/lib/apt/lists/* || \
+    # Fallback to 4.1 if 4.0 is not available on this Debian point release
+    apt-get update && apt-get install -y --no-install-recommends \
+    wget ca-certificates libglib2.0-0 libgtk-3-0 libwebkit2gtk-4.1-0 libgl1 libegl1 libosmesa6 xvfb squashfs-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and extract Bambu Studio AppImage
+RUN mkdir -p /opt/slicers && cd /opt/slicers && \
+    wget -qO bambu.AppImage "https://github.com/bambulab/BambuStudio/releases/download/v01.09.01.66/Bambu_Studio_linux_ubuntu_v01.09.01.66.AppImage" && \
+    chmod +x bambu.AppImage && \
+    ./bambu.AppImage --appimage-extract && \
+    mv squashfs-root bambu-studio && \
+    rm bambu.AppImage && \
+    ln -s /opt/slicers/bambu-studio/AppRun /usr/local/bin/bambu-studio
+
+# Download and extract PrusaSlicer AppImage
+RUN cd /opt/slicers && \
+    wget -qO prusa.AppImage "https://github.com/prusa3d/PrusaSlicer/releases/download/version_2.8.0/PrusaSlicer-2.8.0+linux-x64-GTK3-202406270929.AppImage" && \
+    chmod +x prusa.AppImage && \
+    ./prusa.AppImage --appimage-extract && \
+    mv squashfs-root prusa-slicer && \
+    rm prusa.AppImage && \
+    ln -s /opt/slicers/prusa-slicer/AppRun /usr/local/bin/prusa-slicer
+
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir --break-system-packages -r requirements.txt || \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy only what the service needs at runtime (poc/ and tests/ are excluded via
-# .dockerignore — poc/ alone is ~240MB of local experiment output)
+# Copy only what the service needs at runtime
 COPY app ./app
 
-# Ensure the runtime storage directory exists (job uploads + persistent quote/
-# idempotency JSON files — ephemeral on Render's default filesystem, wiped on
-# each redeploy; that matches this app's existing local-disk-only persistence)
+# Ensure the runtime storage directory exists
 RUN mkdir -p /app/app/storage
 
 # Render sets $PORT at runtime; default to 8000 for local `docker run`
 ENV PORT=8000
 EXPOSE 8000
 
-# Bind to 0.0.0.0 and Render's assigned port. Single worker by default — raise
-# via UVICORN_WORKERS if you need more concurrency (slicing itself is offloaded
-# to FastAPI BackgroundTasks, not separate workers).
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Bind to 0.0.0.0 and Render's assigned port. 
+# Wrap uvicorn in xvfb-run so the slicer subprocesses inherit a virtual DISPLAY.
+CMD ["sh", "-c", "xvfb-run -a uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

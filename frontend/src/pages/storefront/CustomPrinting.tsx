@@ -345,7 +345,7 @@ export function CustomPrinting() {
   // Customer-Facing Configuration Presets
   const [selectedMaterialId, setSelectedMaterialId] = useState<string>('pla');
   const [selectedColorName, setSelectedColorName] = useState<string>('#1C1917');
-  const [customColorHex, setCustomColorHex] = useState<string>('#1C1917');
+  const [customColorHex, setCustomColorHex] = useState<string>('#808080');
   const [qualityPreset, setQualityPreset] = useState<QualityPreset>('standard');
   const [strengthPreset, setStrengthPreset] = useState<StrengthPreset>('balanced');
   const [supportMode, setSupportMode] = useState<SupportMode>('auto');
@@ -444,7 +444,7 @@ export function CustomPrinting() {
 
   // Selected Color from the interactive Color Palette
   const activeColor = useMemo(() => {
-    const hex = customColorHex || '#1C1917';
+    const hex = customColorHex || '#808080';
     return {
       name: selectedColorName || hex.toUpperCase(),
       hex,

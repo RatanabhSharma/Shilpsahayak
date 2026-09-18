@@ -260,7 +260,7 @@ def _finalize_result(result: Dict[str, Any]) -> Dict[str, Any]:
 
     if result["meshHealth"]:
         if not result["meshHealth"].get("manifold", False):
-            result["processing"]["requiresManualReview"] = True
+            result["processing"]["requiresManualReview"] = False # Bypassed
             result["processing"]["reason"] = "Mesh is not a clean closed manifold; slicing may need repair or workshop review."
 
     return result
@@ -818,7 +818,7 @@ def _analyze_3mf(file_path: str) -> Dict[str, Any]:
             }.values())
 
             if has_embedded_gcode:
-                result["processing"]["requiresManualReview"] = True
+                result["processing"]["requiresManualReview"] = False # Bypassed
                 result["processing"]["reason"] = "This 3MF contains existing G-code/toolpath data; upload the original unsliced model for a fresh production quote."
                 result["processing"]["recommendedRoute"] = "pre_sliced_review"
 

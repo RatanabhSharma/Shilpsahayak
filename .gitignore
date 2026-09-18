@@ -44,3 +44,10 @@ slicer-service/poc/storage/*
 # see slicer-service/README.md for the download + PRUSASLICER_PATH setup.
 slicer-service/poc/bin/
 slicer-service/app/bin/venv/
+
+# Shilpsahayak Backend specifics
+slicer-service/venv/
+slicer-service/env/
+slicer-service/app/slicer_debug.log
+slicer-service/app/slicer_debug.log.*
+*.log

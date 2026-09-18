@@ -102,7 +102,7 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     const size = new THREE.Vector3();
     box.getSize(size);
     // Frame both the model and the build plate nicely
-    const maxDim = Math.max(size.x, size.y, size.z, 140);
+    const maxDim = Math.max(size.x, size.y, size.z);
 
     const fov = camera.fov * (Math.PI / 180);
     let distance = Math.abs(maxDim / Math.sin(fov / 2));
@@ -153,7 +153,9 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     controlsRef.current = controls;
 
     // 5. Lights — boosted for textured / multi-material models
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2.0);
+    scene.add(hemiLight);
     scene.add(ambientLight);
 
     const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.0);

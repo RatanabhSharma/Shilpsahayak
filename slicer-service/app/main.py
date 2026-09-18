@@ -243,6 +243,7 @@ def health_check():
 def process_slicing_job(job_id: str, file_path: str, params: Dict[str, Any]):
     extra = {"job_id": job_id}
     logger.info("Starting background slicing job", extra=extra)
+    print(f"\n================ [DEBUG] FULL SLICING JOB START ================ \n[DEBUG] Job ID: {job_id}\n[DEBUG] File Path: {file_path}\n[DEBUG] Incoming Params: {params}\n==============================================================\n")
     JOBS[job_id]["status"] = JobStatus.PROCESSING
     JOBS[job_id]["stage_message"] = "Preparing model..."
 
@@ -600,6 +601,7 @@ def process_slicing_job(job_id: str, file_path: str, params: Dict[str, Any]):
                     f"printerId={cached_printer_id}, configHash={job_config_hash[:12]}...)",
                     extra=extra,
                 )
+                print(f"\n================ [DEBUG] JOB COMPLETED SUCCESSFULLY ================ \n[DEBUG] Final Job State: {JOBS[job_id]}\n==============================================================\n")
                 JOBS[job_id]["status"] = JobStatus.COMPLETED
                 JOBS[job_id]["stage_message"] = "Estimate ready (cached)"
                 JOBS[job_id]["quoteId"] = cached_quote["quoteId"]
@@ -790,6 +792,7 @@ def process_slicing_job(job_id: str, file_path: str, params: Dict[str, Any]):
         # Save to persistent quote store
         quote_store.save_quote(immutable_snapshot)
 
+        print(f"\n================ [DEBUG] JOB COMPLETED SUCCESSFULLY ================ \n[DEBUG] Final Job State: {JOBS[job_id]}\n==============================================================\n")
         JOBS[job_id]["status"] = JobStatus.COMPLETED
         JOBS[job_id]["stage_message"] = "Estimate ready"
         JOBS[job_id]["quoteId"] = quote_id

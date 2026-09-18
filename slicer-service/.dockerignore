@@ -19,3 +19,13 @@ __pycache__/
 .git/
 .gitignore
 README.md
+
+# Virtual environments
+venv/
+env/
+app/bin/venv/
+
+# Logs
+app/slicer_debug.log
+app/slicer_debug.log.*
+*.log
