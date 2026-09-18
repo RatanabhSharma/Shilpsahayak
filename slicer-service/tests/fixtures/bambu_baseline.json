@@ -1,0 +1,31 @@
+{
+  "capturedAt": "2026-09-15",
+  "source": "slicer-service/poc/output",
+  "artifacts": {
+    "resultJson": "slicer-service/poc/output/result.json",
+    "gcode": "slicer-service/poc/output/plate_1.gcode",
+    "projectSettings": "source 3MF Metadata/project_settings.config"
+  },
+  "adapter": "bambu_studio_cli",
+  "slicer": "BambuStudio",
+  "slicerVersion": "02.08.02.61",
+  "plateCount": 1,
+  "filamentGramsFromResult": 1091.652229309082,
+  "filamentGramsFromGcodeHeader": 1091.67,
+  "modelFilamentGramsFromResult": 145.3438012599945,
+  "supportFilamentGrams": "derived from G-code feature ratios",
+  "purgeFilamentGrams": "derived from G-code feature ratios",
+  "towerFilamentGrams": "derived from G-code feature ratios",
+  "printTimeSecondsFromTotalPredication": 280245.84375,
+  "printTimeSecondsFromGcodeHeader": 280245,
+  "sumFeatureTypeTimesSeconds": 314678.96258354187,
+  "toolChangesFromResult": 2245,
+  "toolChangesFromGcodeM620Count": 2248,
+  "materialConfiguration": {
+    "filamentDensity": 1.27,
+    "filamentType": "PETG",
+    "flushMultiplier": "source project setting"
+  },
+  "baselineTestCommand": ".venv/Scripts/python.exe -m pytest -q slicer-service/tests/test_bambu_parity.py slicer-service/tests/test_bambu_adapter.py",
+  "baselineTestResult": "18 passed"
+}

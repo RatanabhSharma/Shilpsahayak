@@ -1,0 +1,243 @@
+/* =========================================================
+   SHILP SAHAYAK — DESIGN SYSTEM v2
+   Gen-Z Premium 3D Printing E-Commerce
+   ========================================================= */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================================
+   Design Tokens
+   ========================================================= */
+
+:root {
+  --ink: #141414;
+  --paper: #F0F4F8;
+  --shell: #F0EFEA;
+  --line: #EAE7E1;
+  --muted: #6B675E;
+  --accent: #FF4D00;
+  --accent-soft: #FFF2EC;
+  --dark: #121212;
+}
+
+/* =========================================================
+   Base Resets & Typography (San Francisco / Native System Stack)
+   ========================================================= */
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button, input, textarea, select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+img, svg, video, canvas {
+  display: block;
+  max-width: 100%;
+}
+
+/* =========================================================
+   Custom Typography Utilities
+   ========================================================= */
+
+.font-display {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.font-sans {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.font-mono {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.label-tech {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+::selection {
+  background-color: #dde1e7;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--shell);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+.no-scrollbar::-webkit-scrollbar,
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar,
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* =========================================================
+   Marquee Animation
+   ========================================================= */
+
+@keyframes marquee-scroll {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 28s linear infinite;
+}
+
+.animate-marquee-slow {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 42s linear infinite;
+}
+
+.animate-marquee:hover,
+.animate-marquee-slow:hover {
+  animation-play-state: paused;
+}
+
+/* =========================================================
+   Grid Textures & Surfaces
+   ========================================================= */
+
+.grid-plate {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.grid-plate-light {
+  background-image:
+    linear-gradient(rgba(15,14,11,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15,14,11,0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.surface-paper  { background-color: var(--paper); }
+.surface-shell  { background-color: var(--shell); }
+.surface-dark   { background-color: var(--dark); color: #fafaf8; }
+.surface-accent { background-color: var(--accent); color: #fff; }
+
+/* =========================================================
+   Interactive Effects: Shine Sweep & 3D Depth
+   ========================================================= */
+
+.shine-sweep-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.shine-sweep-container::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(
+    60deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.25) 50%,
+    transparent 80%
+  );
+  transform: rotate(25deg);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.group:hover .shine-sweep-container::after {
+  opacity: 1;
+  animation: shine-sweep-anim 0.85s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes shine-sweep-anim {
+  0% {
+    left: -60%;
+  }
+  100% {
+    left: 140%;
+  }
+}
+
+.glow-accent {
+  box-shadow: 0 0 35px -5px rgba(255, 77, 0, 0.25);
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}

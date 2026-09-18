@@ -1,0 +1,1067 @@
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import {
+  ArrowLeft,
+  ChevronRight,
+  Minus,
+  Plus,
+  RotateCcw,
+  ShieldCheck,
+  ShoppingCart,
+  Sparkles,
+  Truck,
+  CheckCircle2,
+  Layers,
+  Box,
+  Zap,
+  Upload,
+  X,
+  Loader2,
+  AlertCircle,
+} from 'lucide-react';
+import {
+  Link,
+  useNavigate,
+  useParams,
+} from 'react-router-dom';
+
+import {
+  ProductVariant,
+  useProducts,
+} from '../../hooks/useProducts';
+import { useStore } from '../../store';
+import { useSettings } from '../../hooks/useSettings';
+import { usePincodeLookup } from '../../hooks/usePincodeLookup';
+import { useAuth } from '../../hooks/useAuth';
+import {
+  uploadProductCustomFile,
+  validateProductCustomFile,
+} from '../../utils/uploadFile';
+import {
+  Button,
+  Badge,
+  Textarea,
+  Input,
+} from '../../components/ui';
+import { ProductCard } from '../../components/product/ProductCard';
+import { ProductDetailSkeleton } from '../../components/loading/ProductSkeleton';
+
+export function ProductDetail() {
+  const { id } = useParams<{
+    id: string;
+  }>();
+
+  const {
+    data: products = [],
+    isLoading,
+    isError,
+  } = useProducts();
+
+  const { data: settings } = useSettings();
+  const whatsappNumber = settings?.whatsappNumber || '';
+  const navigate = useNavigate();
+
+  const addToCart = useStore((state) => state.addToCart);
+  const openCart = useStore((state) => state.openCart);
+
+  const product = products.find((item) => item.id === id);
+
+  const hasVariants = Boolean(
+    !product?.isCustomizable &&
+      product?.hasVariants &&
+      product.variants &&
+      product.variants.length > 0
+  );
+
+  const { user } = useAuth();
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [activeImage, setActiveImage] = useState('');
+  const [customNotes, setCustomNotes] = useState('');
+  const [showCustomText, setShowCustomText] = useState(false);
+  const [customFile, setCustomFile] = useState<File | null>(null);
+  const [customFilePreview, setCustomFilePreview] = useState<string | null>(null);
+  const [customFileError, setCustomFileError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [added, setAdded] = useState(false);
+  const [pincodeCheck, setPincodeCheck] = useState('');
+
+  /* Cleanup object URL preview */
+  useEffect(() => {
+    return () => {
+      if (customFilePreview) {
+        URL.revokeObjectURL(customFilePreview);
+      }
+    };
+  }, [customFilePreview]);
+
+  const {
+    location: deliveryLocation,
+    isLookingUp: isCheckingPincode,
+    error: pincodeError,
+  } = usePincodeLookup(pincodeCheck, true);
+
+  /* Initialize Variant & Image */
+  useEffect(() => {
+    if (!product) return;
+
+    if (hasVariants && product.variants && product.variants.length > 0) {
+      const firstVariant = product.variants[0];
+      setSelectedVariant(firstVariant);
+      setActiveImage(firstVariant.image || product.image);
+      setQuantity(1);
+      return;
+    }
+
+    setSelectedVariant(null);
+    const initialImg =
+      product.image && !product.image.startsWith('blob:') && !product.image.startsWith('local:')
+        ? product.image
+        : '';
+    setActiveImage(initialImg);
+    setQuantity(1);
+  }, [product, hasVariants]);
+
+  /* Gallery Images */
+  const galleryImages = useMemo(() => {
+    if (!product) return [];
+    const images = new Set<string>();
+
+    const isValid = (url?: string | null): url is string =>
+      Boolean(url && typeof url === 'string' && !url.startsWith('blob:') && !url.startsWith('local:'));
+
+    if (isValid(product.image)) images.add(product.image);
+    product.images?.forEach((img) => {
+      if (isValid(img)) images.add(img);
+    });
+    product.variants?.forEach((v) => {
+      if (isValid(v.image)) images.add(v.image);
+    });
+
+    return Array.from(images);
+  }, [product]);
+
+  /* Current State */
+  const currentPrice = selectedVariant?.price ?? product?.price ?? 0;
+  const currentOriginalPrice = Number(selectedVariant?.originalPrice ?? product?.originalPrice ?? 0);
+  const currentStock = selectedVariant?.stock ?? product?.stock ?? 0;
+  const outOfStock = currentStock <= 0;
+  const discountPercent =
+    currentOriginalPrice > currentPrice && currentOriginalPrice > 0
+      ? Math.round(((currentOriginalPrice - currentPrice) / currentOriginalPrice) * 100)
+      : 0;
+
+  const whatsappInquiryLink = useMemo(() => {
+    if (!whatsappNumber) return '#';
+    const text = encodeURIComponent(
+      `Hello ${settings?.businessName || 'Shilp Sahayak'}! I have a question regarding "${product?.name || 'this piece'}" (₹${currentPrice}). Can you help?`
+    );
+    return `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${text}`;
+  }, [product?.name, currentPrice, whatsappNumber, settings?.businessName]);
+
+  /* Related Products */
+  const relatedProducts = useMemo(() => {
+    if (!product) return [];
+
+    const sameCategory = products.filter(
+      (item) =>
+        item.id !== product.id &&
+        item.active !== false &&
+        item.category === product.category
+    );
+
+    const otherProducts = products.filter(
+      (item) =>
+        item.id !== product.id &&
+        item.active !== false &&
+        item.category !== product.category
+    );
+
+    return [...sameCategory, ...otherProducts].slice(0, 3);
+  }, [product, products]);
+
+  /* Handlers */
+  const handleVariantSelect = (variant: ProductVariant) => {
+    if (variant.stock <= 0) return;
+    setSelectedVariant(variant);
+    if (variant.image) {
+      setActiveImage(variant.image);
+    } else if (product?.image) {
+      setActiveImage(product.image);
+    }
+    setQuantity(1);
+    setAdded(false);
+  };
+
+  const decreaseQuantity = () => {
+    setQuantity((current) => Math.max(1, current - 1));
+  };
+
+  const increaseQuantity = () => {
+    setQuantity((current) => Math.min(currentStock || 1, current + 1));
+  };
+
+  const handleAddToCart = async () => {
+    if (!product || outOfStock) return;
+
+    let uploadedCustomFile: {
+      url: string;
+      fileType: 'image' | 'cad';
+      fileName: string;
+    } | undefined = undefined;
+
+    if (product.isCustomizable && customFile) {
+      if (!user) {
+        alert('Please sign in to upload reference files and purchase customizable products.');
+        navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+        return;
+      }
+
+      setUploading(true);
+      setUploadProgress(0);
+      try {
+        const uploadResult = await uploadProductCustomFile(customFile, user.uid, (progress) => {
+          setUploadProgress(progress);
+        });
+        uploadedCustomFile = {
+          url: uploadResult.url,
+          fileType: uploadResult.fileType,
+          fileName: uploadResult.fileName,
+        };
+      } catch (error: any) {
+        console.error('File upload failed:', error);
+        alert(error?.message || 'Failed to upload custom file. Please try again.');
+        setUploading(false);
+        setUploadProgress(null);
+        return;
+      }
+      setUploading(false);
+      setUploadProgress(null);
+    }
+
+    const customPrintData = (product.isCustomizable && customFile && uploadedCustomFile) ? {
+      fileName: uploadedCustomFile.fileName,
+      fileUrl: uploadedCustomFile.url,
+      fileType: uploadedCustomFile.fileType,
+      customPrice: currentPrice,
+    } : undefined;
+
+    addToCart(
+      {
+        ...product,
+        price: currentPrice,
+        stock: currentStock,
+        image: activeImage || product.image,
+      },
+      quantity,
+      (product.isCustomizable && showCustomText) ? customNotes || undefined : undefined,
+      selectedVariant?.label,
+      selectedVariant?.id,
+      customPrintData
+    );
+
+    setAdded(true);
+    openCart();
+    window.setTimeout(() => setAdded(false), 3000);
+  };
+
+  const handleBuyNow = async () => {
+    if (!product || outOfStock) return;
+
+    let uploadedCustomFile: {
+      url: string;
+      fileType: 'image' | 'cad';
+      fileName: string;
+    } | undefined = undefined;
+
+    if (product.isCustomizable && customFile) {
+      if (!user) {
+        alert('Please sign in to upload reference files and purchase customizable products.');
+        navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+        return;
+      }
+
+      setUploading(true);
+      setUploadProgress(0);
+      try {
+        const uploadResult = await uploadProductCustomFile(customFile, user.uid, (progress) => {
+          setUploadProgress(progress);
+        });
+        uploadedCustomFile = {
+          url: uploadResult.url,
+          fileType: uploadResult.fileType,
+          fileName: uploadResult.fileName,
+        };
+      } catch (error: any) {
+        console.error('File upload failed:', error);
+        alert(error?.message || 'Failed to upload custom file. Please try again.');
+        setUploading(false);
+        setUploadProgress(null);
+        return;
+      }
+      setUploading(false);
+      setUploadProgress(null);
+    }
+
+    const customPrintData = (product.isCustomizable && customFile && uploadedCustomFile) ? {
+      fileName: uploadedCustomFile.fileName,
+      fileUrl: uploadedCustomFile.url,
+      fileType: uploadedCustomFile.fileType,
+      customPrice: currentPrice,
+    } : undefined;
+
+    addToCart(
+      {
+        ...product,
+        price: currentPrice,
+        stock: currentStock,
+        image: activeImage || product.image,
+      },
+      quantity,
+      (product.isCustomizable && showCustomText) ? customNotes || undefined : undefined,
+      selectedVariant?.label,
+      selectedVariant?.id,
+      customPrintData
+    );
+
+    navigate('/checkout');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[70vh] bg-paper">
+        <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-10 lg:py-20">
+          <ProductDetailSkeleton />
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !product) {
+    return (
+      <div className="min-h-[60vh] bg-paper text-ink flex items-center justify-center px-5 py-20">
+        <div className="max-w-md text-center">
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
+            Product Not Found
+          </span>
+          <h1 className="mt-3 font-display text-3xl font-bold text-ink">
+            Piece is unavailable.
+          </h1>
+          <p className="mt-3 text-sm text-muted font-sans">
+            This design might have been updated, archived, or moved.
+          </p>
+          <Link to="/shop" className="mt-6 inline-block">
+            <Button className="font-display font-bold">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Catalog
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-paper text-ink pt-16 lg:pt-20">
+      {/* Breadcrumbs */}
+      <div className="border-b border-line bg-white">
+        <div className="mx-auto max-w-[1440px] px-5 py-3.5 sm:px-8 lg:px-10">
+          <nav aria-label="Breadcrumb">
+            <ol className="flex flex-wrap items-center gap-2 font-mono text-xs text-muted">
+              <li>
+                <Link to="/" className="hover:text-accent transition-colors">
+                  Home
+                </Link>
+              </li>
+              <ChevronRight className="h-3 w-3" />
+              <li>
+                <Link to="/shop" className="hover:text-accent transition-colors">
+                  Catalog
+                </Link>
+              </li>
+              <ChevronRight className="h-3 w-3" />
+              <li className="max-w-[200px] sm:max-w-none truncate font-bold text-ink">
+                {product.name}
+              </li>
+            </ol>
+          </nav>
+        </div>
+      </div>
+
+      {/* Main Product Container */}
+      <main className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10 lg:py-12">
+        <Link
+          to="/shop"
+          className="mb-8 inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-muted hover:text-accent transition-colors"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span>Back to Catalog</span>
+        </Link>
+
+        <div className="grid gap-8 lg:grid-cols-12 lg:gap-14">
+          {/* IMAGE COLUMN — always first visually */}
+          <section className="lg:col-span-7 lg:row-span-2">
+            {/* Main Featured Image */}
+            <div className="overflow-hidden rounded-2xl sm:rounded-3xl border border-line bg-white p-2 sm:p-3 shadow-soft">
+              <div className="relative aspect-[4/3] sm:aspect-square overflow-hidden rounded-xl sm:rounded-2xl bg-shell">
+                <img
+                  src={
+                    (activeImage && !activeImage.startsWith('blob:') && !activeImage.startsWith('local:') ? activeImage : null) ||
+                    (product.image && !product.image.startsWith('blob:') && !product.image.startsWith('local:') ? product.image : null) ||
+                    'https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&q=80&w=1200'
+                  }
+                  alt={product.name}
+                  className="h-full w-full object-contain bg-shell/50 transition-transform duration-500 hover:scale-105"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (img.dataset.fallbackApplied) return;
+                    img.dataset.fallbackApplied = 'true';
+                    img.src =
+                      'https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&q=80&w=1200';
+                  }}
+                />
+
+                {product.isCustomizable && (
+                  <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-dark/90 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm shadow-md">
+                    <Sparkles className="h-3.5 w-3.5 text-accent" />
+                    Personalizable Piece
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Gallery Thumbnails */}
+            {galleryImages.length > 1 && (
+              <div className="mt-3 flex gap-2 sm:gap-3 overflow-x-auto pb-1 scrollbar-none">
+                {galleryImages.map((img, index) => {
+                  const isSelected = activeImage === img;
+                  return (
+                    <button
+                      key={`${img}-${index}`}
+                      type="button"
+                      onClick={() => setActiveImage(img)}
+                      className={`h-14 w-14 sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-xl sm:rounded-2xl border-2 transition-all shadow-sm ${
+                        isSelected
+                          ? 'border-accent ring-2 ring-accent/20'
+                          : 'border-line hover:border-accent/50'
+                      }`}
+                    >
+                      <img src={img} alt="" className="h-full w-full object-cover" />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Product Details & Specs — hidden on mobile, shows after cart on lg */}
+            <div className="hidden lg:block mt-8 rounded-3xl border border-line bg-white p-7 shadow-soft space-y-6">
+              <div>
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
+                  Design & Crafting Notes
+                </span>
+                <h3 className="mt-1 font-display text-xl font-bold text-ink">
+                  About this Piece
+                </h3>
+                <p className="mt-3 whitespace-pre-line font-sans text-sm leading-relaxed text-muted">
+                  {product.description || 'No description available for this workshop piece.'}
+                </p>
+              </div>
+
+              <div className="border-t border-line pt-6">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
+                  Engineering Specifications
+                </span>
+
+                <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-line bg-shell p-3.5">
+                    <div className="flex items-center gap-1.5 text-muted">
+                      <Layers className="h-3.5 w-3.5 text-accent" />
+                      <span className="font-mono text-[11px] uppercase">Material</span>
+                    </div>
+                    <p className="mt-1 font-mono text-xs font-bold text-ink">
+                      {product.material || 'PLA / PETG'}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-line bg-shell p-3.5">
+                    <div className="flex items-center gap-1.5 text-muted">
+                      <Box className="h-3.5 w-3.5 text-accent" />
+                      <span className="font-mono text-[11px] uppercase">Category</span>
+                    </div>
+                    <p className="mt-1 font-mono text-xs font-bold text-ink">
+                      {product.category || 'Standard Print'}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-line bg-shell p-3.5">
+                    <div className="flex items-center gap-1.5 text-muted">
+                      <ShieldCheck className="h-3.5 w-3.5 text-accent" />
+                      <span className="font-mono text-[11px] uppercase">Quality</span>
+                    </div>
+                    <p className="mt-1 font-mono text-xs font-bold text-ink">
+                      Precision Inspected
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Right Column: Pricing, Options & Cart Action */}
+          <section className="lg:col-span-5">
+            <div className="lg:sticky lg:top-28 space-y-6">
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
+                <div className="flex flex-wrap items-center gap-2">
+                  {product.category && (
+                    <Badge variant="default">
+                      {product.category}
+                    </Badge>
+                  )}
+                  {product.isCustomizable && (
+                    <Badge variant="brand">
+                      Customizable
+                    </Badge>
+                  )}
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider ${
+                      outOfStock
+                        ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                        : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    }`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        outOfStock ? 'bg-rose-500' : 'bg-emerald-500'
+                      }`}
+                    />
+                    {outOfStock ? 'Out of Stock' : `${currentStock} In Stock`}
+                  </span>
+                </div>
+
+                <h1 className="mt-4 font-display text-3xl font-bold tracking-tight sm:text-4xl text-ink">
+                  {product.name}
+                </h1>
+
+                {/* Price Display */}
+                <div className="mt-5 flex flex-col gap-2 border-y border-line py-4">
+                  <div className="flex items-baseline justify-between">
+                    <div>
+                      <span className="font-mono text-xs text-muted block uppercase">Price</span>
+                      <div className="flex items-baseline gap-2.5">
+                        <span className="font-mono text-3xl font-bold text-ink">
+                          ₹{currentPrice.toLocaleString('en-IN')}
+                        </span>
+                        {discountPercent > 0 && currentOriginalPrice > currentPrice && (
+                          <>
+                            <span className="font-mono text-sm text-muted line-through">
+                              ₹{currentOriginalPrice.toLocaleString('en-IN')}
+                            </span>
+                            <span className="rounded-full bg-emerald-600 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-white shadow-sm">
+                              Save {discountPercent}%
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <span className="font-mono text-xs text-accent font-semibold">
+                      {settings?.freeShippingThreshold ? `Free shipping > ₹${settings.freeShippingThreshold}` : 'Free shipping on qualified orders'}
+                    </span>
+                  </div>
+
+                  <div className="mt-1 flex items-center gap-1.5 text-xs text-emerald-700 font-semibold font-mono">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Fabricated & carefully hand-inspected in Patiala workshop</span>
+                  </div>
+                </div>
+
+                {/* Variants */}
+                {!product.isCustomizable && hasVariants && product.variants && (
+                  <div className="mt-6">
+                    <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block mb-2.5">
+                      Select Option / Variant
+                    </label>
+
+                    <div className="flex flex-wrap gap-2.5">
+                      {product.variants.map((variant) => {
+                        const isSelected = selectedVariant?.id === variant.id;
+                        const isDisabled = variant.stock <= 0;
+
+                        return (
+                          <button
+                            key={variant.id}
+                            type="button"
+                            disabled={isDisabled}
+                            onClick={() => handleVariantSelect(variant)}
+                            className={`rounded-xl border px-4 py-2 font-mono text-xs font-bold transition-all ${
+                              isSelected
+                                ? 'border-accent bg-accent-soft text-accent ring-1 ring-accent'
+                                : isDisabled
+                                ? 'border-line bg-shell text-muted line-through cursor-not-allowed'
+                                : 'border-line bg-white text-ink hover:border-accent'
+                            }`}
+                          >
+                            <span>{variant.label}</span>
+                            {variant.price !== product.price && (
+                              <span className="ml-1.5 text-accent">
+                                ₹{variant.price.toLocaleString('en-IN')}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quantity Stepper */}
+                <div className="mt-6 flex items-center gap-4">
+                  <div>
+                    <label className="font-mono text-xs font-bold uppercase tracking-wider text-muted block mb-2">
+                      Quantity
+                    </label>
+
+                    <div className="flex h-11 items-center rounded-xl border border-line bg-shell p-1">
+                      <button
+                        type="button"
+                        onClick={decreaseQuantity}
+                        disabled={quantity <= 1}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-ink hover:bg-white disabled:opacity-30 transition-colors"
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+
+                      <span className="flex w-10 justify-center font-mono text-sm font-bold text-ink">
+                        {quantity}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={increaseQuantity}
+                        disabled={outOfStock || quantity >= currentStock}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-ink hover:bg-white disabled:opacity-30 transition-colors"
+                        aria-label="Increase quantity"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Customization Options Box */}
+                {product.isCustomizable && (
+                  <div className="mt-6 rounded-2xl border border-accent/30 bg-accent-soft p-4 sm:p-5 space-y-4">
+                    <div className="flex items-center gap-2 border-b border-accent/20 pb-2.5">
+                      <Sparkles className="h-4 w-4 text-accent" />
+                      <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
+                        Customize Your Order
+                      </span>
+                    </div>
+
+
+
+                    {/* Custom Text Option */}
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-2 cursor-pointer font-sans text-xs font-medium text-ink">
+                        <input
+                          type="checkbox"
+                          checked={showCustomText}
+                          onChange={(e) => setShowCustomText(e.target.checked)}
+                          className="h-4 w-4 rounded border-line text-accent focus:ring-accent accent-accent"
+                        />
+                        <span>I want to add a custom name/message</span>
+                      </label>
+
+                      {showCustomText && (
+                        <div className="pt-1 animate-fadeIn">
+                          <label
+                            htmlFor="custom-notes"
+                            className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block mb-1"
+                          >
+                            Custom Engraving / Lettering Text
+                          </label>
+                          <Textarea
+                            id="custom-notes"
+                            value={customNotes}
+                            onChange={(e) => setCustomNotes(e.target.value)}
+                            placeholder="e.g. Custom name inscription, custom dimensions, or special requests..."
+                            rows={2}
+                            className="text-xs bg-white border border-line focus:border-accent rounded-xl"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* File Upload Option */}
+                    <div className="space-y-2 border-t border-accent/15 pt-3">
+                      <div className="space-y-0.5">
+                        <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
+                          Upload an image or 3D CAD file (max 5 MB)
+                        </label>
+                        <p className="text-[11px] text-muted">
+                          Supports JPG, PNG, WEBP reference images or STL, OBJ, 3MF 3D CAD models.
+                        </p>
+                      </div>
+
+                      <input
+                        id="product-file-input"
+                        type="file"
+                        accept=".png,.jpg,.jpeg,.webp,.stl,.obj,.3mf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setCustomFileError(null);
+                          const validation = validateProductCustomFile(file);
+                          if (!validation.valid || !validation.fileType) {
+                            setCustomFileError(
+                              validation.error ||
+                                'Unsupported file type or size. Please choose an image (JPG, PNG, WEBP) or 3D CAD file (STL, OBJ, 3MF).'
+                            );
+                            setCustomFile(null);
+                            if (customFilePreview) {
+                              URL.revokeObjectURL(customFilePreview);
+                              setCustomFilePreview(null);
+                            }
+                            e.target.value = '';
+                            return;
+                          }
+
+                          if (customFilePreview) {
+                            URL.revokeObjectURL(customFilePreview);
+                            setCustomFilePreview(null);
+                          }
+
+                          if (validation.fileType === 'image') {
+                            setCustomFilePreview(URL.createObjectURL(file));
+                          }
+                          setCustomFile(file);
+                        }}
+                        className="hidden"
+                      />
+
+                      {/* Validation Error Banner */}
+                      {customFileError && (
+                        <div className="flex items-start gap-2 p-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs animate-fadeIn">
+                          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-rose-500" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium leading-relaxed">{customFileError}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCustomFileError(null)}
+                            className="text-rose-500 hover:text-rose-800 p-0.5"
+                            aria-label="Dismiss error"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* File Card Preview */}
+                      {customFile ? (
+                        <div className="flex items-center justify-between p-3 rounded-xl border border-accent/20 bg-white shadow-xs">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            {customFilePreview ? (
+                              <img
+                                src={customFilePreview}
+                                alt={customFile.name}
+                                className="h-12 w-12 rounded-xl object-cover border border-line bg-shell shrink-0"
+                              />
+                            ) : (
+                              <div className="h-12 w-12 rounded-xl border border-accent/20 bg-accent-soft flex flex-col items-center justify-center shrink-0 text-accent">
+                                <Box className="h-5 w-5" />
+                                <span className="font-mono text-[8px] font-bold uppercase tracking-wider mt-0.5">
+                                  {customFile.name.split('.').pop()?.toUpperCase() || 'CAD'}
+                                </span>
+                              </div>
+                            )}
+
+                            <div className="min-w-0 flex-1 pr-2">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                {customFilePreview ? (
+                                  <Badge
+                                    variant="default"
+                                    className="bg-sky-50 text-sky-700 border border-sky-200 font-mono text-[10px] px-1.5 py-0"
+                                  >
+                                    Reference Image
+                                  </Badge>
+                                ) : (
+                                  <Badge
+                                    variant="brand"
+                                    className="font-mono text-[10px] px-1.5 py-0"
+                                  >
+                                    3D CAD ({customFile.name.split('.').pop()?.toUpperCase()})
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs font-bold text-ink truncate font-mono" title={customFile.name}>
+                                {customFile.name}
+                              </p>
+                              <p className="text-[10px] text-muted font-mono mt-0.5">
+                                {(customFile.size / (1024 * 1024)).toFixed(2)} MB
+                              </p>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (customFilePreview) {
+                                URL.revokeObjectURL(customFilePreview);
+                                setCustomFilePreview(null);
+                              }
+                              setCustomFile(null);
+                              setCustomFileError(null);
+                              const inputEl = document.getElementById(
+                                'product-file-input'
+                              ) as HTMLInputElement | null;
+                              if (inputEl) inputEl.value = '';
+                            }}
+                            className="p-1.5 rounded-lg text-muted hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                            aria-label="Remove uploaded file"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label
+                          htmlFor="product-file-input"
+                          className="flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-accent/40 bg-white hover:bg-white/80 transition-colors"
+                        >
+                          <Upload className="h-4 w-4 text-accent" />
+                          <span className="font-sans text-xs font-semibold text-ink">
+                            Choose Image or 3D CAD File
+                          </span>
+                        </label>
+                      )}
+
+                      {uploading && (
+                        <div className="flex items-center gap-2 font-mono text-[10px] text-accent mt-2 bg-accent-soft p-2.5 rounded-xl border border-accent/20">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                          <span>Uploading custom file to R2: {uploadProgress}%</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Primary Action Buttons */}
+                <div className="mt-7 space-y-3">
+                  <Button
+                    size="lg"
+                    disabled={outOfStock}
+                    onClick={handleAddToCart}
+                    className={`w-full font-display font-bold shadow-lg shadow-accent/20 bg-accent hover:bg-accent-dark text-white border-accent ${
+                      added ? 'bg-emerald-600 hover:bg-emerald-700 border-emerald-600' : ''
+                    }`}
+                  >
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    {added
+                      ? 'Added to Cart ✓'
+                      : outOfStock
+                      ? 'Out of Stock'
+                      : `Add to Cart • ₹${(currentPrice * quantity).toLocaleString('en-IN')}`}
+                  </Button>
+
+                  <Button
+                    size="lg"
+                    variant="secondary"
+                    disabled={outOfStock}
+                    onClick={handleBuyNow}
+                    className="w-full font-display font-bold bg-dark text-white hover:bg-zinc-800"
+                  >
+                    <Zap className="mr-2 h-4 w-4 text-accent" />
+                    Buy Now
+                  </Button>
+
+                  {whatsappNumber && (
+                    <a
+                      href={whatsappInquiryLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      <Button
+                        size="md"
+                        variant="outline"
+                        className="w-full font-sans font-semibold border-line hover:border-emerald-500 hover:text-emerald-700"
+                      >
+                        Ask about this piece on WhatsApp
+                      </Button>
+                    </a>
+                  )}
+                </div>
+
+                {/* Pincode Delivery Estimator Widget */}
+                <div className="mt-6 rounded-2xl border border-line bg-shell p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Truck className="h-4 w-4 text-accent" />
+                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-ink">
+                      Check Delivery to Your Pincode
+                    </span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter 6-digit PIN (e.g. 147001)"
+                      maxLength={6}
+                      value={pincodeCheck}
+                      onChange={(e) => setPincodeCheck(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      className="h-10 text-xs bg-white font-mono"
+                    />
+                  </div>
+
+                  {pincodeCheck.length === 6 && (
+                    <div className="text-xs pt-1 font-sans">
+                      {isCheckingPincode ? (
+                        <span className="inline-flex items-center gap-1.5 text-muted">
+                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                          Checking courier network...
+                        </span>
+                      ) : pincodeError ? (
+                        <span className="text-rose-600 font-medium">
+                          {pincodeError}
+                        </span>
+                      ) : deliveryLocation ? (
+                        <div className="space-y-1">
+                          <p className="text-emerald-700 font-bold flex items-center gap-1.5">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Delivery Available to {deliveryLocation.city}, {deliveryLocation.state}!
+                          </p>
+                          <p className="text-[11px] text-muted">
+                            Dispatched in 24–48h · Tracked express courier delivery in 3–5 days.
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Trust Badge Strip */}
+              <div className="rounded-3xl border border-line bg-white p-6 shadow-soft space-y-4">
+                <div className="flex items-start gap-3">
+                  <Truck className="h-5 w-5 text-accent shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-xs font-bold text-ink font-display">Pan-India Express Delivery</h4>
+                    <p className="text-[11px] text-muted font-sans">
+                      Multi-layer bubble wrapping and tracked courier dispatch.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <ShieldCheck className="h-5 w-5 text-accent shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-xs font-bold text-ink font-display">100% Quality Inspected</h4>
+                    <p className="text-[11px] text-muted font-sans">
+                      Every print is dimensionally verified before packing.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <RotateCcw className="h-5 w-5 text-accent shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-xs font-bold text-ink font-display">7-Day Defect Return Policy</h4>
+                    <p className="text-[11px] text-muted font-sans">
+                      Manufacturing defect? We'll replace or refund within 7 days of delivery.{' '}
+                      <a
+                        href="/refund-policy"
+                        className="text-accent hover:underline font-semibold"
+                      >
+                        See full policy →
+                      </a>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Mobile-only: Description & Specs (shown after cart on small screens) */}
+          <div className="lg:hidden rounded-2xl border border-line bg-white p-5 space-y-6">
+            <div>
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
+                Design & Crafting Notes
+              </span>
+              <h3 className="mt-1 font-display text-lg font-bold text-ink">
+                About this Piece
+              </h3>
+              <p className="mt-3 whitespace-pre-line font-sans text-sm leading-relaxed text-muted">
+                {product.description || 'No description available for this workshop piece.'}
+              </p>
+            </div>
+
+            <div className="border-t border-line pt-5">
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
+                Engineering Specifications
+              </span>
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <div className="rounded-xl border border-line bg-shell p-3">
+                  <div className="flex items-center gap-1 text-muted mb-1">
+                    <Layers className="h-3 w-3 text-accent" />
+                    <span className="font-mono text-[10px] uppercase">Material</span>
+                  </div>
+                  <p className="font-mono text-xs font-bold text-ink">{product.material || 'PLA'}</p>
+                </div>
+                <div className="rounded-xl border border-line bg-shell p-3">
+                  <div className="flex items-center gap-1 text-muted mb-1">
+                    <Box className="h-3 w-3 text-accent" />
+                    <span className="font-mono text-[10px] uppercase">Category</span>
+                  </div>
+                  <p className="font-mono text-xs font-bold text-ink truncate">{product.category || 'Standard'}</p>
+                </div>
+                <div className="rounded-xl border border-line bg-shell p-3">
+                  <div className="flex items-center gap-1 text-muted mb-1">
+                    <ShieldCheck className="h-3 w-3 text-accent" />
+                    <span className="font-mono text-[10px] uppercase">Quality</span>
+                  </div>
+                  <p className="font-mono text-xs font-bold text-ink">Inspected</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Related Products Section */}
+      {relatedProducts.length > 0 && (
+        <section className="border-t border-line bg-shell py-16">
+          <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
+            <div className="flex items-end justify-between gap-5">
+              <div>
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
+                  Recommended For You
+                </span>
+                <h3 className="mt-1 font-display text-2xl font-bold text-ink sm:text-3xl">
+                  Related Workshop Pieces
+                </h3>
+              </div>
+
+              <Link
+                to="/shop"
+                className="text-xs font-bold text-accent hover:underline font-mono"
+              >
+                <span>View Catalog →</span>
+              </Link>
+            </div>
+
+            <div className="mt-8 grid gap-3.5 sm:gap-6 grid-cols-2 lg:grid-cols-3">
+              {relatedProducts.map((related) => (
+                <ProductCard key={related.id} product={related} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+

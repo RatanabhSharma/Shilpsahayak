@@ -1,0 +1,181 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================
+    // AUTHENTICATION HELPERS
+    // =========================================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ) &&
+        get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data.role == 'admin';
+    }
+
+    // =========================================================
+    // USERS
+    // =========================================================
+    match /users/{userId} {
+      allow read: if isAdmin() ||
+        (
+          isSignedIn() &&
+          request.auth.uid == userId
+        );
+
+      allow create: if
+        isAdmin()
+        ||
+        (
+          isSignedIn() &&
+          request.auth.uid == userId &&
+          request.resource.data.get('role', 'customer') == 'customer'
+        );
+
+      allow update: if
+        isAdmin()
+        ||
+        (
+          isSignedIn() &&
+          request.auth.uid == userId &&
+          request.resource.data.get('role', 'customer') ==
+            resource.data.get('role', 'customer')
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================
+    // PRODUCTS
+    // =========================================================
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // =========================================================
+    // CATEGORIES
+    // =========================================================
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // =========================================================
+    // ORDERS
+    // =========================================================
+    match /orders/{orderId} {
+      allow read: if
+        isAdmin()
+        ||
+        (
+          isSignedIn() &&
+          resource.data.customerId == request.auth.uid
+        );
+
+      allow create: if
+        isSignedIn() &&
+        request.resource.data.customerId == request.auth.uid;
+
+      allow update, delete: if isAdmin();
+    }
+
+    // =========================================================
+    // QUOTES
+    // =========================================================
+    match /quotes/{quoteId} {
+      allow read: if
+        isAdmin()
+        ||
+        (
+          isSignedIn() &&
+          resource.data.customerId == request.auth.uid
+        );
+
+      allow create: if
+        isSignedIn() &&
+        request.resource.data.customerId == request.auth.uid;
+
+      allow update: if
+        isAdmin()
+        ||
+        (
+          isSignedIn() &&
+          resource.data.customerId == request.auth.uid &&
+          resource.data.status == 'Quoted' &&
+          request.resource.data.status in ['Accepted', 'Rejected'] &&
+          request.resource.data
+            .diff(resource.data)
+            .affectedKeys()
+            .hasOnly(['status'])
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================
+    // FILAMENTS
+    // =========================================================
+    match /filaments/{filamentId} {
+      allow read, write: if isAdmin();
+    }
+
+   // =========================================================
+// PHONE VERIFICATIONS (EMAIL OTP) - Production Ready
+// =========================================================
+match /phone_verifications/{verificationId} {
+  // Only signed-in users can create a verification request for themselves
+  allow create: if isSignedIn()
+                && request.resource.data.userId == request.auth.uid
+                && request.resource.data.keys().hasOnly(['userId', 'email', 'otp', 'createdAt', 'expiresAt', 'verified'])
+                && request.resource.data.email is string
+                && request.resource.data.otp is string
+                && request.resource.data.createdAt is timestamp
+                && request.resource.data.expiresAt is timestamp
+                && request.resource.data.verified == false;
+
+  // Users can only read their own verification documents
+  allow read: if isSignedIn()
+              && resource.data.userId == request.auth.uid;
+
+  // Only admins (or preferably a Cloud Function) can update/delete
+  allow update, delete: if isAdmin();
+}
+
+// =========================================================
+// MAIL QUEUE (Trigger Email Extension)
+// =========================================================
+match /mail/{mailId} {
+  // Only signed-in users can queue emails
+  allow create: if isSignedIn()
+                && request.resource.data.keys().hasAll(['to', 'message']);
+
+  // Only admins can read / update / delete
+  allow read, update, delete: if isAdmin();
+}
+
+    // =========================================================
+    // SETTINGS
+    // =========================================================
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // =========================================================
+    // INQUIRIES / CONTACT SUBMISSIONS
+    // =========================================================
+    match /inquiries/{inquiryId} {
+      allow create: if request.resource.data.name is string
+                    && request.resource.data.email is string
+                    && request.resource.data.message is string;
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,263 @@
+import {
+  MachinePricingConfig,
+  MaterialConfig,
+  PrintProfile,
+  QuantityDiscountTier,
+  AmsSlotConfig,
+  ProductionPrinterProfile,
+} from './pricingTypes';
+
+export const PRICING_VERSION = '2026-09-05-v1';
+
+/**
+ * Default machine & business settings.
+ * Clearly marked development baseline values.
+ * Fully configurable from the Shilp Sahayak Admin Panel without code updates.
+ */
+export const DEFAULT_PRICING_CONFIG: MachinePricingConfig = {
+  printerCost: 25000, // ₹25,000 purchase price
+  printerLifespanHours: 5000, // 5,000 hours expected service life
+  printerPowerWatts: 100, // 100 Watts average print bed/hotend load
+  electricityRatePerKwh: 8.0, // ₹8 per kWh / commercial unit
+
+  failureBufferPercent: 10, // 10% failure & purge buffer
+  labourRatePerHour: 200, // ₹200 / hour operator rate
+  finishingMinutes: 5, // 5 minutes standard post-processing/cleanup
+
+  baseServiceFee: 30, // ₹30 prep & slicer queue fee
+  minimumOrderValue: 149, // ₹149 minimum checkout threshold
+
+  markupMultiplier: 2.2, // 2.2x retail multiplier on production cost
+
+  gstEnabled: false, // Default disabled, toggleable in admin
+  gstRate: 18, // 18% standard GST rate for manufacturing services
+
+  packagingPrice: 20, // ₹20 optional corrugated box & bubble wrap
+
+  maxBuildVolume: {
+    x: 256,
+    y: 256,
+    z: 200,
+  },
+};
+
+export const DEFAULT_A1_MINI_PRODUCTION_PRINTER_PROFILE: ProductionPrinterProfile = {
+  id: 'BAMBU-A1-MINI-01',
+  manufacturer: 'Bambu Lab',
+  model: 'A1 mini',
+  displayName: 'Bambu Lab A1 mini',
+  printerProfileFile: 'bambu_a1_mini_0.4.ini',
+  enabled: true,
+  defaultForProduction: false,
+  slicerAdapter: 'bambu_studio_cli',
+  slicerName: 'Bambu Studio',
+  slicerVersion: '02.08.02.61',
+  slicerSettingsId: 'GM020',
+  printerSettingsId: 'Bambu Lab A1 mini 0.4 nozzle',
+  processSettingsId: '0.20mm Standard @BBL A1M',
+  materialProfileIds: ['Generic PLA @BBL A1M'],
+  machineProfileFile: 'Bambu Lab A1 mini 0.4 nozzle.json',
+  processProfileFile: '0.20mm Standard @BBL A1M.json',
+  buildVolumeX: 180,
+  buildVolumeY: 180,
+  buildVolumeZ: 180,
+  nozzleDiameter: 0.4,
+  extruderCount: 1,
+  supportsMulticolor: true,
+  machineParameters: { printerStructure: 'i3', printerVariant: '0.4' },
+  defaultLayerHeight: 0.2,
+  defaultInfill: 20,
+  defaultSupportMode: 'auto',
+  toolpathDefaults: { arrange: 0 },
+  profileVersion: 'Bambu Studio machine profile GM020',
+  updatedAt: '2026-09-15T00:00:00.000Z',
+};
+
+export const DEFAULT_A1_PRODUCTION_PRINTER_PROFILE: ProductionPrinterProfile = {
+  id: 'BAMBU-A1-01',
+  manufacturer: 'Bambu Lab',
+  model: 'A1',
+  displayName: 'Bambu Lab A1',
+  printerProfileFile: 'bambu_a1_0.4.ini',
+  enabled: true,
+  defaultForProduction: true,
+  slicerAdapter: 'bambu_studio_cli',
+  slicerName: 'Bambu Studio',
+  slicerVersion: '02.08.02.61',
+  slicerSettingsId: 'GM020',
+  printerSettingsId: 'Bambu Lab A1 0.4 nozzle',
+  processSettingsId: '0.20mm Standard @BBL A1',
+  materialProfileIds: ['Generic PLA @BBL A1'],
+  machineProfileFile: 'Bambu Lab A1 0.4 nozzle.json',
+  processProfileFile: '0.20mm Standard @BBL A1.json',
+  buildVolumeX: 256,
+  buildVolumeY: 256,
+  buildVolumeZ: 256,
+  nozzleDiameter: 0.4,
+  extruderCount: 1,
+  supportsMulticolor: true,
+  machineParameters: { printerStructure: 'i3', printerVariant: '0.4' },
+  defaultLayerHeight: 0.2,
+  defaultInfill: 20,
+  defaultSupportMode: 'auto',
+  toolpathDefaults: { arrange: 0 },
+  profileVersion: 'Bambu Studio machine profile GM020',
+  updatedAt: '2026-09-15T00:00:00.000Z',
+};
+
+export const DEFAULT_PRODUCTION_PRINTER_PROFILE = DEFAULT_A1_MINI_PRODUCTION_PRINTER_PROFILE;
+
+export const DEFAULT_PRODUCTION_PRINTER_PROFILES: ProductionPrinterProfile[] = [
+  DEFAULT_A1_MINI_PRODUCTION_PRINTER_PROFILE,
+  DEFAULT_A1_PRODUCTION_PRINTER_PROFILE,
+];
+
+/**
+ * Initial supported materials: PLA, PETG, TPU.
+ * Note: Material pricing is pricing configuration only, NOT raw inventory.
+ */
+export const DEFAULT_MATERIALS: MaterialConfig[] = [
+  {
+    id: 'pla',
+    name: 'PLA',
+    pricePerGram: 4.5,
+    density: 1.24,
+    enabled: true,
+    tagline: 'Standard, crisp & rigid thermoplastic',
+    description:
+      'Ideal for everyday models, display pieces, architectural maquettes, and visual prototypes.',
+    colors: [
+      { name: 'Matte Black', hex: '#1C1917' },
+      { name: 'Pure White', hex: '#F8FAFC' },
+      { name: 'Crimson Red', hex: '#EF4444' },
+      { name: 'Royal Blue', hex: '#2563EB' },
+      { name: 'Forest Green', hex: '#15803D' },
+      { name: 'Steel Grey', hex: '#64748B' },
+      { name: 'Bright Orange', hex: '#F97316' },
+      { name: 'Sunshine Yellow', hex: '#EAB308' },
+    ],
+  },
+  {
+    id: 'petg',
+    name: 'PETG',
+    pricePerGram: 5.5,
+    density: 1.27,
+    enabled: true,
+    tagline: 'Impact-resistant & outdoor durable',
+    description:
+      'High mechanical strength and temperature resistance. Best for mechanical brackets, enclosures, and functional parts.',
+    colors: [
+      { name: 'Carbon Black', hex: '#0F172A' },
+      { name: 'Clear White', hex: '#F1F5F9' },
+      { name: 'Industrial Grey', hex: '#475569' },
+      { name: 'Ocean Blue', hex: '#0284C7' },
+      { name: 'Signal Orange', hex: '#EA580C' },
+      { name: 'Fire Red', hex: '#DC2626' },
+      { name: 'Army Green', hex: '#166534' },
+      { name: 'Translucent Clear', hex: '#E2E8F0' },
+    ],
+  },
+  {
+    id: 'tpu',
+    name: 'TPU (Flexible)',
+    pricePerGram: 7.0,
+    density: 1.21,
+    enabled: true,
+    tagline: 'Rubber-like flexible & shock-absorbing',
+    description:
+      'High elasticity, impact dampening, and abrasion resistance. Best for gaskets, phone bumpers, and protective covers.',
+    colors: [
+      { name: 'Jet Black', hex: '#18181B' },
+      { name: 'Natural White', hex: '#E2E8F0' },
+      { name: 'Safety Red', hex: '#DC2626' },
+      { name: 'Vibrant Blue', hex: '#3B82F6' },
+      { name: 'Neon Yellow', hex: '#FACC15' },
+      { name: 'Olive Green', hex: '#3F6212' },
+    ],
+  },
+];
+
+/**
+ * Standard Customer Print Profiles.
+ * Maps customer-facing quality choices to internal estimation parameters.
+ */
+export const DEFAULT_PRINT_PROFILES: PrintProfile[] = [
+  {
+    id: 'budget',
+    name: 'Budget',
+    layerHeight: 0.28,
+    infillPercent: 15,
+    wallCount: 2,
+    enabled: true,
+    tagline: 'Fast print & economical for rough drafts',
+  },
+  {
+    id: 'standard',
+    name: 'Standard',
+    layerHeight: 0.2,
+    infillPercent: 20,
+    wallCount: 3,
+    enabled: true,
+    tagline: 'Recommended balance of surface finish and strength',
+  },
+  {
+    id: 'premium',
+    name: 'Premium',
+    layerHeight: 0.12,
+    infillPercent: 25,
+    wallCount: 4,
+    enabled: true,
+    tagline: 'Ultra-fine layer lines & maximum surface detail',
+  },
+];
+
+/**
+ * Volume quantity discount tiers.
+ */
+export const DEFAULT_QUANTITY_DISCOUNTS: QuantityDiscountTier[] = [
+  { minQuantity: 1, maxQuantity: 4, discountPercent: 0 },
+  { minQuantity: 5, maxQuantity: 9, discountPercent: 5 },
+  { minQuantity: 10, maxQuantity: 24, discountPercent: 10 },
+  { minQuantity: 25, discountPercent: 15 },
+];
+
+/**
+ * Default workshop AMS slots configuration.
+ * Represents physical multi-material AMS slots available for multi-color 3MF jobs.
+ */
+export const DEFAULT_AMS_SLOTS: AmsSlotConfig[] = [
+  {
+    slotNumber: 1,
+    materialId: 'petg',
+    materialType: 'PETG',
+    colorName: 'Carbon Black',
+    colorHex: '#0F172A',
+    active: true,
+  },
+  {
+    slotNumber: 2,
+    materialId: 'petg',
+    materialType: 'PETG',
+    colorName: 'Clear White',
+    colorHex: '#F1F5F9',
+    active: true,
+  },
+  {
+    slotNumber: 3,
+    materialId: 'petg',
+    materialType: 'PETG',
+    colorName: 'Fire Red',
+    colorHex: '#DC2626',
+    active: true,
+  },
+  {
+    slotNumber: 4,
+    materialId: 'petg',
+    materialType: 'PETG',
+    colorName: 'Ocean Blue',
+    colorHex: '#0284C7',
+    active: true,
+  },
+];
+
+
