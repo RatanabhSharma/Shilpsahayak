@@ -73,7 +73,7 @@ app = FastAPI(title="Shilp Studio Slicing Service", version="3.0.0")
 # list in production instead of relying on the wildcard default.
 _allowed_origins_env = os.environ.get("ALLOWED_ORIGINS", "*").strip()
 ALLOWED_ORIGINS = (
-    ["*"] if _allowed_origins_env == "*"
+    [] if _allowed_origins_env == "*"
     else [o.strip() for o in _allowed_origins_env.split(",") if o.strip()]
 )
 

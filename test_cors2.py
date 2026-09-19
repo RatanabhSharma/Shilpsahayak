@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[], # NO WILDCARD!
     allow_origin_regex=r"https://.*\.(vercel\.app|onrender\.com)|http://localhost:[0-9]+",
     allow_credentials=True,
     allow_methods=["*"],
