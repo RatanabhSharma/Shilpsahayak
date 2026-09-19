@@ -1,17 +1,19 @@
 # Shilp Studio Slicing Service — production image for Render
-#
-# This Dockerfile fully bundles the Bambu Studio and PrusaSlicer AppImages,
-# extracts them, and sets up a virtual framebuffer (Xvfb) so the headless
-# CLI slicing engines can safely initialize their GTK/WebKit dependencies
-# on a purely headless server environment like Render.
+# Using Ubuntu 22.04 (Jammy) because Bambu Studio AppImage natively expects
+# its glibc and libwebkit2gtk-4.0 versions.
 
-FROM python:3.11-slim-bullseye
+FROM ubuntu:22.04
+
+# Prevent interactive prompts (like timezone selection) during apt-get install
+ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /app
 
-# Install system dependencies for AppImages, GTK, OpenGL, and Xvfb
-# (Bullseye specifically includes libwebkit2gtk-4.0-37 which Bambu Studio needs)
-RUN apt-get update && apt-get install -y --no-install-recommends --fix-missing \
+# Install system dependencies for AppImages, GTK, OpenGL, and Python
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-venv \
     wget \
     ca-certificates \
     libglib2.0-0 \
@@ -43,10 +45,13 @@ RUN cd /opt/slicers && \
     rm prusa.AppImage && \
     ln -s /opt/slicers/prusa-slicer/AppRun /usr/local/bin/prusa-slicer
 
+# Setup virtual environment so pip doesn't complain about system-managed Python
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir --break-system-packages -r requirements.txt || \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy only what the service needs at runtime
 COPY app ./app
