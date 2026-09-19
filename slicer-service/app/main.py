@@ -470,22 +470,25 @@ def process_slicing_job(job_id: str, file_path: str, params: Dict[str, Any]):
             JOBS[job_id]["workshop_review_available"] = True
             return
         params["printer_profile_path"] = production_profile.get("profilePath")
-        active_envelope = read_profile_envelope(production_profile.get("profilePath", ""))
-        # If active_envelope is missing x, y, or z, populate from authoritative buildVolumeX/Y/Z
+        # Populate active_envelope from authoritative buildVolumeX/Y/Z in the DB
         bvx = production_profile.get("buildVolumeX")
         bvy = production_profile.get("buildVolumeY")
         bvz = production_profile.get("buildVolumeZ")
-        if not active_envelope or not all(k in active_envelope for k in ("x", "y", "z")):
-            if (
-                isinstance(bvx, (int, float)) and bvx > 0
-                and isinstance(bvy, (int, float)) and bvy > 0
-                and isinstance(bvz, (int, float)) and bvz > 0
-            ):
-                active_envelope = {
-                    "x": float(active_envelope.get("x") or bvx),
-                    "y": float(active_envelope.get("y") or bvy),
-                    "z": float(active_envelope.get("z") or bvz),
-                }
+        
+        if (
+            isinstance(bvx, (int, float)) and bvx > 0
+            and isinstance(bvy, (int, float)) and bvy > 0
+            and isinstance(bvz, (int, float)) and bvz > 0
+        ):
+            active_envelope = {
+                "x": float(bvx),
+                "y": float(bvy),
+                "z": float(bvz),
+            }
+        else:
+            active_envelope = read_profile_envelope(production_profile.get("profilePath", ""))
+            if not active_envelope or not all(k in active_envelope for k in ("x", "y", "z")):
+                active_envelope = {"x": 256.0, "y": 256.0, "z": 256.0}
 
         params["active_envelope"] = active_envelope
         if not active_envelope or not all(k in active_envelope for k in ("x", "y", "z")):
