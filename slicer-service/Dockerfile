@@ -5,7 +5,7 @@
 # CLI slicing engines can safely initialize their GTK/WebKit dependencies
 # on a purely headless server environment like Render.
 
-FROM python:3.11-slim
+FROM python:3.11-slim-bullseye
 
 WORKDIR /app
 
