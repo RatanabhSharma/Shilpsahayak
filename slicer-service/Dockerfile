@@ -20,11 +20,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libegl1 \
     libosmesa6 \
     xvfb \
+    xauth \
     squashfs-tools \
     && rm -rf /var/lib/apt/lists/* || \
     # Fallback to 4.1 if 4.0 is not available on this Debian point release
     apt-get update && apt-get install -y --no-install-recommends \
-    wget ca-certificates libglib2.0-0 libgtk-3-0 libwebkit2gtk-4.1-0 libgl1 libegl1 libosmesa6 xvfb squashfs-tools \
+    wget ca-certificates libglib2.0-0 libgtk-3-0 libwebkit2gtk-4.1-0 libgl1 libegl1 libosmesa6 xvfb xauth squashfs-tools \
     && rm -rf /var/lib/apt/lists/*
 
 # Download and extract Bambu Studio AppImage
