@@ -10,7 +10,8 @@ FROM python:3.11-slim-bullseye
 WORKDIR /app
 
 # Install system dependencies for AppImages, GTK, OpenGL, and Xvfb
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# (Bullseye specifically includes libwebkit2gtk-4.0-37 which Bambu Studio needs)
+RUN apt-get update && apt-get install -y --no-install-recommends --fix-missing \
     wget \
     ca-certificates \
     libglib2.0-0 \
@@ -22,10 +23,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xvfb \
     xauth \
     squashfs-tools \
-    && rm -rf /var/lib/apt/lists/* || \
-    # Fallback to 4.1 if 4.0 is not available on this Debian point release
-    apt-get update && apt-get install -y --no-install-recommends \
-    wget ca-certificates libglib2.0-0 libgtk-3-0 libwebkit2gtk-4.1-0 libgl1 libegl1 libosmesa6 xvfb xauth squashfs-tools \
     && rm -rf /var/lib/apt/lists/*
 
 # Download and extract Bambu Studio AppImage
