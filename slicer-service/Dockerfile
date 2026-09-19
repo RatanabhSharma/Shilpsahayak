@@ -29,7 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Download and extract Bambu Studio AppImage
 RUN mkdir -p /opt/slicers && cd /opt/slicers && \
-    wget -qO bambu.AppImage "https://github.com/bambulab/BambuStudio/releases/download/v01.09.01.66/Bambu_Studio_linux_ubuntu_v01.09.01.66.AppImage" && \
+    wget -qO bambu.AppImage "https://github.com/bambulab/BambuStudio/releases/download/v01.09.01.66/Bambu_Studio_linux_ubuntu-v01.09.01.66.AppImage" && \
     chmod +x bambu.AppImage && \
     ./bambu.AppImage --appimage-extract && \
     mv squashfs-root bambu-studio && \
