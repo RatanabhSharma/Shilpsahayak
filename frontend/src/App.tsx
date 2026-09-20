@@ -37,6 +37,7 @@ import { Inventory } from './pages/admin/Inventory';
 import { Customers } from './pages/admin/Customers';
 import { Settings } from './pages/admin/Settings';
 import { AdminHome } from './pages/admin/AdminHome';
+import { Reviews } from './pages/admin/Reviews';
 
 export function App() {
   return (
@@ -98,6 +99,7 @@ export function App() {
           <Route path="orders" element={<Orders />} />
           <Route path="orders/:id" element={<OrderDetail />} />
           <Route path="quotes" element={<Quotes />} />
+          <Route path="reviews" element={<Reviews />} />
           <Route path="catalog" element={<AdminCatalog />} />
           <Route path="inventory" element={<Inventory />} />
           <Route path="customers" element={<Customers />} />

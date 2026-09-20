@@ -4,30 +4,26 @@ import { X, ShoppingBag, Trash2, Plus, Minus, ArrowRight, ShieldCheck, Truck } f
 import { useStore, getCartItemId } from '../store';
 
 export function CartDrawer() {
-  const { isCartOpen, closeCart, cart, removeFromCart, updateCartQuantity, settings } = useStore();
+  const { isCartOpen, closeCart, cart, removeFromCart, updateCartQuantity, settings, setPurchaseMode } = useStore();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isCartOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeCart();
     };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    if (isCartOpen) window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
   }, [isCartOpen, closeCart]);
 
   if (!isCartOpen) return null;
 
-  const subtotal = cart.reduce((sum, item) => {
-    const itemPrice = item.customPrint?.customPrice ?? item.product.price;
-    return sum + itemPrice * item.quantity;
-  }, 0);
-
-  const freeThreshold = settings.freeShippingThreshold || 499;
+  const subtotal = cart.reduce((sum, item) => sum + (item.customPrint?.customPrice ?? item.product.price) * item.quantity, 0);
+  const freeThreshold = settings?.freeShippingThreshold || 0;
   const freeProgress = Math.min(100, (subtotal / freeThreshold) * 100);
   const remainingForFree = Math.max(0, freeThreshold - subtotal);
 
   const handleCheckout = () => {
+    setPurchaseMode('cart');
     closeCart();
     navigate('/checkout');
   };

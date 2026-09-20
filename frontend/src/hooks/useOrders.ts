@@ -441,6 +441,8 @@ export function useCreateOrder() {
 
         date: dateNow,
 
+        productIds: orderData.items?.map(i => i.productId) || [],
+
         status: (orderData as any).status || ('Pending' as OrderStatus),
 
         paymentStatus: (orderData as any).paymentStatus || ('Pending' as PaymentStatus),

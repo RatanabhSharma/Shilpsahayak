@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -79,9 +79,14 @@ export function Checkout() {
   const { data: profile, isLoading: profileLoading } = useUserProfile();
   const { data: settings } = useSettings();
   const navigate = useNavigate();
-
-  const cart = useStore((state) => state.cart);
+  const purchaseMode = useStore((state) => state.purchaseMode);
+  const buyNowItem = useStore((state) => state.buyNowItem);
+  const storeCart = useStore((state) => state.cart);
+  const cart = purchaseMode === 'buy_now' && buyNowItem ? [buyNowItem] : storeCart;
+  
   const clearCart = useStore((state) => state.clearCart);
+  const clearBuyNowItem = useStore((state) => state.clearBuyNowItem);
+  const setPurchaseMode = useStore((state) => state.setPurchaseMode);
   const createOrder = useCreateOrder();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -288,6 +293,8 @@ export function Checkout() {
       address: formattedAddress,
       shippingAddress,
       items,
+      subtotal,
+      shipping,
       total,
       notes,
     };
@@ -308,7 +315,14 @@ export function Checkout() {
     try {
       const newOrder = await createOrder.mutateAsync(orderDataToPlace);
       setOrderId(newOrder.id);
-      clearCart();
+      
+      if (purchaseMode === 'buy_now') {
+        clearBuyNowItem();
+        setPurchaseMode('cart');
+      } else {
+        clearCart();
+      }
+      
       setIsSuccess(true);
     } catch (error) {
       console.error('Failed to place order:', error);

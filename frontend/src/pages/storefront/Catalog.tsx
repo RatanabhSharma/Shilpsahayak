@@ -782,7 +782,7 @@ export function Catalog() {
       </style>
 
       {/* Page Header */}
-      <section className="border-b border-line bg-white">
+      <section className="border-b border-line">
         <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8 lg:px-10 lg:py-12">
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
             <div>
@@ -886,7 +886,7 @@ export function Catalog() {
                 <Select
                   value={sortParam}
                   onChange={handleSortChange}
-                  className="w-full sm:w-[190px] bg-white font-medium"
+                  className="w-full sm:w-[190px] font-medium"
                   options={[
                     { value: 'featured', label: 'Featured First' },
                     { value: 'newest', label: 'Newest Arrivals' },

@@ -475,7 +475,7 @@ export function Home() {
   });
 
   return (
-    <div className="bg-[#F0F4F8] text-ink selection:bg-accent-soft selection:text-accent w-full min-h-screen overflow-x-hidden">
+    <div className="bg-[#F0F4F8] text-ink selection:bg-accent-soft selection:text-accent w-full min-h-screen overflow-x-clip">
       {/* =====================================================
           1. CINEMATIC FULL-BLEED VIDEO HERO WITH PARALLAX SCROLL
       ====================================================== */}

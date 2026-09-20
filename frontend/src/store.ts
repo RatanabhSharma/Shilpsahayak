@@ -49,6 +49,8 @@ export type Product = {
   active?: boolean;
   hasVariants?: boolean;
   variants?: ProductVariant[];
+  averageRating?: number;
+  reviewCount?: number;
 };
 
 /* -------------------------------------------------------------------------- */
@@ -134,9 +136,12 @@ export type Order = {
 
   items: CartItem[];
 
+  subtotal?: number;
+  shipping?: number;
   total: number;
 
   status: OrderStatus;
+  paymentStatus?: 'Pending' | 'Paid' | 'Failed' | 'Refunded'; // Added for future Razorpay integration
 };
 
 /* -------------------------------------------------------------------------- */
@@ -250,6 +255,12 @@ interface StoreState {
   isCartOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
+
+  purchaseMode: 'cart' | 'buy_now';
+  setPurchaseMode: (mode: 'cart' | 'buy_now') => void;
+  buyNowItem: CartItem | null;
+  setBuyNowItem: (item: CartItem) => void;
+  clearBuyNowItem: () => void;
 
   orders: Order[];
 
@@ -384,12 +395,18 @@ export const useStore =
         products: [],
 
         cart: [],
-
-        isCartOpen: false,
-        openCart: () => set({ isCartOpen: true }),
-        closeCart: () => set({ isCartOpen: false }),
-
-        orders: [],
+  
+          isCartOpen: false,
+          openCart: () => set({ isCartOpen: true }),
+          closeCart: () => set({ isCartOpen: false }),
+          
+          purchaseMode: 'cart',
+          setPurchaseMode: (mode) => set({ purchaseMode: mode }),
+          buyNowItem: null,
+          setBuyNowItem: (item) => set({ buyNowItem: item }),
+          clearBuyNowItem: () => set({ buyNowItem: null }),
+  
+          orders: [],
 
         quotes: [],
 
@@ -738,7 +755,9 @@ export const useStore =
          */
         partialize: (state) => ({
           cart: state.cart,
-          settings: state.settings
+          settings: state.settings,
+          purchaseMode: state.purchaseMode,
+          buyNowItem: state.buyNowItem
         })
       }
     )

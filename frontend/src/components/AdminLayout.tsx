@@ -14,6 +14,7 @@ import {
   ExternalLink,
   Layers,
   ChevronDown,
+  Star,
 } from 'lucide-react';
 import { BrandLogo } from './ui';
 import { auth } from '../lib/firebase';
@@ -61,12 +62,17 @@ export function AdminLayout() {
       icon: FileText,
     },
     {
-      name: 'Product Catalogue',
+      name: 'Catalog',
       path: '/admin/catalog',
       icon: Package,
     },
     {
-      name: 'Product Inventory',
+      name: 'Reviews',
+      path: '/admin/reviews',
+      icon: Star,
+    },
+    {
+      name: 'Inventory',
       path: '/admin/inventory',
       icon: Layers,
     },

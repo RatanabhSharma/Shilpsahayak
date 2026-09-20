@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   ShoppingCart,
   Sparkles,
+  Star,
   Truck,
   CheckCircle2,
   Layers,
@@ -47,6 +48,7 @@ import {
   Input,
 } from '../../components/ui';
 import { ProductCard } from '../../components/product/ProductCard';
+import { ProductReviewsSection } from '../../components/product/ProductReviewsSection';
 import { ProductDetailSkeleton } from '../../components/loading/ProductSkeleton';
 
 export function ProductDetail() {
@@ -66,6 +68,8 @@ export function ProductDetail() {
 
   const addToCart = useStore((state) => state.addToCart);
   const openCart = useStore((state) => state.openCart);
+  const setPurchaseMode = useStore((state) => state.setPurchaseMode);
+  const setBuyNowItem = useStore((state) => state.setBuyNowItem);
 
   const product = products.find((item) => item.id === id);
 
@@ -314,19 +318,20 @@ export function ProductDetail() {
       customPrice: currentPrice,
     } : undefined;
 
-    addToCart(
-      {
+    setPurchaseMode('buy_now');
+    setBuyNowItem({
+      product: {
         ...product,
         price: currentPrice,
         stock: currentStock,
         image: activeImage || product.image,
       },
       quantity,
-      (product.isCustomizable && showCustomText) ? customNotes || undefined : undefined,
-      selectedVariant?.label,
-      selectedVariant?.id,
-      customPrintData
-    );
+      customNotes: (product.isCustomizable && showCustomText) ? customNotes || undefined : undefined,
+      variantLabel: selectedVariant?.label,
+      variantId: selectedVariant?.id,
+      customPrint: customPrintData,
+    });
 
     navigate('/checkout');
   };
@@ -545,6 +550,16 @@ export function ProductDetail() {
                 <h1 className="mt-4 font-display text-3xl font-bold tracking-tight sm:text-4xl text-ink">
                   {product.name}
                 </h1>
+
+                {/* Reviews */}
+                <div className="mt-3 flex items-center gap-2">
+                  <div className="flex text-amber-400">
+                    <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  </div>
+                  <span className="font-mono text-sm font-bold text-ink">
+                    {product.reviewCount ? `${(product.averageRating || 0).toFixed(1)} (${product.reviewCount} reviews)` : 'No reviews yet'}
+                  </span>
+                </div>
 
                 {/* Price Display */}
                 <div className="mt-5 flex flex-col gap-2 border-y border-line py-4">
@@ -1029,6 +1044,13 @@ export function ProductDetail() {
           </div>
         </div>
       </main>
+
+      {/* Customer Reviews Section */}
+      <ProductReviewsSection 
+        productId={product.id} 
+        averageRating={product.averageRating} 
+        reviewCount={product.reviewCount} 
+      />
 
       {/* Related Products Section */}
       {relatedProducts.length > 0 && (

@@ -60,18 +60,27 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
 
   const displayImage = isHovered ? secondaryImage : primaryImage;
 
+  const cart = useStore((state) => state.cart);
+  const cartItem = cart.find((item) => item.product.id === product.id);
+  const cartQuantity = cartItem ? cartItem.quantity : 0;
+
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     addToCart(product, 1);
-    openCart();
   };
 
   const handleBuyNow = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addToCart(product, 1);
-    navigate('/checkout');
+    
+    // Direct checkout item formatted like a CartItem
+    const buyNowItem = {
+      product,
+      quantity: 1
+    };
+    
+    navigate('/checkout', { state: { buyNowItem } });
   };
 
   return (
@@ -128,8 +137,14 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
                   {product.category || 'Precision 3D'}
                 </span>
                 <div className="flex items-center gap-0.5 text-amber-500 shrink-0">
-                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                  <span className="font-mono text-[10px] font-bold">4.9</span>
+                  {product.reviewCount ? (
+                    <>
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      <span className="font-mono text-[10px] font-bold">{product.averageRating?.toFixed(1) || '0.0'} ({product.reviewCount})</span>
+                    </>
+                  ) : (
+                    <span className="font-mono text-[10px] font-bold text-muted">No reviews</span>
+                  )}
                 </div>
               </div>
               <h3 className="font-display text-sm font-bold text-ink line-clamp-1 group-hover/card:text-accent transition-colors">
@@ -156,10 +171,10 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
                   type="button"
                   onClick={handleQuickAdd}
                   className="flex items-center justify-center gap-1 h-8 rounded-lg border border-line bg-shell/80 font-sans text-xs font-semibold text-ink hover:bg-ink hover:text-white hover:border-ink active:scale-95 transition-all duration-150 cursor-pointer"
-                  title="Add to cart"
+                  title={cartQuantity > 0 ? 'Increase quantity' : 'Add to cart'}
                 >
                   <ShoppingBag className="w-3.5 h-3.5" />
-                  <span>Add</span>
+                  <span>{cartQuantity > 0 ? `IN CART · ${cartQuantity}` : 'ADD TO CART'}</span>
                 </button>
                 <button
                   type="button"
@@ -168,7 +183,7 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
                   title="Buy now"
                 >
                   <Zap className="w-3.5 h-3.5 fill-white" />
-                  <span>Buy</span>
+                  <span>BUY NOW</span>
                 </button>
               </div>
             </div>
