@@ -20,3 +20,4 @@ These values were NOT accepted as accurate production results. The discrepancy c
 3. **Verified Benchmarking:** Test suites must execute CLI output on standard calibration models (e.g., Benchy, Dragon) and verify the resulting `[g]` and `[time]` variables are within a 5% margin of the GUI equivalent.
 
 Until these conditions are met, the custom printing flow enforces a `MANUAL_REVIEW` (Engineer Review Required) state, where users can upload files and request a human-verified quote.
+

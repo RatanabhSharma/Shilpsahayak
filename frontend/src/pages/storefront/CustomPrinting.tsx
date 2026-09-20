@@ -35,9 +35,7 @@ import { parse3DModel } from '../../services/model/modelParser';
 import { ParsedModelResult, ColorReplacement, ProductionColorMapping, DetectedColor } from '../../services/model/modelTypes';
 import { globalGeometryCache } from '../../services/model/sceneBuilder';
 import { ThreeModelViewer } from '../../components/custom-printing/ThreeModelViewer';
-import {
-  formatINR,
-} from '../../services/pricing/pricingUtils';
+import { formatINR } from '../../services/pricing/pricingUtils';
 import { calculateCustomerQuote } from '../../services/pricing/calculateQuote';
 import { DEFAULT_QUANTITY_DISCOUNTS } from '../../services/pricing/pricingConfig';
 import type { QuoteSnapshot } from '../../services/pricing/pricingTypes';
@@ -46,7 +44,8 @@ import { useStore } from '../../store';
 import { useAuth } from '../../hooks/useAuth';
 import { upload3DFile } from '../../utils/uploadFile';
 import { useSubmitQuote } from '../../hooks/useQuotes';
-import { executeSlicingJob, fetchActiveProfileEnvelope, SlicingSuccessResult, inspectModelFile, ColorAnalysis, UniversalModelAnalysis } from '../../services/slicing/slicingClient';
+import { SlicingSuccessResult, ColorAnalysis, UniversalModelAnalysis } from '../../services/slicing/slicingClient';
+import { sendManualQuoteReceivedNotification } from '../../services/emailNotifications';
 
 
 export type StudioTab = 'upload' | 'configure' | 'estimate';
@@ -324,11 +323,7 @@ export function CustomPrinting() {
 
 
 
-  useEffect(() => {
-    fetchActiveProfileEnvelope().then((env) => {
-      if (env) setBackendActiveEnvelope(env);
-    });
-  }, []);
+
 
   // Model Sizing & Scale State
   const [sizeMode, setSizeMode] = useState<SizeMode>('original');
@@ -964,34 +959,7 @@ export function CustomPrinting() {
     setSlicingStageMessage('');
 
     // Backend deep inspection (classification & Bambu/Orca color_analysis)
-    inspectModelFile(primaryFile, primaryFile.name)
-      .then((insp) => {
-        if (insp.success && insp.modelAnalysis) {
-          setModelInspection(insp.modelAnalysis);
-        }
-        if (insp.success && insp.colorAnalysis) {
-          setColorAnalysis(insp.colorAnalysis);
-          if (insp.colorAnalysis.isMultiColor && insp.colorAnalysis.colors) {
-            const analysisColors = insp.colorAnalysis.colors;
-            setColorReplacements((prev) => {
-              const base = createDefaultProductionMapping(analysisColors, activeMaterials, activeMaterial);
-              for (const [k, v] of Object.entries(prev)) {
-                const numKey = Number(k);
-                if (base[numKey] && v.productionHex !== v.originalHex) {
-                  base[numKey] = {
-                    ...base[numKey],
-                    productionHex: v.productionHex,
-                  };
-                }
-              }
-              return base;
-            });
-          }
-        }
-      })
-      .catch((err) => {
-        console.warn('Backend model inspection deferred:', err);
-      });
+    
 
     // Brief upload simulation for UI feedback
     await new Promise((r) => setTimeout(r, 200));
@@ -1372,7 +1340,7 @@ export function CustomPrinting() {
         .filter(Boolean)
         .join('\n');
 
-      await submitQuoteMutation.mutateAsync({
+      const quoteRef = await submitQuoteMutation.mutateAsync({
         requestType: '3d-model',
         customerName,
         customerEmail,
@@ -1404,6 +1372,15 @@ export function CustomPrinting() {
         notes: customerNotesWithPresets || undefined,
         pricingVersion: pricingData.pricingVersion,
       });
+
+      // Non-blocking confirmation email via existing Firestore mail queue
+      sendManualQuoteReceivedNotification({
+        requestId: quoteRef.id,
+        customerEmail,
+        customerName,
+        fileName: file.name,
+        notes: customerNotes.trim() || undefined,
+      }).catch((err) => console.warn('[Email] Confirmation email failed (non-fatal):', err));
 
       setIsSubmitting(false);
       setUploadProgress(null);
@@ -3395,6 +3372,141 @@ export function CustomPrinting() {
         }}
         className="hidden"
       />
+
+      {/* ================================================================ */}
+      {/* Quote Request Modal                                              */}
+      {/* ================================================================ */}
+      {showQuoteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-line dark:border-slate-800">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-line dark:border-slate-800 flex items-center justify-between">
+              <div>
+                <h2 className="font-display font-bold text-lg text-ink dark:text-white">Request Engineer Quote</h2>
+                <p className="text-xs text-muted dark:text-slate-400 mt-0.5">We'll review your model and respond within 48 hours.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowQuoteModal(false)}
+                className="p-1.5 rounded-lg hover:bg-shell dark:hover:bg-slate-800 text-muted hover:text-ink dark:hover:text-white cursor-pointer transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmitQuote} className="p-6 space-y-4">
+              {/* Name + Email — only needed when user is not authenticated */}
+              {!user && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                      Your Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={guestName}
+                      onChange={(e) => setGuestName(e.target.value)}
+                      required
+                      placeholder="Full Name"
+                      className="w-full px-3 py-2 border border-line dark:border-slate-700 rounded-lg bg-shell dark:bg-slate-800 text-sm text-ink dark:text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                      Email <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={guestEmail}
+                      onChange={(e) => setGuestEmail(e.target.value)}
+                      required
+                      placeholder="you@example.com"
+                      className="w-full px-3 py-2 border border-line dark:border-slate-700 rounded-lg bg-shell dark:bg-slate-800 text-sm text-ink dark:text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Authenticated user info (read-only reminder) */}
+              {user && (
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                    Signed in as <span className="font-semibold">{user.email}</span>. Quote confirmation will be sent here.
+                  </p>
+                </div>
+              )}
+
+              {/* Phone */}
+              <div>
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                  Phone Number <span className="text-muted font-normal">(optional)</span>
+                </label>
+                <input
+                  type="tel"
+                  value={guestPhone}
+                  onChange={(e) => setGuestPhone(e.target.value)}
+                  placeholder="+91 98765 43210"
+                  className="w-full px-3 py-2 border border-line dark:border-slate-700 rounded-lg bg-shell dark:bg-slate-800 text-sm text-ink dark:text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                  Additional Notes <span className="text-muted font-normal">(optional)</span>
+                </label>
+                <textarea
+                  value={customerNotes}
+                  onChange={(e) => setCustomerNotes(e.target.value)}
+                  rows={3}
+                  placeholder="Special requirements, material preferences, deadline, quantity..."
+                  className="w-full px-3 py-2 border border-line dark:border-slate-700 rounded-lg bg-shell dark:bg-slate-800 text-sm text-ink dark:text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
+                />
+              </div>
+
+              {/* File info */}
+              {file && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-shell dark:bg-slate-800 border border-line dark:border-slate-700">
+                  <FileBox className="w-4 h-4 text-accent shrink-0" />
+                  <span className="text-xs text-muted truncate">{file.name}</span>
+                  <span className="ml-auto text-xs text-muted shrink-0">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="pt-2 flex items-center justify-end gap-3 border-t border-line dark:border-slate-800 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowQuoteModal(false)}
+                  className="px-4 py-2 font-mono text-xs font-bold text-muted hover:text-ink dark:hover:text-white cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 rounded-xl bg-accent hover:bg-amber-600 text-white font-mono text-sm font-bold uppercase tracking-wider shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      <span>Submit Request</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

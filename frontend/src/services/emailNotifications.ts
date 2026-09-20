@@ -394,3 +394,79 @@ export async function sendOrderCancelledNotification(params: {
   });
 }
 
+/* 5. Manual Quote Request Received (Customer Confirmation) */
+export async function sendManualQuoteReceivedNotification(params: {
+  requestId: string;
+  customerEmail: string;
+  customerName: string;
+  fileName?: string;
+  notes?: string;
+}): Promise<string> {
+  const { requestId, customerEmail, customerName, fileName, notes } = params;
+  if (!customerEmail) return '';
+
+  const shortId = requestId.slice(0, 8).toUpperCase();
+  const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://shilpsahayak.in';
+
+  const html = `
+    <div style="max-width: 600px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; border-radius: 12px; overflow: hidden; border: 1px solid #e7e5e4;">
+      ${EMAIL_HEADER}
+      <div style="padding: 32px 24px; background: #ffffff;">
+        <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 700; color: #1c1917;">
+          Quote Request Received ✓
+        </h2>
+        <p style="color: #44403c; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
+          Hi ${customerName},<br/><br/>
+          We have received your custom 3D printing quote request. Our engineering team will review your model and send you a detailed quotation within <strong>48 hours</strong>.
+        </p>
+
+        <div style="background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 10px; padding: 20px; margin: 0 0 24px 0;">
+          <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #78716c; font-family: monospace;">Request Summary</p>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 6px 0; font-size: 13px; color: #78716c; width: 140px;">Request ID</td>
+              <td style="padding: 6px 0; font-size: 13px; font-weight: 700; color: #1c1917; font-family: monospace;">#${shortId}</td>
+            </tr>
+            ${fileName ? `<tr>
+              <td style="padding: 6px 0; font-size: 13px; color: #78716c;">File</td>
+              <td style="padding: 6px 0; font-size: 13px; color: #1c1917;">${fileName}</td>
+            </tr>` : ''}
+            ${notes ? `<tr>
+              <td style="padding: 6px 0; font-size: 13px; color: #78716c; vertical-align: top;">Notes</td>
+              <td style="padding: 6px 0; font-size: 13px; color: #1c1917;">${notes}</td>
+            </tr>` : ''}
+          </table>
+        </div>
+
+        <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 16px; margin: 0 0 24px 0;">
+          <p style="margin: 0; font-size: 13px; color: #9a3412; line-height: 1.5;">
+            <strong>What happens next?</strong><br/>
+            Our engineers will inspect your model, check print feasibility, select the best material and printer profile, and send you a verified price breakdown via email.
+          </p>
+        </div>
+
+        <div style="text-align: center;">
+          <a href="${siteUrl}/account" style="display: inline-block; background: #ff4d00; color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-family: monospace; letter-spacing: 0.5px; text-transform: uppercase;">
+            View My Requests
+          </a>
+        </div>
+      </div>
+      ${EMAIL_FOOTER}
+    </div>
+  `;
+
+  try {
+    return await queueEmailNotification({
+      to: customerEmail,
+      subject: `Quote Request #${shortId} Received — Shilp Sahayak`,
+      html,
+      text: `Hi ${customerName}, we received your custom 3D printing quote request #${shortId}. Our engineering team will review your model and send you a quote within 48 hours. Visit ${siteUrl}/account to track your request.`,
+      type: 'quote_ready',
+      metadata: { requestId, fileName },
+    });
+  } catch (err) {
+    console.warn('[EmailNotification] Manual quote confirmation email failed (non-fatal):', err);
+    return '';
+  }
+}
+
