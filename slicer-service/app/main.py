@@ -12,6 +12,7 @@ FastAPI service exposing:
 """
 
 import os
+import hashlib
 import uuid
 import time
 import json
@@ -19,30 +20,29 @@ import shutil
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks, Query
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks  # pyright: ignore[reportMissingImports]
+from fastapi.middleware.cors import CORSMiddleware  # pyright: ignore[reportMissingImports]
+from pydantic import BaseModel  # pyright: ignore[reportMissingImports]
+from app.firebase_setup import get_pricing_config
 
-from app.file_inspector import inspect_file, ModelClassification
-from app.mesh_validator import validate_mesh, MeshRepairStatus
+from app.file_inspector import inspect_file
+from app.mesh_validator import MeshRepairStatus
 from app.archive_handler import inspect_and_extract_archive, ArchiveSecurityError
 from app.slice_core import (
     find_prusaslicer_executable,
-    get_model_info,
     read_profile_envelope,
     get_effective_model_dimensions,
 )
 from app.slice_worker import execute_bounded_slice, compute_file_sha256
 from app.pricing_engine import calculate_authoritative_quote, compute_job_config_hash, compute_production_profile_hash
-from app.slicer_router import decide_route, SlicerRoute, RouteReasonCode
+from app.slicer_router import decide_route, SlicerRoute
 from app.slicer_adapters.bambu_adapter import execute_bambu_slice, find_bambu_resource_file
-from app.quote_store import quote_store, QuoteStatus, PaymentStatus, ProductionStatus
+from app.quote_store import quote_store, QuoteStatus
 from app.payment_engine import payment_engine
 from app.slicer_result_validator import validate_slicer_result
 from app.printer_eligibility import (
     resolve_eligible_production_printer,
     filter_valid_profiles,
-    EligibilityReasonCode,
 )
 
 class JobIdFilter(logging.Filter):
@@ -233,9 +233,6 @@ def lightweight_health_check():
 
 @app.get("/api/health")
 def health_check():
-    slicer_exe = find_prusaslicer_executable()
-    std_profile = os.path.join(PROFILES_DIR, "bambu_production_standard.ini")
-    envelope = read_profile_envelope(std_profile) if os.path.exists(std_profile) else {"x": 256.0, "y": 256.0, "z": 200.0}
     return {
         "status": "healthy"
         
@@ -273,6 +270,28 @@ def process_slicing_job(job_id: str, file_path: str, params: Dict[str, Any]):
                 JOBS[job_id]["workshop_review_available"] = True
                 quote_store.add_manual_review(job_id, ase.code, {"file": file_path, "error": ase.message})
                 return
+
+        # Calculate a deterministic MODEL identity hash from the extracted primary OBJ 
+        # and any required associated assets (like .mtl or textures).
+        try:
+            m_hasher = hashlib.sha256()
+            with open(active_slice_file, "rb") as mf:
+                m_hasher.update(mf.read())
+            
+            assets = JOBS[job_id].get("archiveMetadata", {}).get("assets", [])
+            for asset in sorted(assets):
+                if os.path.exists(asset):
+                    with open(asset, "rb") as af:
+                        m_hasher.update(af.read())
+                        
+            model_identity_hash = m_hasher.hexdigest()
+        except Exception as e:
+            logger.error(f"Failed to compute model_identity_hash: {e}", extra=extra)
+            model_identity_hash = file_sha256
+            
+        params["model_identity_hash"] = model_identity_hash
+        params["archiveMetadata"] = JOBS[job_id].get("archiveMetadata", {})
+        logger.info(f"upload_sha256: {file_sha256} | model_identity_hash: {model_identity_hash}", extra=extra)
 
         # Step C: Deep file content inspection
         JOBS[job_id]["stage_message"] = "Analyzing model..."
@@ -318,16 +337,30 @@ def process_slicing_job(job_id: str, file_path: str, params: Dict[str, Any]):
             JOBS[job_id]["multicolor_detected"] = True
             JOBS[job_id]["color_analysis"] = route_decision.get("color_analysis") or color_analysis
 
-        # Step E: Require live admin pricing configuration
-        has_live_config = bool(params.get("pricingConfig") and params.get("materials"))
-        if not has_live_config:
-            JOBS[job_id]["status"] = JobStatus.FAILED
-            JOBS[job_id]["error"] = "Live pricing configuration unavailable from admin settings."
-            JOBS[job_id]["error_code"] = "PRICING_CONFIG_UNAVAILABLE"
-            JOBS[job_id]["can_retry"] = True
-            JOBS[job_id]["workshop_review_available"] = True
-            return
+            # Step E: Require live admin pricing configuration
+            # Step E: Load authoritative pricing configuration from Firestore.
+            # Never trust pricing/material configuration supplied by the frontend.
+            live_config = get_pricing_config(force_refresh=True)
 
+            live_config_data = live_config if isinstance(live_config, dict) else {}
+            live_pricing_config = live_config_data.get("pricingConfig")
+            live_materials = live_config_data.get("materials")
+
+            if not live_pricing_config or not live_materials:
+                JOBS[job_id]["status"] = JobStatus.FAILED
+                JOBS[job_id]["error"] = "Live pricing configuration unavailable from admin settings."
+                JOBS[job_id]["error_code"] = "PRICING_CONFIG_UNAVAILABLE"
+                JOBS[job_id]["can_retry"] = True
+                JOBS[job_id]["workshop_review_available"] = True
+                return
+
+            # Override any frontend-supplied pricing data with authoritative Firestore data.
+            params["pricingConfig"] = live_pricing_config
+            params["materials"] = _materials_list_to_dict(live_materials)
+            params["quantityDiscounts"] = live_config_data.get("quantityDiscounts")
+            params["productionPrinterProfile"] = live_config_data.get("productionPrinterProfile")
+            params["productionPrinterProfiles"] = live_config_data.get("productionPrinterProfiles")
+            params["pricingVersion"] = live_config_data.get("pricingVersion")
         # Step F: Automatic production printer eligibility resolution
         # ------------------------------------------------------------
         # The backend receives EITHER:
@@ -396,6 +429,7 @@ def process_slicing_job(job_id: str, file_path: str, params: Dict[str, Any]):
                 "reasonCode": eligibility.reason_code,
                 "reason": eligibility.reason,
                 "modelDimensions": effective_dims,
+                "selectedPrinter": eligibility.selected_profile,
             }
 
             if not eligibility.eligible:
@@ -420,6 +454,14 @@ def process_slicing_job(job_id: str, file_path: str, params: Dict[str, Any]):
                 return
 
             production_profile = eligibility.selected_profile
+            if not isinstance(production_profile, dict):
+                JOBS[job_id]["status"] = JobStatus.FAILED
+                JOBS[job_id]["error"] = "Eligibility resolver returned an invalid production printer profile."
+                JOBS[job_id]["error_code"] = "PRODUCTION_PRINTER_PROFILE_INVALID"
+                JOBS[job_id]["can_retry"] = True
+                JOBS[job_id]["workshop_review_available"] = True
+                return
+
             # Ensure profilePath is present for downstream slicing adapters
             if not production_profile.get("profilePath") and production_profile.get("printerProfileFile"):
                 profile_file = os.path.basename(str(production_profile["printerProfileFile"]))
@@ -665,9 +707,16 @@ def process_slicing_job(job_id: str, file_path: str, params: Dict[str, Any]):
         # Step H.2: Authoritative Slicer Result Validation Gate
         JOBS[job_id]["stage_message"] = "Validating slicer toolpath..."
         route_str = "multicolor" if route == SlicerRoute.MULTICOLOR else "single_material"
+        
+        logger.info(
+            f"Validation hashes - expected_model_identity_hash: {model_identity_hash} "
+            f"| verified_model_identity_hash: {slice_res.get('modelHash', 'MISSING')}", 
+            extra=extra
+        )
+        
         validation = validate_slicer_result(
             result=slice_res,
-            expected_model_hash=file_sha256,
+            expected_model_hash=model_identity_hash,
             expected_job_id=job_id,
             route=route_str,
             active_envelope=active_envelope,

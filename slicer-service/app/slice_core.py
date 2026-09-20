@@ -609,12 +609,14 @@ def run_slice_test(
 
             # Authoritative model hash
             model_hash = ""
-            if os.path.exists(model_path):
-                try:
-                    with open(model_path, "rb") as mf:
-                        model_hash = hashlib.sha256(mf.read()).hexdigest()
-                except Exception:
-                    pass
+            try:
+                m_hasher = hashlib.sha256()
+                with open(model_path, "rb") as mf:
+                    m_hasher.update(mf.read())
+                
+                model_hash = m_hasher.hexdigest()
+            except Exception:
+                pass
 
             per_filament = [
                 {

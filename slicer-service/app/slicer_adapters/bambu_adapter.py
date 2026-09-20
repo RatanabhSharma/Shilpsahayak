@@ -24,12 +24,15 @@ import os
 import re
 import sys
 import json
+import uuid
+import time
 import logging
 import shutil
-import hashlib
 import zipfile
+import hashlib
 import tempfile
 import subprocess
+import shlex
 import xml.etree.ElementTree as ET
 from typing import Dict, Any, List, Optional, Tuple
 
@@ -310,17 +313,6 @@ def configure_project_production_settings(
             applied["printer_profile_requested"] = printer_profile["printer_settings_id"]
             applied["printer_settings_id"] = cfg.get("printer_settings_id")
 
-        if production_profile:
-            for key, target_key in (
-                ("printerSettingsId", "printer_settings_id"),
-                ("model", "printer_model"),
-                ("nozzleDiameter", "nozzle_diameter"),
-            ):
-                value = production_profile.get(key)
-                if value is not None:
-                    cfg[target_key] = str(value)
-                    applied[target_key] = cfg[target_key]
-
         contents[cfg_name] = json.dumps(cfg, indent=2).encode("utf-8")
         with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as zout:
             for fn, data in contents.items():
@@ -592,10 +584,20 @@ class BambuSlicerAdapter:
         # Calculate authoritative model hash for provenance verification
         model_hash = ""
         try:
+            m_hasher = hashlib.sha256()
             with open(model_path, "rb") as mf:
-                model_hash = hashlib.sha256(mf.read()).hexdigest()
+                m_hasher.update(mf.read())
+            
+            assets = (production_params or {}).get("archiveMetadata", {}).get("assets", [])
+            for asset in sorted(assets):
+                if os.path.exists(asset):
+                    with open(asset, "rb") as af:
+                        m_hasher.update(af.read())
+            model_hash = m_hasher.hexdigest()
         except Exception:
             pass
+        if not isinstance(model_hash, str):
+            model_hash = ""
 
         job_id = (production_params or {}).get("job_id") or (production_params or {}).get("jobId") or ""
 
@@ -654,27 +656,62 @@ class BambuSlicerAdapter:
             filament_paths = [p for p in filament_paths if p]
             
             settings_to_load = [p for p in (machine_settings_path, process_settings_path) if p]
-            settings_to_load.extend(filament_paths)
 
             # Center the print based on active envelope
             center_x = active_envelope.get("x", 256) / 2
             center_y = active_envelope.get("y", 256) / 2
             
-            try:
-                from app.slicer_adapters.center_stl import center_stl
-                scale_factor = float((production_params or {}).get("scaleFactor", 1.0))
-                center_stl(working_copy, center_x, center_y, scale_factor)
-            except Exception as e:
-                logger.error(f"Failed to center STL: {e}")
+            # Only binary STL files can be processed by center_stl().
+            # 3MF files are ZIP-based slicer projects and must preserve their
+            # internal project geometry/placement metadata.
+            if os.path.splitext(working_copy)[1].lower() == ".stl":
+                try:
+                    from app.slicer_adapters.center_stl import center_stl
+                    scale_factor = float((production_params or {}).get("scaleFactor", 1.0))
+                    center_stl(working_copy, center_x, center_y, scale_factor)
+                except Exception as e:
+                    logger.error(
+                        f"Failed to center STL: {e}",
+                        extra={"job_id": job_id or "bambu"},
+                    )
+            elif os.path.splitext(working_copy)[1].lower() == ".3mf":
+                # GENERIC CONVERSION PATH
+                # Bambu Studio CLI fundamentally crashes when --load-settings is applied 
+                # to a foreign 3MF project. We must convert to OBJ.
+                obj_path = os.path.join(temp_dir, safe_basename + ".obj")
+                try:
+                    from app.slicer_adapters.convert_3mf import convert_3mf_to_obj
+                    convert_3mf_to_obj(working_copy, obj_path)
+                    working_copy = obj_path
+                    logger.info(
+                        "Safely converted customer 3MF to OBJ for generic slicing path.",
+                        extra={"job_id": job_id or "bambu"}
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Failed to convert 3MF to OBJ for generic path: {e}",
+                        extra={"job_id": job_id or "bambu"},
+                    )
             
             cmd = [
                 slicer_exe,
-                "--load-settings",
-                ";".join(settings_to_load),
                 "--slice", str(target_plate),
+                "--arrange", "1",
+                "--ensure-on-bed",
                 "--outputdir", temp_dir,
-                working_copy,
+                "--export-slicedata", temp_dir,
             ]
+            if settings_to_load:
+                cmd.extend(["--load-settings", ";".join(settings_to_load)])
+            if filament_paths:
+                cmd.extend(["--load-filaments", ";".join(filament_paths)])
+            cmd.append(working_copy)
+
+            cmd_str = shlex.join(cmd)
+            logger.info(
+                f"Bambu Studio CLI exact command:\n{cmd_str}",
+                extra={"job_id": job_id or "bambu"},
+            )
 
             machine_file = (production_params or {}).get("productionPrinterProfile", {}).get("machineProfileFile", "unknown")
             logger.info(
@@ -723,6 +760,24 @@ class BambuSlicerAdapter:
             if proc.returncode != 0:
                 err_msg = ((stderr or "") + " " + (stdout or "")).strip() or f"CLI returned code {proc.returncode}"
                 
+                # Retrieve result.json if it exists to log its contents
+                result_json_path = os.path.join(temp_dir, "result.json")
+                result_data_dump = ""
+                if os.path.exists(result_json_path):
+                    try:
+                        with open(result_json_path, "r", encoding="utf-8") as f:
+                            result_data_dump = f.read()
+                    except Exception:
+                        pass
+                
+                logger.error(
+                    f"Bambu Studio CLI Failed (Code {proc.returncode}).\n"
+                    f"STDOUT:\n{stdout}\n"
+                    f"STDERR:\n{stderr}\n"
+                    f"RESULT.JSON:\n{result_data_dump}",
+                    extra={"job_id": job_id or "bambu"}
+                )
+
                 user_msg = f"Bambu Studio error: {err_msg}"
                 if "no object is fully inside the print volume" in err_msg.lower() or "nothing to be sliced" in err_msg.lower():
                     user_msg = "The model is too large to fit in this printer's build volume when clearances, skirts, and supports are added. Please scale it down slightly (e.g. by 5-10%)."
