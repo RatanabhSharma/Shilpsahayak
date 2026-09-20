@@ -1,0 +1,2423 @@
+{
+  "d0129f41-85dd-4b12-adcf-d352daffb624": {
+    "jobId": "d0129f41-85dd-4b12-adcf-d352daffb624",
+    "reasonCode": "MANUAL_NON_MANIFOLD",
+    "details": {
+      "file": "/media/shaurya/LinuxDev/linux/Projects/react/Shilpsahayak/slicer-service/app/storage/d0129f41-85dd-4b12-adcf-d352daffb624_Ancient_Red_Dragon_True_Size.stl",
+      "reason": "Mesh is not a clean closed manifold; slicing may need repair or workshop review.",
+      "adapter": "none"
+    },
+    "timestamp": "2026-09-18T19:03:31.786044+00:00",
+    "resolved": false
+  },
+  "b7303947-c2f0-4d7f-b7c0-babf2c4f3975": {
+    "jobId": "b7303947-c2f0-4d7f-b7c0-babf2c4f3975",
+    "reasonCode": "MANUAL_NON_MANIFOLD",
+    "details": {
+      "file": "/media/shaurya/LinuxDev/linux/Projects/react/Shilpsahayak/slicer-service/app/storage/b7303947-c2f0-4d7f-b7c0-babf2c4f3975_Ancient_Red_Dragon_True_Size.stl",
+      "reason": "Mesh is not a clean closed manifold; slicing may need repair or workshop review.",
+      "adapter": "none"
+    },
+    "timestamp": "2026-09-18T19:04:46.703407+00:00",
+    "resolved": false
+  },
+  "da04c194-d9e9-42ac-a16c-c599eac0991e": {
+    "jobId": "da04c194-d9e9-42ac-a16c-c599eac0991e",
+    "reasonCode": "MANUAL_NON_MANIFOLD",
+    "details": {
+      "file": "/media/shaurya/LinuxDev/linux/Projects/react/Shilpsahayak/slicer-service/app/storage/da04c194-d9e9-42ac-a16c-c599eac0991e_Ancient_Red_Dragon_True_Size.stl",
+      "reason": "Mesh is not a clean closed manifold; slicing may need repair or workshop review.",
+      "adapter": "none"
+    },
+    "timestamp": "2026-09-18T19:08:54.887512+00:00",
+    "resolved": false
+  },
+  "53160a2f-7b54-4fcb-bf3c-0625147bdc6d": {
+    "jobId": "53160a2f-7b54-4fcb-bf3c-0625147bdc6d",
+    "reasonCode": "NO_ENABLED_PRODUCTION_PRINTERS",
+    "details": {
+      "reason": "No enabled production printer profiles are configured in Admin.",
+      "model_dimensions": {
+        "x": 126.2,
+        "y": 126.2,
+        "z": 2.08
+      },
+      "requires_multicolor": false,
+      "candidates_evaluated": 0
+    },
+    "timestamp": "2026-09-18T19:10:12.570256+00:00",
+    "resolved": false
+  },
+  "414df8b9-ced9-493c-bc4c-794fab313c1d": {
+    "jobId": "414df8b9-ced9-493c-bc4c-794fab313c1d",
+    "reasonCode": "MANUAL_NON_MANIFOLD",
+    "details": {
+      "file": "/media/shaurya/LinuxDev/linux/Projects/react/Shilpsahayak/slicer-service/app/storage/414df8b9-ced9-493c-bc4c-794fab313c1d_Red_Dragon_Updated_Face.stl",
+      "reason": "Mesh is not a clean closed manifold; slicing may need repair or workshop review.",
+      "adapter": "none"
+    },
+    "timestamp": "2026-09-18T19:10:30.207061+00:00",
+    "resolved": false
+  },
+  "bc759c4d-ae31-4baf-90d2-f8bd5c8c4c2e": {
+    "jobId": "bc759c4d-ae31-4baf-90d2-f8bd5c8c4c2e",
+    "reasonCode": "MANUAL_NON_MANIFOLD",
+    "details": {
+      "file": "/media/shaurya/LinuxDev/linux/Projects/react/Shilpsahayak/slicer-service/app/storage/bc759c4d-ae31-4baf-90d2-f8bd5c8c4c2e_Red_Dragon_Wyrmling.stl",
+      "reason": "Mesh is not a clean closed manifold; slicing may need repair or workshop review.",
+      "adapter": "none"
+    },
+    "timestamp": "2026-09-18T19:10:44.868776+00:00",
+    "resolved": false
+  },
+  "bb3af2e8-04b8-4179-a2f3-6739f032b5be": {
+    "jobId": "bb3af2e8-04b8-4179-a2f3-6739f032b5be",
+    "reasonCode": "MANUAL_NON_MANIFOLD",
+    "details": {
+      "file": "/media/shaurya/LinuxDev/linux/Projects/react/Shilpsahayak/slicer-service/app/storage/bb3af2e8-04b8-4179-a2f3-6739f032b5be_3dbenchy.stl",
+      "reason": "Mesh is not a clean closed manifold; slicing may need repair or workshop review.",
+      "adapter": "none"
+    },
+    "timestamp": "2026-09-18T19:14:30.497981+00:00",
+    "resolved": false
+  },
+  "8bd35ae0-1db8-47ee-b9b6-9149131ac21d": {
+    "jobId": "8bd35ae0-1db8-47ee-b9b6-9149131ac21d",
+    "reasonCode": "MANUAL_NON_MANIFOLD",
+    "details": {
+      "file": "/media/shaurya/LinuxDev/linux/Projects/react/Shilpsahayak/slicer-service/app/storage/8bd35ae0-1db8-47ee-b9b6-9149131ac21d_3dbenchy.stl",
+      "reason": "Mesh is not a clean closed manifold; slicing may need repair or workshop review.",
+      "adapter": "none"
+    },
+    "timestamp": "2026-09-18T19:17:46.297782+00:00",
+    "resolved": false
+  },
+  "6e3ccefc-0bae-44a8-8f66-73386276ce4b": {
+    "jobId": "6e3ccefc-0bae-44a8-8f66-73386276ce4b",
+    "reasonCode": "MANUAL_NON_MANIFOLD",
+    "details": {
+      "file": "/media/shaurya/LinuxDev/linux/Projects/react/Shilpsahayak/slicer-service/app/storage/6e3ccefc-0bae-44a8-8f66-73386276ce4b_3dbenchy.stl",
+      "reason": "Mesh is not a clean closed manifold; slicing may need repair or workshop review.",
+      "adapter": "none"
+    },
+    "timestamp": "2026-09-18T19:18:14.748269+00:00",
+    "resolved": false
+  },
+  "25f0832f-7bbd-4908-98a8-bc26bdd18ee8": {
+    "jobId": "25f0832f-7bbd-4908-98a8-bc26bdd18ee8",
+    "reasonCode": "NO_ENABLED_PRODUCTION_PRINTERS",
+    "details": {
+      "reason": "No enabled production printer profiles are configured in Admin.",
+      "model_dimensions": {
+        "x": 60.0,
+        "y": 31.0,
+        "z": 48.0
+      },
+      "requires_multicolor": false,
+      "candidates_evaluated": 0
+    },
+    "timestamp": "2026-09-18T19:23:42.113210+00:00",
+    "resolved": false
+  },
+  "f419101c-41ae-4c06-b157-a67cac1102e7": {
+    "jobId": "f419101c-41ae-4c06-b157-a67cac1102e7",
+    "reasonCode": "NO_ENABLED_PRODUCTION_PRINTERS",
+    "details": {
+      "reason": "No enabled production printer profiles are configured in Admin.",
+      "model_dimensions": {
+        "x": 60.0,
+        "y": 31.0,
+        "z": 48.0
+      },
+      "requires_multicolor": false,
+      "candidates_evaluated": 0
+    },
+    "timestamp": "2026-09-18T19:24:45.027686+00:00",
+    "resolved": false
+  },
+  "bb23f16b-4379-46c3-9907-94a119e0a22d": {
+    "jobId": "bb23f16b-4379-46c3-9907-94a119e0a22d",
+    "reasonCode": "NO_ENABLED_PRODUCTION_PRINTERS",
+    "details": {
+      "reason": "No enabled production printer profiles are configured in Admin.",
+      "model_dimensions": {
+        "x": 60.0,
+        "y": 31.0,
+        "z": 48.0
+      },
+      "requires_multicolor": false,
+      "candidates_evaluated": 0
+    },
+    "timestamp": "2026-09-18T19:24:58.439793+00:00",
+    "resolved": false
+  },
+  "5acc3916-c8ad-4e02-904c-0c58a5b4365a": {
+    "jobId": "5acc3916-c8ad-4e02-904c-0c58a5b4365a",
+    "reasonCode": "NO_ENABLED_PRODUCTION_PRINTERS",
+    "details": {
+      "reason": "No enabled production printer profiles are configured in Admin.",
+      "model_dimensions": {
+        "x": 60.0,
+        "y": 31.0,
+        "z": 48.0
+      },
+      "requires_multicolor": false,
+      "candidates_evaluated": 0
+    },
+    "timestamp": "2026-09-18T19:25:00.947300+00:00",
+    "resolved": false
+  },
+  "81ecea8e-6d2a-4e41-a0c0-055625ac5df3": {
+    "jobId": "81ecea8e-6d2a-4e41-a0c0-055625ac5df3",
+    "reasonCode": "SLICER_NOT_FOUND",
+    "details": {
+      "error": "Bambu Studio CLI executable not found on host."
+    },
+    "timestamp": "2026-09-18T19:38:56.273928+00:00",
+    "resolved": false
+  },
+  "c38c8a5c-2715-40ce-9a35-001b60b6a363": {
+    "jobId": "c38c8a5c-2715-40ce-9a35-001b60b6a363",
+    "reasonCode": "MISSING_ARTIFACT_REFERENCE",
+    "details": {
+      "error": "No durable slice artifact or reference recorded for auditability",
+      "validation_details": {},
+      "raw_slice_result": {
+        "success": true,
+        "universal_result": {
+          "adapter": "bambu_studio_cli",
+          "slicerName": "Bambu Studio",
+          "slicerVersion": "Mock",
+          "success": true,
+          "modelHash": "mock_hash",
+          "jobId": "mock_job_id",
+          "dimensions": {
+            "x": 60,
+            "y": 31,
+            "z": 48
+          },
+          "totalPrintTimeSeconds": 3600,
+          "totalCostGrams": 25.5,
+          "totalCostLengthMm": 5000,
+          "warningCount": 0,
+          "plateResults": [
+            {
+              "plateIndex": 0,
+              "printTimeSeconds": 3600,
+              "filamentStats": [
+                {
+                  "materialIndex": 0,
+                  "usedGrams": 25.5,
+                  "usedLengthMm": 5000
+                }
+              ],
+              "gcodeHash": "mock",
+              "gcodeSize": 1024
+            }
+          ],
+          "aggregatedFilamentStats": [
+            {
+              "materialIndex": 0,
+              "usedGrams": 25.5,
+              "usedLengthMm": 5000
+            }
+          ]
+        }
+      }
+    },
+    "timestamp": "2026-09-18T19:41:03.600783+00:00",
+    "resolved": false
+  },
+  "06594524-72ad-40d8-b0c0-4ead69ef9b05": {
+    "jobId": "06594524-72ad-40d8-b0c0-4ead69ef9b05",
+    "reasonCode": "MISSING_ARTIFACT_REFERENCE",
+    "details": {
+      "error": "No durable slice artifact or reference recorded for auditability",
+      "validation_details": {},
+      "raw_slice_result": {
+        "success": true,
+        "universal_result": {
+          "adapter": "bambu_studio_cli",
+          "slicerName": "Bambu Studio",
+          "slicerVersion": "Mock",
+          "success": true,
+          "modelHash": "mock_hash",
+          "jobId": "mock_job_id",
+          "dimensions": {
+            "x": 60,
+            "y": 31,
+            "z": 48
+          },
+          "totalPrintTimeSeconds": 3600,
+          "totalCostGrams": 25.5,
+          "totalCostLengthMm": 5000,
+          "warningCount": 0,
+          "artifact": {
+            "gcodeHash": "mocked_hash",
+            "gcodeReference": "mock_ref"
+          },
+          "plateResults": [
+            {
+              "plateIndex": 0,
+              "printTimeSeconds": 3600,
+              "filamentStats": [
+                {
+                  "materialIndex": 0,
+                  "usedGrams": 25.5,
+                  "usedLengthMm": 5000
+                }
+              ],
+              "gcodeHash": "mock",
+              "gcodeSize": 1024
+            }
+          ],
+          "aggregatedFilamentStats": [
+            {
+              "materialIndex": 0,
+              "usedGrams": 25.5,
+              "usedLengthMm": 5000
+            }
+          ]
+        }
+      }
+    },
+    "timestamp": "2026-09-18T19:42:43.078283+00:00",
+    "resolved": false
+  },
+  "f3aa7d6d-743d-4ba5-84ac-6e941ddca535": {
+    "jobId": "f3aa7d6d-743d-4ba5-84ac-6e941ddca535",
+    "reasonCode": "MISSING_ARTIFACT_REFERENCE",
+    "details": {
+      "error": "No durable slice artifact or reference recorded for auditability",
+      "validation_details": {},
+      "raw_slice_result": {
+        "success": true,
+        "universal_result": {
+          "adapter": "bambu_studio_cli",
+          "slicerName": "Bambu Studio",
+          "slicerVersion": "Mock",
+          "success": true,
+          "modelHash": "mock_hash",
+          "jobId": "mock_job_id",
+          "dimensions": {
+            "x": 60,
+            "y": 31,
+            "z": 48
+          },
+          "totalPrintTimeSeconds": 3600,
+          "totalCostGrams": 25.5,
+          "totalCostLengthMm": 5000,
+          "warningCount": 0,
+          "artifact": {
+            "gcodeHash": "mocked_hash",
+            "gcodeReference": "mock_ref"
+          },
+          "plateResults": [
+            {
+              "plateIndex": 0,
+              "printTimeSeconds": 3600,
+              "filamentStats": [
+                {
+                  "materialIndex": 0,
+                  "usedGrams": 25.5,
+                  "usedLengthMm": 5000
+                }
+              ],
+              "gcodeHash": "mock",
+              "gcodeSize": 1024
+            }
+          ],
+          "aggregatedFilamentStats": [
+            {
+              "materialIndex": 0,
+              "usedGrams": 25.5,
+              "usedLengthMm": 5000
+            }
+          ]
+        }
+      }
+    },
+    "timestamp": "2026-09-18T19:43:39.308365+00:00",
+    "resolved": false
+  },
+  "8312de84-f2fd-477b-97fa-af52dddaab9a": {
+    "jobId": "8312de84-f2fd-477b-97fa-af52dddaab9a",
+    "reasonCode": "NO_ENABLED_PRODUCTION_PRINTERS",
+    "details": {
+      "reason": "No enabled production printer profiles are configured in Admin.",
+      "model_dimensions": {
+        "x": 60.0,
+        "y": 31.0,
+        "z": 48.0
+      },
+      "requires_multicolor": false,
+      "candidates_evaluated": 0
+    },
+    "timestamp": "2026-09-18T19:52:47.610973+00:00",
+    "resolved": false
+  },
+  "5376fbdd-9fcb-4eff-9e20-3e20bedf4fbf": {
+    "jobId": "5376fbdd-9fcb-4eff-9e20-3e20bedf4fbf",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: /usr/local/bin/bambu-studio: error while loading shared libraries: libavcodec.so.61: cannot open shared object file: No such file or directory"
+    },
+    "timestamp": "2026-09-18T19:58:54.551309+00:00",
+    "resolved": false
+  },
+  "73477af9-bfeb-4d82-890f-04aa04431a73": {
+    "jobId": "73477af9-bfeb-4d82-890f-04aa04431a73",
+    "reasonCode": "MISSING_AUTHORITATIVE_STATISTICS",
+    "details": {
+      "error": "Bambu Studio produced missing or non-positive filament weight."
+    },
+    "timestamp": "2026-09-18T20:01:59.056192+00:00",
+    "resolved": false
+  },
+  "f690871f-028f-43d3-86af-e259f707fb08": {
+    "jobId": "f690871f-028f-43d3-86af-e259f707fb08",
+    "reasonCode": "MISSING_AUTHORITATIVE_STATISTICS",
+    "details": {
+      "error": "Bambu Studio produced missing or non-positive filament weight."
+    },
+    "timestamp": "2026-09-18T20:05:06.832835+00:00",
+    "resolved": false
+  },
+  "feca7faa-6f66-4548-a4b2-ea47926942d7": {
+    "jobId": "feca7faa-6f66-4548-a4b2-ea47926942d7",
+    "reasonCode": "MISSING_AUTHORITATIVE_STATISTICS",
+    "details": {
+      "error": "Bambu Studio produced missing or non-positive filament weight."
+    },
+    "timestamp": "2026-09-18T20:07:16.006955+00:00",
+    "resolved": false
+  },
+  "74c9c4fe-149d-4669-8795-229204224763": {
+    "jobId": "74c9c4fe-149d-4669-8795-229204224763",
+    "reasonCode": "MISSING_AUTHORITATIVE_STATISTICS",
+    "details": {
+      "error": "Bambu Studio produced missing or non-positive filament weight."
+    },
+    "timestamp": "2026-09-18T20:09:37.561426+00:00",
+    "resolved": false
+  },
+  "53b730e3-d769-452f-a1e1-597fcc15774e": {
+    "jobId": "53b730e3-d769-452f-a1e1-597fcc15774e",
+    "reasonCode": "INVALID_TOOL_CHANGE_COUNT",
+    "details": {
+      "error": "Single-material route requires 0 tool changes, got 3",
+      "validation_details": {},
+      "raw_slice_result": {
+        "success": true,
+        "adapter": "bambu_studio_cli",
+        "slicer_executable": "bambu_studio_cli",
+        "slicer_version": "02.08.02.61",
+        "slicerName": "BambuStudio",
+        "slicerVersion": "02.08.02.61",
+        "modelHash": "6ab57f1c3f8e86bc3cbd302c6fa6270acf06277c6335454e922419c25d42e97e",
+        "jobId": "",
+        "dimensions": {
+          "x": 60.0,
+          "y": 31.0,
+          "z": 48.0
+        },
+        "active_envelope": {
+          "x": 256.0,
+          "y": 256.0,
+          "z": 256.0
+        },
+        "statistics": {
+          "filament_grams": 17.5,
+          "model_filament_grams": 17.5,
+          "support_filament_grams": 0.0,
+          "purge_filament_grams": 0.0,
+          "tower_filament_grams": 0.0,
+          "filament_mm": 3820.03,
+          "print_time_seconds": 6999,
+          "print_time_minutes": 116.65,
+          "print_time_hours": 1.944,
+          "raw_time_string": "1h 56m 39s",
+          "plate_count": 1,
+          "tool_change_count": 3,
+          "per_filament": [
+            {
+              "filamentIndex": 1,
+              "totalGrams": 17.5,
+              "colorHex": "unknown",
+              "materialType": "PLA",
+              "modelGrams": 17.5,
+              "supportGrams": 0.0,
+              "purgeGrams": 0.0,
+              "towerGrams": 0.0,
+              "color": "unknown",
+              "main_used_g": 17.5,
+              "total_used_g": 17.5
+            }
+          ],
+          "plates": [
+            {
+              "plateId": 1,
+              "dimensions": {
+                "x": 60.0,
+                "y": 31.0,
+                "z": 48.0
+              },
+              "printTimeSeconds": 6999,
+              "filamentGrams": 17.5,
+              "toolChangeCount": 0,
+              "perFilament": [
+                {
+                  "filamentIndex": 1,
+                  "totalGrams": 17.5,
+                  "colorHex": "unknown",
+                  "materialType": "PLA",
+                  "modelGrams": 17.5,
+                  "supportGrams": 0.0,
+                  "purgeGrams": 0.0,
+                  "towerGrams": 0.0,
+                  "color": "unknown",
+                  "main_used_g": 17.5,
+                  "total_used_g": 17.5
+                }
+              ],
+              "modelFilamentGrams": 17.5,
+              "supportFilamentGrams": 0.0,
+              "purgeFilamentGrams": 0.0,
+              "towerFilamentGrams": 0.0,
+              "metricSources": {
+                "total_filament": "gcode_header",
+                "print_time": "slicer_result",
+                "breakdown": "derived_gcode_ratio"
+              },
+              "rawStatistics": {
+                "total_predication": 6998.591796875,
+                "feature_type_times": {
+                  "Bottom surface": 37.53804397583008,
+                  "Bridge": 284.30535888671875,
+                  "Custom": 454.5706787109375,
+                  "Flush": 28.0,
+                  "Inner wall": 1203.1356201171875,
+                  "Internal solid infill": 905.82373046875,
+                  "Outer wall": 1355.5301513671875,
+                  "Overhang wall": 17.17662239074707,
+                  "Skirt": 4.026529312133789,
+                  "Sparse infill": 1117.1717529296875,
+                  "Top surface": 171.95367431640625,
+                  "Travel": 1438.444580078125,
+                  "Undefined": 1419.40283203125
+                }
+              }
+            }
+          ],
+          "metric_sources": {
+            "total_filament": "slicer_result",
+            "print_time": "slicer_result",
+            "model_filament": "derived_gcode_ratio",
+            "support_filament": "derived_gcode_ratio",
+            "tower_filament": "derived_gcode_ratio",
+            "purge_filament": "derived_gcode_ratio"
+          },
+          "diagnostics": {
+            "feature_type_times": {
+              "1": {
+                "Bottom surface": 37.53804397583008,
+                "Bridge": 284.30535888671875,
+                "Custom": 454.5706787109375,
+                "Flush": 28.0,
+                "Inner wall": 1203.1356201171875,
+                "Internal solid infill": 905.82373046875,
+                "Outer wall": 1355.5301513671875,
+                "Overhang wall": 17.17662239074707,
+                "Skirt": 4.026529312133789,
+                "Sparse infill": 1117.1717529296875,
+                "Top surface": 171.95367431640625,
+                "Travel": 1438.444580078125,
+                "Undefined": 1419.40283203125
+              }
+            },
+            "time_cross_checks": [
+              {
+                "plateId": 1,
+                "resultSeconds": 6998.591796875,
+                "gcodeSeconds": 6998.0,
+                "relativeDelta": 8.5e-05,
+                "materiallyDifferent": false
+              }
+            ],
+            "filament_cross_checks": [
+              {
+                "gcode": "/tmp/tmpoylmdkv2/plate_1.gcode",
+                "resultGrams": 17.496479,
+                "gcodeGrams": 0.0,
+                "differenceGrams": 17.496479
+              }
+            ]
+          },
+          "production_verification_status": "verified",
+          "applied_settings": {},
+          "feature_mm": {
+            "model": 5027.830210000093,
+            "support": 0.0,
+            "tower": 0.0,
+            "flush": 0.0,
+            "brim": 4.06206
+          }
+        },
+        "filamentGrams": 17.5,
+        "filament_grams": 17.5,
+        "model_filament_grams": 17.5,
+        "support_filament_grams": 0.0,
+        "purge_filament_grams": 0.0,
+        "tower_filament_grams": 0.0,
+        "printTimeSeconds": 6999,
+        "print_time_seconds": 6999,
+        "toolChangeCount": 3,
+        "tool_change_count": 3,
+        "plateCount": 1,
+        "plate_count": 1,
+        "per_filament": [
+          {
+            "filamentIndex": 1,
+            "totalGrams": 17.5,
+            "colorHex": "unknown",
+            "materialType": "PLA",
+            "modelGrams": 17.5,
+            "supportGrams": 0.0,
+            "purgeGrams": 0.0,
+            "towerGrams": 0.0,
+            "color": "unknown",
+            "main_used_g": 17.5,
+            "total_used_g": 17.5
+          }
+        ],
+        "perFilament": [
+          {
+            "filamentIndex": 1,
+            "totalGrams": 17.5,
+            "colorHex": "unknown",
+            "materialType": "PLA",
+            "modelGrams": 17.5,
+            "supportGrams": 0.0,
+            "purgeGrams": 0.0,
+            "towerGrams": 0.0,
+            "color": "unknown",
+            "main_used_g": 17.5,
+            "total_used_g": 17.5
+          }
+        ],
+        "plates": [
+          {
+            "plateId": 1,
+            "dimensions": {
+              "x": 60.0,
+              "y": 31.0,
+              "z": 48.0
+            },
+            "printTimeSeconds": 6999,
+            "filamentGrams": 17.5,
+            "toolChangeCount": 0,
+            "perFilament": [
+              {
+                "filamentIndex": 1,
+                "totalGrams": 17.5,
+                "colorHex": "unknown",
+                "materialType": "PLA",
+                "modelGrams": 17.5,
+                "supportGrams": 0.0,
+                "purgeGrams": 0.0,
+                "towerGrams": 0.0,
+                "color": "unknown",
+                "main_used_g": 17.5,
+                "total_used_g": 17.5
+              }
+            ],
+            "modelFilamentGrams": 17.5,
+            "supportFilamentGrams": 0.0,
+            "purgeFilamentGrams": 0.0,
+            "towerFilamentGrams": 0.0,
+            "metricSources": {
+              "total_filament": "gcode_header",
+              "print_time": "slicer_result",
+              "breakdown": "derived_gcode_ratio"
+            },
+            "rawStatistics": {
+              "total_predication": 6998.591796875,
+              "feature_type_times": {
+                "Bottom surface": 37.53804397583008,
+                "Bridge": 284.30535888671875,
+                "Custom": 454.5706787109375,
+                "Flush": 28.0,
+                "Inner wall": 1203.1356201171875,
+                "Internal solid infill": 905.82373046875,
+                "Outer wall": 1355.5301513671875,
+                "Overhang wall": 17.17662239074707,
+                "Skirt": 4.026529312133789,
+                "Sparse infill": 1117.1717529296875,
+                "Top surface": 171.95367431640625,
+                "Travel": 1438.444580078125,
+                "Undefined": 1419.40283203125
+              }
+            }
+          }
+        ],
+        "metricSources": {
+          "total_filament": "slicer_result",
+          "print_time": "slicer_result",
+          "model_filament": "derived_gcode_ratio",
+          "support_filament": "derived_gcode_ratio",
+          "tower_filament": "derived_gcode_ratio",
+          "purge_filament": "derived_gcode_ratio"
+        },
+        "metric_sources": {
+          "total_filament": "slicer_result",
+          "print_time": "slicer_result",
+          "model_filament": "derived_gcode_ratio",
+          "support_filament": "derived_gcode_ratio",
+          "tower_filament": "derived_gcode_ratio",
+          "purge_filament": "derived_gcode_ratio"
+        },
+        "diagnostics": {
+          "feature_type_times": {
+            "1": {
+              "Bottom surface": 37.53804397583008,
+              "Bridge": 284.30535888671875,
+              "Custom": 454.5706787109375,
+              "Flush": 28.0,
+              "Inner wall": 1203.1356201171875,
+              "Internal solid infill": 905.82373046875,
+              "Outer wall": 1355.5301513671875,
+              "Overhang wall": 17.17662239074707,
+              "Skirt": 4.026529312133789,
+              "Sparse infill": 1117.1717529296875,
+              "Top surface": 171.95367431640625,
+              "Travel": 1438.444580078125,
+              "Undefined": 1419.40283203125
+            }
+          },
+          "time_cross_checks": [
+            {
+              "plateId": 1,
+              "resultSeconds": 6998.591796875,
+              "gcodeSeconds": 6998.0,
+              "relativeDelta": 8.5e-05,
+              "materiallyDifferent": false
+            }
+          ],
+          "filament_cross_checks": [
+            {
+              "gcode": "/tmp/tmpoylmdkv2/plate_1.gcode",
+              "resultGrams": 17.496479,
+              "gcodeGrams": 0.0,
+              "differenceGrams": 17.496479
+            }
+          ]
+        },
+        "gcode_hash": "5b6393106abf18e68bdf2c12f143bea8724449de5d71bd737fc70544cb895044",
+        "gcode_reference": "gcode_sha256_5b6393106abf18e6",
+        "artifact": {
+          "gcodeReference": "gcode_sha256_5b6393106abf18e6",
+          "gcodeHash": "5b6393106abf18e68bdf2c12f143bea8724449de5d71bd737fc70544cb895044",
+          "resultReference": "result_json_5b6393106abf"
+        },
+        "production_verification_status": "verified",
+        "error": null,
+        "error_code": null,
+        "model_path": "/media/shaurya/LinuxDev/linux/Projects/react/Shilpsahayak/slicer-service/app/storage/53b730e3-d769-452f-a1e1-597fcc15774e_3dbenchy.stl",
+        "source_project": null
+      }
+    },
+    "timestamp": "2026-09-18T20:11:30.046144+00:00",
+    "resolved": false
+  },
+  "bf81df73-b1f6-4fb3-8e0b-244ee5e34573": {
+    "jobId": "bf81df73-b1f6-4fb3-8e0b-244ee5e34573",
+    "reasonCode": "INTERNAL_PROCESSING_ERROR",
+    "details": {
+      "error": "name 'pricing_config' is not defined"
+    },
+    "timestamp": "2026-09-18T20:13:11.225772+00:00",
+    "resolved": false
+  },
+  "f97fea79-17a6-4d4b-8168-32b33f4f2846": {
+    "jobId": "f97fea79-17a6-4d4b-8168-32b33f4f2846",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: [2026-09-19 01:48:52.176938] [0x000072ca42d74540] [trace]   Initializing StaticPrintConfigs\n[2026-09-19 01:48:52.662445] [0x000072ca42d74540] [error]   plate 1: Nothing to be sliced, Either the print is empty or no object is fully inside the print volume before apply.\n\nrun found error, return -50, exit..."
+    },
+    "timestamp": "2026-09-18T20:18:52.690039+00:00",
+    "resolved": false
+  },
+  "23efef12-b486-4e7f-8135-0929995869a0": {
+    "jobId": "23efef12-b486-4e7f-8135-0929995869a0",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: [2026-09-19 01:49:45.796675] [0x00007dffbb540540] [trace]   Initializing StaticPrintConfigs\n[2026-09-19 01:49:46.013814] [0x00007dffbb540540] [error]   plate 1: Nothing to be sliced, Either the print is empty or no object is fully inside the print volume before apply.\n\nrun found error, return -50, exit..."
+    },
+    "timestamp": "2026-09-18T20:19:46.027829+00:00",
+    "resolved": false
+  },
+  "7c00eefa-4a9e-4c86-b127-8a0e0a3c9e02": {
+    "jobId": "7c00eefa-4a9e-4c86-b127-8a0e0a3c9e02",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: [2026-09-19 01:54:11.052555] [0x00007458e4078540] [trace]   Initializing StaticPrintConfigs\n[2026-09-19 01:54:11.286534] [0x00007458e4078540] [error]   plate 1: Nothing to be sliced, Either the print is empty or no object is fully inside the print volume before apply.\n\nrun found error, return -50, exit..."
+    },
+    "timestamp": "2026-09-18T20:24:11.299707+00:00",
+    "resolved": false
+  },
+  "fd03b70e-a983-49bd-b907-ba79fbfe27a8": {
+    "jobId": "fd03b70e-a983-49bd-b907-ba79fbfe27a8",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: [2026-09-19 01:54:22.648211] [0x00007d1bd422e540] [trace]   Initializing StaticPrintConfigs\n[2026-09-19 01:54:22.805861] [0x00007d1bd422e540] [error]   plate 1: Nothing to be sliced, Either the print is empty or no object is fully inside the print volume before apply.\n\nrun found error, return -50, exit..."
+    },
+    "timestamp": "2026-09-18T20:24:22.816319+00:00",
+    "resolved": false
+  },
+  "aab45384-d5c1-474e-a54c-55d914134dd1": {
+    "jobId": "aab45384-d5c1-474e-a54c-55d914134dd1",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: [2026-09-19 01:55:45.300688] [0x00007a9879c45540] [trace]   Initializing StaticPrintConfigs\n[2026-09-19 01:55:45.612993] [0x00007a9879c45540] [error]   plate 1: Nothing to be sliced, Either the print is empty or no object is fully inside the print volume before apply.\n\nrun found error, return -50, exit..."
+    },
+    "timestamp": "2026-09-18T20:25:45.787519+00:00",
+    "resolved": false
+  },
+  "3dc1e40e-44a5-418c-80d3-46822f7ed03e": {
+    "jobId": "3dc1e40e-44a5-418c-80d3-46822f7ed03e",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: [2026-09-19 01:55:49.896835] [0x00007f8070e4b540] [trace]   Initializing StaticPrintConfigs\n[2026-09-19 01:55:50.216919] [0x00007f8070e4b540] [error]   plate 1: Nothing to be sliced, Either the print is empty or no object is fully inside the print volume before apply.\n\nrun found error, return -50, exit..."
+    },
+    "timestamp": "2026-09-18T20:25:50.330001+00:00",
+    "resolved": false
+  },
+  "097791bf-4281-499b-9a6d-8f416fd7b4f6": {
+    "jobId": "097791bf-4281-499b-9a6d-8f416fd7b4f6",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: [2026-09-19 01:55:50.301218] [0x0000799b0c0d4540] [trace]   Initializing StaticPrintConfigs\n[2026-09-19 01:55:50.823048] [0x0000799b0c0d4540] [error]   plate 1: Nothing to be sliced, Either the print is empty or no object is fully inside the print volume before apply.\n\nrun found error, return -50, exit..."
+    },
+    "timestamp": "2026-09-18T20:25:50.847140+00:00",
+    "resolved": false
+  },
+  "12ec4179-dea0-41e4-8b85-96aa0890e367": {
+    "jobId": "12ec4179-dea0-41e4-8b85-96aa0890e367",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: [2026-09-19 01:55:50.734619] [0x00007ac6b604d540] [trace]   Initializing StaticPrintConfigs\n[2026-09-19 01:55:51.097920] [0x00007ac6b604d540] [error]   plate 1: Nothing to be sliced, Either the print is empty or no object is fully inside the print volume before apply.\n\nrun found error, return -50, exit..."
+    },
+    "timestamp": "2026-09-18T20:25:51.132464+00:00",
+    "resolved": false
+  },
+  "f25efee2-eea4-440e-9488-b85253d59aef": {
+    "jobId": "f25efee2-eea4-440e-9488-b85253d59aef",
+    "reasonCode": "MODEL_TOO_LARGE",
+    "details": {
+      "error": "The model is too large to fit in this printer's build volume when clearances, skirts, and supports are added. Please scale it down slightly (e.g. by 5-10%)."
+    },
+    "timestamp": "2026-09-18T20:29:47.050583+00:00",
+    "resolved": false
+  },
+  "162fb4ad-bdd0-40ad-8c68-1688a0433481": {
+    "jobId": "162fb4ad-bdd0-40ad-8c68-1688a0433481",
+    "reasonCode": "MODEL_TOO_LARGE",
+    "details": {
+      "error": "The model is too large to fit in this printer's build volume when clearances, skirts, and supports are added. Please scale it down slightly (e.g. by 5-10%)."
+    },
+    "timestamp": "2026-09-18T20:29:58.051404+00:00",
+    "resolved": false
+  },
+  "826c6f62-0fbd-477f-931b-e89c6cf40895": {
+    "jobId": "826c6f62-0fbd-477f-931b-e89c6cf40895",
+    "reasonCode": "MODEL_TOO_LARGE",
+    "details": {
+      "error": "The model is too large to fit in this printer's build volume when clearances, skirts, and supports are added. Please scale it down slightly (e.g. by 5-10%)."
+    },
+    "timestamp": "2026-09-18T20:33:36.153400+00:00",
+    "resolved": false
+  },
+  "986118f8-e39d-49ce-afbe-d643b8cd3d7c": {
+    "jobId": "986118f8-e39d-49ce-afbe-d643b8cd3d7c",
+    "reasonCode": "MODEL_TOO_LARGE",
+    "details": {
+      "error": "The model is too large to fit in this printer's build volume when clearances, skirts, and supports are added. Please scale it down slightly (e.g. by 5-10%)."
+    },
+    "timestamp": "2026-09-18T20:33:39.822274+00:00",
+    "resolved": false
+  },
+  "534f1e83-f6d1-4a4e-a0a4-c572d18675aa": {
+    "jobId": "534f1e83-f6d1-4a4e-a0a4-c572d18675aa",
+    "reasonCode": "MODEL_TOO_LARGE",
+    "details": {
+      "error": "The model is too large to fit in this printer's build volume when clearances, skirts, and supports are added. Please scale it down slightly (e.g. by 5-10%)."
+    },
+    "timestamp": "2026-09-18T20:34:55.501085+00:00",
+    "resolved": false
+  },
+  "06bd670a-df53-4c79-bf85-bf53a2f9921a": {
+    "jobId": "06bd670a-df53-4c79-bf85-bf53a2f9921a",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: Errors"
+    },
+    "timestamp": "2026-09-18T20:37:13.266511+00:00",
+    "resolved": false
+  },
+  "7f86e0b2-c2c7-4407-bc6a-8913b851f6e0": {
+    "jobId": "7f86e0b2-c2c7-4407-bc6a-8913b851f6e0",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: Errors"
+    },
+    "timestamp": "2026-09-18T20:37:17.001478+00:00",
+    "resolved": false
+  },
+  "766817e3-4794-4771-9664-385184f6adcc": {
+    "jobId": "766817e3-4794-4771-9664-385184f6adcc",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: Errors"
+    },
+    "timestamp": "2026-09-18T20:38:01.631781+00:00",
+    "resolved": false
+  },
+  "752512f6-8f06-47ce-8f0a-a95a3c8d0c7a": {
+    "jobId": "752512f6-8f06-47ce-8f0a-a95a3c8d0c7a",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: Errors"
+    },
+    "timestamp": "2026-09-18T20:38:26.415059+00:00",
+    "resolved": false
+  },
+  "7b68ced1-ec3c-4899-b42f-3c60125e4608": {
+    "jobId": "7b68ced1-ec3c-4899-b42f-3c60125e4608",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: Errors\n [2026-09-19 02:14:29.818347] [0x00007786f0d58540] [trace]   Initializing StaticPrintConfigs\n[2026-09-19 02:14:31.181710] [0x00007786f0d58540] [error]   found slicing or export error for partplate 1\n\nrun found error, return -100, exit..."
+    },
+    "timestamp": "2026-09-18T20:44:31.209863+00:00",
+    "resolved": false
+  },
+  "c21c18c5-ffbc-4a72-8a03-e1b8289892c0": {
+    "jobId": "c21c18c5-ffbc-4a72-8a03-e1b8289892c0",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: Errors\n [2026-09-19 02:14:33.150687] [0x00007b6514be4540] [trace]   Initializing StaticPrintConfigs\n[2026-09-19 02:14:34.538718] [0x00007b6514be4540] [error]   found slicing or export error for partplate 1\n\nrun found error, return -100, exit..."
+    },
+    "timestamp": "2026-09-18T20:44:34.567840+00:00",
+    "resolved": false
+  },
+  "1cbed3f9-1a69-4a7b-b8e5-f9245ff1bbde": {
+    "jobId": "1cbed3f9-1a69-4a7b-b8e5-f9245ff1bbde",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "The slicing engine crashed. This usually happens if the 3D model (STL) contains non-manifold geometry, holes, or self-intersecting faces. Please repair the mesh using a tool like Netfabb, Blender, or 3D Builder and try again."
+    },
+    "timestamp": "2026-09-18T20:55:10.043232+00:00",
+    "resolved": false
+  },
+  "968eb5ba-fd4e-444e-87f2-c58dea644290": {
+    "jobId": "968eb5ba-fd4e-444e-87f2-c58dea644290",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "The slicing engine crashed. This usually happens if the 3D model (STL) contains non-manifold geometry, holes, or self-intersecting faces. Please repair the mesh using a tool like Netfabb, Blender, or 3D Builder and try again."
+    },
+    "timestamp": "2026-09-18T20:55:13.894307+00:00",
+    "resolved": false
+  },
+  "76801156-a658-4004-8200-1b2e2c0d6171": {
+    "jobId": "76801156-a658-4004-8200-1b2e2c0d6171",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "The slicing engine crashed. This usually happens if the 3D model (STL) contains non-manifold geometry, holes, or self-intersecting faces. Please repair the mesh using a tool like Netfabb, Blender, or 3D Builder and try again."
+    },
+    "timestamp": "2026-09-18T20:55:33.174457+00:00",
+    "resolved": false
+  },
+  "039005cd-872f-45a5-95bd-405b70f27be5": {
+    "jobId": "039005cd-872f-45a5-95bd-405b70f27be5",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "The slicing engine crashed. This usually happens if the 3D model (STL) contains non-manifold geometry, holes, or self-intersecting faces. Please repair the mesh using a tool like Netfabb, Blender, or 3D Builder and try again."
+    },
+    "timestamp": "2026-09-18T20:55:36.844873+00:00",
+    "resolved": false
+  },
+  "08ddf894-8acd-4e43-ada9-1d1056d409ef": {
+    "jobId": "08ddf894-8acd-4e43-ada9-1d1056d409ef",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "The slicing engine crashed. This usually happens if the 3D model (STL) contains non-manifold geometry, holes, or self-intersecting faces. Please repair the mesh using a tool like Netfabb, Blender, or 3D Builder and try again."
+    },
+    "timestamp": "2026-09-18T20:59:17.953598+00:00",
+    "resolved": false
+  },
+  "2d3cd23b-02d7-42a7-977e-a4e59fe9de18": {
+    "jobId": "2d3cd23b-02d7-42a7-977e-a4e59fe9de18",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "The slicing engine crashed. This usually happens if the 3D model (STL) contains non-manifold geometry, holes, or self-intersecting faces. Please repair the mesh using a tool like Netfabb, Blender, or 3D Builder and try again."
+    },
+    "timestamp": "2026-09-18T20:59:25.975366+00:00",
+    "resolved": false
+  },
+  "7059ebb3-889c-4049-a594-d6199f78baf6": {
+    "jobId": "7059ebb3-889c-4049-a594-d6199f78baf6",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "The slicing engine crashed. This usually happens if the 3D model (STL) contains non-manifold geometry, holes, or self-intersecting faces. Please repair the mesh using a tool like Netfabb, Blender, or 3D Builder and try again."
+    },
+    "timestamp": "2026-09-18T20:59:36.003016+00:00",
+    "resolved": false
+  },
+  "7150080d-19e5-480a-baaf-041def5943a0": {
+    "jobId": "7150080d-19e5-480a-baaf-041def5943a0",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "The slicing engine crashed. This usually happens if the 3D model (STL) contains non-manifold geometry, holes, or self-intersecting faces. Please repair the mesh using a tool like Netfabb, Blender, or 3D Builder and try again."
+    },
+    "timestamp": "2026-09-18T20:59:38.031311+00:00",
+    "resolved": false
+  },
+  "d75d3bf1-7feb-4e80-bbfc-d0a7f63af926": {
+    "jobId": "d75d3bf1-7feb-4e80-bbfc-d0a7f63af926",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "The slicing engine crashed. This usually happens if the 3D model (STL) contains non-manifold geometry, holes, or self-intersecting faces. Please repair the mesh using a tool like Netfabb, Blender, or 3D Builder and try again."
+    },
+    "timestamp": "2026-09-18T20:59:51.451892+00:00",
+    "resolved": false
+  },
+  "b9f06ce4-4294-4590-901a-b5e6d2d33265": {
+    "jobId": "b9f06ce4-4294-4590-901a-b5e6d2d33265",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "The slicing engine crashed. This usually happens if the 3D model (STL) contains non-manifold geometry, holes, or self-intersecting faces. Please repair the mesh using a tool like Netfabb, Blender, or 3D Builder and try again."
+    },
+    "timestamp": "2026-09-18T20:59:53.590355+00:00",
+    "resolved": false
+  },
+  "da5ec7e3-9119-43ad-ba21-74559cadf5f0": {
+    "jobId": "da5ec7e3-9119-43ad-ba21-74559cadf5f0",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: CLI returned code 4294967246"
+    },
+    "timestamp": "2026-09-20T07:39:28.730408+00:00",
+    "resolved": false
+  },
+  "09268282-a79c-4fe1-afbb-4afb74fd2083": {
+    "jobId": "09268282-a79c-4fe1-afbb-4afb74fd2083",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: CLI returned code 4294967246"
+    },
+    "timestamp": "2026-09-20T09:13:32.231933+00:00",
+    "resolved": false
+  },
+  "bcc504bc-8a38-4c45-a077-3cea6f397b37": {
+    "jobId": "bcc504bc-8a38-4c45-a077-3cea6f397b37",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: CLI returned code 4294967246"
+    },
+    "timestamp": "2026-09-20T10:02:22.967889+00:00",
+    "resolved": false
+  },
+  "9d8777bb-1ce6-4e2e-9e8a-8a249421de05": {
+    "jobId": "9d8777bb-1ce6-4e2e-9e8a-8a249421de05",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: CLI returned code 4294967246"
+    },
+    "timestamp": "2026-09-20T10:13:22.462215+00:00",
+    "resolved": false
+  },
+  "8c4c7d18-b745-4e93-988b-9017435c9775": {
+    "jobId": "8c4c7d18-b745-4e93-988b-9017435c9775",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: CLI returned code 4294967246"
+    },
+    "timestamp": "2026-09-20T10:17:27.069589+00:00",
+    "resolved": false
+  },
+  "e0441883-792e-44df-8143-52fb645afb3e": {
+    "jobId": "e0441883-792e-44df-8143-52fb645afb3e",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: CLI returned code 4294967246"
+    },
+    "timestamp": "2026-09-20T10:23:26.512235+00:00",
+    "resolved": false
+  },
+  "7a503e79-fc47-4fbb-a29d-f598ed00e1a3": {
+    "jobId": "7a503e79-fc47-4fbb-a29d-f598ed00e1a3",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: CLI returned code 4294967246"
+    },
+    "timestamp": "2026-09-20T10:23:41.760197+00:00",
+    "resolved": false
+  },
+  "86ce0106-11c0-4366-a21b-be24247cc05c": {
+    "jobId": "86ce0106-11c0-4366-a21b-be24247cc05c",
+    "reasonCode": "MODEL_HASH_MISMATCH",
+    "details": {
+      "error": "Sliced model hash (ed0f34679982792e41114a0f08c8d52b0f00ad7ae2eb5024c01308203bdfec45) does not match expected job model hash (8914d704ae0b858c1b41e39d78f4056a8d52098ec8f93f01a76f5cf10a7a7a13)",
+      "validation_details": {},
+      "raw_slice_result": {
+        "success": true,
+        "adapter": "bambu_studio_cli",
+        "slicer_executable": "bambu_studio_cli",
+        "slicer_version": "02.08.02.61",
+        "slicerName": "BambuStudio",
+        "slicerVersion": "02.08.02.61",
+        "modelHash": "ed0f34679982792e41114a0f08c8d52b0f00ad7ae2eb5024c01308203bdfec45",
+        "jobId": "",
+        "dimensions": {
+          "x": 185.36,
+          "y": 173.73,
+          "z": 86.23
+        },
+        "active_envelope": {
+          "x": 256.0,
+          "y": 256.0,
+          "z": 256.0
+        },
+        "statistics": {
+          "filament_grams": 68.18,
+          "model_filament_grams": 68.18,
+          "support_filament_grams": 0.0,
+          "purge_filament_grams": 0.0,
+          "tower_filament_grams": 0.0,
+          "filament_mm": 16098.65,
+          "print_time_seconds": 27273,
+          "print_time_minutes": 454.55,
+          "print_time_hours": 7.576,
+          "raw_time_string": "7h 34m 33s",
+          "plate_count": 1,
+          "tool_change_count": 0,
+          "per_filament": [
+            {
+              "filamentIndex": 1,
+              "totalGrams": 68.18,
+              "colorHex": "unknown",
+              "materialType": "PLA",
+              "modelGrams": 68.18,
+              "supportGrams": 0.0,
+              "purgeGrams": 0.0,
+              "towerGrams": 0.0,
+              "color": "unknown",
+              "main_used_g": 68.18,
+              "total_used_g": 68.18
+            }
+          ],
+          "plates": [
+            {
+              "plateId": 1,
+              "dimensions": {
+                "x": 185.36,
+                "y": 173.73,
+                "z": 86.23
+              },
+              "printTimeSeconds": 27273,
+              "filamentGrams": 68.18,
+              "toolChangeCount": 0,
+              "perFilament": [
+                {
+                  "filamentIndex": 1,
+                  "totalGrams": 68.18,
+                  "colorHex": "unknown",
+                  "materialType": "PLA",
+                  "modelGrams": 68.18,
+                  "supportGrams": 0.0,
+                  "purgeGrams": 0.0,
+                  "towerGrams": 0.0,
+                  "color": "unknown",
+                  "main_used_g": 68.18,
+                  "total_used_g": 68.18
+                }
+              ],
+              "modelFilamentGrams": 68.18,
+              "supportFilamentGrams": 0.0,
+              "purgeFilamentGrams": 0.0,
+              "towerFilamentGrams": 0.0,
+              "metricSources": {
+                "total_filament": "gcode_header",
+                "print_time": "slicer_result",
+                "breakdown": "derived_gcode_ratio"
+              },
+              "rawStatistics": {
+                "total_predication": 27273.498046875,
+                "feature_type_times": {
+                  "Bridge": 777.7646484375,
+                  "Brim": 1.9473176002502441,
+                  "Custom": 406.633056640625,
+                  "Flush": 25.0,
+                  "Inner wall": 3543.347412109375,
+                  "Internal solid infill": 3374.119384765625,
+                  "Outer wall": 4334.42431640625,
+                  "Overhang wall": 769.9979858398438,
+                  "Skirt": 1.396153450012207,
+                  "Sparse infill": 7563.4560546875,
+                  "Top surface": 618.75927734375,
+                  "Travel": 5871.923828125,
+                  "Undefined": 5855.36376953125
+                }
+              }
+            }
+          ],
+          "metric_sources": {
+            "total_filament": "slicer_result",
+            "print_time": "slicer_result",
+            "model_filament": "derived_gcode_ratio",
+            "support_filament": "derived_gcode_ratio",
+            "tower_filament": "derived_gcode_ratio",
+            "purge_filament": "derived_gcode_ratio"
+          },
+          "diagnostics": {
+            "feature_type_times": {
+              "1": {
+                "Bridge": 777.7646484375,
+                "Brim": 1.9473176002502441,
+                "Custom": 406.633056640625,
+                "Flush": 25.0,
+                "Inner wall": 3543.347412109375,
+                "Internal solid infill": 3374.119384765625,
+                "Outer wall": 4334.42431640625,
+                "Overhang wall": 769.9979858398438,
+                "Skirt": 1.396153450012207,
+                "Sparse infill": 7563.4560546875,
+                "Top surface": 618.75927734375,
+                "Travel": 5871.923828125,
+                "Undefined": 5855.36376953125
+              }
+            },
+            "time_cross_checks": [
+              {
+                "plateId": 1,
+                "resultSeconds": 27273.498046875,
+                "gcodeSeconds": 27273.0,
+                "relativeDelta": 1.8e-05,
+                "materiallyDifferent": false
+              }
+            ],
+            "filament_cross_checks": [
+              {
+                "gcode": "C:\\Users\\RATANA~1\\AppData\\Local\\Temp\\tmpq6w23es5\\plate_1.gcode",
+                "resultGrams": 68.183745,
+                "gcodeGrams": 0.0,
+                "differenceGrams": 68.183745
+              }
+            ]
+          },
+          "production_verification_status": "verified",
+          "applied_settings": {},
+          "feature_mm": {
+            "model": 20602.45993999467,
+            "support": 0.0,
+            "tower": 0.0,
+            "flush": 0.0,
+            "brim": 2.6444099999999997
+          }
+        },
+        "filamentGrams": 68.18,
+        "filament_grams": 68.18,
+        "model_filament_grams": 68.18,
+        "support_filament_grams": 0.0,
+        "purge_filament_grams": 0.0,
+        "tower_filament_grams": 0.0,
+        "printTimeSeconds": 27273,
+        "print_time_seconds": 27273,
+        "toolChangeCount": 0,
+        "tool_change_count": 0,
+        "plateCount": 1,
+        "plate_count": 1,
+        "per_filament": [
+          {
+            "filamentIndex": 1,
+            "totalGrams": 68.18,
+            "colorHex": "unknown",
+            "materialType": "PLA",
+            "modelGrams": 68.18,
+            "supportGrams": 0.0,
+            "purgeGrams": 0.0,
+            "towerGrams": 0.0,
+            "color": "unknown",
+            "main_used_g": 68.18,
+            "total_used_g": 68.18
+          }
+        ],
+        "perFilament": [
+          {
+            "filamentIndex": 1,
+            "totalGrams": 68.18,
+            "colorHex": "unknown",
+            "materialType": "PLA",
+            "modelGrams": 68.18,
+            "supportGrams": 0.0,
+            "purgeGrams": 0.0,
+            "towerGrams": 0.0,
+            "color": "unknown",
+            "main_used_g": 68.18,
+            "total_used_g": 68.18
+          }
+        ],
+        "plates": [
+          {
+            "plateId": 1,
+            "dimensions": {
+              "x": 185.36,
+              "y": 173.73,
+              "z": 86.23
+            },
+            "printTimeSeconds": 27273,
+            "filamentGrams": 68.18,
+            "toolChangeCount": 0,
+            "perFilament": [
+              {
+                "filamentIndex": 1,
+                "totalGrams": 68.18,
+                "colorHex": "unknown",
+                "materialType": "PLA",
+                "modelGrams": 68.18,
+                "supportGrams": 0.0,
+                "purgeGrams": 0.0,
+                "towerGrams": 0.0,
+                "color": "unknown",
+                "main_used_g": 68.18,
+                "total_used_g": 68.18
+              }
+            ],
+            "modelFilamentGrams": 68.18,
+            "supportFilamentGrams": 0.0,
+            "purgeFilamentGrams": 0.0,
+            "towerFilamentGrams": 0.0,
+            "metricSources": {
+              "total_filament": "gcode_header",
+              "print_time": "slicer_result",
+              "breakdown": "derived_gcode_ratio"
+            },
+            "rawStatistics": {
+              "total_predication": 27273.498046875,
+              "feature_type_times": {
+                "Bridge": 777.7646484375,
+                "Brim": 1.9473176002502441,
+                "Custom": 406.633056640625,
+                "Flush": 25.0,
+                "Inner wall": 3543.347412109375,
+                "Internal solid infill": 3374.119384765625,
+                "Outer wall": 4334.42431640625,
+                "Overhang wall": 769.9979858398438,
+                "Skirt": 1.396153450012207,
+                "Sparse infill": 7563.4560546875,
+                "Top surface": 618.75927734375,
+                "Travel": 5871.923828125,
+                "Undefined": 5855.36376953125
+              }
+            }
+          }
+        ],
+        "metricSources": {
+          "total_filament": "slicer_result",
+          "print_time": "slicer_result",
+          "model_filament": "derived_gcode_ratio",
+          "support_filament": "derived_gcode_ratio",
+          "tower_filament": "derived_gcode_ratio",
+          "purge_filament": "derived_gcode_ratio"
+        },
+        "metric_sources": {
+          "total_filament": "slicer_result",
+          "print_time": "slicer_result",
+          "model_filament": "derived_gcode_ratio",
+          "support_filament": "derived_gcode_ratio",
+          "tower_filament": "derived_gcode_ratio",
+          "purge_filament": "derived_gcode_ratio"
+        },
+        "diagnostics": {
+          "feature_type_times": {
+            "1": {
+              "Bridge": 777.7646484375,
+              "Brim": 1.9473176002502441,
+              "Custom": 406.633056640625,
+              "Flush": 25.0,
+              "Inner wall": 3543.347412109375,
+              "Internal solid infill": 3374.119384765625,
+              "Outer wall": 4334.42431640625,
+              "Overhang wall": 769.9979858398438,
+              "Skirt": 1.396153450012207,
+              "Sparse infill": 7563.4560546875,
+              "Top surface": 618.75927734375,
+              "Travel": 5871.923828125,
+              "Undefined": 5855.36376953125
+            }
+          },
+          "time_cross_checks": [
+            {
+              "plateId": 1,
+              "resultSeconds": 27273.498046875,
+              "gcodeSeconds": 27273.0,
+              "relativeDelta": 1.8e-05,
+              "materiallyDifferent": false
+            }
+          ],
+          "filament_cross_checks": [
+            {
+              "gcode": "C:\\Users\\RATANA~1\\AppData\\Local\\Temp\\tmpq6w23es5\\plate_1.gcode",
+              "resultGrams": 68.183745,
+              "gcodeGrams": 0.0,
+              "differenceGrams": 68.183745
+            }
+          ]
+        },
+        "gcode_hash": "0610cea9e4694fd041d5018ff434f8d22d9a562e1069f4439a0fca1b3fbb5323",
+        "gcode_reference": "gcode_sha256_0610cea9e4694fd0",
+        "artifact": {
+          "gcodeReference": "gcode_sha256_0610cea9e4694fd0",
+          "gcodeHash": "0610cea9e4694fd041d5018ff434f8d22d9a562e1069f4439a0fca1b3fbb5323",
+          "resultReference": "result_json_0610cea9e469"
+        },
+        "production_verification_status": "verified",
+        "error": null,
+        "error_code": null,
+        "model_path": "D:\\Shilp buss\\Supabase\\New folder\\Shilpsahayak\\slicer-service\\app\\storage\\extracted_86ce0106-11c0-4366-a21b-be24247cc05c\\ReynaNoTextures.obj",
+        "source_project": null
+      }
+    },
+    "timestamp": "2026-09-20T10:29:56.484994+00:00",
+    "resolved": false
+  },
+  "5b115b9e-dbdb-42d1-8420-fb7817377ea3": {
+    "jobId": "5b115b9e-dbdb-42d1-8420-fb7817377ea3",
+    "reasonCode": "INCOMPATIBLE_PRINTER_MODEL",
+    "details": {
+      "error": "The uploaded 3MF project was configured for 'Bambu Lab H2C', which is not compatible with the selected production printer. Routing to workshop for manual review."
+    },
+    "timestamp": "2026-09-20T10:41:39.434176+00:00",
+    "resolved": false
+  },
+  "4640e95f-6f5f-4956-847b-1fa404b03866": {
+    "jobId": "4640e95f-6f5f-4956-847b-1fa404b03866",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: CLI returned code 4294967246"
+    },
+    "timestamp": "2026-09-20T10:54:45.205341+00:00",
+    "resolved": false
+  },
+  "2bf42694-9cc3-4bcf-8450-90ec7713e7c8": {
+    "jobId": "2bf42694-9cc3-4bcf-8450-90ec7713e7c8",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: CLI returned code 4294967246"
+    },
+    "timestamp": "2026-09-20T10:54:58.171579+00:00",
+    "resolved": false
+  },
+  "3a130847-9ad3-4ba5-a332-662bd1a24df1": {
+    "jobId": "3a130847-9ad3-4ba5-a332-662bd1a24df1",
+    "reasonCode": "MODEL_HASH_MISMATCH",
+    "details": {
+      "error": "Sliced model hash (ed0f34679982792e41114a0f08c8d52b0f00ad7ae2eb5024c01308203bdfec45) does not match expected job model hash (8914d704ae0b858c1b41e39d78f4056a8d52098ec8f93f01a76f5cf10a7a7a13)",
+      "validation_details": {},
+      "raw_slice_result": {
+        "success": true,
+        "adapter": "bambu_studio_cli",
+        "slicer_executable": "bambu_studio_cli",
+        "slicer_version": "02.08.02.61",
+        "slicerName": "BambuStudio",
+        "slicerVersion": "02.08.02.61",
+        "modelHash": "ed0f34679982792e41114a0f08c8d52b0f00ad7ae2eb5024c01308203bdfec45",
+        "jobId": "",
+        "dimensions": {
+          "x": 185.36,
+          "y": 173.73,
+          "z": 86.23
+        },
+        "active_envelope": {
+          "x": 256.0,
+          "y": 256.0,
+          "z": 256.0
+        },
+        "statistics": {
+          "filament_grams": 68.19,
+          "model_filament_grams": 68.19,
+          "support_filament_grams": 0.0,
+          "purge_filament_grams": 0.0,
+          "tower_filament_grams": 0.0,
+          "filament_mm": 16095.19,
+          "print_time_seconds": 27275,
+          "print_time_minutes": 454.58,
+          "print_time_hours": 7.576,
+          "raw_time_string": "7h 34m 35s",
+          "plate_count": 1,
+          "tool_change_count": 0,
+          "per_filament": [
+            {
+              "filamentIndex": 1,
+              "totalGrams": 68.19,
+              "colorHex": "unknown",
+              "materialType": "PLA",
+              "modelGrams": 68.19,
+              "supportGrams": 0.0,
+              "purgeGrams": 0.0,
+              "towerGrams": 0.0,
+              "color": "unknown",
+              "main_used_g": 68.19,
+              "total_used_g": 68.19
+            }
+          ],
+          "plates": [
+            {
+              "plateId": 1,
+              "dimensions": {
+                "x": 185.36,
+                "y": 173.73,
+                "z": 86.23
+              },
+              "printTimeSeconds": 27275,
+              "filamentGrams": 68.19,
+              "toolChangeCount": 0,
+              "perFilament": [
+                {
+                  "filamentIndex": 1,
+                  "totalGrams": 68.19,
+                  "colorHex": "unknown",
+                  "materialType": "PLA",
+                  "modelGrams": 68.19,
+                  "supportGrams": 0.0,
+                  "purgeGrams": 0.0,
+                  "towerGrams": 0.0,
+                  "color": "unknown",
+                  "main_used_g": 68.19,
+                  "total_used_g": 68.19
+                }
+              ],
+              "modelFilamentGrams": 68.19,
+              "supportFilamentGrams": 0.0,
+              "purgeFilamentGrams": 0.0,
+              "towerFilamentGrams": 0.0,
+              "metricSources": {
+                "total_filament": "gcode_header",
+                "print_time": "slicer_result",
+                "breakdown": "derived_gcode_ratio"
+              },
+              "rawStatistics": {
+                "total_predication": 27275.35546875,
+                "feature_type_times": {
+                  "Bridge": 775.9696655273438,
+                  "Brim": 1.9473176002502441,
+                  "Custom": 406.633056640625,
+                  "Flush": 25.0,
+                  "Inner wall": 3545.5966796875,
+                  "Internal solid infill": 3370.887451171875,
+                  "Outer wall": 4338.388671875,
+                  "Overhang wall": 768.5521850585938,
+                  "Skirt": 1.396153450012207,
+                  "Sparse infill": 7563.16650390625,
+                  "Top surface": 616.789306640625,
+                  "Travel": 5876.201171875,
+                  "Undefined": 5859.64111328125
+                }
+              }
+            }
+          ],
+          "metric_sources": {
+            "total_filament": "slicer_result",
+            "print_time": "slicer_result",
+            "model_filament": "derived_gcode_ratio",
+            "support_filament": "derived_gcode_ratio",
+            "tower_filament": "derived_gcode_ratio",
+            "purge_filament": "derived_gcode_ratio"
+          },
+          "diagnostics": {
+            "feature_type_times": {
+              "1": {
+                "Bridge": 775.9696655273438,
+                "Brim": 1.9473176002502441,
+                "Custom": 406.633056640625,
+                "Flush": 25.0,
+                "Inner wall": 3545.5966796875,
+                "Internal solid infill": 3370.887451171875,
+                "Outer wall": 4338.388671875,
+                "Overhang wall": 768.5521850585938,
+                "Skirt": 1.396153450012207,
+                "Sparse infill": 7563.16650390625,
+                "Top surface": 616.789306640625,
+                "Travel": 5876.201171875,
+                "Undefined": 5859.64111328125
+              }
+            },
+            "time_cross_checks": [
+              {
+                "plateId": 1,
+                "resultSeconds": 27275.35546875,
+                "gcodeSeconds": 27275.0,
+                "relativeDelta": 1.3e-05,
+                "materiallyDifferent": false
+              }
+            ],
+            "filament_cross_checks": [
+              {
+                "gcode": "C:\\Users\\RATANA~1\\AppData\\Local\\Temp\\tmpi6mh224l\\plate_1.gcode",
+                "resultGrams": 68.188389,
+                "gcodeGrams": 0.0,
+                "differenceGrams": 68.188389
+              }
+            ]
+          },
+          "production_verification_status": "verified",
+          "applied_settings": {},
+          "feature_mm": {
+            "model": 20603.80594999468,
+            "support": 0.0,
+            "tower": 0.0,
+            "flush": 0.0,
+            "brim": 2.6444099999999997
+          }
+        },
+        "filamentGrams": 68.19,
+        "filament_grams": 68.19,
+        "model_filament_grams": 68.19,
+        "support_filament_grams": 0.0,
+        "purge_filament_grams": 0.0,
+        "tower_filament_grams": 0.0,
+        "printTimeSeconds": 27275,
+        "print_time_seconds": 27275,
+        "toolChangeCount": 0,
+        "tool_change_count": 0,
+        "plateCount": 1,
+        "plate_count": 1,
+        "per_filament": [
+          {
+            "filamentIndex": 1,
+            "totalGrams": 68.19,
+            "colorHex": "unknown",
+            "materialType": "PLA",
+            "modelGrams": 68.19,
+            "supportGrams": 0.0,
+            "purgeGrams": 0.0,
+            "towerGrams": 0.0,
+            "color": "unknown",
+            "main_used_g": 68.19,
+            "total_used_g": 68.19
+          }
+        ],
+        "perFilament": [
+          {
+            "filamentIndex": 1,
+            "totalGrams": 68.19,
+            "colorHex": "unknown",
+            "materialType": "PLA",
+            "modelGrams": 68.19,
+            "supportGrams": 0.0,
+            "purgeGrams": 0.0,
+            "towerGrams": 0.0,
+            "color": "unknown",
+            "main_used_g": 68.19,
+            "total_used_g": 68.19
+          }
+        ],
+        "plates": [
+          {
+            "plateId": 1,
+            "dimensions": {
+              "x": 185.36,
+              "y": 173.73,
+              "z": 86.23
+            },
+            "printTimeSeconds": 27275,
+            "filamentGrams": 68.19,
+            "toolChangeCount": 0,
+            "perFilament": [
+              {
+                "filamentIndex": 1,
+                "totalGrams": 68.19,
+                "colorHex": "unknown",
+                "materialType": "PLA",
+                "modelGrams": 68.19,
+                "supportGrams": 0.0,
+                "purgeGrams": 0.0,
+                "towerGrams": 0.0,
+                "color": "unknown",
+                "main_used_g": 68.19,
+                "total_used_g": 68.19
+              }
+            ],
+            "modelFilamentGrams": 68.19,
+            "supportFilamentGrams": 0.0,
+            "purgeFilamentGrams": 0.0,
+            "towerFilamentGrams": 0.0,
+            "metricSources": {
+              "total_filament": "gcode_header",
+              "print_time": "slicer_result",
+              "breakdown": "derived_gcode_ratio"
+            },
+            "rawStatistics": {
+              "total_predication": 27275.35546875,
+              "feature_type_times": {
+                "Bridge": 775.9696655273438,
+                "Brim": 1.9473176002502441,
+                "Custom": 406.633056640625,
+                "Flush": 25.0,
+                "Inner wall": 3545.5966796875,
+                "Internal solid infill": 3370.887451171875,
+                "Outer wall": 4338.388671875,
+                "Overhang wall": 768.5521850585938,
+                "Skirt": 1.396153450012207,
+                "Sparse infill": 7563.16650390625,
+                "Top surface": 616.789306640625,
+                "Travel": 5876.201171875,
+                "Undefined": 5859.64111328125
+              }
+            }
+          }
+        ],
+        "metricSources": {
+          "total_filament": "slicer_result",
+          "print_time": "slicer_result",
+          "model_filament": "derived_gcode_ratio",
+          "support_filament": "derived_gcode_ratio",
+          "tower_filament": "derived_gcode_ratio",
+          "purge_filament": "derived_gcode_ratio"
+        },
+        "metric_sources": {
+          "total_filament": "slicer_result",
+          "print_time": "slicer_result",
+          "model_filament": "derived_gcode_ratio",
+          "support_filament": "derived_gcode_ratio",
+          "tower_filament": "derived_gcode_ratio",
+          "purge_filament": "derived_gcode_ratio"
+        },
+        "diagnostics": {
+          "feature_type_times": {
+            "1": {
+              "Bridge": 775.9696655273438,
+              "Brim": 1.9473176002502441,
+              "Custom": 406.633056640625,
+              "Flush": 25.0,
+              "Inner wall": 3545.5966796875,
+              "Internal solid infill": 3370.887451171875,
+              "Outer wall": 4338.388671875,
+              "Overhang wall": 768.5521850585938,
+              "Skirt": 1.396153450012207,
+              "Sparse infill": 7563.16650390625,
+              "Top surface": 616.789306640625,
+              "Travel": 5876.201171875,
+              "Undefined": 5859.64111328125
+            }
+          },
+          "time_cross_checks": [
+            {
+              "plateId": 1,
+              "resultSeconds": 27275.35546875,
+              "gcodeSeconds": 27275.0,
+              "relativeDelta": 1.3e-05,
+              "materiallyDifferent": false
+            }
+          ],
+          "filament_cross_checks": [
+            {
+              "gcode": "C:\\Users\\RATANA~1\\AppData\\Local\\Temp\\tmpi6mh224l\\plate_1.gcode",
+              "resultGrams": 68.188389,
+              "gcodeGrams": 0.0,
+              "differenceGrams": 68.188389
+            }
+          ]
+        },
+        "gcode_hash": "9905aeadd068a351ad9656a5087ef6c9701be363f1426bbd703b1eee617e089f",
+        "gcode_reference": "gcode_sha256_9905aeadd068a351",
+        "artifact": {
+          "gcodeReference": "gcode_sha256_9905aeadd068a351",
+          "gcodeHash": "9905aeadd068a351ad9656a5087ef6c9701be363f1426bbd703b1eee617e089f",
+          "resultReference": "result_json_9905aeadd068"
+        },
+        "production_verification_status": "verified",
+        "error": null,
+        "error_code": null,
+        "model_path": "D:\\Shilp buss\\Supabase\\New folder\\Shilpsahayak\\slicer-service\\app\\storage\\extracted_3a130847-9ad3-4ba5-a332-662bd1a24df1\\ReynaNoTextures.obj",
+        "source_project": null
+      }
+    },
+    "timestamp": "2026-09-20T10:55:34.670632+00:00",
+    "resolved": false
+  },
+  "b61f6a3d-e984-430a-b203-987bacc1f9a4": {
+    "jobId": "b61f6a3d-e984-430a-b203-987bacc1f9a4",
+    "reasonCode": "MODEL_HASH_MISMATCH",
+    "details": {
+      "error": "Sliced model hash (ed0f34679982792e41114a0f08c8d52b0f00ad7ae2eb5024c01308203bdfec45) does not match expected job model hash (8914d704ae0b858c1b41e39d78f4056a8d52098ec8f93f01a76f5cf10a7a7a13)",
+      "validation_details": {},
+      "raw_slice_result": {
+        "success": true,
+        "adapter": "bambu_studio_cli",
+        "slicer_executable": "bambu_studio_cli",
+        "slicer_version": "02.08.02.61",
+        "slicerName": "BambuStudio",
+        "slicerVersion": "02.08.02.61",
+        "modelHash": "ed0f34679982792e41114a0f08c8d52b0f00ad7ae2eb5024c01308203bdfec45",
+        "jobId": "",
+        "dimensions": {
+          "x": 185.36,
+          "y": 173.73,
+          "z": 86.23
+        },
+        "active_envelope": {
+          "x": 256.0,
+          "y": 256.0,
+          "z": 256.0
+        },
+        "statistics": {
+          "filament_grams": 68.18,
+          "model_filament_grams": 68.18,
+          "support_filament_grams": 0.0,
+          "purge_filament_grams": 0.0,
+          "tower_filament_grams": 0.0,
+          "filament_mm": 16097.95,
+          "print_time_seconds": 27274,
+          "print_time_minutes": 454.57,
+          "print_time_hours": 7.576,
+          "raw_time_string": "7h 34m 34s",
+          "plate_count": 1,
+          "tool_change_count": 0,
+          "per_filament": [
+            {
+              "filamentIndex": 1,
+              "totalGrams": 68.18,
+              "colorHex": "unknown",
+              "materialType": "PLA",
+              "modelGrams": 68.18,
+              "supportGrams": 0.0,
+              "purgeGrams": 0.0,
+              "towerGrams": 0.0,
+              "color": "unknown",
+              "main_used_g": 68.18,
+              "total_used_g": 68.18
+            }
+          ],
+          "plates": [
+            {
+              "plateId": 1,
+              "dimensions": {
+                "x": 185.36,
+                "y": 173.73,
+                "z": 86.23
+              },
+              "printTimeSeconds": 27274,
+              "filamentGrams": 68.18,
+              "toolChangeCount": 0,
+              "perFilament": [
+                {
+                  "filamentIndex": 1,
+                  "totalGrams": 68.18,
+                  "colorHex": "unknown",
+                  "materialType": "PLA",
+                  "modelGrams": 68.18,
+                  "supportGrams": 0.0,
+                  "purgeGrams": 0.0,
+                  "towerGrams": 0.0,
+                  "color": "unknown",
+                  "main_used_g": 68.18,
+                  "total_used_g": 68.18
+                }
+              ],
+              "modelFilamentGrams": 68.18,
+              "supportFilamentGrams": 0.0,
+              "purgeFilamentGrams": 0.0,
+              "towerFilamentGrams": 0.0,
+              "metricSources": {
+                "total_filament": "gcode_header",
+                "print_time": "slicer_result",
+                "breakdown": "derived_gcode_ratio"
+              },
+              "rawStatistics": {
+                "total_predication": 27273.525390625,
+                "feature_type_times": {
+                  "Bridge": 777.3325805664062,
+                  "Brim": 1.9473176002502441,
+                  "Custom": 406.633056640625,
+                  "Flush": 25.0,
+                  "Inner wall": 3544.624755859375,
+                  "Internal solid infill": 3373.00537109375,
+                  "Outer wall": 4334.45068359375,
+                  "Overhang wall": 770.0254516601562,
+                  "Skirt": 1.396153450012207,
+                  "Sparse infill": 7563.76123046875,
+                  "Top surface": 619.1857299804688,
+                  "Travel": 5871.4326171875,
+                  "Undefined": 5854.87255859375
+                }
+              }
+            }
+          ],
+          "metric_sources": {
+            "total_filament": "slicer_result",
+            "print_time": "slicer_result",
+            "model_filament": "derived_gcode_ratio",
+            "support_filament": "derived_gcode_ratio",
+            "tower_filament": "derived_gcode_ratio",
+            "purge_filament": "derived_gcode_ratio"
+          },
+          "diagnostics": {
+            "feature_type_times": {
+              "1": {
+                "Bridge": 777.3325805664062,
+                "Brim": 1.9473176002502441,
+                "Custom": 406.633056640625,
+                "Flush": 25.0,
+                "Inner wall": 3544.624755859375,
+                "Internal solid infill": 3373.00537109375,
+                "Outer wall": 4334.45068359375,
+                "Overhang wall": 770.0254516601562,
+                "Skirt": 1.396153450012207,
+                "Sparse infill": 7563.76123046875,
+                "Top surface": 619.1857299804688,
+                "Travel": 5871.4326171875,
+                "Undefined": 5854.87255859375
+              }
+            },
+            "time_cross_checks": [
+              {
+                "plateId": 1,
+                "resultSeconds": 27273.525390625,
+                "gcodeSeconds": 27273.0,
+                "relativeDelta": 1.9e-05,
+                "materiallyDifferent": false
+              }
+            ],
+            "filament_cross_checks": [
+              {
+                "gcode": "C:\\Users\\RATANA~1\\AppData\\Local\\Temp\\tmp2i4w7szv\\plate_1.gcode",
+                "resultGrams": 68.183813,
+                "gcodeGrams": 0.0,
+                "differenceGrams": 68.183813
+              }
+            ]
+          },
+          "production_verification_status": "verified",
+          "applied_settings": {},
+          "feature_mm": {
+            "model": 20601.75958999468,
+            "support": 0.0,
+            "tower": 0.0,
+            "flush": 0.0,
+            "brim": 2.6444099999999997
+          }
+        },
+        "filamentGrams": 68.18,
+        "filament_grams": 68.18,
+        "model_filament_grams": 68.18,
+        "support_filament_grams": 0.0,
+        "purge_filament_grams": 0.0,
+        "tower_filament_grams": 0.0,
+        "printTimeSeconds": 27274,
+        "print_time_seconds": 27274,
+        "toolChangeCount": 0,
+        "tool_change_count": 0,
+        "plateCount": 1,
+        "plate_count": 1,
+        "per_filament": [
+          {
+            "filamentIndex": 1,
+            "totalGrams": 68.18,
+            "colorHex": "unknown",
+            "materialType": "PLA",
+            "modelGrams": 68.18,
+            "supportGrams": 0.0,
+            "purgeGrams": 0.0,
+            "towerGrams": 0.0,
+            "color": "unknown",
+            "main_used_g": 68.18,
+            "total_used_g": 68.18
+          }
+        ],
+        "perFilament": [
+          {
+            "filamentIndex": 1,
+            "totalGrams": 68.18,
+            "colorHex": "unknown",
+            "materialType": "PLA",
+            "modelGrams": 68.18,
+            "supportGrams": 0.0,
+            "purgeGrams": 0.0,
+            "towerGrams": 0.0,
+            "color": "unknown",
+            "main_used_g": 68.18,
+            "total_used_g": 68.18
+          }
+        ],
+        "plates": [
+          {
+            "plateId": 1,
+            "dimensions": {
+              "x": 185.36,
+              "y": 173.73,
+              "z": 86.23
+            },
+            "printTimeSeconds": 27274,
+            "filamentGrams": 68.18,
+            "toolChangeCount": 0,
+            "perFilament": [
+              {
+                "filamentIndex": 1,
+                "totalGrams": 68.18,
+                "colorHex": "unknown",
+                "materialType": "PLA",
+                "modelGrams": 68.18,
+                "supportGrams": 0.0,
+                "purgeGrams": 0.0,
+                "towerGrams": 0.0,
+                "color": "unknown",
+                "main_used_g": 68.18,
+                "total_used_g": 68.18
+              }
+            ],
+            "modelFilamentGrams": 68.18,
+            "supportFilamentGrams": 0.0,
+            "purgeFilamentGrams": 0.0,
+            "towerFilamentGrams": 0.0,
+            "metricSources": {
+              "total_filament": "gcode_header",
+              "print_time": "slicer_result",
+              "breakdown": "derived_gcode_ratio"
+            },
+            "rawStatistics": {
+              "total_predication": 27273.525390625,
+              "feature_type_times": {
+                "Bridge": 777.3325805664062,
+                "Brim": 1.9473176002502441,
+                "Custom": 406.633056640625,
+                "Flush": 25.0,
+                "Inner wall": 3544.624755859375,
+                "Internal solid infill": 3373.00537109375,
+                "Outer wall": 4334.45068359375,
+                "Overhang wall": 770.0254516601562,
+                "Skirt": 1.396153450012207,
+                "Sparse infill": 7563.76123046875,
+                "Top surface": 619.1857299804688,
+                "Travel": 5871.4326171875,
+                "Undefined": 5854.87255859375
+              }
+            }
+          }
+        ],
+        "metricSources": {
+          "total_filament": "slicer_result",
+          "print_time": "slicer_result",
+          "model_filament": "derived_gcode_ratio",
+          "support_filament": "derived_gcode_ratio",
+          "tower_filament": "derived_gcode_ratio",
+          "purge_filament": "derived_gcode_ratio"
+        },
+        "metric_sources": {
+          "total_filament": "slicer_result",
+          "print_time": "slicer_result",
+          "model_filament": "derived_gcode_ratio",
+          "support_filament": "derived_gcode_ratio",
+          "tower_filament": "derived_gcode_ratio",
+          "purge_filament": "derived_gcode_ratio"
+        },
+        "diagnostics": {
+          "feature_type_times": {
+            "1": {
+              "Bridge": 777.3325805664062,
+              "Brim": 1.9473176002502441,
+              "Custom": 406.633056640625,
+              "Flush": 25.0,
+              "Inner wall": 3544.624755859375,
+              "Internal solid infill": 3373.00537109375,
+              "Outer wall": 4334.45068359375,
+              "Overhang wall": 770.0254516601562,
+              "Skirt": 1.396153450012207,
+              "Sparse infill": 7563.76123046875,
+              "Top surface": 619.1857299804688,
+              "Travel": 5871.4326171875,
+              "Undefined": 5854.87255859375
+            }
+          },
+          "time_cross_checks": [
+            {
+              "plateId": 1,
+              "resultSeconds": 27273.525390625,
+              "gcodeSeconds": 27273.0,
+              "relativeDelta": 1.9e-05,
+              "materiallyDifferent": false
+            }
+          ],
+          "filament_cross_checks": [
+            {
+              "gcode": "C:\\Users\\RATANA~1\\AppData\\Local\\Temp\\tmp2i4w7szv\\plate_1.gcode",
+              "resultGrams": 68.183813,
+              "gcodeGrams": 0.0,
+              "differenceGrams": 68.183813
+            }
+          ]
+        },
+        "gcode_hash": "5472c9c7ae53c6c2e4b628e96b824e53d7f6fc351eb8882a4d90c76dcdf771c4",
+        "gcode_reference": "gcode_sha256_5472c9c7ae53c6c2",
+        "artifact": {
+          "gcodeReference": "gcode_sha256_5472c9c7ae53c6c2",
+          "gcodeHash": "5472c9c7ae53c6c2e4b628e96b824e53d7f6fc351eb8882a4d90c76dcdf771c4",
+          "resultReference": "result_json_5472c9c7ae53"
+        },
+        "production_verification_status": "verified",
+        "error": null,
+        "error_code": null,
+        "model_path": "D:\\Shilp buss\\Supabase\\New folder\\Shilpsahayak\\slicer-service\\app\\storage\\extracted_b61f6a3d-e984-430a-b203-987bacc1f9a4\\ReynaNoTextures.obj",
+        "source_project": null
+      }
+    },
+    "timestamp": "2026-09-20T10:57:44.256489+00:00",
+    "resolved": false
+  },
+  "05fbe80d-dd46-473e-a943-21e02c1a579a": {
+    "jobId": "05fbe80d-dd46-473e-a943-21e02c1a579a",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: CLI returned code 4294967246"
+    },
+    "timestamp": "2026-09-20T10:58:25.669718+00:00",
+    "resolved": false
+  },
+  "127483b2-4aa5-4970-b7e5-e4e5a9e58a46": {
+    "jobId": "127483b2-4aa5-4970-b7e5-e4e5a9e58a46",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: CLI returned code 4294967246"
+    },
+    "timestamp": "2026-09-20T11:16:10.759582+00:00",
+    "resolved": false
+  },
+  "448456c6-0d74-4dd1-8d46-61dd7503a07c": {
+    "jobId": "448456c6-0d74-4dd1-8d46-61dd7503a07c",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: CLI returned code 4294967246"
+    },
+    "timestamp": "2026-09-20T11:16:16.186811+00:00",
+    "resolved": false
+  },
+  "f5e189ec-a730-444f-aa2a-280591ae20cd": {
+    "jobId": "f5e189ec-a730-444f-aa2a-280591ae20cd",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: CLI returned code 4294967246"
+    },
+    "timestamp": "2026-09-20T11:16:40.352582+00:00",
+    "resolved": false
+  },
+  "34604b94-ce92-40f3-a9de-2b2d9ad3c3c2": {
+    "jobId": "34604b94-ce92-40f3-a9de-2b2d9ad3c3c2",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: CLI returned code 4294967246"
+    },
+    "timestamp": "2026-09-20T11:48:36.805302+00:00",
+    "resolved": false
+  },
+  "e0854516-9d7d-4add-a5a3-9e341fa54a5e": {
+    "jobId": "e0854516-9d7d-4add-a5a3-9e341fa54a5e",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: CLI returned code 4294967246"
+    },
+    "timestamp": "2026-09-20T12:12:14.666567+00:00",
+    "resolved": false
+  },
+  "067d516c-eb1a-46be-81fd-b8faaf861426": {
+    "jobId": "067d516c-eb1a-46be-81fd-b8faaf861426",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Bambu Studio error: CLI returned code 4294967246"
+    },
+    "timestamp": "2026-09-20T12:36:23.820320+00:00",
+    "resolved": false
+  },
+  "9a3eee9f-220c-419b-9d4b-68010ad13e5b": {
+    "jobId": "9a3eee9f-220c-419b-9d4b-68010ad13e5b",
+    "reasonCode": "INTERNAL_PROCESSING_ERROR",
+    "details": {
+      "error": "cannot access local variable 'find_bambu_resource_file' where it is not associated with a value"
+    },
+    "timestamp": "2026-09-20T12:51:17.392034+00:00",
+    "resolved": false
+  },
+  "c12d0825-7b32-4552-a314-173e4a7f1b63": {
+    "jobId": "c12d0825-7b32-4552-a314-173e4a7f1b63",
+    "reasonCode": "INTERNAL_PROCESSING_ERROR",
+    "details": {
+      "error": "cannot access local variable 'find_bambu_resource_file' where it is not associated with a value"
+    },
+    "timestamp": "2026-09-20T12:51:29.124561+00:00",
+    "resolved": false
+  },
+  "a442e9cd-1c24-4023-991c-9600727e4255": {
+    "jobId": "a442e9cd-1c24-4023-991c-9600727e4255",
+    "reasonCode": "EXCESSIVE_TRIANGLES",
+    "details": {
+      "success": false,
+      "classification": "geometry_bearing_project",
+      "detected_format": "3mf",
+      "can_slice": false,
+      "error_code": "EXCESSIVE_TRIANGLES",
+      "mesh_repair_status": "failed",
+      "workshop_review_available": true,
+      "message": "3MF model contains 2,929,634 triangles, exceeding cap."
+    },
+    "timestamp": "2026-09-20T12:53:31.784937+00:00",
+    "resolved": false
+  },
+  "9a529be3-7c16-41c4-a7be-424a94246e61": {
+    "jobId": "9a529be3-7c16-41c4-a7be-424a94246e61",
+    "reasonCode": "EXCESSIVE_TRIANGLES",
+    "details": {
+      "success": false,
+      "classification": "geometry_bearing_project",
+      "detected_format": "3mf",
+      "can_slice": false,
+      "error_code": "EXCESSIVE_TRIANGLES",
+      "mesh_repair_status": "failed",
+      "workshop_review_available": true,
+      "message": "3MF model contains 2,929,634 triangles, exceeding cap."
+    },
+    "timestamp": "2026-09-20T12:53:35.995726+00:00",
+    "resolved": false
+  },
+  "5c937314-826f-4763-9f46-73ad9f2444d4": {
+    "jobId": "5c937314-826f-4763-9f46-73ad9f2444d4",
+    "reasonCode": "EXCESSIVE_TRIANGLES",
+    "details": {
+      "success": false,
+      "classification": "geometry_bearing_project",
+      "detected_format": "3mf",
+      "can_slice": false,
+      "error_code": "EXCESSIVE_TRIANGLES",
+      "mesh_repair_status": "failed",
+      "workshop_review_available": true,
+      "message": "3MF model contains 2,929,634 triangles, exceeding cap."
+    },
+    "timestamp": "2026-09-20T12:53:36.002634+00:00",
+    "resolved": false
+  },
+  "ffff1f35-f3b3-4e0a-a623-fb4924e892d0": {
+    "jobId": "ffff1f35-f3b3-4e0a-a623-fb4924e892d0",
+    "reasonCode": "EXCESSIVE_TRIANGLES",
+    "details": {
+      "success": false,
+      "classification": "geometry_bearing_project",
+      "detected_format": "3mf",
+      "can_slice": false,
+      "error_code": "EXCESSIVE_TRIANGLES",
+      "mesh_repair_status": "failed",
+      "workshop_review_available": true,
+      "message": "3MF model contains 2,929,634 triangles, exceeding cap."
+    },
+    "timestamp": "2026-09-20T12:54:01.170552+00:00",
+    "resolved": false
+  },
+  "7161db61-b3ff-44f4-8614-c2a465e081af": {
+    "jobId": "7161db61-b3ff-44f4-8614-c2a465e081af",
+    "reasonCode": "INTERNAL_PROCESSING_ERROR",
+    "details": {
+      "error": "cannot access local variable 'find_bambu_resource_file' where it is not associated with a value"
+    },
+    "timestamp": "2026-09-20T13:02:10.220487+00:00",
+    "resolved": false
+  },
+  "a7d28fd4-4cc8-4ddd-95de-53b94d8a0583": {
+    "jobId": "a7d28fd4-4cc8-4ddd-95de-53b94d8a0583",
+    "reasonCode": "INTERNAL_PROCESSING_ERROR",
+    "details": {
+      "error": "cannot access local variable 'find_bambu_resource_file' where it is not associated with a value"
+    },
+    "timestamp": "2026-09-20T13:02:16.849494+00:00",
+    "resolved": false
+  },
+  "70eb8a03-7ac1-4202-9d6e-b5785d2acaec": {
+    "jobId": "70eb8a03-7ac1-4202-9d6e-b5785d2acaec",
+    "reasonCode": "3MF_EXTRACTION_ERROR",
+    "details": {
+      "error": "No production_profiles provided to adapter"
+    },
+    "timestamp": "2026-09-20T13:05:56.675662+00:00",
+    "resolved": false
+  },
+  "2be36374-c43d-4805-9bf8-14e13542609a": {
+    "jobId": "2be36374-c43d-4805-9bf8-14e13542609a",
+    "reasonCode": "3MF_EXTRACTION_ERROR",
+    "details": {
+      "error": "No production_profiles provided to adapter"
+    },
+    "timestamp": "2026-09-20T13:06:14.525699+00:00",
+    "resolved": false
+  },
+  "62741e72-6376-407d-8aab-66283a435c43": {
+    "jobId": "62741e72-6376-407d-8aab-66283a435c43",
+    "reasonCode": "3MF_EXTRACTION_ERROR",
+    "details": {
+      "error": "No production_profiles provided to adapter"
+    },
+    "timestamp": "2026-09-20T13:08:58.932733+00:00",
+    "resolved": false
+  },
+  "b355c63c-6324-4a35-a270-898f76c88d72": {
+    "jobId": "b355c63c-6324-4a35-a270-898f76c88d72",
+    "reasonCode": "MANUAL_REVIEW_MULTICOLOR_LOST",
+    "details": {
+      "error": "Multicolor plate requires color preservation, which generic pipeline cannot reliably provide."
+    },
+    "timestamp": "2026-09-20T13:09:28.792101+00:00",
+    "resolved": false
+  },
+  "f6acaaea-2378-4a66-8f0f-506820fafb6a": {
+    "jobId": "f6acaaea-2378-4a66-8f0f-506820fafb6a",
+    "reasonCode": "NO_ENABLED_PRODUCTION_PRINTERS",
+    "details": {
+      "reason": "No enabled production printer profiles are configured in Admin.",
+      "model_dimensions": {
+        "x": 129.44,
+        "y": 94.34,
+        "z": 82.09
+      },
+      "requires_multicolor": false,
+      "candidates_evaluated": 0
+    },
+    "timestamp": "2026-09-20T13:19:20.340143+00:00",
+    "resolved": false
+  },
+  "ec0e0e9a-163f-4a26-93e7-cc6698e1fc56": {
+    "jobId": "ec0e0e9a-163f-4a26-93e7-cc6698e1fc56",
+    "reasonCode": "NO_ENABLED_PRODUCTION_PRINTERS",
+    "details": {
+      "reason": "No enabled production printer profiles are configured in Admin.",
+      "model_dimensions": {
+        "x": 129.44,
+        "y": 94.34,
+        "z": 82.09
+      },
+      "requires_multicolor": false,
+      "candidates_evaluated": 0
+    },
+    "timestamp": "2026-09-20T13:19:54.405818+00:00",
+    "resolved": false
+  },
+  "9a8834fb-be80-4702-9468-458015188af1": {
+    "jobId": "9a8834fb-be80-4702-9468-458015188af1",
+    "reasonCode": "NO_ENABLED_PRODUCTION_PRINTERS",
+    "details": {
+      "reason": "No enabled production printer profiles are configured in Admin.",
+      "model_dimensions": {
+        "x": 129.44,
+        "y": 94.34,
+        "z": 82.09
+      },
+      "requires_multicolor": false,
+      "candidates_evaluated": 0
+    },
+    "timestamp": "2026-09-20T13:20:47.570917+00:00",
+    "resolved": false
+  },
+  "24f3b64d-e06e-4017-8696-b9cf981b6968": {
+    "jobId": "24f3b64d-e06e-4017-8696-b9cf981b6968",
+    "reasonCode": "NO_ENABLED_PRODUCTION_PRINTERS",
+    "details": {
+      "reason": "No enabled production printer profiles are configured in Admin.",
+      "model_dimensions": {
+        "x": 129.44,
+        "y": 94.34,
+        "z": 82.09
+      },
+      "requires_multicolor": false,
+      "candidates_evaluated": 0
+    },
+    "timestamp": "2026-09-20T13:21:31.941938+00:00",
+    "resolved": false
+  },
+  "33f7f4a2-b5fe-4525-8690-c3bbe23020fa": {
+    "jobId": "33f7f4a2-b5fe-4525-8690-c3bbe23020fa",
+    "reasonCode": "NO_ENABLED_PRODUCTION_PRINTERS",
+    "details": {
+      "reason": "No enabled production printer profiles are configured in Admin.",
+      "model_dimensions": {
+        "x": 129.44,
+        "y": 94.34,
+        "z": 82.09
+      },
+      "requires_multicolor": false,
+      "candidates_evaluated": 0
+    },
+    "timestamp": "2026-09-20T13:22:53.902247+00:00",
+    "resolved": false
+  },
+  "7d17b834-831e-482f-bef1-f38e5d9c7c24": {
+    "jobId": "7d17b834-831e-482f-bef1-f38e5d9c7c24",
+    "reasonCode": "NO_ENABLED_PRODUCTION_PRINTERS",
+    "details": {
+      "reason": "No enabled production printer profiles are configured in Admin.",
+      "model_dimensions": {
+        "x": 129.44,
+        "y": 94.34,
+        "z": 82.09
+      },
+      "requires_multicolor": false,
+      "candidates_evaluated": 0
+    },
+    "timestamp": "2026-09-20T13:25:58.209961+00:00",
+    "resolved": false
+  },
+  "ce47b117-02db-4d00-8806-5165607be29a": {
+    "jobId": "ce47b117-02db-4d00-8806-5165607be29a",
+    "reasonCode": "NO_ENABLED_PRODUCTION_PRINTERS",
+    "details": {
+      "reason": "No enabled production printer profiles are configured in Admin.",
+      "model_dimensions": {
+        "x": 129.44,
+        "y": 94.34,
+        "z": 82.09
+      },
+      "requires_multicolor": false,
+      "candidates_evaluated": 0
+    },
+    "timestamp": "2026-09-20T13:26:32.449819+00:00",
+    "resolved": false
+  },
+  "c71e76f1-a1fe-4dd9-97a5-62241812947a": {
+    "jobId": "c71e76f1-a1fe-4dd9-97a5-62241812947a",
+    "reasonCode": "MANUAL_REVIEW_MULTICOLOR_LOST",
+    "details": {
+      "error": "Multicolor plate requires color preservation, which generic pipeline cannot reliably provide."
+    },
+    "timestamp": "2026-09-20T13:27:15.684490+00:00",
+    "resolved": false
+  },
+  "7df595d3-7f81-4923-801c-ad553c7ab74e": {
+    "jobId": "7df595d3-7f81-4923-801c-ad553c7ab74e",
+    "reasonCode": "MANUAL_REVIEW_MULTICOLOR_LOST",
+    "details": {
+      "error": "Multicolor plate requires color preservation, which generic pipeline cannot reliably provide."
+    },
+    "timestamp": "2026-09-20T13:28:04.086657+00:00",
+    "resolved": false
+  },
+  "076efbd0-2e66-41e3-8bb5-faa6d0ee9e88": {
+    "jobId": "076efbd0-2e66-41e3-8bb5-faa6d0ee9e88",
+    "reasonCode": "3MF_EXTRACTION_ERROR",
+    "details": {
+      "error": "name 'pdef' is not defined"
+    },
+    "timestamp": "2026-09-20T13:31:14.741785+00:00",
+    "resolved": false
+  },
+  "c4edcd7d-a409-44cd-a982-088a96554f06": {
+    "jobId": "c4edcd7d-a409-44cd-a982-088a96554f06",
+    "reasonCode": "SLICER_EXECUTION_ERROR",
+    "details": {
+      "error": "Plate 2 slice failed with code 4294967246"
+    },
+    "timestamp": "2026-09-20T13:32:36.876410+00:00",
+    "resolved": false
+  }
+}

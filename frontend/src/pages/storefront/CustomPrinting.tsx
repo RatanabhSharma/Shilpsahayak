@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   Box,
   Lightbulb,
+  Info,
   Image as ImageIcon,
   MessageSquare,
   Maximize2,
@@ -617,14 +618,34 @@ export function CustomPrinting() {
     null;
 
   const exceedsBuildVolume = useMemo(() => {
-    if (!modelResult?.success || !effectiveDimensions) return false;
+    if (!modelResult?.success) return false;
     if (!maxBuildVolume) return false;
+
+    // Helper to check if a specific dimension exceeds the envelope
+    const checkDim = (dim: { x: number; y: number; z: number }) => {
+      const scaledX = dim.x * scaleX;
+      const scaledY = dim.y * scaleY;
+      const scaledZ = dim.z * scaleZ;
+      return (
+        scaledX > maxBuildVolume.x ||
+        scaledY > maxBuildVolume.y ||
+        scaledZ > maxBuildVolume.z
+      );
+    };
+
+    // If multi-plate, check EVERY plate
+    if (modelResult.previewMode === 'multi_plate' && modelResult.plates && modelResult.plates.length > 0) {
+      return modelResult.plates.some((plate) => checkDim(plate.dimensions));
+    }
+
+    // Otherwise, check the overall effective dimensions
+    if (!effectiveDimensions) return false;
     return (
       effectiveDimensions.x > maxBuildVolume.x ||
       effectiveDimensions.y > maxBuildVolume.y ||
       effectiveDimensions.z > maxBuildVolume.z
     );
-  }, [modelResult, effectiveDimensions, maxBuildVolume]);
+  }, [modelResult, effectiveDimensions, maxBuildVolume, scaleX, scaleY, scaleZ]);
 
 
   // ─── AUTHORITATIVE PRODUCTION QUOTE (calculated from actual slicer metrics) ───
@@ -752,83 +773,16 @@ export function CustomPrinting() {
   const runBackgroundSlice = useCallback(async (hash: string) => {
     if (!file) return;
 
-    const jobToken = `job_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    currentJobTokenRef.current = jobToken;
-
-    setIsSlicing(true);
+    // FUTURE SLICER:
+    // Automatic slicing is temporarily disabled.
+    // Previous implementation preserved under future-tasks/slicer/
+    // Re-enable only after slicing accuracy is independently validated.
+    
+    // We immediately stop slicing and force a manual review.
+    setIsSlicing(false);
     setSlicerError(null);
-    setSlicingStageMessage('Calculating your exact print price...');
-
-    try {
-      const res = await executeSlicingJob({
-        file,
-        fileName: file.name,
-        material: selectedMaterialId,
-        qualityProfile: qualityPreset,
-        infillPercent: effectiveInfill,
-        scaleFactor,
-        scaleX,
-        scaleY,
-        scaleZ,
-        requestedDimensions: effectiveDimensions || undefined,
-        quantity,
-        supportMode,
-        packagingIncluded,
-        onProgress: (msg) => {
-          if (currentJobTokenRef.current === jobToken) {
-            setSlicingStageMessage(msg);
-          }
-        },
-        pricingConfig: pricingData?.pricingConfig,
-        materials: pricingData?.materials,
-        quantityDiscounts: pricingData?.quantityDiscounts,
-        pricingVersion: pricingData?.pricingVersion,
-        // Kept for backward compatibility with older backend deployments.
-        productionPrinterProfile: pricingData?.productionPrinterProfile,
-        // Full list → backend auto-selects the eligible printer internally.
-        // Customer never sees printer names or selection controls.
-        productionPrinterProfiles: pricingData?.productionPrinterProfiles,
-      });
-
-      if (currentJobTokenRef.current !== jobToken) {
-        return; // Discard superseded job
-      }
-
-      setIsSlicing(false);
-
-      if (res.status === 'completed' && res.quote) {
-        setSlicerResult(res);
-        lastSlicedHashRef.current = hash;
-        if (res.colorAnalysis) {
-          setColorAnalysis(res.colorAnalysis);
-        }
-        setSlicerError(null);
-      } else {
-        setSlicerResult(null);
-        const failureMessage = res.status === 'failed' ? res.error : 'Unable to calculate a verified production price.';
-        setSlicerError(failureMessage);
-      }
-    } catch (err: any) {
-      if (currentJobTokenRef.current !== jobToken) return;
-      setIsSlicing(false);
-      setSlicerResult(null);
-      setSlicerError(err?.message || 'Production pricing is temporarily unavailable.');
-    }
-  }, [
-    file,
-    selectedMaterialId,
-    qualityPreset,
-    effectiveInfill,
-    scaleFactor,
-    scaleX,
-    scaleY,
-    scaleZ,
-    effectiveDimensions,
-    quantity,
-    supportMode,
-    packagingIncluded,
-    pricingData,
-  ]);
+    lastSlicedHashRef.current = hash;
+  }, [file]);
 
   // Automatic Background Slicer: Triggers whenever toolpath-affecting settings change (debounced).
   useEffect(() => {
@@ -1047,6 +1001,11 @@ export function CustomPrinting() {
       fileList.length === 1 ? fileList[0] : fileList,
       pricingData?.pricingConfig?.maxBuildVolume
     );
+
+    // FUTURE SLICER: Force manual review for ALL files.
+    result.requiresManualReview = true;
+    result.reviewReason = "Automatic quotation is temporarily disabled. All models require engineer review.";
+
 
     setIsParsing(false);
     setModelResult(result);
@@ -3056,663 +3015,39 @@ export function CustomPrinting() {
 
 
       {/* ========================================================= */}
-      {/* TAB 3: ESTIMATE / PRODUCTION QUOTE                        */}
-      {/* Authoritative pricing derived from actual slicer output   */}
-      {/* ========================================================= */}
-      {activeTab === 'estimate' && (
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
-
-          {/* Header */}
-          <div className="text-center space-y-1.5">
-            <h2 className="font-display text-2xl sm:text-3xl font-bold text-ink dark:text-white">
-              {isSlicing
-                ? 'Calculating Exact Production Price...'
-                : slicerError
-                ? 'Production Price Unavailable'
-                : 'Production Price'}
-            </h2>
-            <p className="text-sm text-muted dark:text-slate-400 font-sans max-w-lg mx-auto">
-              {isSlicing
-                ? 'Generating slice toolpaths and calculating authoritative material and time metrics.'
-                : slicerError
-                ? 'The production slicer could not verify this model for automated pricing.'
-                : 'Authoritative manufacturing metrics derived directly from actual slicer toolpaths and real-time workshop pricing.'}
-            </p>
-
-            {quoteBreakdown && (
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-mono font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:border-emerald-700/50 dark:text-emerald-400">
-                <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
-                PRODUCTION-VERIFIED QUOTE
-                {slicerResult?.profileApplied && (
-                  <span className="text-emerald-600 dark:text-emerald-400">
-                    · {slicerResult.profileApplied.replace('.ini', '')}
-                  </span>
-                )}
-                {slicerResult?.activeEnvelope && (
-                  <span className="text-emerald-600 dark:text-emerald-400">
-                    · {slicerResult.activeEnvelope.x}×{slicerResult.activeEnvelope.y}×{slicerResult.activeEnvelope.z}mm
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Compact Slicing Status Strip — non-blocking */}
-          {isSlicing && (
-            <div className="rounded-2xl border border-accent/30 bg-accent/5 dark:bg-amber-950/20 px-4 py-3 flex items-center gap-3">
-              <Loader2 className="w-4 h-4 animate-spin text-accent shrink-0" />
-              <div className="flex-1 min-w-0">
-                <span className="text-xs font-mono font-semibold text-accent block">
-                  Calculating exact production price...
-                </span>
-                <span className="text-[11px] text-muted dark:text-slate-400 font-sans truncate block">
-                  {slicingStageMessage || 'Analyzing model and calculating toolpaths...'}
-                </span>
-              </div>
+              {/* TAB 3: ESTIMATE / PRODUCTION QUOTE                        */}
+        {/* ========================================================= */}
+        {activeTab === 'estimate' && (
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
+            <div className="text-center space-y-1.5">
+              <h2 className="font-display text-2xl sm:text-3xl font-bold text-ink dark:text-white">
+                Engineer Review Required
+              </h2>
+              <p className="text-sm text-muted dark:text-slate-400 font-sans max-w-lg mx-auto">
+                We'll review your model and send you a quotation within 48 hours. Automatic quotation is temporarily disabled.
+              </p>
             </div>
-          )}
-
-          {/* Production Slicing Error — controlled failure state */}
-          {slicerError && !isSlicing && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-rose-400/40 p-8 shadow-sm space-y-5">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex items-center justify-center shrink-0">
-                  <AlertTriangle className="w-6 h-6 text-rose-600 dark:text-rose-400" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="font-display text-lg font-bold text-ink dark:text-white">
-                    Unable to Calculate Verified Production Price
-                  </h3>
-                  <p className="text-xs text-muted dark:text-slate-400 font-sans leading-relaxed">
-                    {slicerError}
-                  </p>
-                </div>
-              </div>
-              <div className="pt-2 flex flex-col sm:flex-row gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    lastSlicedHashRef.current = null;
-                    if (toolpathHash) runBackgroundSlice(toolpathHash);
-                  }}
-                  className="flex-1 py-3 px-4 rounded-xl bg-accent hover:bg-amber-600 text-white font-mono text-xs font-bold uppercase tracking-wider text-center transition-all cursor-pointer"
-                >
-                  Retry Slicing Calculation
-                </button>
+            
+            <div className="max-w-2xl mx-auto bg-white dark:bg-slate-900 rounded-3xl border border-line dark:border-slate-800 p-6 sm:p-8 shadow-sm text-center">
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                  Please request an engineer quote. We will verify your file and provide you with an exact production price.
+                </p>
                 <button
                   type="button"
                   onClick={() => setShowQuoteModal(true)}
-                  className="flex-1 py-3 px-4 rounded-xl border border-line hover:border-slate-400 bg-white dark:bg-slate-800 text-ink dark:text-slate-200 font-mono text-xs font-bold text-center transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="px-6 py-3 rounded-xl bg-accent hover:bg-amber-600 text-white font-mono text-sm font-bold uppercase tracking-wider shadow-md inline-flex items-center gap-2 cursor-pointer transition-all hover:scale-105"
                 >
-                  <Send className="w-3.5 h-3.5 text-accent" />
-                  <span>Request Workshop Review</span>
+                  <span>Request Engineer Quote</span>
                 </button>
-              </div>
-              <div className="text-center pt-1">
-                <button
-                  type="button"
-                  onClick={() => handleTabChange('configure')}
-                  className="text-xs font-mono text-muted hover:text-accent transition-colors cursor-pointer"
-                >
-                  ← Return to Configure Print Settings
-                </button>
-              </div>
             </div>
-          )}
-
-          {/* Slicing In Progress Placeholder (when navigating directly to Estimate before completion) */}
-          {!quoteBreakdown && isSlicing && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-line dark:border-slate-800 p-8 text-center space-y-4 max-w-md mx-auto">
-              <Loader2 className="w-8 h-8 animate-spin text-accent mx-auto" />
-              <h3 className="font-display font-bold text-base text-ink dark:text-white">
-                Generating Exact Manufacturing Price
-              </h3>
-              <p className="text-xs text-muted dark:text-slate-400 font-sans leading-relaxed">
-                {slicingStageMessage || 'Our production slicer is calculating exact material weight and print duration...'}
-              </p>
-              <button
-                type="button"
-                onClick={() => handleTabChange('configure')}
-                className="text-xs font-mono text-accent hover:underline cursor-pointer"
-              >
-                ← Return to Configuration
-              </button>
-            </div>
-          )}
-
-          {/* Main estimate panel — visible as long as we have any quote (instant OR production) */}
-          {quoteBreakdown && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Left Column: Detailed Specifications Summary */}
-              <div className="lg:col-span-7 space-y-4">
-                {/* Clean Customer Specifications Summary */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 p-5 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
-                    <div className="flex items-center gap-2">
-                      <FileBox className="w-4 h-4 text-accent" />
-                      <h3 className="font-display font-bold text-sm text-ink dark:text-white uppercase tracking-wider">
-                        Print Summary
-                      </h3>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleTabChange('configure')}
-                      className="text-xs font-mono text-accent hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      Edit configuration →
-                    </button>
-                  </div>
-
-                  {!isMultiColorModel ? (
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
-                        <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                          Material &amp; Color
-                        </span>
-                        <div className="flex items-center gap-1.5 mt-0.5 font-bold text-ink dark:text-slate-100">
-                          <span
-                            className="w-2.5 h-2.5 rounded-full border border-slate-300 dark:border-slate-600 shrink-0"
-                            style={{ backgroundColor: customColorHex || activeColor.hex }}
-                          />
-                          <span className="truncate">{activeMaterial.name} · {activeColor.name}</span>
-                        </div>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
-                        <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                          Print Quality
-                        </span>
-                        <span className="font-bold text-ink dark:text-slate-100 capitalize mt-0.5 block">
-                          {qualityPreset} ({effectiveLayerHeight}mm)
-                        </span>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
-                        <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                          Strength
-                        </span>
-                        <span className="font-bold text-ink dark:text-slate-100 capitalize mt-0.5 block">
-                          {strengthPreset}
-                        </span>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
-                        <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                          Support
-                        </span>
-                        <span className="font-bold text-ink dark:text-slate-100 capitalize mt-0.5 block">
-                          {supportMode}
-                        </span>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
-                        <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                          Surface Finish
-                        </span>
-                        <span className="font-bold text-ink dark:text-slate-100 capitalize mt-0.5 block">
-                          {surfaceFinish}
-                        </span>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
-                        <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                          Quantity
-                        </span>
-                        <span className="font-bold text-ink dark:text-slate-100 mt-0.5 block">
-                          {quantity} {quantity === 1 ? 'piece' : 'pieces'}
-                        </span>
-                      </div>
-
-                      {/* Print Time — authoritative from slicer */}
-                      <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
-                        <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                          Actual Print Time
-                        </span>
-                        <span className="font-bold text-accent mt-0.5 block font-mono">
-                          {actualPrintTimeString || (actualPrintTimeMinutes !== null ? `${actualPrintTimeMinutes}m` : 'Calculating...')}
-                        </span>
-                      </div>
-
-                      {/* Filament — authoritative from slicer */}
-                      <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
-                        <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                          Actual Filament
-                        </span>
-                        <span className="font-bold text-accent mt-0.5 block font-mono">
-                          {actualFilamentGrams !== null
-                            ? `${actualFilamentGrams} g ${activeMaterial.name}`
-                            : 'Calculating...'}
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {/* Multicolor Overview Grid */}
-                      <div className="grid grid-cols-2 gap-3 text-xs">
-                        <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
-                          <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                            Production Material
-                          </span>
-                          <span className="font-bold text-ink dark:text-slate-100 mt-0.5 block">
-                            {activeMaterial.name} ({effectiveMulticolorColors.length} Colors)
-                          </span>
-                        </div>
-
-                        <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
-                          <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                            Print Quality
-                          </span>
-                          <span className="font-bold text-ink dark:text-slate-100 capitalize mt-0.5 block">
-                            {qualityPreset} ({effectiveLayerHeight}mm)
-                          </span>
-                        </div>
-
-                        <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
-                          <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                            Quantity
-                          </span>
-                          <span className="font-bold text-ink dark:text-slate-100 mt-0.5 block">
-                            {quantity} {quantity === 1 ? 'piece' : 'pieces'}
-                          </span>
-                        </div>
-
-                        <div className="p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800">
-                          <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                            Print Time
-                          </span>
-                          <span className="font-bold text-accent mt-0.5 block font-mono">
-                            {actualPrintTimeString ||
-                              (multicolorSummary?.printTimeSeconds
-                                ? `${Math.floor(multicolorSummary.printTimeSeconds / 3600)}h ${Math.floor((multicolorSummary.printTimeSeconds % 3600) / 60)}m`
-                                : (actualPrintTimeMinutes !== null ? `${actualPrintTimeMinutes}m` : 'Calculating...'))}
-                          </span>
-                        </div>
-
-                        {(multicolorSummary || actualFilamentGrams !== null) && (
-                          <div className="col-span-2 p-3 rounded-xl bg-shell/40 dark:bg-slate-800/40 border border-line dark:border-slate-800 space-y-1">
-                            <span className="text-[10px] font-mono text-muted uppercase tracking-wider block">
-                              Filament Usage (Verified)
-                            </span>
-                            <div className="mt-0.5 space-y-0.5 text-xs font-mono">
-                              <div className="flex justify-between text-muted dark:text-slate-400 text-[11px]">
-                                <span>Model material:</span>
-                                <span className="font-semibold text-ink dark:text-slate-200">
-                                  {multicolorSummary ? `${multicolorSummary.modelFilamentGrams} g` : `${actualFilamentGrams} g`}
-                                </span>
-                              </div>
-                              {multicolorSummary && multicolorSummary.purgeFilamentGrams > 0 && (
-                                <div className="flex justify-between text-muted dark:text-slate-400 text-[11px]">
-                                  <span>Purge / Flush:</span>
-                                  <span className="font-semibold text-ink dark:text-slate-200">
-                                    {multicolorSummary.purgeFilamentGrams} g
-                                  </span>
-                                </div>
-                              )}
-                              <div className="flex justify-between border-t border-line dark:border-slate-700 pt-0.5 font-bold text-accent">
-                                <span>Total:</span>
-                                <span>
-                                  {multicolorSummary
-                                    ? `${multicolorSummary.totalFilamentGrams} g`
-                                    : `${actualFilamentGrams} g`}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Color Breakdown — dynamic N colors, no hardcoded count */}
-                      {effectiveMulticolorColors.length > 0 && (
-                        <div className="space-y-2.5 pt-2 border-t border-line dark:border-slate-800">
-                          <div className="flex items-center justify-between">
-                            <h4 className="text-xs font-mono uppercase font-bold text-ink dark:text-white tracking-wider">
-                              Color Regions ({effectiveMulticolorColors.length})
-                            </h4>
-                            {Boolean(multicolorSummary?.toolChangeCount) && (
-                              <span className="text-[10px] font-mono text-muted dark:text-slate-400 bg-shell/60 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-line dark:border-slate-700">
-                                {multicolorSummary?.toolChangeCount?.toLocaleString()} tool changes
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                            {effectiveMulticolorColors.map((col, idx) => {
-                              const filamentSlot = col.sourceFilament ?? col.index ?? idx + 1;
-                              const replacement = colorReplacements[filamentSlot];
-                              const effectiveHex = replacement?.productionHex || col.hex;
-                              const colorDisplay = getDisplayColorName(effectiveHex, filamentSlot);
-
-                              const slicedFila = multicolorSummary?.filaments?.find(
-                                (f) => f.index === filamentSlot || f.index === idx + 1
-                              );
-
-                              return (
-                                <div
-                                  key={filamentSlot}
-                                  className="p-3 rounded-xl bg-shell/30 dark:bg-slate-800/30 border border-line dark:border-slate-800 flex items-start justify-between gap-3"
-                                >
-                                  <div className="flex items-center gap-2.5 min-w-0">
-                                    <span
-                                      className="w-4 h-4 rounded-full border border-slate-300 dark:border-slate-600 shrink-0 shadow-2xs"
-                                      style={{ backgroundColor: effectiveHex }}
-                                      aria-label={colorDisplay}
-                                    />
-                                    <div className="min-w-0">
-                                      <span className="font-bold text-ink dark:text-slate-100 text-xs block truncate">
-                                        {colorDisplay}
-                                      </span>
-                                      <span className="text-[10px] text-muted dark:text-slate-400 font-mono block">
-                                        {activeMaterial.name}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {slicedFila && (
-                                    <div className="text-right text-[11px] font-mono shrink-0 space-y-0.5">
-                                      <div className="text-muted dark:text-slate-400">
-                                        Model: <span className="font-semibold text-ink dark:text-slate-200">
-                                          {slicedFila.modelGrams} g
-                                        </span>
-                                      </div>
-                                      <div className="text-muted dark:text-slate-400">
-                                        Total: <span className="font-semibold text-ink dark:text-slate-200">
-                                          {slicedFila.totalGrams} g
-                                        </span>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Dimensions Row */}
-                  {(actualDimensions || effectiveDimensions) && (
-                    <div className="p-3 rounded-xl bg-shell/20 dark:bg-slate-800/30 border border-line dark:border-slate-800 flex items-center justify-between text-xs font-mono">
-                      <span className="text-muted">Dimensions:</span>
-                      <span className="font-bold text-ink dark:text-slate-200">
-                        {(actualDimensions || effectiveDimensions)!.x} × {(actualDimensions || effectiveDimensions)!.y} × {(actualDimensions || effectiveDimensions)!.z} mm
-                        {(scaleX !== 1 || scaleY !== 1 || scaleZ !== 1) &&
-                          ` (${scaleX === scaleY && scaleY === scaleZ ? `${Math.round(scaleX * 100)}% scale` : `X=${Math.round(scaleX * 100)}% Y=${Math.round(scaleY * 100)}% Z=${Math.round(scaleZ * 100)}%`})`}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Authoritative Verification Notice */}
-                <div className="rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/40 p-4 text-xs text-emerald-900 dark:text-emerald-300 space-y-1.5">
-                  <p className="font-semibold flex items-center gap-1.5 text-sm text-emerald-800 dark:text-emerald-300">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Authoritative Manufacturing Verification</span>
-                  </p>
-                  <p className="text-[11px] text-emerald-800/90 dark:text-emerald-400 leading-relaxed font-sans">
-                    Calculated directly from actual G-code toolpaths for your exact model geometry and selected workshop profile. Material weight, layer times, and machine wear are fully verified.
-                  </p>
-                </div>
-              </div>
-
-              {/* Right Column: Price & Actions */}
-              <div className="lg:col-span-5 space-y-4">
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-accent/80 p-6 shadow-md space-y-5">
-                  {/* Dominant Price Header */}
-                  <div className="border-b border-line dark:border-slate-800 pb-4">
-                    <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-accent block mb-1">
-                      Production Price
-                    </span>
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-display font-extrabold text-3xl sm:text-4xl text-ink dark:text-white">
-                        {formatINR(quoteBreakdown.totalPrice)}
-                      </span>
-                      {quantity > 1 && (
-                        <span className="text-xs text-muted font-mono">
-                          ({formatINR(quoteBreakdown.unitPrice)} / piece)
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted dark:text-slate-400 font-mono mt-1">
-                      {isMultiColorModel
-                        ? `For ${quantity} ${quantity === 1 ? 'piece' : 'pieces'} · ${activeMaterial.name} Multicolor (${effectiveMulticolorColors.length} colors)`
-                        : `For ${quantity} ${quantity === 1 ? 'piece' : 'pieces'} · ${activeMaterial.name} (${activeColor.name})`}
-                    </p>
-                  </div>
-
-                  {/* Transparent Price Breakdown */}
-                  <div className="space-y-2 text-xs font-sans">
-                    <div className="flex justify-between text-muted dark:text-slate-400">
-                      <span>Subtotal ({quantity} {quantity === 1 ? 'piece' : 'pieces'})</span>
-                      <span className="font-mono">{formatINR(quoteBreakdown.subtotal)}</span>
-                    </div>
-
-                    {quoteBreakdown.discountAmount > 0 && (
-                      <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
-                        <span>Bulk Quantity Discount</span>
-                        <span className="font-mono">−{formatINR(quoteBreakdown.discountAmount)}</span>
-                      </div>
-                    )}
-
-                    {quoteBreakdown.minimumOrderChargeApplied && (
-                      <div className="flex justify-between text-amber-700 dark:text-amber-400 text-[11px] font-mono">
-                        <span>Minimum order adjustment (₹{pricingData?.pricingConfig?.minimumOrderValue || 149})</span>
-                        <span>+{formatINR((pricingData?.pricingConfig?.minimumOrderValue || 149) - quoteBreakdown.discountedSubtotal)}</span>
-                      </div>
-                    )}
-
-                    {quoteBreakdown.packagingAmount > 0 && (
-                      <div className="flex justify-between text-muted dark:text-slate-400">
-                        <span>Protective Box Packaging ({quantity}x)</span>
-                        <span className="font-mono">+{formatINR(quoteBreakdown.packagingAmount)}</span>
-                      </div>
-                    )}
-
-                    {quoteBreakdown.gstAmount > 0 && (
-                      <div className="flex justify-between text-muted dark:text-slate-400">
-                        <span>GST ({pricingData?.pricingConfig?.gstRate}%)</span>
-                        <span className="font-mono">+{formatINR(quoteBreakdown.gstAmount)}</span>
-                      </div>
-                    )}
-
-                    <div className="pt-2 border-t border-line dark:border-slate-800 flex justify-between font-bold text-sm text-ink dark:text-white">
-                      <span>Total Production Price</span>
-                      <span className="font-mono text-base text-accent">
-                        {formatINR(quoteBreakdown.totalPrice)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="pt-2 space-y-2.5">
-                    {!modelResult?.requiresManualReview && !exceedsBuildVolume ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={handleContinueToOrder}
-                          disabled={isSubmitting}
-                          className="w-full p-4 rounded-xl bg-accent hover:bg-amber-600 text-white text-center shadow-md transition-all cursor-pointer"
-                        >
-                          {isSubmitting ? (
-                            <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold uppercase">
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              <span>Uploading Model ({uploadProgress || 0}%)...</span>
-                            </div>
-                          ) : (
-                            <div>
-                              <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold uppercase tracking-wider">
-                                <ShoppingCart className="w-4 h-4" />
-                                <span>Order for Production · {formatINR(quoteBreakdown.totalPrice)}</span>
-                              </div>
-                              <span className="block text-[10px] font-sans font-normal opacity-90 mt-0.5">
-                                {isProductionVerified
-                                  ? 'Production-verified quote. Ready for manufacturing.'
-                                  : 'Production verification required at order placement.'}
-                              </span>
-                            </div>
-                          )}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setShowQuoteModal(true)}
-                          disabled={isSubmitting}
-                          className="w-full p-3.5 rounded-xl border border-line hover:border-accent bg-white dark:bg-slate-800 text-ink dark:text-slate-200 text-center shadow-xs transition-all cursor-pointer"
-                        >
-                          <div className="flex items-center justify-center gap-2 font-mono text-xs font-semibold">
-                            <Send className="w-3.5 h-3.5 text-accent" />
-                            <span>Request a quote review</span>
-                          </div>
-                          <span className="block text-[10px] font-sans font-normal text-muted dark:text-slate-400 mt-0.5">
-                            Need custom tolerances or engineer review? Ask us directly.
-                          </span>
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setShowQuoteModal(true)}
-                        disabled={isSubmitting}
-                        className="w-full p-4 rounded-xl bg-accent hover:bg-amber-600 text-white text-center shadow-md transition-all cursor-pointer"
-                      >
-                        <div className="flex items-center justify-center gap-2 font-mono text-xs font-bold uppercase tracking-wider">
-                          <Send className="w-4 h-4" />
-                          <span>Request Engineer Quote Review</span>
-                        </div>
-                        <span className="block text-[10px] font-sans font-normal opacity-90 mt-0.5">
-                          {exceedsBuildVolume
-                            ? 'Model exceeds standard printer envelope. Our team can split or orient parts.'
-                            : 'Geometry requires engineer inspection before quotation.'}
-                        </span>
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => handleTabChange('configure')}
-                      className="w-full py-2.5 text-center text-xs font-mono text-muted hover:text-accent transition-colors cursor-pointer"
-                    >
-                      ← Back to Configure
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-
-
-      {/* Quote Request Modal */}
-      {showQuoteModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-line dark:border-slate-800 max-w-lg w-full p-6 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between border-b border-line dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <Send className="w-4 h-4 text-accent" />
-                <h3 className="font-display font-bold text-base text-ink dark:text-white">
-                  Submit 3D CAD Quote Request
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowQuoteModal(false)}
-                className="p-1 rounded-lg hover:bg-shell text-muted"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmitQuote} className="space-y-3">
-              {!user && (
-                <>
-                  <div>
-                    <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted block mb-1">
-                      Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Enter your name"
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                      className="w-full py-2 px-3 rounded-lg border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-ink dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted block mb-1">
-                      Email Address *
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="you@domain.com"
-                      value={guestEmail}
-                      onChange={(e) => setGuestEmail(e.target.value)}
-                      className="w-full py-2 px-3 rounded-lg border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-ink dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted block mb-1">
-                      Phone Number (WhatsApp)
-                    </label>
-                    <input
-                      type="tel"
-                      placeholder="Enter your number"
-                      value={guestPhone}
-                      onChange={(e) => setGuestPhone(e.target.value)}
-                      className="w-full py-2 px-3 rounded-lg border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-ink dark:text-white"
-                    />
-                  </div>
-                </>
-              )}
-
-              <div>
-                <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted block mb-1">
-                  Custom Instructions / Special Requirements
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="e.g. Needs high impact resistance for drone mount, tolerance requirements..."
-                  value={customerNotes}
-                  onChange={(e) => setCustomerNotes(e.target.value)}
-                  className="w-full py-2 px-3 rounded-lg border border-line dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-ink dark:text-white"
-                />
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowQuoteModal(false)}
-                  className="px-4 py-2 rounded-lg border border-line text-xs font-mono"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 rounded-lg bg-accent text-white font-mono text-xs font-bold shadow-xs hover:bg-amber-600 flex items-center gap-1.5"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Submitting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-3.5 h-3.5" />
-                      <span>Submit Request</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Sticky Bottom Bar for Mobile Devices */}
+        {/* Temporary block to replace the rest of the original estimate tab */}
+        {false && (<div />)}
+        
+
+        {/* Sticky Bottom Bar for Mobile Devices */}
       {studioMode === '3d-model' && quoteBreakdown && (activeTab === 'configure' || activeTab === 'estimate') && (
         <div className="fixed bottom-0 left-0 right-0 lg:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-line dark:border-slate-800 p-3 shadow-lg z-40 flex items-center justify-between gap-3">
           <div>

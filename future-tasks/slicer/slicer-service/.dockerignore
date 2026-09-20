@@ -1,0 +1,31 @@
+# Local experiments/output — not needed at runtime, ~240MB
+poc/
+
+# Test suite — not needed in the production image
+tests/
+
+# Runtime job storage — recreated at container start; never ship local test uploads
+app/storage/*
+!app/storage/.gitkeep
+
+# Env files / secrets
+.env
+.env.*
+!.env.example
+
+# Misc
+__pycache__/
+*.pyc
+.git/
+.gitignore
+README.md
+
+# Virtual environments
+venv/
+env/
+app/bin/venv/
+
+# Logs
+app/slicer_debug.log
+app/slicer_debug.log.*
+*.log
