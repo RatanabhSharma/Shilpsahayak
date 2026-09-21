@@ -318,8 +318,7 @@ export function ProductDetail() {
       customPrice: currentPrice,
     } : undefined;
 
-    setPurchaseMode('buy_now');
-    setBuyNowItem({
+    const buyNowItem = {
       product: {
         ...product,
         price: currentPrice,
@@ -331,9 +330,11 @@ export function ProductDetail() {
       variantLabel: selectedVariant?.label,
       variantId: selectedVariant?.id,
       customPrint: customPrintData,
-    });
+    };
 
-    navigate('/checkout');
+    setPurchaseMode('buy_now');
+    setBuyNowItem(buyNowItem);
+    navigate('/checkout', { state: { buyNowItem } });
   };
 
   if (isLoading) {

@@ -19,7 +19,6 @@ import {
 
 import { useAuth } from '../../hooks/useAuth';
 import { usePincodeLookup } from '../../hooks/usePincodeLookup';
-import { PhoneVerificationModal } from '../../components/auth/PhoneVerificationModal';
 
 import {
   emptyAddress,
@@ -58,6 +57,16 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; border: string }
   Shipped: { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200' },
   Delivered: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
   Cancelled: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+  Processing: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+  'Ready to ship': { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200' },
+};
+
+const PAYMENT_STATUS_STYLES: Record<string, { bg: string; text: string; border: string }> = {
+  Paid: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  Pending: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+  Failed: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+  Refunded: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
+  'Partially refunded': { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
 };
 
 function getStatusBadge(status: string) {
@@ -65,6 +74,16 @@ function getStatusBadge(status: string) {
   return (
     <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${style.bg} ${style.text} ${style.border}`}>
       {status}
+    </span>
+  );
+}
+
+function getPaymentBadge(status?: string) {
+  const current = status || 'Pending';
+  const style = PAYMENT_STATUS_STYLES[current] || { bg: 'bg-shell', text: 'text-muted', border: 'border-line' };
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${style.bg} ${style.text} ${style.border}`}>
+      Payment: {current}
     </span>
   );
 }
@@ -89,7 +108,6 @@ export function Account() {
     reloadUser,
   } = useAuth();
 
-  const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
   const [isSendingEmailVerification, setIsSendingEmailVerification] = useState(false);
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
   const [isCheckingEmailStatus, setIsCheckingEmailStatus] = useState(false);
@@ -118,7 +136,6 @@ export function Account() {
   const {
     data: profile,
     isLoading: profileLoading,
-    refetch: refetchProfile,
   } = useUserProfile();
 
   const saveUserProfile = useSaveUserProfile();
@@ -269,7 +286,7 @@ export function Account() {
       setProfileError('Please enter a valid email address.');
       return;
     }
-    if (!/^[6-9]\d{9}$/.test(phone)) {
+    if (phone && !/^[6-9]\d{9}$/.test(phone)) {
       setProfileError('Please enter a valid 10-digit Indian mobile number.');
       return;
     }
@@ -513,20 +530,10 @@ export function Account() {
 
                 {/* Verification Badges */}
                 <div className="flex flex-wrap items-center gap-2 mt-2.5">
-                  {profile?.phoneVerified || user?.phoneNumber ? (
-                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 font-mono text-[10px] font-bold">
-                      <CheckCircle className="w-3 h-3 text-emerald-600" />
-                      Phone Verified ({profile?.phone || user?.phoneNumber?.slice(-10)})
+                  {(profile?.phone || user?.phoneNumber) && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-zinc-100 text-zinc-700 border border-zinc-200 px-2 py-0.5 font-mono text-[10px] font-medium">
+                      +91 {(profile?.phone || user?.phoneNumber || '').slice(-10)}
                     </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setIsPhoneModalOpen(true)}
-                      className="inline-flex items-center gap-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 px-2 py-0.5 font-mono text-[10px] font-bold transition-colors cursor-pointer"
-                    >
-                      <ShieldCheck className="w-3 h-3 text-amber-600" />
-                      Verify Phone via OTP
-                    </button>
                   )}
 
                   {profile?.emailVerified || user?.emailVerified ? (
@@ -694,11 +701,12 @@ export function Account() {
                     className="flex flex-col gap-5 rounded-3xl border border-line bg-white p-6 shadow-soft sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-mono text-sm font-bold text-ink">
                           #{order.id.slice(0, 8).toUpperCase()}
                         </span>
                         {getStatusBadge(order.status)}
+                        {getPaymentBadge(order.paymentStatus)}
                       </div>
 
                       <p className="font-sans text-xs text-muted">
@@ -1173,13 +1181,12 @@ export function Account() {
 
                     <Input
                       name="profilePhone"
-                      label="Mobile Number *"
+                      label="Mobile Number (Optional)"
                       type="tel"
                       value={profilePhone}
                       onChange={(e) => setProfilePhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                       disabled={!isProfileEditing}
                       maxLength={10}
-                      required
                     />
 
                     {profileError && (
@@ -1287,10 +1294,23 @@ export function Account() {
 
             {/* Modal Body */}
             <div className="p-6 space-y-6">
-              <div className="flex items-center justify-between rounded-2xl bg-shell p-4">
-                <span className="font-mono text-xs font-bold text-muted uppercase">Fabrication Status</span>
-                {getStatusBadge(selectedOrder.status)}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-2xl bg-shell p-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-bold text-muted uppercase">Order Status</span>
+                  {getStatusBadge(selectedOrder.status)}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-bold text-muted uppercase">Payment Status</span>
+                  {getPaymentBadge(selectedOrder.paymentStatus)}
+                </div>
               </div>
+
+              {selectedOrder.paymentId && (
+                <div className="flex items-center justify-between rounded-xl border border-line bg-shell/50 px-4 py-2.5 text-xs font-mono">
+                  <span className="text-muted">Payment Ref / ID</span>
+                  <span className="font-bold text-ink">{selectedOrder.paymentId}</span>
+                </div>
+              )}
 
               {selectedOrder.status === 'Cancelled' && (
                 <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-sans text-rose-800 space-y-1">
@@ -1478,18 +1498,6 @@ export function Account() {
           </div>
         </div>
       )}
-
-      {/* Phone OTP Verification Modal */}
-      <PhoneVerificationModal
-        isOpen={isPhoneModalOpen}
-        onClose={() => setIsPhoneModalOpen(false)}
-        initialPhone={profile?.phone || ''}
-        title="Verify Your Phone Number"
-        description="Verify your Indian mobile number with a quick 6-digit SMS OTP to unlock verified status and fast checkout."
-        onVerified={() => {
-          refetchProfile();
-        }}
-      />
     </div>
   );
 }

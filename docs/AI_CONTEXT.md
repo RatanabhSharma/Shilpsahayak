@@ -134,7 +134,6 @@ The project uses Cloud Firestore (NoSQL).
 *   **Orders:** Customer purchases. Tied to User ID.
 *   **Quotes:** Immutable custom 3D printing estimates.
 *   **Settings:** App configuration, shipping rates, pricing constants.
-*   **Phone_Verifications:** OTP flow logic.
 
 *For complete schema, see `docs/DATABASE.md`.*
 

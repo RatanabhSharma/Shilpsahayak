@@ -32,7 +32,6 @@ import {
 } from 'firebase/firestore';
 
 import { auth, db } from '../lib/firebase';
-import { sendPhoneOtpToEmail, verifyPhoneEmailOtp } from '../services/otpService';
 
 export interface AuthContextValue {
   user: User | null;
@@ -46,8 +45,7 @@ export interface AuthContextValue {
     email: string,
     password: string,
     name: string,
-    phone: string,
-    isPhonePreVerified?: boolean
+    phone?: string
   ) => Promise<UserCredential>;
   resetPassword: (email: string) => Promise<void>;
   sendVerificationEmail: () => Promise<void>;
@@ -56,10 +54,6 @@ export interface AuthContextValue {
   /* Social Auth Methods */
   signInWithGoogle: () => Promise<UserCredential>;
   signInWithMicrosoft: () => Promise<UserCredential>;
-
-  /* Phone Verification via Email OTP */
-  requestPhoneOtp: (email: string, phone: string) => Promise<{ success: boolean; message: string; expiresAt: number; devOtp?: string }>;
-  confirmPhoneOtp: (email: string, phone: string, otpCode: string) => Promise<{ success: boolean; message: string }>;
 
   /* Account Management */
   logout: () => Promise<void>;
@@ -119,10 +113,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // --------------------------------------------------
       // REGISTRATION WITH OFFICIAL FIREBASE EMAIL VERIFICATION
       // --------------------------------------------------
-      register: async (email, password, name, phone, isPhonePreVerified = false) => {
+      register: async (email, password, name, phone?: string) => {
         const cleanEmail = email.trim().toLowerCase();
         const cleanName = name.trim();
-        const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+        const cleanPhone = phone ? phone.replace(/\D/g, '').slice(-10) : '';
 
         if (cleanName.length < 2) {
           throw new Error('Please enter your full name.');
@@ -132,7 +126,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           throw new Error('Please enter a valid email address.');
         }
 
-        if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+        if (cleanPhone && !/^[6-9]\d{9}$/.test(cleanPhone)) {
           throw new Error('Please enter a valid 10-digit Indian mobile number.');
         }
 
@@ -150,7 +144,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           // If sending email link fails, do not block registration
         }
 
-        // Create user document in Firestore with verification flags
+        // Create user document in Firestore with customer profile info
         await setDoc(
           doc(db, 'users', result.user.uid),
           {
@@ -158,7 +152,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
             name: cleanName,
             email: result.user.email || cleanEmail,
             phone: cleanPhone,
-            phoneVerified: isPhonePreVerified,
             emailVerified: false,
             address: {
               line1: '',
@@ -197,7 +190,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
               name: result.user.displayName || 'Customer',
               email: result.user.email || '',
               phone: result.user.phoneNumber || '',
-              phoneVerified: false,
               emailVerified: true, // Google accounts have pre-verified emails
               role: 'customer',
               address: { line1: '', line2: '', city: '', state: '', pincode: '' },
@@ -231,7 +223,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
               name: result.user.displayName || 'Customer',
               email: result.user.email || '',
               phone: result.user.phoneNumber || '',
-              phoneVerified: false,
               emailVerified: true, // Microsoft accounts have pre-verified emails
               role: 'customer',
               address: { line1: '', line2: '', city: '', state: '', pincode: '' },
@@ -243,29 +234,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
 
         setUser(result.user);
-        return result;
-      },
-
-      // --------------------------------------------------
-      // PHONE VERIFICATION VIA EMAIL OTP
-      // --------------------------------------------------
-      requestPhoneOtp: async (email: string, phone: string) => {
-        const currentUser = auth.currentUser;
-        return sendPhoneOtpToEmail({
-          email: email || currentUser?.email || '',
-          phone,
-          userId: currentUser?.uid,
-        });
-      },
-
-      confirmPhoneOtp: async (email: string, phone: string, otpCode: string) => {
-        const currentUser = auth.currentUser;
-        const result = await verifyPhoneEmailOtp({
-          email: email || currentUser?.email || '',
-          phone,
-          enteredOtp: otpCode,
-          userId: currentUser?.uid,
-        });
         return result;
       },
 

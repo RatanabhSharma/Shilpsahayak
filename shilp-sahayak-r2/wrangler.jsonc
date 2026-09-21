@@ -21,6 +21,7 @@
     "remote": false
   }
 ]
+,
 
 	/**
 	 * Smart Placement
@@ -34,12 +35,16 @@
 	 * https://developers.cloudflare.com/workers/runtime-apis/bindings/
 	 */
 	/**
-	 * Environment Variables
-	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
-	 * Note: Use secrets to store sensitive data.
-	 * https://developers.cloudflare.com/workers/configuration/secrets/
+	 * Environment Variables & Secrets
+	 * Note: Never commit secrets. Run:
+	 *   npx wrangler secret put RAZORPAY_KEY_SECRET
+	 *   npx wrangler secret put RAZORPAY_WEBHOOK_SECRET
+	 *   npx wrangler secret put FIREBASE_PRIVATE_KEY
 	 */
-	// "vars": {  "MY_VARIABLE": "production_value" }
+	"vars": {
+		"FIREBASE_PROJECT_ID": "shilp-sahayak",
+		"RAZORPAY_KEY_ID": "rzp_test_placeholder"
+	}
 	/**
 	 * Static Assets
 	 * https://developers.cloudflare.com/workers/static-assets/binding/

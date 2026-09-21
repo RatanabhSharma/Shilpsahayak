@@ -30,7 +30,6 @@ export type UserProfile = {
   name: string;
   email: string;
   phone: string;
-  phoneVerified?: boolean;
   emailVerified?: boolean;
   address: UserAddress;
   addressHistory?: AddressHistoryItem[];
@@ -73,7 +72,6 @@ export function useUserProfile() {
         name: data.name || user.displayName || '',
         email: data.email || user.email || '',
         phone: data.phone || user.phoneNumber || '',
-        phoneVerified: !!data.phoneVerified || !!user.phoneNumber,
         emailVerified: !!data.emailVerified || !!user.emailVerified,
         address: data.address || emptyAddress,
         addressHistory: data.addressHistory || [],
@@ -94,7 +92,7 @@ export function useUpdateUserProfile() {
   return useMutation({
     mutationFn: async (
       payload: Partial<
-        Pick<UserProfile, 'name' | 'email' | 'phone' | 'address' | 'phoneVerified' | 'emailVerified'>
+        Pick<UserProfile, 'name' | 'email' | 'phone' | 'address' | 'emailVerified'>
       >
     ) => {
       if (!user) {
@@ -109,7 +107,6 @@ export function useUpdateUserProfile() {
       if (payload.name !== undefined) updateData.name = payload.name;
       if (payload.email !== undefined) updateData.email = payload.email;
       if (payload.phone !== undefined) updateData.phone = payload.phone;
-      if (payload.phoneVerified !== undefined) updateData.phoneVerified = payload.phoneVerified;
       if (payload.emailVerified !== undefined) updateData.emailVerified = payload.emailVerified;
       if (payload.address !== undefined) {
         updateData.address = payload.address;
@@ -139,7 +136,6 @@ export function useAllUsers() {
             name: d.name || '',
             email: d.email || '',
             phone: d.phone || '',
-            phoneVerified: !!d.phoneVerified,
             emailVerified: !!d.emailVerified,
             address: d.address || emptyAddress,
             addressHistory: d.addressHistory || [],

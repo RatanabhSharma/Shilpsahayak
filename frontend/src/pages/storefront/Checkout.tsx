@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -11,12 +11,16 @@ import {
   AlertCircle,
 } from 'lucide-react';
 
-import { useStore } from '../../store';
+import { CartItem, useStore } from '../../store';
 import { useAuth } from '../../hooks/useAuth';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { usePincodeLookup } from '../../hooks/usePincodeLookup';
-import { useCreateOrder } from '../../hooks/useOrders';
 import { useSettings } from '../../hooks/useSettings';
+import {
+  loadRazorpayScript,
+  createPaymentOrder,
+  verifyPaymentSignature,
+} from '../../services/paymentService';
 
 import {
   Button,
@@ -25,7 +29,6 @@ import {
   Select,
   Badge,
 } from '../../components/ui';
-import { PhoneVerificationModal } from '../../components/auth/PhoneVerificationModal';
 
 const INDIAN_STATES = [
   { value: 'Andhra Pradesh', label: 'Andhra Pradesh' },
@@ -79,21 +82,51 @@ export function Checkout() {
   const { data: profile, isLoading: profileLoading } = useUserProfile();
   const { data: settings } = useSettings();
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = location.state as { buyNowItem?: CartItem } | null;
+
   const purchaseMode = useStore((state) => state.purchaseMode);
   const buyNowItem = useStore((state) => state.buyNowItem);
   const storeCart = useStore((state) => state.cart);
-  const cart = purchaseMode === 'buy_now' && buyNowItem ? [buyNowItem] : storeCart;
   
   const clearCart = useStore((state) => state.clearCart);
   const clearBuyNowItem = useStore((state) => state.clearBuyNowItem);
   const setPurchaseMode = useStore((state) => state.setPurchaseMode);
-  const createOrder = useCreateOrder();
+  const setBuyNowItem = useStore((state) => state.setBuyNowItem);
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Sync route state if buyNowItem was passed via navigation
+  useEffect(() => {
+    if (locationState?.buyNowItem) {
+      setPurchaseMode('buy_now');
+      setBuyNowItem(locationState.buyNowItem);
+    }
+  }, [locationState?.buyNowItem, setPurchaseMode, setBuyNowItem]);
+
+  // Determine active purchase mode and buyNowItem
+  const effectivePurchaseMode = (purchaseMode === 'buy_now' || Boolean(locationState?.buyNowItem)) ? 'buy_now' : 'cart';
+  const effectiveBuyNowItem = effectivePurchaseMode === 'buy_now' ? (buyNowItem || locationState?.buyNowItem || null) : null;
+
+  // Resolve checkout items in strict priority order:
+  // 1. If purchaseMode === 'buy_now' and buyNowItem exists -> use [buyNowItem]
+  // 2. If purchaseMode === 'buy_now' and buyNowItem is missing -> empty list (trigger empty guard, never leak cart)
+  // 3. Otherwise if purchaseMode === 'cart' -> use cart
+  const cart = useMemo<CartItem[]>(() => {
+    if (effectivePurchaseMode === 'buy_now') {
+      return effectiveBuyNowItem ? [effectiveBuyNowItem] : [];
+    }
+    return storeCart;
+  }, [effectivePurchaseMode, effectiveBuyNowItem, storeCart]);
+  const [paymentUiState, setPaymentUiState] = useState<
+    'idle' | 'preparing' | 'razorpay_open' | 'verifying' | 'success' | 'failed' | 'cancelled'
+  >('idle');
+  const [paymentErrorMessage, setPaymentErrorMessage] = useState('');
+  const [paymentId, setPaymentId] = useState('');
+  const isSubmitting =
+    paymentUiState === 'preparing' ||
+    paymentUiState === 'razorpay_open' ||
+    paymentUiState === 'verifying';
   const [isSuccess, setIsSuccess] = useState(false);
   const [orderId, setOrderId] = useState('');
-  const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
-  const [pendingOrderData, setPendingOrderData] = useState<any>(null);
 
   const [isSendingEmailVerification, setIsSendingEmailVerification] = useState(false);
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
@@ -230,7 +263,7 @@ export function Checkout() {
     const pincode = String(formData.get('pincode') || '').trim();
     const notes = String(formData.get('notes') || '').trim();
 
-    setIsSubmitting(true);
+    setPaymentUiState('preparing');
 
     const formattedAddress = [houseNo, street, landmark, city, stateValue, pincode]
       .filter(Boolean)
@@ -299,36 +332,102 @@ export function Checkout() {
       notes,
     };
 
-    // Anti-Fraud Guard: Ensure phone is verified via SMS OTP before allowing order placement
-    if (!profile?.phoneVerified && !user.phoneNumber) {
-      setPendingOrderData(orderData);
-      setIsPhoneModalOpen(true);
-      setIsSubmitting(false);
-      return;
-    }
-
     await executePlaceOrder(orderData);
   };
 
   const executePlaceOrder = async (orderDataToPlace: any) => {
-    setIsSubmitting(true);
+    setPaymentUiState('preparing');
+    setPaymentErrorMessage('');
+
     try {
-      const newOrder = await createOrder.mutateAsync(orderDataToPlace);
-      setOrderId(newOrder.id);
-      
-      if (purchaseMode === 'buy_now') {
-        clearBuyNowItem();
-        setPurchaseMode('cart');
-      } else {
-        clearCart();
+      // 1. Dynamically load Razorpay Standard Checkout SDK
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        throw new Error('Failed to load Razorpay payment SDK. Please check your internet connection.');
       }
-      
-      setIsSuccess(true);
-    } catch (error) {
-      console.error('Failed to place order:', error);
-      alert('Failed to place order. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+
+      // 2. Request Cloudflare Worker to create trusted payment order
+      const session = await createPaymentOrder({
+        items: orderDataToPlace.items,
+        shippingAddress: orderDataToPlace.shippingAddress,
+        purchaseMode: effectivePurchaseMode,
+        notes: orderDataToPlace.notes,
+        clientCalculatedTotal: total,
+      });
+
+      setOrderId(session.orderId);
+      setPaymentUiState('razorpay_open');
+
+      // 3. Open Razorpay Checkout modal
+      const rzp = new (window as any).Razorpay({
+        key: session.keyId,
+        amount: session.amount,
+        currency: session.currency || 'INR',
+        name: 'Shilp Sahayak',
+        description: `Order #${session.orderId.slice(0, 8).toUpperCase()}`,
+        order_id: session.razorpayOrderId,
+        prefill: {
+          name: orderDataToPlace.shippingAddress.fullName,
+          email: orderDataToPlace.shippingAddress.email,
+          contact: orderDataToPlace.shippingAddress.phone,
+        },
+        theme: {
+          color: '#FF4D00',
+        },
+        modal: {
+          ondismiss: () => {
+            console.log('Customer dismissed/closed Razorpay Checkout.');
+            setPaymentUiState('cancelled');
+          },
+        },
+        handler: async (response: {
+          razorpay_payment_id: string;
+          razorpay_order_id: string;
+          razorpay_signature: string;
+        }) => {
+          setPaymentUiState('verifying');
+          try {
+            const verification = await verifyPaymentSignature({
+              orderId: session.orderId,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpaySignature: response.razorpay_signature,
+            });
+
+            if (verification.success) {
+              setPaymentId(response.razorpay_payment_id);
+              if (effectivePurchaseMode === 'buy_now') {
+                clearBuyNowItem();
+                setPurchaseMode('cart');
+              } else {
+                clearCart();
+              }
+              setPaymentUiState('success');
+              setIsSuccess(true);
+            } else {
+              throw new Error(verification.error || 'Payment signature verification failed.');
+            }
+          } catch (verifErr: any) {
+            console.error('Payment verification error:', verifErr);
+            setPaymentErrorMessage(verifErr?.message || 'Payment signature verification failed.');
+            setPaymentUiState('failed');
+          }
+        },
+      });
+
+      rzp.on('payment.failed', (failResp: any) => {
+        console.error('Razorpay payment failed:', failResp);
+        setPaymentErrorMessage(
+          failResp?.error?.description || 'Payment was declined by your bank or payment gateway.'
+        );
+        setPaymentUiState('failed');
+      });
+
+      rzp.open();
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      setPaymentErrorMessage(error?.message || 'Failed to initiate secure payment session.');
+      setPaymentUiState('failed');
     }
   };
 
@@ -341,7 +440,7 @@ export function Checkout() {
           </div>
 
           <span className="mt-5 font-mono text-xs font-bold uppercase tracking-wider text-accent block">
-            Order Confirmed & Queued
+            Order Confirmed & Payment Successful
           </span>
 
           <h1 className="mt-2 font-display text-3xl font-bold text-ink">
@@ -349,7 +448,7 @@ export function Checkout() {
           </h1>
 
           <p className="mt-2 font-sans text-sm text-muted leading-relaxed">
-            Your prints have been entered into our Patiala studio production schedule. We will reach out via WhatsApp/email with slicing confirmation.
+            Your payment has been authoritatively verified. Your prints have been entered into our Patiala studio production schedule.
           </p>
 
           <div className="mt-6 rounded-2xl border border-line bg-shell p-4 text-left divide-y divide-line text-xs font-sans">
@@ -359,16 +458,30 @@ export function Checkout() {
                 #{orderId.slice(0, 8).toUpperCase()}
               </span>
             </div>
+            {paymentId && (
+              <div className="flex justify-between py-2">
+                <span className="text-muted">Payment ID</span>
+                <span className="font-mono font-bold text-emerald-700">
+                  {paymentId}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between py-2">
-              <span className="text-muted">Total Paid / Payable</span>
+              <span className="text-muted">Total Paid</span>
               <span className="font-mono font-bold text-ink">
                 ₹{total.toLocaleString('en-IN')}
               </span>
             </div>
             <div className="flex justify-between py-2">
-              <span className="text-muted">Status</span>
+              <span className="text-muted">Payment Status</span>
               <span className="font-bold text-emerald-700">
-                Queued for Fabrication
+                Paid (Razorpay Test Mode)
+              </span>
+            </div>
+            <div className="flex justify-between py-2">
+              <span className="text-muted">Order Status</span>
+              <span className="font-bold text-emerald-700">
+                Confirmed · Queued for Fabrication
               </span>
             </div>
           </div>
@@ -416,7 +529,7 @@ export function Checkout() {
           </p>
 
           <Button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/login?redirect=/checkout')}
             className="mt-6 w-full font-display font-bold"
           >
             Log In to Continue
@@ -457,7 +570,7 @@ export function Checkout() {
                 className="mb-4 inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-muted hover:text-accent transition-colors"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
-                <span>Back to Cart</span>
+                <span>{effectivePurchaseMode === 'buy_now' ? 'Back' : 'Back to Cart'}</span>
               </button>
 
               <h1 className="font-display text-3xl font-bold text-ink sm:text-4xl">
@@ -762,6 +875,31 @@ export function Checkout() {
                 for delivery.
               </p>
 
+              {/* Payment Status Notifications */}
+              {paymentUiState === 'cancelled' && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-sans text-amber-900 space-y-1 shadow-2xs">
+                  <div className="flex items-center gap-2 font-bold font-display text-sm text-amber-950">
+                    <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                    <span>Payment Cancelled</span>
+                  </div>
+                  <p className="text-amber-800 leading-relaxed">
+                    The payment window was closed before completion. Your delivery details and cart remain intact. You have not been charged.
+                  </p>
+                </div>
+              )}
+
+              {paymentUiState === 'failed' && (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-sans text-rose-900 space-y-1 shadow-2xs">
+                  <div className="flex items-center gap-2 font-bold font-display text-sm text-rose-950">
+                    <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+                    <span>Payment Failed</span>
+                  </div>
+                  <p className="text-rose-800 leading-relaxed">
+                    {paymentErrorMessage || 'The payment could not be processed by the gateway. Please verify your details or try a different payment method.'}
+                  </p>
+                </div>
+              )}
+
               {/* Submit CTA */}
               <Button
                 type="submit"
@@ -771,9 +909,15 @@ export function Checkout() {
                 className="w-full font-semibold"
                 isLoading={isSubmitting}
               >
-                {isSubmitting
-                  ? 'Placing Order...'
-                  : `Place Order • ₹${total.toLocaleString('en-IN')}`}
+                {paymentUiState === 'preparing'
+                  ? 'Preparing secure payment...'
+                  : paymentUiState === 'razorpay_open'
+                  ? 'Complete payment in popup...'
+                  : paymentUiState === 'verifying'
+                  ? 'Verifying payment...'
+                  : paymentUiState === 'cancelled' || paymentUiState === 'failed'
+                  ? `Retry Payment • ₹${total.toLocaleString('en-IN')}`
+                  : `Pay Now • ₹${total.toLocaleString('en-IN')}`}
               </Button>
             </form>
           </div>
@@ -884,23 +1028,6 @@ export function Checkout() {
           </aside>
         </div>
       </main>
-
-      {/* Anti-Fraud SMS OTP Phone Verification Modal */}
-      <PhoneVerificationModal
-        isOpen={isPhoneModalOpen}
-        onClose={() => {
-          setIsPhoneModalOpen(false);
-          setIsSubmitting(false);
-        }}
-        initialPhone={phone}
-        title="Verify Mobile Number to Complete Order"
-        description="To ensure your parcel is delivered smoothly and protect against automated spam orders, please verify your mobile number with a quick 6-digit SMS OTP."
-        onVerified={() => {
-          if (pendingOrderData) {
-            executePlaceOrder(pendingOrderData);
-          }
-        }}
-      />
     </div>
   );
 }

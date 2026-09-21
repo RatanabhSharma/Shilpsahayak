@@ -743,7 +743,9 @@ export const useStore =
         version: 1,
         migrate: () => ({
           cart: [],
-          settings: INITIAL_SETTINGS
+          settings: INITIAL_SETTINGS,
+          purchaseMode: 'cart',
+          buyNowItem: null,
         }),
 
         /*

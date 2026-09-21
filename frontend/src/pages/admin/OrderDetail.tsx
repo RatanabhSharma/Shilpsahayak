@@ -1099,6 +1099,13 @@ export function OrderDetail() {
               </span>
             </div>
 
+            {(order as any).razorpayOrderId && (
+              <div className="flex items-center justify-between p-2.5 rounded-lg border border-line bg-shell text-xs font-mono">
+                <span className="text-muted">Razorpay Order ID:</span>
+                <span className="font-bold text-ink">{(order as any).razorpayOrderId}</span>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-sans text-xs">
               <div>
                 <label className="block font-mono text-[10px] font-bold uppercase text-muted mb-1">

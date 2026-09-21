@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Sparkles, Star, Zap } from 'lucide-react';
-import { Product, useStore } from '../../store';
+import { CartItem, Product, useStore } from '../../store';
 import { Card } from '../ui';
 
 interface ProductCardProps {
@@ -12,6 +12,8 @@ interface ProductCardProps {
 export function ProductCard({ product, className = '' }: ProductCardProps) {
   const addToCart = useStore((state) => state.addToCart);
   const openCart = useStore((state) => state.openCart);
+  const setPurchaseMode = useStore((state) => state.setPurchaseMode);
+  const setBuyNowItem = useStore((state) => state.setBuyNowItem);
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
 
@@ -74,12 +76,22 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
     e.preventDefault();
     e.stopPropagation();
     
-    // Direct checkout item formatted like a CartItem
-    const buyNowItem = {
-      product,
-      quantity: 1
+    const activeVariants = product.hasVariants && product.variants ? product.variants.filter((v) => Number(v.price) > 0) : [];
+    const firstVariant = activeVariants.length > 0 ? [...activeVariants].sort((a, b) => a.price - b.price)[0] : product.variants?.[0];
+
+    const buyNowItem: CartItem = {
+      product: {
+        ...product,
+        price: regularPrice,
+        image: primaryImage,
+      },
+      quantity: 1,
+      variantId: firstVariant?.id,
+      variantLabel: firstVariant?.label,
     };
     
+    setPurchaseMode('buy_now');
+    setBuyNowItem(buyNowItem);
     navigate('/checkout', { state: { buyNowItem } });
   };
 

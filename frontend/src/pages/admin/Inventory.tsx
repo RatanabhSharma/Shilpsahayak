@@ -78,12 +78,19 @@ export function Inventory() {
     return Array.from(set).sort();
   }, [products]);
 
-  // Calculate Reserved Units per Product from unfulfilled active orders
+  // Calculate Reserved Units per Product from unfulfilled active orders (excluding unpaid/abandoned pending checkouts)
   const reservedMap = useMemo(() => {
     const map: Record<string, number> = {};
 
     const activeOrders = orders.filter(
-      (o) => o.status !== 'Delivered' && o.status !== 'Cancelled'
+      (o) =>
+        (o.status === 'Confirmed' ||
+          o.status === 'Processing' ||
+          o.status === 'Ready to ship' ||
+          o.status === 'Shipped' ||
+          o.paymentStatus === 'Paid') &&
+        o.status !== 'Delivered' &&
+        o.status !== 'Cancelled'
     );
 
     activeOrders.forEach((order) => {

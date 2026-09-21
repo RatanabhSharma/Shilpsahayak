@@ -26,6 +26,7 @@ export function Cart() {
   const cart = useStore((state) => state.cart);
   const updateQuantity = useStore((state) => state.updateCartQuantity);
   const removeFromCart = useStore((state) => state.removeFromCart);
+  const setPurchaseMode = useStore((state) => state.setPurchaseMode);
   const navigate = useNavigate();
   const { data: settings } = useSettings();
 
@@ -397,7 +398,10 @@ export function Cart() {
 
               <Button
                 size="lg"
-                onClick={() => navigate('/checkout')}
+                onClick={() => {
+                  setPurchaseMode('cart');
+                  navigate('/checkout');
+                }}
                 className="w-full font-display font-bold shadow-lg shadow-accent/20 bg-accent hover:bg-accent-dark text-white border-accent"
               >
                 <span>Proceed to Checkout</span>

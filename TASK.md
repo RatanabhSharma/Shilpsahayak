@@ -25,17 +25,24 @@
 - Stabilize the Cart and Buy Now workflows to ensure they remain separated.
 - Guarantee order state correctly reflects intended purchases.
 
-### C. Integrate Razorpay Sandbox [FUTURE]
-- Integrate Razorpay payment gateway in TEST/SANDBOX mode first.
-- Do not deploy production keys yet.
+### C. Integrate Razorpay Sandbox [HARDENED - TEST MODE]
+- Integrated Razorpay payment gateway in TEST/SANDBOX mode via Standard Checkout SDK.
+- Configured public Key ID on frontend and secret verification on trusted server with Shilp Sahayak accent `#FF4D00`.
+- Server-authoritative capture verification against `api.razorpay.com/v1/payments/{payment_id}` to ensure payment is captured and parameters match before marking Paid.
+- Real Sandbox E2E transaction testing remains pending user test credentials.
 
-### D. Secure Server-Side Order/Payment Workflow [FUTURE]
-- Move order total calculation to trusted Cloudflare Worker / Server environment.
-- Setup webhook verification for Razorpay status updates.
+### D. Secure Server-Side Order/Payment Workflow [HARDENED - TEST MODE]
+- Authoritative order subtotal, shipping, and total calculation moved to Cloudflare Worker.
+- Worker verifies product existence, stock sufficiency, and active pricing from Firestore.
+- Single canonical webhook route: `POST /api/payment/webhook`.
+- Webhook HMAC SHA256 signature verification over raw request body using `RAZORPAY_WEBHOOK_SECRET`.
+- Multi-state webhook idempotency tracking (`processing` -> `processed` / `failed`) in `webhook_events/{eventId}` with out-of-order safety.
 
-### E. Automate Payment → Order Status [FUTURE]
-- Implement the automatic transition logic: 
-  `Razorpay Captured` -> `paymentStatus = Paid` -> `orderStatus = Confirmed`.
+### E. Automate Payment → Order Status [HARDENED - TEST MODE]
+- Automated transition logic:
+  `Razorpay Captured & Verified` -> `paymentStatus = Paid` -> `orderStatus = Confirmed`.
+- Dispatches order confirmation email via Firestore `mail` collection upon authoritative verification, with strict deduplication (`confirmationEmailSent: true`).
+- Admin fulfillment lifecycle retains control from Confirmed -> Processing -> Ready to ship -> Shipped -> Delivered.
 
 ### F. Improve Customer Order Experience
 - Flesh out customer-facing order tracking / history UI in their account dashboard.
@@ -61,4 +68,5 @@
 - **Cart Separation**: "Buy Now" and "Add to Cart" are treated as distinct workflows.
 - **Admin Cleanup**: Obsolete legacy UI (slideshow editor, obsolete content controls) has been permanently removed from the active Storefront manager.
 - **Design Baseline**: Current UI is established as the visual source of truth to prevent regressions.
+- **Authentication Streamlined (V1)**: Firebase Email/Password is the primary authentication system with official email verification. Phone numbers are collected as optional customer contact information for courier and order updates, with all phone OTP verification and checkout gating permanently removed.
 

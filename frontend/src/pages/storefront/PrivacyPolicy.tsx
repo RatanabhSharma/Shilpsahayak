@@ -150,7 +150,7 @@ export function PrivacyPolicy() {
                   {[
                     ['Full name', 'Account signup', 'Yes — for order dispatch'],
                     ['Email address', 'Account signup / login', 'Yes — for authentication & notifications'],
-                    ['Mobile number', 'Account signup / checkout', 'Yes — for delivery updates & OTP verification'],
+                    ['Mobile number', 'Account signup / checkout', 'Yes — for courier tracking & delivery updates'],
                     ['Delivery address (street, city, state, PIN)', 'Checkout', 'Yes — for courier dispatch'],
                     ['CAD / STL / OBJ / 3MF files', 'Custom print upload (Shilp Studio)', 'Only when you use custom printing'],
                     ['Order history & items purchased', 'On order placement', 'Yes — for fulfilment & account'],
@@ -201,9 +201,9 @@ export function PrivacyPolicy() {
                   data: 'Email, WhatsApp number',
                 },
                 {
-                  purpose: 'Fraud prevention & OTP verification',
+                  purpose: 'Fraud prevention & account security',
                   basis: 'Legitimate interest — protecting you and us',
-                  data: 'Phone number, session data',
+                  data: 'Session data, IP log',
                 },
                 {
                   purpose: 'Responding to inquiries',
