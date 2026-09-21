@@ -139,8 +139,12 @@ service cloud.firestore {
         );
 
       allow create: if
-        isSignedIn() &&
-        request.resource.data.customerId == request.auth.uid;
+        isAdmin()
+        ||
+        (
+          isSignedIn() &&
+          request.resource.data.customerId == request.auth.uid
+        );
 
       allow update: if
         isAdmin()

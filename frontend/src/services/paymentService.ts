@@ -93,23 +93,24 @@ export function loadRazorpayScript(): Promise<boolean> {
 
 /**
  * Requests the Cloudflare Worker to create a trusted order and Razorpay order.
+ * Strictly requires an authenticated customer.
  */
 export async function createPaymentOrder(
   input: CreatePaymentOrderInput
 ): Promise<CreatePaymentOrderResult> {
   const user = auth.currentUser;
   if (!user) {
-    throw new Error('You must be logged in to initiate checkout.');
+    throw new Error('Authentication required to create a payment order');
   }
 
-  const idToken = await user.getIdToken();
   const endpoint = `${CLOUDFLARE_WORKER_URL}/api/payment/create-order`;
+  const idToken = await user.getIdToken();
 
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${idToken}`,
+      'Authorization': `Bearer ${idToken}`,
     },
     body: JSON.stringify(input),
   });
@@ -125,23 +126,24 @@ export async function createPaymentOrder(
 
 /**
  * Sends the Razorpay payment response to the Cloudflare Worker for cryptographic verification.
+ * Strictly requires an authenticated customer.
  */
 export async function verifyPaymentSignature(
   input: VerifyPaymentInput
 ): Promise<VerifyPaymentResult> {
   const user = auth.currentUser;
   if (!user) {
-    throw new Error('User session lost during verification. Please log in again.');
+    throw new Error('Authentication required to verify payment');
   }
 
-  const idToken = await user.getIdToken();
   const endpoint = `${CLOUDFLARE_WORKER_URL}/api/payment/verify`;
+  const idToken = await user.getIdToken();
 
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${idToken}`,
+      'Authorization': `Bearer ${idToken}`,
     },
     body: JSON.stringify(input),
   });

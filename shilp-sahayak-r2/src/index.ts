@@ -700,17 +700,31 @@ export default {
     // ------------------------------------------------------------------------
     // PAYMENT: CREATE TRUSTED ORDER (POST /api/payment/create-order)
     // ------------------------------------------------------------------------
+    // ------------------------------------------------------------------------
+    // PAYMENT: CREATE TRUSTED ORDER (POST /api/payment/create-order)
+    // ------------------------------------------------------------------------
     if (
       request.method === "POST" &&
       pathname === "/api/payment/create-order"
     ) {
+      let uid: string;
+      let userToken: string;
       try {
-        const uid = await authenticateUser(request);
-        const authorization = request.headers.get("Authorization") || "";
-        const userToken = authorization.startsWith("Bearer ")
-          ? authorization.substring(7).trim()
-          : undefined;
+        uid = await authenticateUser(request);
+        const authHeader = request.headers.get("Authorization") || "";
+        userToken = authHeader.substring(7).trim();
+      } catch (authErr: any) {
+        return jsonResponse(
+          request,
+          {
+            success: false,
+            error: `Authentication required: ${authErr?.message || "Missing or invalid token."}`,
+          },
+          401
+        );
+      }
 
+      try {
         const body: any = await request.json();
         const {
           items,
@@ -720,10 +734,28 @@ export default {
           clientCalculatedTotal,
         } = body || {};
 
-        if (!shippingAddress || !shippingAddress.fullName || !shippingAddress.phone) {
+        if (!shippingAddress || !shippingAddress.fullName || !shippingAddress.phone || !shippingAddress.email) {
           return jsonResponse(
             request,
-            { success: false, error: "Complete shipping address is required." },
+            { success: false, error: "Complete contact information (name, email, phone) and shipping address are required." },
+            400
+          );
+        }
+
+        const email = String(shippingAddress.email || "").trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          return jsonResponse(
+            request,
+            { success: false, error: "A valid email address is required." },
+            400
+          );
+        }
+
+        const phoneDigits = String(shippingAddress.phone || "").replace(/\D/g, "");
+        if (phoneDigits.length < 10) {
+          return jsonResponse(
+            request,
+            { success: false, error: "A valid 10-digit mobile number is required." },
             400
           );
         }
@@ -821,14 +853,17 @@ export default {
         }
 
         // Write internal order to Firestore
-        const internalOrderData = {
+        const internalOrderData: Record<string, any> = {
           id: orderId,
           customerId: uid,
           customerName: shippingAddress.fullName,
-          customerEmail: shippingAddress.email,
+          customerEmail: email,
           customerPhone: shippingAddress.phone,
           address: formattedAddress,
-          shippingAddress,
+          shippingAddress: {
+            ...shippingAddress,
+            email,
+          },
           items: pricing.verifiedItems,
           productIds: pricing.verifiedItems.map((i) => i.productId),
           subtotal: pricing.subtotal,
@@ -905,14 +940,24 @@ export default {
       request.method === "POST" &&
       pathname === "/api/payment/verify"
     ) {
+      let uid: string;
+      let userToken: string;
       try {
-        // 1. Authenticate Firebase user
-        const uid = await authenticateUser(request);
-        const authorization = request.headers.get("Authorization") || "";
-        const userToken = authorization.startsWith("Bearer ")
-          ? authorization.substring(7).trim()
-          : undefined;
+        uid = await authenticateUser(request);
+        const authHeader = request.headers.get("Authorization") || "";
+        userToken = authHeader.substring(7).trim();
+      } catch (authErr: any) {
+        return jsonResponse(
+          request,
+          {
+            success: false,
+            error: `Authentication required: ${authErr?.message || "Missing or invalid token."}`,
+          },
+          401
+        );
+      }
 
+      try {
         const body: any = await request.json();
         const {
           orderId,
@@ -956,7 +1001,7 @@ export default {
           );
         }
 
-        // 3. Ensure internal order belongs to the authenticated user
+        // 3. Ensure internal order belongs to the requester
         if (existingOrder.customerId && existingOrder.customerId !== uid) {
           return jsonResponse(
             request,
@@ -1394,7 +1439,11 @@ export default {
     // ------------------------------------------------------------------------
     if (request.method === "POST" && pathname === "/upload") {
       try {
-        const uid = await authenticateUser(request);
+        let uid = "guest";
+        const authHeader = request.headers.get("Authorization");
+        if (authHeader && authHeader.trim().startsWith("Bearer ")) {
+          uid = await authenticateUser(request);
+        }
         const fileName = request.headers.get("X-File-Name");
 
         if (!fileName) {
@@ -1437,7 +1486,8 @@ export default {
         }
 
         const safeFileName = sanitizeFileName(fileName);
-        const objectKey = `quotes/${uid}/${Date.now()}_${safeFileName}`;
+        const randomSuffix = Math.random().toString(36).substring(2, 8);
+        const objectKey = `quotes/${uid}/${Date.now()}_${randomSuffix}_${safeFileName}`;
 
         await env.STORAGE.put(objectKey, request.body, {
           httpMetadata: {

@@ -177,16 +177,18 @@ export async function upload3DFile(
     return localUrl;
   };
 
-  // If user is not logged in or worker URL is not configured, fall back to local storage
-  if (!user || !CLOUDFLARE_WORKER_URL) {
-    return fallbackToLocal('No active Firebase user session or worker URL not configured');
+  // If worker URL is not configured, fall back to local storage
+  if (!CLOUDFLARE_WORKER_URL) {
+    return fallbackToLocal('Cloudflare Worker URL is not configured');
   }
 
-  let idToken = '';
-  try {
-    idToken = await user.getIdToken();
-  } catch {
-    return fallbackToLocal('Could not retrieve Firebase authentication token');
+  let idToken: string | null = null;
+  if (user) {
+    try {
+      idToken = await user.getIdToken();
+    } catch {
+      console.warn('[Storage] Could not retrieve Firebase token, attempting guest upload');
+    }
   }
 
   return new Promise<string>((resolve) => {
@@ -256,7 +258,9 @@ export async function upload3DFile(
 
     try {
       xhr.open('POST', uploadUrl, true);
-      xhr.setRequestHeader('Authorization', `Bearer ${idToken}`);
+      if (idToken) {
+        xhr.setRequestHeader('Authorization', `Bearer ${idToken}`);
+      }
       xhr.setRequestHeader('X-File-Name', file.name);
       xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
       if (onProgress) onProgress(5);

@@ -125,3 +125,64 @@ describe("Webhook Processing Endpoints", () => {
   });
 });
 
+describe("Payment Endpoints Authentication & Security (Worker)", () => {
+  it("rejects unauthenticated POST /api/payment/create-order with HTTP 401", async () => {
+    const response = await SELF.fetch("https://example.com/api/payment/create-order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        items: [{ productId: "test_prod", quantity: 1 }],
+        shippingAddress: {
+          fullName: "John Doe",
+          email: "john@example.com",
+          phone: "9876543210",
+        },
+      }),
+    });
+
+    expect(response.status).toBe(401);
+    const body: any = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toContain("Authentication required");
+  });
+
+  it("rejects unauthenticated POST /api/payment/verify with HTTP 401", async () => {
+    const response = await SELF.fetch("https://example.com/api/payment/verify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        orderId: "ORD_12345",
+        razorpayPaymentId: "pay_123",
+        razorpayOrderId: "order_123",
+      }),
+    });
+
+    expect(response.status).toBe(401);
+    const body: any = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toContain("Authentication required");
+  });
+
+  it("permits guest upload of 3D models to R2 under quotes/guest path without Authorization", async () => {
+    const fakeStlContent = "solid test\nfacet normal 0 0 0\nouter loop\nvertex 0 0 0\nvertex 1 0 0\nvertex 0 1 0\nendloop\nendfacet\nendsolid test";
+    const response = await SELF.fetch("https://example.com/upload", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "X-File-Name": "gear_sample.stl",
+      },
+      body: fakeStlContent,
+    });
+
+    expect(response.status).toBe(200);
+    const body: any = await response.json();
+    expect(body.success).toBe(true);
+    expect(body.key).toMatch(/^quotes\/guest\/\d+_[a-z0-9]+_gear_sample\.stl$/);
+  });
+});
+
+

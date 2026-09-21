@@ -128,6 +128,26 @@ export function Checkout() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [orderId, setOrderId] = useState('');
 
+  const [savedForm] = useState<{
+    name?: string;
+    email?: string;
+    phone?: string;
+    houseNo?: string;
+    street?: string;
+    landmark?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    notes?: string;
+  } | null>(() => {
+    try {
+      const raw = sessionStorage.getItem('shilp_checkout_saved_form');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [isSendingEmailVerification, setIsSendingEmailVerification] = useState(false);
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
   const [isCheckingEmailStatus, setIsCheckingEmailStatus] = useState(false);
@@ -153,10 +173,10 @@ export function Checkout() {
     }
   };
 
-  const [stateValue, setStateValue] = useState('');
-  const [phone, setPhone] = useState('');
-  const [cityValue, setCityValue] = useState('');
-  const [pincodeValue, setPincodeValue] = useState('');
+  const [stateValue, setStateValue] = useState(() => savedForm?.state || '');
+  const [phone, setPhone] = useState(() => normalizePhone(savedForm?.phone || ''));
+  const [cityValue, setCityValue] = useState(() => savedForm?.city || '');
+  const [pincodeValue, setPincodeValue] = useState(() => savedForm?.pincode || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const {
@@ -167,11 +187,11 @@ export function Checkout() {
 
   useEffect(() => {
     if (!profile) return;
-    setStateValue(profile.address?.state || '');
-    setPhone(normalizePhone(profile.phone || ''));
-    setCityValue(profile.address?.city || '');
-    setPincodeValue(profile.address?.pincode || '');
-  }, [profile]);
+    if (!savedForm?.state) setStateValue(profile.address?.state || '');
+    if (!savedForm?.phone) setPhone(normalizePhone(profile.phone || ''));
+    if (!savedForm?.city) setCityValue(profile.address?.city || '');
+    if (!savedForm?.pincode) setPincodeValue(profile.address?.pincode || '');
+  }, [profile, savedForm]);
 
   useEffect(() => {
     if (!pincodeLocation) return;
@@ -235,11 +255,6 @@ export function Checkout() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isSubmitting) return;
-
-    if (!user) {
-      navigate('/login');
-      return;
-    }
     if (cart.length === 0) return;
 
     const form = event.currentTarget;
@@ -262,6 +277,35 @@ export function Checkout() {
     const city = String(formData.get('city') || '').trim();
     const pincode = String(formData.get('pincode') || '').trim();
     const notes = String(formData.get('notes') || '').trim();
+
+    // STRICT V1 RULE: Guests can enter checkout/customer info, but MUST NOT create Razorpay order or open Razorpay.
+    // They must authenticate before payment. Preserve entered shipping details across login.
+    if (!user) {
+      const formToSave = {
+        name: fullName,
+        email,
+        phone: phoneNumber,
+        houseNo,
+        street,
+        landmark,
+        city,
+        state: stateValue,
+        pincode,
+        notes,
+      };
+      try {
+        sessionStorage.setItem('shilp_checkout_saved_form', JSON.stringify(formToSave));
+      } catch (e) {
+        console.error('Failed to save checkout form to sessionStorage', e);
+      }
+      navigate('/login?redirect=/checkout', {
+        state: {
+          from: { pathname: '/checkout' },
+          buyNowItem: effectivePurchaseMode === 'buy_now' ? effectiveBuyNowItem : undefined,
+        },
+      });
+      return;
+    }
 
     setPaymentUiState('preparing');
 
@@ -395,6 +439,7 @@ export function Checkout() {
             });
 
             if (verification.success) {
+              sessionStorage.removeItem('shilp_checkout_saved_form');
               setPaymentId(response.razorpay_payment_id);
               if (effectivePurchaseMode === 'buy_now') {
                 clearBuyNowItem();
@@ -503,38 +548,11 @@ export function Checkout() {
     );
   }
 
-  if (authLoading || profileLoading) {
+  if (authLoading || (user && profileLoading)) {
     return (
       <div className="min-h-[60vh] bg-paper flex flex-col items-center justify-center py-24">
         <Loader2 className="h-10 w-10 animate-spin text-accent" />
         <p className="mt-4 text-sm font-semibold text-ink font-sans">Loading checkout details...</p>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-[70vh] bg-paper flex items-center justify-center px-5 py-20">
-        <div className="mx-auto max-w-md rounded-3xl border border-line bg-white p-8 text-center shadow-card">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-soft text-accent">
-            <Lock className="h-7 w-7" />
-          </div>
-
-          <h2 className="mt-5 font-display text-2xl font-bold text-ink">
-            Login Required
-          </h2>
-
-          <p className="mt-2 text-sm text-muted leading-relaxed font-sans">
-            Please log in to continue with your shipping details and save this order to your account.
-          </p>
-
-          <Button
-            onClick={() => navigate('/login?redirect=/checkout')}
-            className="mt-6 w-full font-display font-bold"
-          >
-            Log In to Continue
-          </Button>
-        </div>
       </div>
     );
   }
@@ -593,7 +611,7 @@ export function Checkout() {
           <div id="checkout-form" className="lg:col-span-7">
             <form onSubmit={handleSubmit} noValidate className="space-y-8">
               {/* Email Verification Banner */}
-              {!user.emailVerified && !profile?.emailVerified && (
+              {user && !user.emailVerified && !profile?.emailVerified && (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-2 text-xs text-amber-900 shadow-2xs">
                   <div className="flex items-center gap-2 font-bold font-display text-sm text-amber-900">
                     <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
@@ -624,8 +642,18 @@ export function Checkout() {
               )}
 
               {/* Step 1: Contact Details */}
-              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
-                <div className="flex items-center gap-2.5 mb-5">
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft space-y-5">
+                {!user && (
+                  <div className="rounded-2xl border border-line bg-shell/80 p-4 text-xs font-sans text-muted flex items-start gap-2.5">
+                    <Lock className="h-4 w-4 text-accent shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-semibold text-ink font-display block text-sm">Guest Checkout</span>
+                      <span>Enter your delivery details below. You will be prompted to log in or create an account before final payment.</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2.5">
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
                     1
                   </span>
@@ -639,7 +667,7 @@ export function Checkout() {
                     <Input
                       name="name"
                       label="Full Name *"
-                      defaultValue={profile?.name || user.displayName || ''}
+                      defaultValue={savedForm?.name || profile?.name || user?.displayName || ''}
                       placeholder="Your full name"
                       autoComplete="name"
                       required
@@ -656,7 +684,7 @@ export function Checkout() {
                       name="email"
                       label="Email Address *"
                       type="email"
-                      defaultValue={profile?.email || user.email || ''}
+                      defaultValue={savedForm?.email || profile?.email || user?.email || ''}
                       placeholder="you@example.com"
                       autoComplete="email"
                       required
@@ -712,7 +740,7 @@ export function Checkout() {
                     <Input
                       name="houseNo"
                       label="Flat / House / Building Number *"
-                      defaultValue={profile?.address?.line1 || ''}
+                      defaultValue={savedForm?.houseNo || profile?.address?.line1 || ''}
                       placeholder="e.g. Flat 304, Green Heights"
                       autoComplete="address-line1"
                       required
@@ -728,7 +756,7 @@ export function Checkout() {
                     <Input
                       name="street"
                       label="Street / Locality / Sector *"
-                      defaultValue={profile?.address?.line2 || ''}
+                      defaultValue={savedForm?.street || profile?.address?.line2 || ''}
                       placeholder="e.g. Model Town Road"
                       autoComplete="address-line2"
                       required
@@ -743,6 +771,7 @@ export function Checkout() {
                   <Input
                     name="landmark"
                     label="Landmark (Optional)"
+                    defaultValue={savedForm?.landmark || ''}
                     placeholder="e.g. Opposite Central Mall"
                     autoComplete="off"
                   />
@@ -846,6 +875,7 @@ export function Checkout() {
 
                 <Textarea
                   name="notes"
+                  defaultValue={savedForm?.notes || ''}
                   placeholder="Gate instructions, preferred delivery timing, or packaging remarks..."
                   rows={2}
                 />
@@ -917,6 +947,8 @@ export function Checkout() {
                   ? 'Verifying payment...'
                   : paymentUiState === 'cancelled' || paymentUiState === 'failed'
                   ? `Retry Payment • ₹${total.toLocaleString('en-IN')}`
+                  : !user
+                  ? `Continue to Login & Pay • ₹${total.toLocaleString('en-IN')}`
                   : `Pay Now • ₹${total.toLocaleString('en-IN')}`}
               </Button>
             </form>

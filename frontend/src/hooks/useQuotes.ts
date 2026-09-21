@@ -220,59 +220,41 @@ return useQuery({
 /* -------------------------------------------------------------------------- */
 
 export function useSubmitQuote() {
-  const queryClient =
-    useQueryClient();
-
+  const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (
-      quoteData: CreateQuoteData
-    ) => {
-      /*
-       * A quote must always belong to
-       * an authenticated customer.
-       */
+    mutationFn: async (quoteData: CreateQuoteData) => {
       if (!user) {
-        throw new Error(
-          'You must be logged in to submit a quote.'
-        );
+        throw new Error('User must be logged in to submit a quote request');
       }
 
-      const newQuote: Omit<
-  Quote,
-  'id'
-> = {
-  ...quoteData,
+      const newQuote: Omit<Quote, 'id'> = {
+        ...quoteData,
+        customerId: user.uid,
+        date: new Date().toISOString(),
+        status: 'Pending',
+      };
 
-  customerId: user.uid,
+      const cleanedQuote = removeUndefined(newQuote);
 
-  date: new Date().toISOString(),
-
-  status: 'Pending'
-};
-
-const cleanedQuote =
-  removeUndefined(newQuote);
-
-const quoteRef =
-  await addDoc(
-    collection(db, 'quotes'),
-    cleanedQuote
-  );
+      const quoteRef = await addDoc(
+        collection(db, 'quotes'),
+        cleanedQuote
+      );
 
       return quoteRef;
     },
 
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['quotes']
+        queryKey: ['quotes'],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ['my-quotes']
+        queryKey: ['my-quotes'],
       });
-    }
+    },
   });
 }
 

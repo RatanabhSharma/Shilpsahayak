@@ -49,6 +49,9 @@ describe('BUY NOW Flow & Cart Isolation Test Matrix', () => {
   const mockProductA: Product = {
     id: 'prod-A',
     name: 'Precision Gear A',
+    description: 'Precision 3D printed mechanical gear',
+    image: '/gear.png',
+    stock: 10,
     price: 499,
     category: 'Mechanical',
     featured: true,
@@ -58,6 +61,9 @@ describe('BUY NOW Flow & Cart Isolation Test Matrix', () => {
   const mockProductB: Product = {
     id: 'prod-B',
     name: 'Artisan Vase B',
+    description: 'Artisan spiral vase',
+    image: '/vase.png',
+    stock: 5,
     price: 899,
     category: 'Home Decor',
     featured: false,

@@ -742,10 +742,10 @@ export const useStore =
          */
         version: 1,
         migrate: () => ({
-          cart: [],
+          cart: [] as CartItem[],
           settings: INITIAL_SETTINGS,
-          purchaseMode: 'cart',
-          buyNowItem: null,
+          purchaseMode: 'cart' as const,
+          buyNowItem: null as CartItem | null,
         }),
 
         /*

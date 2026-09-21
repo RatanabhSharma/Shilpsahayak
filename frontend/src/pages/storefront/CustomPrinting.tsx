@@ -16,7 +16,6 @@ import {
   ArrowLeft,
   Box,
   Lightbulb,
-  Info,
   Image as ImageIcon,
   MessageSquare,
   Maximize2,
@@ -193,25 +192,43 @@ export function CustomPrinting() {
   };
 
   // Assisted Mode States
-  const [assistedSub, setAssistedSub] = useState<'has-reference' | 'idea-only'>('has-reference');
+  const [savedAssistedContext] = useState<any>(() => {
+    try {
+      const raw = sessionStorage.getItem('shilp_studio_saved_assisted_quote');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [assistedSub, setAssistedSub] = useState<'has-reference' | 'idea-only'>(() => savedAssistedContext?.assistedSub || 'has-reference');
   const [assistedFile, setAssistedFile] = useState<File | null>(null);
-  const [assistedDesc, setAssistedDesc] = useState('');
+  const [assistedDesc, setAssistedDesc] = useState(() => savedAssistedContext?.assistedDesc || '');
   const assistedMaterial = 'To be advised by Shilp team';
-  const [assistedQuantity, setAssistedQuantity] = useState(1);
-  const [assistedName, setAssistedName] = useState('');
-  const [assistedEmail, setAssistedEmail] = useState('');
-  const [assistedPhone, setAssistedPhone] = useState('');
-  const [assistedNotes, setAssistedNotes] = useState('');
+  const [assistedQuantity, setAssistedQuantity] = useState(() => savedAssistedContext?.assistedQuantity || 1);
+  const [assistedName, setAssistedName] = useState(() => savedAssistedContext?.assistedName || '');
+  const [assistedEmail, setAssistedEmail] = useState(() => savedAssistedContext?.assistedEmail || '');
+  const [assistedPhone, setAssistedPhone] = useState(() => savedAssistedContext?.assistedPhone || '');
+  const [assistedNotes, setAssistedNotes] = useState(() => savedAssistedContext?.assistedNotes || '');
   const [assistedSuccess, setAssistedSuccess] = useState(false);
   const [isSubmittingAssisted, setIsSubmittingAssisted] = useState(false);
   const [assistedUploadProgress, setAssistedUploadProgress] = useState<number | null>(null);
 
   useEffect(() => {
     if (user) {
-      if (!assistedName && user.displayName) setAssistedName(user.displayName);
-      if (!assistedEmail && user.email) setAssistedEmail(user.email);
+      if (savedAssistedContext) {
+        if (!assistedName && (savedAssistedContext.assistedName || user.displayName)) {
+          setAssistedName(savedAssistedContext.assistedName || user.displayName || '');
+        }
+        if (!assistedEmail && (savedAssistedContext.assistedEmail || user.email)) {
+          setAssistedEmail(savedAssistedContext.assistedEmail || user.email || '');
+        }
+      } else {
+        if (!assistedName && user.displayName) setAssistedName(user.displayName);
+        if (!assistedEmail && user.email) setAssistedEmail(user.email);
+      }
     }
-  }, [user]);
+  }, [user, savedAssistedContext]);
 
   const handleAssistedFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -231,18 +248,8 @@ export function CustomPrinting() {
 
   const handleAssistedSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      if (
-        confirm(
-          'Please sign in to your Shilp Sahayak account so we can link your custom design request to your dashboard.\nWould you like to log in now?'
-        )
-      ) {
-        navigate('/login?redirect=/shilp-studio?mode=assisted');
-      }
-      return;
-    }
 
-    if (assistedSub === 'has-reference' && !assistedFile && !assistedDesc.trim()) {
+    if (assistedSub === 'has-reference' && !assistedFile && !savedAssistedContext?.fileUrl && !assistedDesc.trim()) {
       alert('Please upload a reference image/file or describe your design brief.');
       return;
     }
@@ -252,18 +259,69 @@ export function CustomPrinting() {
       return;
     }
 
-    const customerName = assistedName.trim() || user.displayName || user.email || 'Customer';
-    const customerEmail = assistedEmail.trim() || user.email || '';
+    const customerName = user ? (user.displayName || user.email || 'Customer') : (assistedName.trim() || 'Customer');
+    const customerEmail = user ? (user.email || '') : assistedEmail.trim();
     if (!customerEmail) {
       alert('Please provide your email address.');
       return;
+    }
+
+    // STRICT V1 RULE: Guests MUST NOT submit quotes while logged out.
+    // Must login before quote submission. Preserve request state across login.
+    if (!user) {
+      setIsSubmittingAssisted(true);
+      setAssistedUploadProgress(20);
+      try {
+        let fileUrl: string | undefined = undefined;
+        if (assistedFile) {
+          fileUrl = await upload3DFile(assistedFile, 'guest', (p) => setAssistedUploadProgress(p));
+        }
+
+        const savedContext = {
+          assistedSub,
+          assistedName,
+          assistedEmail,
+          assistedPhone,
+          assistedMaterial,
+          assistedQuantity,
+          assistedDesc,
+          assistedNotes,
+          fileName: assistedFile?.name,
+          fileUrl,
+        };
+        sessionStorage.setItem('shilp_studio_saved_assisted_quote', JSON.stringify(savedContext));
+        navigate('/login?redirect=/shilp-studio?mode=assisted', {
+          state: { from: { pathname: '/shilp-studio', search: '?mode=assisted' } },
+        });
+        return;
+      } catch (err) {
+        console.error('Failed to preserve assisted quote before login:', err);
+        sessionStorage.setItem('shilp_studio_saved_assisted_quote', JSON.stringify({
+          assistedSub,
+          assistedName,
+          assistedEmail,
+          assistedPhone,
+          assistedMaterial,
+          assistedQuantity,
+          assistedDesc,
+          assistedNotes,
+          fileName: assistedFile?.name,
+        }));
+        navigate('/login?redirect=/shilp-studio?mode=assisted', {
+          state: { from: { pathname: '/shilp-studio', search: '?mode=assisted' } },
+        });
+        return;
+      } finally {
+        setIsSubmittingAssisted(false);
+        setAssistedUploadProgress(null);
+      }
     }
 
     try {
       setIsSubmittingAssisted(true);
       setAssistedUploadProgress(10);
 
-      let fileUrl: string | undefined = undefined;
+      let fileUrl: string | undefined = savedAssistedContext?.fileUrl;
       if (assistedFile) {
         fileUrl = await upload3DFile(assistedFile, user.uid, (p) => setAssistedUploadProgress(p));
       }
@@ -273,7 +331,7 @@ export function CustomPrinting() {
         customerName,
         customerEmail,
         customerPhone: assistedPhone.trim(),
-        fileName: assistedFile?.name,
+        fileName: assistedFile?.name || savedAssistedContext?.fileName,
         fileUrl,
         material: assistedMaterial,
         quantity: assistedQuantity,
@@ -281,6 +339,7 @@ export function CustomPrinting() {
         notes: assistedNotes.trim() || undefined,
       });
 
+      sessionStorage.removeItem('shilp_studio_saved_assisted_quote');
       setIsSubmittingAssisted(false);
       setAssistedUploadProgress(null);
       setAssistedSuccess(true);
@@ -312,7 +371,7 @@ export function CustomPrinting() {
   const [slicingStageMessage, setSlicingStageMessage] = useState<string>('');
   const [slicerResult, setSlicerResult] = useState<SlicingSuccessResult | null>(null);
   const [slicerError, setSlicerError] = useState<string | null>(null);
-  const [backendActiveEnvelope, setBackendActiveEnvelope] = useState<{ x: number; y: number; z: number } | null>(null);
+  const [backendActiveEnvelope] = useState<{ x: number; y: number; z: number } | null>(null);
   const currentJobTokenRef = useRef<string>('');
 
   // Backend Multicolor Detection State (Phase 1)
@@ -355,14 +414,33 @@ export function CustomPrinting() {
   const [customLayerHeight, setCustomLayerHeight] = useState<number | null>(null);
 
   // Handoff & Submission States
+  const [savedQuoteContext] = useState<any>(() => {
+    try {
+      const raw = sessionStorage.getItem('shilp_studio_saved_quote');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [quoteSuccess, setQuoteSuccess] = useState<boolean>(false);
-  const [guestName, setGuestName] = useState('');
-  const [guestEmail, setGuestEmail] = useState('');
-  const [guestPhone, setGuestPhone] = useState('');
-  const [customerNotes, setCustomerNotes] = useState('');
-  const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [guestName, setGuestName] = useState(() => savedQuoteContext?.guestName || '');
+  const [guestEmail, setGuestEmail] = useState(() => savedQuoteContext?.guestEmail || '');
+  const [guestPhone, setGuestPhone] = useState(() => savedQuoteContext?.guestPhone || '');
+  const [customerNotes, setCustomerNotes] = useState(() => savedQuoteContext?.customerNotes || '');
+  const [showQuoteModal, setShowQuoteModal] = useState(() => Boolean(savedQuoteContext?.autoOpenQuoteModal));
+
+  useEffect(() => {
+    if (user && savedQuoteContext) {
+      if (savedQuoteContext.customerNotes) setCustomerNotes(savedQuoteContext.customerNotes);
+      if (savedQuoteContext.guestPhone) setGuestPhone(savedQuoteContext.guestPhone);
+      if (savedQuoteContext.autoOpenQuoteModal) {
+        setShowQuoteModal(true);
+      }
+    }
+  }, [user, savedQuoteContext]);
 
   // Active configurations from pricing settings
   const activeMaterials = useMemo(
@@ -708,7 +786,6 @@ export function CustomPrinting() {
 
   // The active quote MUST be the authoritative production quote:
   const quoteBreakdown = productionQuoteBreakdown;
-  const isProductionVerified = Boolean(productionQuoteBreakdown);
 
   // Actual Slicer-calculated filament weight and print duration (authoritative, from production verification)
   const actualFilamentGrams = slicerResult?.filament_grams ?? slicerResult?.statistics?.filament_grams ?? null;
@@ -718,9 +795,6 @@ export function CustomPrinting() {
   const actualPrintTimeMinutes = slicerResult?.statistics?.print_time_minutes ?? (actualPrintTimeSeconds ? Math.round(actualPrintTimeSeconds / 60) : null);
   const actualPrintTimeString = slicerResult?.raw_time_string ?? slicerResult?.statistics?.raw_time_string ?? null;
   const actualDimensions = slicerResult?.dimensions ?? effectiveDimensions;
-
-  // Multicolor Slicing Summary & Display Helpers
-  const multicolorSummary = slicerResult?.multicolorSummary;
 
   // ─── AUTOMATIC BACKGROUND SLICER & TOOLPATH HASHING ──────────────────────
   // Toolpath Hash: Changes to these properties require regenerating G-code toolpaths.
@@ -1315,7 +1389,7 @@ export function CustomPrinting() {
   // Submit Quote Review Flow
   const handleSubmitQuote = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) return;
+    if (!file && !savedQuoteContext?.fileUrl) return;
 
     const customerName = user ? user.displayName || user.email || 'Customer' : guestName.trim();
     const customerEmail = user ? user.email || '' : guestEmail.trim();
@@ -1326,11 +1400,80 @@ export function CustomPrinting() {
       return;
     }
 
+    // STRICT V1 RULE: Guests MUST NOT submit "Request Engineer Quote" while logged out.
+    // Guest MUST login before quote submission. Preserve model and request state across login.
+    if (!user) {
+      setIsSubmitting(true);
+      setUploadProgress(20);
+      try {
+        let uploadedUrl: string | undefined = undefined;
+        if (file) {
+          uploadedUrl = await upload3DFile(file, 'guest', (progress) => setUploadProgress(progress));
+        }
+
+        const savedContext = {
+          guestName,
+          guestEmail,
+          guestPhone,
+          customerNotes,
+          fileName: file?.name,
+          fileSize: file?.size,
+          fileUrl: uploadedUrl,
+          qualityPreset,
+          strengthPreset,
+          supportMode,
+          surfaceFinish,
+          sizeMode,
+          materialName: activeMaterial.name,
+          colorName: activeColor.name,
+          profileName: activeProfile.name,
+          effectiveInfill,
+          effectiveLayerHeight,
+          supportsEnabled,
+          quantity,
+          packagingIncluded,
+          effectiveVolumeCm3,
+          actualFilamentGrams,
+          actualPrintTimeHours,
+          totalPrice: quoteBreakdown ? quoteBreakdown.totalPrice : 0,
+          actualDimensions,
+          pricingVersion: pricingData?.pricingVersion,
+          autoOpenQuoteModal: true,
+        };
+
+        sessionStorage.setItem('shilp_studio_saved_quote', JSON.stringify(savedContext));
+        navigate('/login?redirect=/shilp-studio', {
+          state: { from: { pathname: '/shilp-studio' } },
+        });
+        return;
+      } catch (err: any) {
+        console.error('Failed to preserve model for login:', err);
+        sessionStorage.setItem('shilp_studio_saved_quote', JSON.stringify({
+          guestName,
+          guestEmail,
+          guestPhone,
+          customerNotes,
+          fileName: file?.name,
+          fileSize: file?.size,
+          autoOpenQuoteModal: true,
+        }));
+        navigate('/login?redirect=/shilp-studio', {
+          state: { from: { pathname: '/shilp-studio' } },
+        });
+        return;
+      } finally {
+        setIsSubmitting(false);
+        setUploadProgress(null);
+      }
+    }
+
     try {
       setIsSubmitting(true);
       setUploadProgress(15);
 
-      const fileKey = await upload3DFile(file, user?.uid || 'guest', (progress) => setUploadProgress(progress));
+      const fileKey = file
+        ? await upload3DFile(file, user.uid, (progress) => setUploadProgress(progress))
+        : savedQuoteContext?.fileUrl;
 
       const customerNotesWithPresets = [
         `Selected Presets: Quality=${qualityPreset}, Strength=${strengthPreset}, Support=${supportMode}, Finish=${surfaceFinish}, Size=${sizeMode}`,
@@ -1345,9 +1488,9 @@ export function CustomPrinting() {
         customerName,
         customerEmail,
         customerPhone,
-        fileName: file.name,
+        fileName: file ? file.name : (savedQuoteContext?.fileName || 'custom-model.stl'),
         fileUrl: fileKey || undefined,
-        fileSizeBytes: file.size,
+        fileSizeBytes: file ? file.size : (savedQuoteContext?.fileSize || 0),
         material: activeMaterial.name,
         color: activeColor.name,
         quality: activeProfile.name,
@@ -1370,15 +1513,17 @@ export function CustomPrinting() {
             }
           : undefined,
         notes: customerNotesWithPresets || undefined,
-        pricingVersion: pricingData.pricingVersion,
+        pricingVersion: pricingData?.pricingVersion,
       });
+
+      sessionStorage.removeItem('shilp_studio_saved_quote');
 
       // Non-blocking confirmation email via existing Firestore mail queue
       sendManualQuoteReceivedNotification({
         requestId: quoteRef.id,
         customerEmail,
         customerName,
-        fileName: file.name,
+        fileName: file ? file.name : (savedQuoteContext?.fileName || 'custom-model.stl'),
         notes: customerNotes.trim() || undefined,
       }).catch((err) => console.warn('[Email] Confirmation email failed (non-fatal):', err));
 
@@ -1596,12 +1741,21 @@ export function CustomPrinting() {
               >
                 Upload Another Model
               </button>
-              <Link
-                to="/account"
-                className="px-4 py-2 rounded-xl border border-emerald-300 text-emerald-800 dark:text-emerald-200 font-mono text-xs font-bold hover:bg-emerald-100/50"
-              >
-                View My Quotes
-              </Link>
+              {user ? (
+                <Link
+                  to="/account"
+                  className="px-4 py-2 rounded-xl border border-emerald-300 text-emerald-800 dark:text-emerald-200 font-mono text-xs font-bold hover:bg-emerald-100/50"
+                >
+                  View My Quotes
+                </Link>
+              ) : (
+                <Link
+                  to="/shop"
+                  className="px-4 py-2 rounded-xl border border-emerald-300 text-emerald-800 dark:text-emerald-200 font-mono text-xs font-bold hover:bg-emerald-100/50"
+                >
+                  Explore Shop
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -3090,12 +3244,21 @@ export function CustomPrinting() {
                 >
                   Submit Another Request
                 </button>
-                <Link
-                  to="/account"
-                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-accent hover:bg-amber-600 text-white text-xs font-mono font-bold shadow-md transition-colors text-center"
-                >
-                  View My Quotes & Dashboard →
-                </Link>
+                {user ? (
+                  <Link
+                    to="/account"
+                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-accent hover:bg-amber-600 text-white text-xs font-mono font-bold shadow-md transition-colors text-center"
+                  >
+                    View My Quotes & Dashboard →
+                  </Link>
+                ) : (
+                  <Link
+                    to="/shop"
+                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-accent hover:bg-amber-600 text-white text-xs font-mono font-bold shadow-md transition-colors text-center"
+                  >
+                    Explore Shop →
+                  </Link>
+                )}
               </div>
             </div>
           ) : (
@@ -3345,6 +3508,11 @@ export function CustomPrinting() {
                             : 'Submitting Brief...'}
                         </span>
                       </>
+                    ) : !user ? (
+                      <>
+                        <Lock className="w-4 h-4" />
+                        <span>Log In to Submit Brief</span>
+                      </>
                     ) : (
                       <>
                         <Send className="w-4 h-4" />
@@ -3397,6 +3565,13 @@ export function CustomPrinting() {
 
             {/* Form */}
             <form onSubmit={handleSubmitQuote} className="p-6 space-y-4">
+              {!user && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-200">
+                  <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span>Log in is required to submit your quote request. Your file and settings will be preserved.</span>
+                </div>
+              )}
+
               {/* Name + Email — only needed when user is not authenticated */}
               {!user && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -3468,11 +3643,15 @@ export function CustomPrinting() {
               </div>
 
               {/* File info */}
-              {file && (
+              {(file || savedQuoteContext?.fileName) && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-shell dark:bg-slate-800 border border-line dark:border-slate-700">
                   <FileBox className="w-4 h-4 text-accent shrink-0" />
-                  <span className="text-xs text-muted truncate">{file.name}</span>
-                  <span className="ml-auto text-xs text-muted shrink-0">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                  <span className="text-xs text-muted truncate">{file ? file.name : savedQuoteContext.fileName}</span>
+                  {file ? (
+                    <span className="ml-auto text-xs text-muted shrink-0">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                  ) : savedQuoteContext?.fileSize ? (
+                    <span className="ml-auto text-xs text-muted shrink-0">{(savedQuoteContext.fileSize / 1024 / 1024).toFixed(1)} MB</span>
+                  ) : null}
                 </div>
               )}
 
@@ -3493,7 +3672,18 @@ export function CustomPrinting() {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Submitting...</span>
+                      <span>
+                        {uploadProgress !== null
+                          ? `Uploading (${uploadProgress}%)...`
+                          : user
+                          ? 'Submitting...'
+                          : 'Saving & Redirecting to Login...'}
+                      </span>
+                    </>
+                  ) : !user ? (
+                    <>
+                      <Lock className="w-4 h-4" />
+                      <span>Log In to Submit Quote</span>
                     </>
                   ) : (
                     <>

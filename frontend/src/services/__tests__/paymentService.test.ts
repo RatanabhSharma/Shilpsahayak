@@ -6,6 +6,7 @@ import {
   type CreatePaymentOrderInput,
   type VerifyPaymentInput,
 } from '../paymentService';
+import { auth } from '../../lib/firebase';
 
 // Mock auth from ../lib/firebase
 vi.mock('../../lib/firebase', () => ({
@@ -22,6 +23,10 @@ describe('Payment Service', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    (auth as any).currentUser = {
+      uid: 'test-user-123',
+      getIdToken: vi.fn().mockResolvedValue('mock-id-token-xyz'),
+    };
   });
 
   afterEach(() => {
@@ -115,6 +120,29 @@ describe('Payment Service', () => {
       expect(result).toEqual(mockResult);
     });
 
+    it('throws an error if user is not authenticated', async () => {
+      (auth as any).currentUser = null;
+
+      const input: CreatePaymentOrderInput = {
+        items: [{ productId: 'prod-1', quantity: 1 }],
+        shippingAddress: {
+          fullName: 'Guest Buyer',
+          email: 'guest@example.com',
+          phone: '9876543210',
+          houseNo: '10',
+          street: 'Mall Road',
+          city: 'Patiala',
+          state: 'Punjab',
+          pincode: '147001',
+        },
+        purchaseMode: 'cart',
+      };
+
+      await expect(createPaymentOrder(input)).rejects.toThrow(
+        'Authentication required to create a payment order'
+      );
+    });
+
     it('throws an error if worker returns failure status', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
@@ -173,6 +201,21 @@ describe('Payment Service', () => {
       expect(options.headers['Authorization']).toBe('Bearer mock-id-token-xyz');
       expect(JSON.parse(options.body)).toEqual(input);
       expect(result).toEqual(mockResult);
+    });
+
+    it('throws an error if user is not authenticated', async () => {
+      (auth as any).currentUser = null;
+
+      const input: VerifyPaymentInput = {
+        orderId: 'SS-ORD-12345',
+        razorpayOrderId: 'order_12345',
+        razorpayPaymentId: 'pay_123',
+        razorpaySignature: 'sig_123',
+      };
+
+      await expect(verifyPaymentSignature(input)).rejects.toThrow(
+        'Authentication required to verify payment'
+      );
     });
 
     it('throws an error when signature is invalid', async () => {
