@@ -1,8 +1,9 @@
 import { auth } from '../lib/firebase';
 
-const CLOUDFLARE_WORKER_URL =
+const rawWorkerUrl =
   import.meta.env.VITE_CLOUDFLARE_WORKER_URL ||
   'https://shilp-sahayak-r2.shilpsahayaktech.workers.dev';
+const CLOUDFLARE_WORKER_URL = rawWorkerUrl.replace(/\/+$/, '');
 
 export interface ShippingAddressInput {
   fullName: string;

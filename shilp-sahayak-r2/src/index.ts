@@ -681,13 +681,14 @@ export default {
     }
 
     const url = new URL(request.url);
+    const pathname = url.pathname.replace(/\/+$/, "") || "/";
     const projectId = env.FIREBASE_PROJECT_ID || DEFAULT_FIREBASE_PROJECT_ID;
     const apiKey = env.FIREBASE_API_KEY || DEFAULT_FIREBASE_API_KEY;
 
     // ------------------------------------------------------------------------
     // HEALTH CHECK
     // ------------------------------------------------------------------------
-    if (request.method === "GET" && url.pathname === "/health") {
+    if (request.method === "GET" && pathname === "/health") {
       return jsonResponse(request, {
         success: true,
         service: "shilp-sahayak-r2",
@@ -701,8 +702,7 @@ export default {
     // ------------------------------------------------------------------------
     if (
       request.method === "POST" &&
-      (url.pathname === "/api/payment/create-order" ||
-        url.pathname === "/payment/create-order")
+      pathname === "/api/payment/create-order"
     ) {
       try {
         const uid = await authenticateUser(request);
@@ -903,8 +903,7 @@ export default {
     // ------------------------------------------------------------------------
     if (
       request.method === "POST" &&
-      (url.pathname === "/api/payment/verify" ||
-        url.pathname === "/payment/verify")
+      pathname === "/api/payment/verify"
     ) {
       try {
         // 1. Authenticate Firebase user
@@ -1106,7 +1105,7 @@ export default {
     // ------------------------------------------------------------------------
     // PAYMENT: CANONICAL RAZORPAY WEBHOOK (POST /api/payment/webhook)
     // ------------------------------------------------------------------------
-    if (request.method === "POST" && url.pathname === "/api/payment/webhook") {
+    if (request.method === "POST" && pathname === "/api/payment/webhook") {
       try {
         const webhookSecret =
           env.RAZORPAY_WEBHOOK_SECRET || "dummy_webhook_secret_placeholder";
@@ -1393,7 +1392,7 @@ export default {
     // ------------------------------------------------------------------------
     // STORAGE: UPLOAD 3D FILE / IMAGE (POST /upload)
     // ------------------------------------------------------------------------
-    if (request.method === "POST" && url.pathname === "/upload") {
+    if (request.method === "POST" && pathname === "/upload") {
       try {
         const uid = await authenticateUser(request);
         const fileName = request.headers.get("X-File-Name");
@@ -1478,7 +1477,7 @@ export default {
     // ------------------------------------------------------------------------
     // STORAGE: GET FILE (GET /file)
     // ------------------------------------------------------------------------
-    if (request.method === "GET" && url.pathname === "/file") {
+    if (request.method === "GET" && pathname === "/file") {
       try {
         const key = url.searchParams.get("key");
         if (!key) {
@@ -1525,7 +1524,7 @@ export default {
     // ------------------------------------------------------------------------
     // STORAGE: DELETE FILE (DELETE /file)
     // ------------------------------------------------------------------------
-    if (request.method === "DELETE" && url.pathname === "/file") {
+    if (request.method === "DELETE" && pathname === "/file") {
       try {
         const uid = await authenticateUser(request);
         const key = url.searchParams.get("key");
