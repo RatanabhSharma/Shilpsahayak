@@ -16,6 +16,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { usePincodeLookup } from '../../hooks/usePincodeLookup';
 import { useSettings } from '../../hooks/useSettings';
+import { useNotification } from '../../components/NotificationContext';
 import {
   loadRazorpayScript,
   createPaymentOrder,
@@ -84,6 +85,7 @@ export function Checkout() {
   const navigate = useNavigate();
   const location = useLocation();
   const locationState = location.state as { buyNowItem?: CartItem } | null;
+  const notify = useNotification();
 
   const purchaseMode = useStore((state) => state.purchaseMode);
   const buyNowItem = useStore((state) => state.buyNowItem);
@@ -157,12 +159,30 @@ export function Checkout() {
     try {
       await sendVerificationEmail();
       setEmailVerificationSent(true);
-    } catch {
-      alert('Failed to send verification email. Please try again.');
+    } catch (err: unknown) {
+      // Always log the real Firebase error code for diagnostics
+      const fe = err as { code?: string; message?: string };
+      console.error(
+        '[Email Verification] sendEmailVerification failed in Checkout. code:', fe?.code,
+        'message:', fe?.message
+      );
+      const isRateLimit = fe?.code === 'auth/too-many-requests';
+      const isUnauthorizedDomain = fe?.code === 'auth/unauthorized-domain';
+      notify({
+        type: 'error',
+        title: 'Verification Email Failed',
+        message: isRateLimit
+          ? 'Too many attempts. Please wait a few minutes before trying again.'
+          : isUnauthorizedDomain
+            ? 'This domain is not authorised to send verification emails. Please contact support. (auth/unauthorized-domain)'
+            : `Failed to send verification email. Please try again. (${fe?.code ?? 'unknown'})`,
+        duration: 0,
+      });
     } finally {
       setIsSendingEmailVerification(false);
     }
   };
+
 
   const handleCheckEmailStatus = async () => {
     setIsCheckingEmailStatus(true);

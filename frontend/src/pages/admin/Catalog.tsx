@@ -27,6 +27,7 @@ import {
   useDeleteCategory,
 } from '../../hooks/useCategories';
 import { exportCatalogToCsv } from '../../utils/exportCsv';
+import { useNotification } from '../../components/NotificationContext';
 
 // Phase 2 Shared Admin Components
 import { PageHeader } from '../../components/admin/shared/PageHeader';
@@ -79,6 +80,7 @@ export function Catalog() {
   const addProduct = useAddProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
+  const notify = useNotification();
 
   // Categories Hook
   const { data: categories = [] } = useCategories();
@@ -232,7 +234,7 @@ export function Catalog() {
       });
     } catch (err: any) {
       console.error('Failed to toggle status:', err);
-      alert('Failed to update status.');
+      notify({ type: 'error', title: 'Status Update Failed', message: 'Failed to update product status.' });
     }
   };
 
@@ -252,10 +254,10 @@ export function Catalog() {
       };
       await addProduct.mutateAsync(copyPayload);
       setProductToDuplicate(null);
-      alert(`Product duplicated as "${copyName}" in Draft status.`);
+      notify({ type: 'success', title: 'Product Duplicated', message: `"${copyName}" created in Draft status.` });
     } catch (err: any) {
       console.error('Failed to duplicate product:', err);
-      alert('Failed to duplicate product.');
+      notify({ type: 'error', title: 'Duplication Failed', message: 'Failed to duplicate product.' });
     }
   };
 
@@ -267,7 +269,7 @@ export function Catalog() {
       setProductToDelete(null);
     } catch (err: any) {
       console.error('Failed to delete product:', err);
-      alert(err?.message || 'Failed to delete product');
+      notify({ type: 'error', title: 'Delete Failed', message: err?.message || 'Failed to delete product.' });
     }
   };
 
@@ -295,7 +297,7 @@ export function Catalog() {
       setEditingCatId(null);
       setEditingCatName('');
     } catch (err: any) {
-      alert(err?.message || 'Failed to update category');
+      notify({ type: 'error', title: 'Category Update Failed', message: err?.message || 'Failed to update category.' });
     }
   };
 
@@ -303,9 +305,10 @@ export function Catalog() {
     try {
       await deleteCategory.mutateAsync(id);
     } catch (err: any) {
-      alert(err?.message || 'Failed to delete category');
+      notify({ type: 'error', title: 'Category Delete Failed', message: err?.message || 'Failed to delete category.' });
     }
   };
+
 
   if (isLoading) {
     return <LoadingState message="Loading Shilp Sahayak Product Catalogue..." />;

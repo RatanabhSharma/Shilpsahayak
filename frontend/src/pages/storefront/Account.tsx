@@ -19,6 +19,7 @@ import {
 
 import { useAuth } from '../../hooks/useAuth';
 import { usePincodeLookup } from '../../hooks/usePincodeLookup';
+import { useNotification, useConfirmDialog } from '../../components/NotificationContext';
 
 import {
   emptyAddress,
@@ -108,6 +109,9 @@ export function Account() {
     reloadUser,
   } = useAuth();
 
+  const notify = useNotification();
+  const confirmDialog = useConfirmDialog();
+
   const [isSendingEmailVerification, setIsSendingEmailVerification] = useState(false);
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
   const [isCheckingEmailStatus, setIsCheckingEmailStatus] = useState(false);
@@ -117,12 +121,31 @@ export function Account() {
     try {
       await sendVerificationEmail();
       setEmailVerificationSent(true);
-    } catch {
-      alert('Unable to send verification email. Please try again later.');
+    } catch (err: unknown) {
+      // Always log the real Firebase error code for diagnostics
+      const fe = err as { code?: string; message?: string };
+      console.error(
+        '[Email Verification] sendEmailVerification failed. code:', fe?.code,
+        'message:', fe?.message
+      );
+      // Show a user-friendly message that also surfaces the Firebase code
+      const isRateLimit = fe?.code === 'auth/too-many-requests';
+      const isUnauthorizedDomain = fe?.code === 'auth/unauthorized-domain';
+      notify({
+        type: 'error',
+        title: 'Verification Email Failed',
+        message: isRateLimit
+          ? 'Too many attempts. Please wait a few minutes before trying again.'
+          : isUnauthorizedDomain
+            ? 'This domain is not authorised to send verification emails. Please contact support. (auth/unauthorized-domain)'
+            : `Unable to send verification email. Please try again later. (${fe?.code ?? 'unknown'})`,
+        duration: 0, // Keep error visible until dismissed
+      });
     } finally {
       setIsSendingEmailVerification(false);
     }
   };
+
 
   const handleCheckEmailStatus = async () => {
     setIsCheckingEmailStatus(true);
@@ -376,19 +399,28 @@ export function Account() {
   const handleAcceptQuote = async (quoteId: string) => {
     try {
       await updateQuote.mutateAsync({ id: quoteId, status: 'Accepted' });
+      notify({ type: 'success', title: 'Quote Accepted', message: 'Your quote has been accepted successfully.' });
     } catch (error) {
       console.error('Failed to accept quote:', error);
-      alert('Failed to accept quote. Please try again.');
+      notify({ type: 'error', title: 'Failed to Accept', message: 'Unable to accept quote. Please try again.' });
     }
   };
 
   const handleRejectQuote = async (quoteId: string) => {
-    if (!window.confirm('Are you sure you want to decline this quote?')) return;
+    const confirmed = await confirmDialog({
+      title: 'Decline this quote?',
+      message: 'Are you sure you want to decline this quote? This action cannot be undone.',
+      confirmLabel: 'Decline Quote',
+      cancelLabel: 'Keep Quote',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await updateQuote.mutateAsync({ id: quoteId, status: 'Rejected' });
+      notify({ type: 'info', title: 'Quote Declined', message: 'The quote has been declined.' });
     } catch (error) {
       console.error('Failed to decline quote:', error);
-      alert('Failed to decline quote. Please try again.');
+      notify({ type: 'error', title: 'Failed to Decline', message: 'Unable to decline quote. Please try again.' });
     }
   };
 
@@ -406,7 +438,11 @@ export function Account() {
       navigate('/cart');
     } catch (error) {
       console.error('Failed to reorder:', error);
-      alert(error instanceof Error ? error.message : 'Unable to reorder. Please try again.');
+      notify({
+        type: 'error',
+        title: 'Reorder Failed',
+        message: error instanceof Error ? error.message : 'Unable to reorder. Please try again.',
+      });
     }
   };
 
@@ -455,12 +491,21 @@ export function Account() {
             : null
         );
       }
-      alert('Order cancelled successfully. If payment was made, your 100% refund will be processed within 2–3 business days.');
+      notify({
+        type: 'success',
+        title: 'Order Cancelled',
+        message: 'Your order has been cancelled. If payment was made, your 100% refund will be processed within 2–3 business days.',
+      });
     } catch (error: any) {
       console.error('Cancellation error:', error);
-      alert(error?.message || 'Failed to cancel order. Please contact support.');
+      notify({
+        type: 'error',
+        title: 'Cancellation Failed',
+        message: error?.message || 'Failed to cancel order. Please contact support.',
+      });
     }
   };
+
 
   if (authLoading) {
     return (

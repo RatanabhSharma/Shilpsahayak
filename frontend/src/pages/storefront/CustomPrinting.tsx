@@ -45,6 +45,7 @@ import { upload3DFile } from '../../utils/uploadFile';
 import { useSubmitQuote } from '../../hooks/useQuotes';
 import { SlicingSuccessResult, ColorAnalysis, UniversalModelAnalysis } from '../../services/slicing/slicingClient';
 import { sendManualQuoteReceivedNotification } from '../../services/emailNotifications';
+import { useNotification } from '../../components/NotificationContext';
 
 
 export type StudioTab = 'upload' | 'configure' | 'estimate';
@@ -179,6 +180,7 @@ export function CustomPrinting() {
   const addToCart = useStore((state) => state.addToCart);
   const openCart = useStore((state) => state.openCart);
   const submitQuoteMutation = useSubmitQuote();
+  const notify = useNotification();
 
   // Studio Mode State (3D CAD Model vs Assisted Design)
   const [searchParams, setSearchParams] = useSearchParams();
@@ -236,11 +238,11 @@ export function CustomPrinting() {
     const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.pdf', '.stl', '.obj'];
     const isValid = allowed.some((ext) => selected.name.toLowerCase().endsWith(ext));
     if (!isValid) {
-      alert('Please upload a valid reference image or document (JPG, PNG, WEBP, PDF, STL, OBJ).');
+      notify({ type: 'warning', title: 'Invalid File', message: 'Please upload a valid reference image or document (JPG, PNG, WEBP, PDF, STL, OBJ).' });
       return;
     }
     if (selected.size > 100 * 1024 * 1024) {
-      alert('File size exceeds 100MB limit.');
+      notify({ type: 'warning', title: 'File Too Large', message: 'File size exceeds 100MB limit.' });
       return;
     }
     setAssistedFile(selected);
@@ -250,19 +252,19 @@ export function CustomPrinting() {
     e.preventDefault();
 
     if (assistedSub === 'has-reference' && !assistedFile && !savedAssistedContext?.fileUrl && !assistedDesc.trim()) {
-      alert('Please upload a reference image/file or describe your design brief.');
+      notify({ type: 'warning', title: 'Missing File', message: 'Please upload a reference image/file or describe your design brief.' });
       return;
     }
 
     if (assistedSub === 'idea-only' && !assistedDesc.trim()) {
-      alert('Please describe your idea or project.');
+      notify({ type: 'warning', title: 'Description Required', message: 'Please describe your idea or project.' });
       return;
     }
 
     const customerName = user ? (user.displayName || user.email || 'Customer') : (assistedName.trim() || 'Customer');
     const customerEmail = user ? (user.email || '') : assistedEmail.trim();
     if (!customerEmail) {
-      alert('Please provide your email address.');
+      notify({ type: 'warning', title: 'Email Required', message: 'Please provide your email address.' });
       return;
     }
 
@@ -347,9 +349,10 @@ export function CustomPrinting() {
       console.error('Failed to submit assisted quote:', error);
       setIsSubmittingAssisted(false);
       setAssistedUploadProgress(null);
-      alert(error?.message || 'Failed to submit design request. Please try again.');
+      notify({ type: 'error', title: 'Submission Failed', message: error?.message || 'Failed to submit design request. Please try again.' });
     }
   };
+
 
   // 3-Step Tab Navigation State
   const [activeTab, setActiveTab] = useState<StudioTab>('upload');
@@ -1000,13 +1003,13 @@ export function CustomPrinting() {
     );
 
     if (!hasValid) {
-      alert('Currently STL (.stl), OBJ (.obj, .mtl), 3MF (.3mf), and ZIP archives (.zip) are supported.');
+      notify({ type: 'warning', title: 'Unsupported File', message: 'Currently STL (.stl), OBJ (.obj, .mtl), 3MF (.3mf), and ZIP archives (.zip) are supported.' });
       return;
     }
 
     const totalSize = fileList.reduce((sum, f) => sum + f.size, 0);
     if (totalSize > 100 * 1024 * 1024) {
-      alert('Total file size exceeds the 100 MB limit.');
+      notify({ type: 'warning', title: 'File Too Large', message: 'Total file size exceeds the 100 MB limit.' });
       return;
     }
 

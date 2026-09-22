@@ -43,6 +43,7 @@ import {
   LoadingState,
   ErrorState,
 } from '../../components/admin/shared';
+import { useNotification } from '../../components/NotificationContext';
 
 const ORDER_STATUS_OPTIONS: { value: OrderStatus; label: string }[] = [
   { value: 'Pending', label: 'Pending' },
@@ -138,6 +139,7 @@ export function OrderDetail() {
   const updateReturn = useUpdateReturnRequest();
   const addNote = useAddOrderNote();
   const cancelOrder = useCancelOrder();
+  const notify = useNotification();
 
   // Shipping form state
   const [shippingStatus, setShippingStatus] = useState<ShippingStatus>('Not shipped');
@@ -241,7 +243,7 @@ export function OrderDetail() {
       });
     } catch (error: any) {
       console.error('Failed to update status:', error);
-      alert(error?.message || 'Failed to update order status');
+      notify({ type: 'error', title: 'Status Update Failed', message: error?.message || 'Failed to update order status.' });
     }
   };
 
@@ -259,10 +261,10 @@ export function OrderDetail() {
         syncOrderStatus,
         note: `Shipping updated: ${shippingStatus} via ${courierPartner} (AWB: ${trackingNumber || 'N/A'})`,
       });
-      alert('Fulfillment & shipping details saved successfully!');
+      notify({ type: 'success', title: 'Shipping Saved', message: 'Fulfillment & shipping details saved successfully.' });
     } catch (error: any) {
       console.error('Failed to save shipping:', error);
-      alert(error?.message || 'Failed to save shipping details');
+      notify({ type: 'error', title: 'Shipping Save Failed', message: error?.message || 'Failed to save shipping details.' });
     } finally {
       setIsUpdatingShipping(false);
     }
@@ -281,10 +283,10 @@ export function OrderDetail() {
         note: `Payment status manually updated to "${selectedPaymentStatus}" (${paymentMethod})`,
       });
       setPaymentModalOpen(false);
-      alert('Payment details updated successfully!');
+      notify({ type: 'success', title: 'Payment Updated', message: 'Payment details updated successfully.' });
     } catch (error: any) {
       console.error('Failed to update payment:', error);
-      alert(error?.message || 'Failed to update payment status');
+      notify({ type: 'error', title: 'Payment Update Failed', message: error?.message || 'Failed to update payment status.' });
     } finally {
       setIsUpdatingPayment(false);
     }
@@ -302,10 +304,10 @@ export function OrderDetail() {
         refundStatus,
       });
       setReturnModalOpen(false);
-      alert('Return & refund record updated successfully!');
+      notify({ type: 'success', title: 'Return & Refund Updated', message: 'Return & refund record updated successfully.' });
     } catch (error: any) {
       console.error('Failed to update return/refund:', error);
-      alert(error?.message || 'Failed to update return/refund record');
+      notify({ type: 'error', title: 'Return Update Failed', message: error?.message || 'Failed to update return/refund record.' });
     } finally {
       setIsUpdatingReturn(false);
     }
@@ -325,7 +327,7 @@ export function OrderDetail() {
       setNewNoteText('');
     } catch (error: any) {
       console.error('Failed to add note:', error);
-      alert('Failed to add internal note.');
+      notify({ type: 'error', title: 'Note Failed', message: 'Failed to add internal note.' });
     } finally {
       setIsAddingNote(false);
     }
@@ -338,12 +340,13 @@ export function OrderDetail() {
         reason: cancelReason,
       });
       setCancelModalOpen(false);
-      alert('Order cancelled and inventory restored successfully!');
+      notify({ type: 'success', title: 'Order Cancelled', message: 'Order cancelled and inventory restored successfully.' });
     } catch (error: any) {
       console.error('Failed to cancel order:', error);
-      alert(error?.message || 'Failed to cancel order');
+      notify({ type: 'error', title: 'Cancellation Failed', message: error?.message || 'Failed to cancel order.' });
     }
   };
+
 
   const handlePrintInvoice = () => {
     window.print();

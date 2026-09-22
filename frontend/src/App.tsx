@@ -6,6 +6,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { CustomerRoute } from './components/CustomerRoute';
 import { GlobalLoadingBar } from './components/loading/GlobalLoadingBar';
 import { ScrollToTop } from './components/ScrollToTop';
+import { NotificationProvider } from './components/NotificationContext';
 
 // Storefront
 import { Home } from './pages/storefront/Home';
@@ -41,10 +42,11 @@ import { Reviews } from './pages/admin/Reviews';
 
 export function App() {
   return (
-    <BrowserRouter>
-      <ScrollToTop />
-      <GlobalLoadingBar />
-      <Routes>
+    <NotificationProvider>
+      <BrowserRouter>
+        <ScrollToTop />
+        <GlobalLoadingBar />
+        <Routes>
         <Route path="/" element={<StorefrontLayout />}>
           <Route index element={<Home />} />
           <Route path="shop" element={<Catalog />} />
@@ -132,7 +134,8 @@ export function App() {
           }
         />
       </Routes>
-    </BrowserRouter>
+      </BrowserRouter>
+    </NotificationProvider>
   );
 }
 

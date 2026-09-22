@@ -37,6 +37,7 @@ import { useStore } from '../../store';
 import { useSettings } from '../../hooks/useSettings';
 import { usePincodeLookup } from '../../hooks/usePincodeLookup';
 import { useAuth } from '../../hooks/useAuth';
+import { useNotification } from '../../components/NotificationContext';
 import {
   uploadProductCustomFile,
   validateProductCustomFile,
@@ -65,6 +66,7 @@ export function ProductDetail() {
   const { data: settings } = useSettings();
   const whatsappNumber = settings?.whatsappNumber || '';
   const navigate = useNavigate();
+  const notify = useNotification();
 
   const addToCart = useStore((state) => state.addToCart);
   const openCart = useStore((state) => state.openCart);
@@ -72,6 +74,10 @@ export function ProductDetail() {
   const setBuyNowItem = useStore((state) => state.setBuyNowItem);
 
   const product = products.find((item) => item.id === id);
+  const reviewData = product as (typeof product) & {
+    averageRating?: number;
+    reviewCount?: number;
+  };
 
   const hasVariants = Boolean(
     !product?.isCustomizable &&
@@ -220,7 +226,11 @@ export function ProductDetail() {
 
     if (product.isCustomizable && customFile) {
       if (!user) {
-        alert('Please sign in to upload reference files and purchase customizable products.');
+        notify({
+          type: 'warning',
+          title: 'Sign In Required',
+          message: 'Please sign in to upload reference files and purchase customisable products.',
+        });
         navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
         return;
       }
@@ -238,7 +248,11 @@ export function ProductDetail() {
         };
       } catch (error: any) {
         console.error('File upload failed:', error);
-        alert(error?.message || 'Failed to upload custom file. Please try again.');
+        notify({
+          type: 'error',
+          title: 'Upload Failed',
+          message: error?.message || 'Failed to upload custom file. Please try again.',
+        });
         setUploading(false);
         setUploadProgress(null);
         return;
@@ -284,7 +298,11 @@ export function ProductDetail() {
 
     if (product.isCustomizable && customFile) {
       if (!user) {
-        alert('Please sign in to upload reference files and purchase customizable products.');
+        notify({
+          type: 'warning',
+          title: 'Sign In Required',
+          message: 'Please sign in to upload reference files and purchase customisable products.',
+        });
         navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
         return;
       }
@@ -302,7 +320,11 @@ export function ProductDetail() {
         };
       } catch (error: any) {
         console.error('File upload failed:', error);
-        alert(error?.message || 'Failed to upload custom file. Please try again.');
+        notify({
+          type: 'error',
+          title: 'Upload Failed',
+          message: error?.message || 'Failed to upload custom file. Please try again.',
+        });
         setUploading(false);
         setUploadProgress(null);
         return;
@@ -558,7 +580,9 @@ export function ProductDetail() {
                     <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
                   </div>
                   <span className="font-mono text-sm font-bold text-ink">
-                    {product.reviewCount ? `${(product.averageRating || 0).toFixed(1)} (${product.reviewCount} reviews)` : 'No reviews yet'}
+                    {reviewData.reviewCount
+                      ? `${(reviewData.averageRating || 0).toFixed(1)} (${reviewData.reviewCount} reviews)`
+                      : 'No reviews yet'}
                   </span>
                 </div>
 
@@ -1049,8 +1073,8 @@ export function ProductDetail() {
       {/* Customer Reviews Section */}
       <ProductReviewsSection 
         productId={product.id} 
-        averageRating={product.averageRating} 
-        reviewCount={product.reviewCount} 
+        averageRating={reviewData.averageRating} 
+        reviewCount={reviewData.reviewCount} 
       />
 
       {/* Related Products Section */}

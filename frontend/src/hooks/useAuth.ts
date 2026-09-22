@@ -20,9 +20,23 @@ import {
   signOut,
   updateEmail,
   updateProfile,
+  type ActionCodeSettings,
   type User,
   type UserCredential,
 } from 'firebase/auth';
+
+/**
+ * ActionCodeSettings for sendEmailVerification.
+ * continueUrl returns the user to /account after clicking the verification link.
+ *
+ * IMPORTANT: shilpsahayak.vercel.app MUST be listed in:
+ *   Firebase Console → Authentication → Settings → Authorized Domains
+ * Without that, sendEmailVerification() will throw auth/unauthorized-domain.
+ */
+const EMAIL_VERIFICATION_ACTION_CODE_SETTINGS: ActionCodeSettings = {
+  url: 'https://shilpsahayak.vercel.app/account',
+  handleCodeInApp: false,
+};
 
 import {
   doc,
@@ -139,9 +153,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         // Automatically dispatch Official Firebase Email Verification link
         try {
-          await sendEmailVerification(result.user);
-        } catch {
-          // If sending email link fails, do not block registration
+          await sendEmailVerification(result.user, EMAIL_VERIFICATION_ACTION_CODE_SETTINGS);
+        } catch (verifyErr: unknown) {
+          // Do not block registration if verification email fails, but always log the real error.
+          // This surfaces auth/unauthorized-domain and similar Firebase errors in console/logs.
+          const fe = verifyErr as { code?: string; message?: string };
+          console.error(
+            '[Email Verification] Failed to send during registration. code:', fe?.code,
+            'message:', fe?.message
+          );
         }
 
         // Create user document in Firestore with customer profile info
@@ -245,7 +265,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (!currentUser) {
           throw new Error('You must be signed in to send a verification email.');
         }
-        await sendEmailVerification(currentUser);
+        // Errors (e.g. auth/unauthorized-domain, auth/too-many-requests) propagate to callers.
+        // Callers are responsible for logging error.code and showing user-friendly UI.
+        await sendEmailVerification(currentUser, EMAIL_VERIFICATION_ACTION_CODE_SETTINGS);
       },
 
       // --------------------------------------------------

@@ -23,6 +23,7 @@ import {
 import { useCreateOrder } from '../../hooks/useOrders';
 import { exportQuotesToCsv } from '../../utils/exportCsv';
 import { sendQuoteReadyNotification } from '../../services/emailNotifications';
+import { useNotification } from '../../components/NotificationContext';
 
 // Shared Admin Components from Phase 2
 import { PageHeader } from '../../components/admin/shared/PageHeader';
@@ -88,6 +89,7 @@ export function Quotes() {
   const updateQuote = useUpdateQuote();
   const deleteQuote = useDeleteQuote();
   const createOrder = useCreateOrder();
+  const notify = useNotification();
 
   // Search & Filter state
   const [search, setSearch] = useState('');
@@ -226,7 +228,7 @@ export function Quotes() {
       }
     } catch (err: any) {
       console.error('Failed to update quote status:', err);
-      alert('Failed to update quote status.');
+      notify({ type: 'error', title: 'Status Update Failed', message: 'Failed to update quote status.' });
     }
   };
 
@@ -275,14 +277,14 @@ export function Quotes() {
         );
       }
 
-      alert(
-        `Quotation of ₹${price.toLocaleString('en-IN')} sent to ${
-          targetQuote?.customerEmail || 'customer'
-        }!`
-      );
+      notify({
+        type: 'success',
+        title: 'Quote Sent',
+        message: `Quotation of ₹${price.toLocaleString('en-IN')} sent to ${targetQuote?.customerEmail || 'customer'}!`,
+      });
     } catch (err: any) {
       console.error('Failed to send quote:', err);
-      alert('Failed to update quote and send notification.');
+      notify({ type: 'error', title: 'Quote Send Failed', message: 'Failed to update quote and send notification.' });
       throw err;
     }
   };
@@ -351,11 +353,11 @@ export function Quotes() {
       }
 
       setQuoteToConvert(null);
-      alert(`Quote converted to Order #${created.id}!`);
+      notify({ type: 'success', title: 'Order Created', message: `Quote converted to Order #${created.id}!` });
       navigate(`/admin/orders/${created.id}`);
     } catch (err: any) {
       console.error('Failed to convert quote to order:', err);
-      alert(err?.message || 'Failed to convert quote to order.');
+      notify({ type: 'error', title: 'Conversion Failed', message: err?.message || 'Failed to convert quote to order.' });
     } finally {
       setIsConverting(false);
     }
@@ -375,9 +377,10 @@ export function Quotes() {
       }
     } catch (err: any) {
       console.error('Failed to delete quote:', err);
-      alert('Failed to delete quote.');
+      notify({ type: 'error', title: 'Delete Failed', message: 'Failed to delete quote.' });
     }
   };
+
 
   if (isLoading) {
     return <LoadingState message="Loading Custom 3D CAD Quotes..." />;

@@ -31,6 +31,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useUserRole } from '../../hooks/useUserRole';
 import { PricingSettingsTab } from '../../components/admin/PricingSettingsTab';
 import { PrinterProfilesTab } from '../../components/admin/PrinterProfilesTab';
+import { useNotification } from '../../components/NotificationContext';
 
 type SettingsTab =
   | 'business'
@@ -46,6 +47,7 @@ export function Settings() {
   const localSettings = useStore((state) => state.settings);
   const { user } = useAuth();
   const { role } = useUserRole();
+  const notify = useNotification();
 
   const {
     data: firestoreSettings,
@@ -157,9 +159,10 @@ export function Settings() {
       }, 3000);
     } catch (error) {
       console.error('Failed to save settings:', error);
-      alert('Failed to save settings. Please try again.');
+      notify({ type: 'error', title: 'Save Failed', message: 'Failed to save settings. Please try again.' });
     }
   };
+
 
   if (isLoading) {
     return (

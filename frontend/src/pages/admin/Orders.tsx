@@ -27,6 +27,7 @@ import {
   ErrorState,
 } from '../../components/admin/shared';
 import { exportOrdersToCsv } from '../../utils/exportCsv';
+import { useNotification } from '../../components/NotificationContext';
 
 const ORDER_STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: 'All', label: 'All Order Statuses' },
@@ -81,6 +82,7 @@ const PAGE_SIZE = 10;
 export function Orders() {
   const { data: orders = [], isLoading, isError, refetch } = useOrders();
   const updateStatus = useUpdateOrderStatus();
+  const notify = useNotification();
 
   // Filters & State
   const [search, setSearch] = useState('');
@@ -104,11 +106,12 @@ export function Orders() {
       });
     } catch (error) {
       console.error('Failed to update order status:', error);
-      alert('Failed to update order status. Please try again.');
+      notify({ type: 'error', title: 'Status Update Failed', message: 'Failed to update order status. Please try again.' });
     } finally {
       setUpdatingOrderId(null);
     }
   };
+
 
   const handleResetFilters = () => {
     setSearch('');
