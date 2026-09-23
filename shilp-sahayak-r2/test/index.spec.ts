@@ -191,20 +191,23 @@ describe("Privileged Firestore authorization", () => {
       )
     );
 
-    await expect(
-      patchFirestoreDoc(
-        "shilp-sahayak",
-        "orders",
-        "ORD_FAILED",
-        { paymentStatus: "Paid" },
-        ["paymentStatus"],
-        undefined,
-        "service-account-access-token"
-      )
-    ).rejects.toMatchObject<FirestoreRequestError>({
+    // Store the promise so it can be awaited twice without re-executing the call.
+    // toMatchObject does not accept a generic type parameter in Vitest —
+    // verify the error shape and class in separate assertions.
+    const rejection = patchFirestoreDoc(
+      "shilp-sahayak",
+      "orders",
+      "ORD_FAILED",
+      { paymentStatus: "Paid" },
+      ["paymentStatus"],
+      undefined,
+      "service-account-access-token"
+    );
+    await expect(rejection).rejects.toMatchObject({
       operation: "Firestore patch",
       status: 403,
     });
+    await expect(rejection).rejects.toBeInstanceOf(FirestoreRequestError);
     vi.unstubAllGlobals();
   });
 
