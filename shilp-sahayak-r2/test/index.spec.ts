@@ -4,10 +4,13 @@ import {
   waitOnExecutionContext,
   SELF,
 } from "cloudflare:test";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import worker, {
   computeHmacSha256,
   verifyHmacSha256,
+  getPrivilegedFirestoreAccessToken,
+  patchFirestoreDoc,
+  FirestoreRequestError,
   toFirestoreFields,
   fromFirestoreFields,
 } from "../src/index";
@@ -89,6 +92,133 @@ describe("Firestore Serialization Helpers", () => {
     expect(parsedBack.total).toBe(649);
     expect(parsedBack.active).toBe(true);
     expect(parsedBack.items[0].productId).toBe("prod_1");
+  });
+});
+
+describe("Privileged Firestore authorization", () => {
+  it("does not allow a missing service-account configuration to fall back to a customer token", async () => {
+    await expect(
+      getPrivilegedFirestoreAccessToken({})
+    ).rejects.toThrow("FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY");
+  });
+
+  it("uses the service-account OAuth bearer on the payment PATCH path", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ name: "orders/ORD_123" }), { status: 200 })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await patchFirestoreDoc(
+      "shilp-sahayak",
+      "orders",
+      "ORD_123",
+      {
+        paymentStatus: "Paid",
+        status: "Confirmed",
+        paymentId: "pay_123",
+        paidAt: "2026-09-22T00:00:00.000Z",
+        timeline: [{ status: "Confirmed" }],
+      },
+      ["paymentStatus", "status", "paymentId", "paidAt", "timeline"],
+      "public-api-key-must-not-authorize-this-write",
+      "service-account-access-token"
+    );
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(init.method).toBe("PATCH");
+    expect(new Headers(init.headers).get("Authorization")).toBe(
+      "Bearer service-account-access-token"
+    );
+    expect(url).toContain(
+      "/v1/projects/shilp-sahayak/databases/(default)/documents/orders/ORD_123"
+    );
+    expect(url).toContain("updateMask.fieldPaths=paymentStatus");
+    expect(url).toContain("updateMask.fieldPaths=timeline");
+
+    const body = JSON.parse(init.body);
+    expect(body.fields.paymentStatus.stringValue).toBe("Paid");
+    expect(body.fields.status.stringValue).toBe("Confirmed");
+    expect(body.fields.paymentId.stringValue).toBe("pay_123");
+    expect(body.fields.paidAt.stringValue).toBe("2026-09-22T00:00:00.000Z");
+    vi.unstubAllGlobals();
+  });
+
+  it("persists the complete payment.captured state through the same privileged PATCH", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await patchFirestoreDoc(
+      "shilp-sahayak",
+      "orders",
+      "ORD_WEBHOOK",
+      {
+        paymentStatus: "Paid",
+        status: "Confirmed",
+        paymentId: "pay_webhook",
+        razorpayOrderId: "order_webhook",
+        paidAt: "2026-09-22T00:00:00.000Z",
+        timeline: [{ status: "Confirmed", updatedBy: "Razorpay Webhook" }],
+      },
+      [
+        "paymentStatus",
+        "status",
+        "paymentId",
+        "razorpayOrderId",
+        "paidAt",
+        "timeline",
+      ],
+      undefined,
+      "service-account-access-token"
+    );
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.fields.paymentStatus.stringValue).toBe("Paid");
+    expect(body.fields.status.stringValue).toBe("Confirmed");
+    expect(body.fields.paymentId.stringValue).toBe("pay_webhook");
+    // timeline is an array, so toFirestoreValue produces arrayValue, not mapValue.
+    expect(body.fields.timeline.arrayValue.values).toBeDefined();
+    vi.unstubAllGlobals();
+  });
+
+  it("surfaces Firestore write failures instead of reporting success", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({ error: { status: "PERMISSION_DENIED" } }),
+          { status: 403 }
+        )
+      )
+    );
+
+    await expect(
+      patchFirestoreDoc(
+        "shilp-sahayak",
+        "orders",
+        "ORD_FAILED",
+        { paymentStatus: "Paid" },
+        ["paymentStatus"],
+        undefined,
+        "service-account-access-token"
+      )
+    ).rejects.toMatchObject<FirestoreRequestError>({
+      operation: "Firestore patch",
+      status: 403,
+    });
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects every Firestore write without a privileged bearer token", async () => {
+    await expect(
+      patchFirestoreDoc(
+        "shilp-sahayak",
+        "orders",
+        "ORD_NO_CUSTOMER_ESCALATION",
+        { paymentStatus: "Paid" },
+        ["paymentStatus"],
+        "firebase-client-api-key"
+      )
+    ).rejects.toThrow("privileged Firestore access token");
   });
 });
 

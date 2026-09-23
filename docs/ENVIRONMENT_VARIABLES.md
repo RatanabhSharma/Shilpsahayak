@@ -15,6 +15,13 @@ The frontend uses Vite, so environment variables must be prefixed with `VITE_`.
 - `ALLOWED_ORIGINS`: Comma-separated list of allowed origins for CORS. Default is `*`.
 - `VITE_CLOUDFLARE_WORKER_URL`: The URL of the R2 worker to construct download/upload links if needed. Defaults to `http://127.0.0.1:8787`.
 
-## R2 Worker (`shilp-sahayak-r2/wrangler.toml` & Secrets)
-Configuration is managed via `wrangler.toml`.
-- Secrets needed: Firebase Service Account details (if validating tokens strictly on the edge, though often handled via standard JWT verification using `jose`).
+## R2 Worker (`shilp-sahayak-r2/wrangler.jsonc` & Secrets)
+The Worker uses a Google service-account OAuth access token for every Firestore REST read and write. The Firebase client ID token is used only to authenticate the customer request and is never used as Firestore write authorization.
+
+Set these as Wrangler secrets, not `vars`:
+- `FIREBASE_CLIENT_EMAIL`
+- `FIREBASE_PRIVATE_KEY` (the PEM key; escaped `\\n` is accepted)
+- `RAZORPAY_KEY_SECRET`
+- `RAZORPAY_WEBHOOK_SECRET`
+
+The service account must belong to the `FIREBASE_PROJECT_ID` project and have an IAM role that permits Firestore document reads and writes, such as `Cloud Datastore User` (`roles/datastore.user`). The Firestore API must be enabled. The Worker requests the OAuth `https://www.googleapis.com/auth/datastore` scope and calls `firestore.googleapis.com/v1/projects/{project}/databases/(default)/documents/...` with `Authorization: Bearer <access token>`.

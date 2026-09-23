@@ -245,7 +245,7 @@ export function fromFirestoreFields(fields: Record<string, any>): Record<string,
 /**
  * Mint a Google OAuth2 Service Account access token for privileged Firestore access.
  */
-async function getServiceAccountAccessToken(
+export async function getServiceAccountAccessToken(
   clientEmail: string,
   privateKeyPem: string
 ): Promise<string | null> {
@@ -273,15 +273,50 @@ async function getServiceAccountAccessToken(
     });
 
     if (!tokenRes.ok) {
-      console.error("Failed to exchange service account JWT for access token:", await tokenRes.text());
+      const errBody = await tokenRes.text();
+      // Log status + body; never log the JWT assertion or access tokens.
+      console.error(
+        `[payment] getServiceAccountAccessToken: Google token exchange failed (HTTP ${tokenRes.status}):`,
+        errBody
+      );
       return null;
     }
 
     const data: any = await tokenRes.json();
     return data.access_token || null;
   } catch (err) {
-    console.error("Error generating service account access token:", err);
+    console.error("[payment] getServiceAccountAccessToken: unexpected error:", err);
     return null;
+  }
+}
+
+export async function getPrivilegedFirestoreAccessToken(
+  env: Pick<Env, "FIREBASE_CLIENT_EMAIL" | "FIREBASE_PRIVATE_KEY">
+): Promise<string> {
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    throw new Error(
+      "Firestore service-account credentials are not configured. Set FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY."
+    );
+  }
+
+  const accessToken = await getServiceAccountAccessToken(
+    env.FIREBASE_CLIENT_EMAIL,
+    env.FIREBASE_PRIVATE_KEY
+  );
+  if (!accessToken) {
+    throw new Error("Could not obtain a Firestore service-account access token.");
+  }
+  return accessToken;
+}
+
+export class FirestoreRequestError extends Error {
+  constructor(
+    public readonly operation: string,
+    public readonly status: number,
+    message: string
+  ) {
+    super(`${operation} failed with HTTP ${status}: ${message}`);
+    this.name = "FirestoreRequestError";
   }
 }
 
@@ -295,7 +330,10 @@ export async function getFirestoreDoc(
   apiKey?: string,
   authToken?: string
 ): Promise<any | null> {
-  const baseUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collectionName}/${docId}`;
+  if (!authToken) {
+    throw new Error("A privileged Firestore access token is required.");
+  }
+  const baseUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collectionName}/${encodeURIComponent(docId)}`;
   const url = apiKey ? `${baseUrl}?key=${apiKey}` : baseUrl;
 
   const headers: Record<string, string> = {};
@@ -306,8 +344,7 @@ export async function getFirestoreDoc(
   const res = await fetch(url, { headers });
   if (res.status === 404) return null;
   if (!res.ok) {
-    console.warn(`Firestore read failed (${res.status}):`, await res.text());
-    return null;
+    throw new FirestoreRequestError("Firestore read", res.status, await res.text());
   }
 
   const json: any = await res.json();
@@ -328,6 +365,9 @@ export async function setFirestoreDoc(
   apiKey?: string,
   authToken?: string
 ): Promise<boolean> {
+  if (!authToken) {
+    throw new Error("A privileged Firestore access token is required.");
+  }
   const baseUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collectionName}?documentId=${encodeURIComponent(
     docId
   )}`;
@@ -349,8 +389,7 @@ export async function setFirestoreDoc(
   });
 
   if (!res.ok) {
-    console.error(`Firestore write failed (${res.status}):`, await res.text());
-    return false;
+    throw new FirestoreRequestError("Firestore write", res.status, await res.text());
   }
   return true;
 }
@@ -367,10 +406,13 @@ export async function patchFirestoreDoc(
   apiKey?: string,
   authToken?: string
 ): Promise<boolean> {
+  if (!authToken) {
+    throw new Error("A privileged Firestore access token is required.");
+  }
   const queryParams = fieldPaths
     .map((fp) => `updateMask.fieldPaths=${encodeURIComponent(fp)}`)
     .join("&");
-  const baseUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collectionName}/${docId}?${queryParams}`;
+  const baseUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collectionName}/${encodeURIComponent(docId)}?${queryParams}`;
   const url = apiKey ? `${baseUrl}&key=${apiKey}` : baseUrl;
 
   const headers: Record<string, string> = {
@@ -389,8 +431,7 @@ export async function patchFirestoreDoc(
   });
 
   if (!res.ok) {
-    console.error(`Firestore patch failed (${res.status}):`, await res.text());
-    return false;
+    throw new FirestoreRequestError("Firestore patch", res.status, await res.text());
   }
   return true;
 }
@@ -708,11 +749,15 @@ export default {
       pathname === "/api/payment/create-order"
     ) {
       let uid: string;
-      let userToken: string;
+      let firestoreToken: string;
       try {
         uid = await authenticateUser(request);
-        const authHeader = request.headers.get("Authorization") || "";
-        userToken = authHeader.substring(7).trim();
+        firestoreToken = await getPrivilegedFirestoreAccessToken(env);
+        // TASK 2-B/C diagnostics: log token source and project ID.
+        // getPrivilegedFirestoreAccessToken throws if credentials are missing or token acquisition fails,
+        // so reaching this line confirms a service-account token was obtained.
+        console.log("[payment] Firestore write token source: service-account");
+        console.log(`[payment] Firestore project: ${env.FIREBASE_PROJECT_ID || DEFAULT_FIREBASE_PROJECT_ID}`);
       } catch (authErr: any) {
         return jsonResponse(
           request,
@@ -765,7 +810,7 @@ export default {
           items,
           projectId,
           apiKey,
-          userToken
+          firestoreToken
         );
 
         // Reject client price manipulation attempts
@@ -826,6 +871,12 @@ export default {
               amount: amountInPaise,
               currency: "INR",
               receipt: orderId,
+              // payment_capture: 1 ensures Razorpay auto-captures on payment completion.
+              // Without this, some Razorpay account configurations default to manual capture,
+              // leaving the payment in "authorized" state instead of "captured".
+              // verifyRazorpayPaymentCapture() explicitly requires status === "captured",
+              // so this aligns upstream order creation with the downstream verification contract.
+              payment_capture: 1,
               notes: {
                 internalOrderId: orderId,
                 customerId: uid,
@@ -888,23 +939,13 @@ export default {
           internalNotes: [],
         };
 
-        // Determine write token (prefer service account if configured, fallback to user token)
-        let writeToken = userToken;
-        if (env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY) {
-          const adminToken = await getServiceAccountAccessToken(
-            env.FIREBASE_CLIENT_EMAIL,
-            env.FIREBASE_PRIVATE_KEY
-          );
-          if (adminToken) writeToken = adminToken;
-        }
-
         await setFirestoreDoc(
           projectId,
           "orders",
           orderId,
           internalOrderData,
           apiKey,
-          writeToken
+          firestoreToken
         );
 
         return jsonResponse(request, {
@@ -941,11 +982,8 @@ export default {
       pathname === "/api/payment/verify"
     ) {
       let uid: string;
-      let userToken: string;
       try {
         uid = await authenticateUser(request);
-        const authHeader = request.headers.get("Authorization") || "";
-        userToken = authHeader.substring(7).trim();
       } catch (authErr: any) {
         return jsonResponse(
           request,
@@ -958,6 +996,12 @@ export default {
       }
 
       try {
+        const firestoreToken = await getPrivilegedFirestoreAccessToken(env);
+        // TASK 2-B/C diagnostics: log token source and project ID.
+        // getPrivilegedFirestoreAccessToken throws if credentials are missing or token acquisition fails,
+        // so reaching this line confirms a service-account token was obtained.
+        console.log("[payment] Firestore write token source: service-account");
+        console.log(`[payment] Firestore project: ${env.FIREBASE_PROJECT_ID || DEFAULT_FIREBASE_PROJECT_ID}`);
         const body: any = await request.json();
         const {
           orderId,
@@ -974,23 +1018,13 @@ export default {
           );
         }
 
-        // Determine token for Firestore operations (Service Account for privileged admin write or userToken)
-        let writeToken = userToken;
-        if (env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY) {
-          const adminToken = await getServiceAccountAccessToken(
-            env.FIREBASE_CLIENT_EMAIL,
-            env.FIREBASE_PRIVATE_KEY
-          );
-          if (adminToken) writeToken = adminToken;
-        }
-
         // 2. Retrieve internal order from trusted server-side data
         const existingOrder = await getFirestoreDoc(
           projectId,
           "orders",
           orderId,
           apiKey,
-          writeToken
+          firestoreToken
         );
 
         if (!existingOrder) {
@@ -1098,31 +1132,40 @@ export default {
           ],
         };
 
-        await patchFirestoreDoc(
-          projectId,
-          "orders",
-          orderId,
-          updateData,
-          [
-            "paymentStatus",
-            "status",
-            "paymentId",
-            "razorpayPaymentId",
-            "razorpayOrderId",
-            "paidAt",
-            "confirmationEmailSent",
-            "timeline",
-          ],
-          apiKey,
-          writeToken
-        );
+        // TASK 2.5: capture and log patchFirestoreDoc result.
+        // patchFirestoreDoc throws a FirestoreRequestError on failure (it never silently returns false),
+        // so patchOk will be true when execution reaches this line; the throw propagates to the outer catch.
+        // This log makes the success/failure observable in Worker tail logs.
+        let patchOk = false;
+        try {
+          patchOk = await patchFirestoreDoc(
+            projectId,
+            "orders",
+            orderId,
+            updateData,
+            [
+              "paymentStatus",
+              "status",
+              "paymentId",
+              "razorpayPaymentId",
+              "razorpayOrderId",
+              "paidAt",
+              "confirmationEmailSent",
+              "timeline",
+            ],
+            apiKey,
+            firestoreToken
+          );
+        } finally {
+          console.log(`[payment] Firestore patch result: ${patchOk ? "OK" : "FAILED"} (order ${orderId})`);
+        }
 
         // Queue order confirmation email if not already sent
         if (shouldSendEmail) {
           await queueConfirmationEmail(
             projectId,
             { ...existingOrder, ...updateData },
-            writeToken,
+            firestoreToken,
             apiKey
           );
         }
@@ -1142,7 +1185,7 @@ export default {
             success: false,
             error: error?.message || "Payment verification failed.",
           },
-          400
+          error instanceof FirestoreRequestError ? 500 : 400
         );
       }
     }
@@ -1185,15 +1228,8 @@ export default {
           );
         }
 
-        // Privileged token for webhook background operations
-        let adminToken: string | undefined;
-        if (env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY) {
-          const token = await getServiceAccountAccessToken(
-            env.FIREBASE_CLIENT_EMAIL,
-            env.FIREBASE_PRIVATE_KEY
-          );
-          if (token) adminToken = token;
-        }
+        // Webhooks have no browser token; use only the service-account credential.
+        const adminToken = await getPrivilegedFirestoreAccessToken(env);
 
         // Webhook Idempotency Check
         const existingEvent = await getFirestoreDoc(
@@ -1231,19 +1267,32 @@ export default {
         }
 
         // Mark event state as 'processing'
-        await setFirestoreDoc(
-          projectId,
-          "webhook_events",
+        const processingData = {
           eventId,
-          {
+          event: event.event,
+          status: "processing",
+          startedAt: new Date().toISOString(),
+        };
+        if (existingEvent) {
+          await patchFirestoreDoc(
+            projectId,
+            "webhook_events",
             eventId,
-            event: event.event,
-            status: "processing",
-            startedAt: new Date().toISOString(),
-          },
-          apiKey,
-          adminToken
-        );
+            processingData,
+            ["eventId", "event", "status", "startedAt"],
+            apiKey,
+            adminToken
+          );
+        } else {
+          await setFirestoreDoc(
+            projectId,
+            "webhook_events",
+            eventId,
+            processingData,
+            apiKey,
+            adminToken
+          );
+        }
 
         let affectedOrderId: string | null = null;
 
@@ -1272,7 +1321,6 @@ export default {
 
               if (orderDoc) {
                 // Out-of-order check: do not double-process if already Paid
-                if (orderDoc.paymentStatus === "Paid") {
                   console.log(`Order ${internalOrderId} is already marked Paid.`);
                 } else {
                   const paidAt = new Date().toISOString();
@@ -1299,23 +1347,29 @@ export default {
                     ],
                   };
 
-                  await patchFirestoreDoc(
-                    projectId,
-                    "orders",
-                    internalOrderId,
-                    updateData,
-                    [
-                      "paymentStatus",
-                      "status",
-                      "paymentId",
-                      "razorpayOrderId",
-                      "paidAt",
-                      "confirmationEmailSent",
-                      "timeline",
-                    ],
-                    apiKey,
-                    adminToken
-                  );
+                  // TASK 2.5: capture and log patchFirestoreDoc result for webhook path.
+                  let webhookPatchOk = false;
+                  try {
+                    webhookPatchOk = await patchFirestoreDoc(
+                      projectId,
+                      "orders",
+                      internalOrderId,
+                      updateData,
+                      [
+                        "paymentStatus",
+                        "status",
+                        "paymentId",
+                        "razorpayOrderId",
+                        "paidAt",
+                        "confirmationEmailSent",
+                        "timeline",
+                      ],
+                      apiKey,
+                      adminToken
+                    );
+                  } finally {
+                    console.log(`[payment] Firestore patch result: ${webhookPatchOk ? "OK" : "FAILED"} (order ${internalOrderId}) [webhook]`);
+                  }
 
                   // Dispatch deduplicated confirmation email
                   if (shouldSendEmail) {
@@ -1328,7 +1382,6 @@ export default {
                   }
                 }
               }
-            }
           } else if (event.event === "payment.failed") {
             const paymentEntity = event.payload?.payment?.entity;
             const internalOrderId = paymentEntity?.notes?.internalOrderId;

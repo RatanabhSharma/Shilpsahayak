@@ -39,6 +39,7 @@
 	 * Note: Never commit secrets. Run:
 	 *   npx wrangler secret put RAZORPAY_KEY_SECRET
 	 *   npx wrangler secret put RAZORPAY_WEBHOOK_SECRET
+	 *   npx wrangler secret put FIREBASE_CLIENT_EMAIL
 	 *   npx wrangler secret put FIREBASE_PRIVATE_KEY
 	 */
 	"vars": {
