@@ -36,28 +36,36 @@ const ALLOWED_EXTENSIONS = [
   ".webp",
 ];
 
-const ALLOWED_ORIGINS = [
+const STRICT_ALLOWED_ORIGINS = new Set([
   "http://localhost:5173",
   "http://localhost:5174",
   "http://127.0.0.1:5173",
   "http://127.0.0.1:5174",
-];
+  "https://shilpsahayak.com",
+  "https://www.shilpsahayak.com",
+  "https://shilpsahayak.in",
+  "https://www.shilpsahayak.in",
+  "https://shilpsahayak.vercel.app",
+  "https://shilp-sahayak.web.app",
+  "https://shilp-sahayak.firebaseapp.com",
+]);
+
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return true;
+  if (
+    origin.startsWith("http://localhost:") ||
+    origin.startsWith("http://127.0.0.1:")
+  ) {
+    return true;
+  }
+  return STRICT_ALLOWED_ORIGINS.has(origin);
+}
 
 function getCorsHeaders(request: Request): Headers {
   const origin = request.headers.get("Origin");
 
-  const isAllowed =
-    !origin ||
-    origin.startsWith("http://localhost:") ||
-    origin.startsWith("http://127.0.0.1:") ||
-    origin.endsWith(".web.app") ||
-    origin.endsWith(".firebaseapp.com") ||
-    origin.endsWith(".vercel.app") ||
-    origin.endsWith(".shilpsahayak.com") ||
-    origin === "https://shilpsahayak.com" ||
-    origin === "https://shilpsahayak.vercel.app";
-
-  const allowedOrigin = isAllowed ? origin || "*" : ALLOWED_ORIGINS[0];
+  const allowed = isAllowedOrigin(origin);
+  const allowedOrigin = allowed && origin ? origin : "https://shilpsahayak.com";
 
   return new Headers({
     "Access-Control-Allow-Origin": allowedOrigin,
@@ -1910,6 +1918,13 @@ export default {
         object.writeHttpMetadata(headers);
         headers.set("etag", object.httpEtag);
         headers.set("Cache-Control", "public, max-age=31536000");
+        headers.set("X-Content-Type-Options", "nosniff");
+
+        const ext = getFileExtension(key);
+        if ([".stl", ".obj", ".3mf", ".zip"].includes(ext)) {
+          const rawName = key.split("/").pop() || "model";
+          headers.set("Content-Disposition", `attachment; filename="${sanitizeFileName(rawName)}"`);
+        }
 
         return new Response(object.body, {
           headers,
@@ -1945,7 +1960,18 @@ export default {
           );
         }
 
-        if (!key.startsWith(`quotes/${uid}/`)) {
+        let isAdmin = false;
+        try {
+          const adminToken = await getPrivilegedFirestoreAccessToken(env);
+          const userDoc = await getFirestoreDoc(projectId, "users", uid, apiKey, adminToken);
+          if (userDoc?.role === "admin") {
+            isAdmin = true;
+          }
+        } catch {
+          // Non-admin or service account unavailable
+        }
+
+        if (!isAdmin && !key.startsWith(`quotes/${uid}/`)) {
           return jsonResponse(
             request,
             { success: false, error: "Access denied." },
@@ -1968,6 +1994,262 @@ export default {
                 : "Authentication or delete failed.",
           },
           401
+        );
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // ORDERS: AUTHORITATIVE CANCELLATION (POST /api/orders/cancel)
+    // ------------------------------------------------------------------------
+    if (request.method === "POST" && pathname === "/api/orders/cancel") {
+      let uid: string;
+      try {
+        uid = await authenticateUser(request);
+      } catch (authErr: any) {
+        return jsonResponse(
+          request,
+          {
+            success: false,
+            error: `Authentication required: ${authErr?.message || "Missing or invalid token."}`,
+          },
+          401
+        );
+      }
+
+      let firestoreToken: string;
+      try {
+        firestoreToken = await getPrivilegedFirestoreAccessToken(env);
+      } catch (tokenErr: any) {
+        console.error("[orders] Service account token error in cancel:", tokenErr?.message);
+        return jsonResponse(
+          request,
+          { success: false, error: "Server configuration error." },
+          500
+        );
+      }
+
+      try {
+        const body: any = await request.json();
+        const { orderId, reason } = body || {};
+
+        if (!orderId || typeof orderId !== "string") {
+          return jsonResponse(
+            request,
+            { success: false, error: "orderId is required." },
+            400
+          );
+        }
+
+        const existingOrder = await getFirestoreDoc(
+          projectId,
+          "orders",
+          orderId,
+          apiKey,
+          firestoreToken
+        );
+
+        if (!existingOrder) {
+          return jsonResponse(
+            request,
+            { success: false, error: "Order not found." },
+            404
+          );
+        }
+
+        // Check if user is owner or admin
+        let isAdmin = false;
+        try {
+          const userDoc = await getFirestoreDoc(projectId, "users", uid, apiKey, firestoreToken);
+          if (userDoc?.role === "admin") {
+            isAdmin = true;
+          }
+        } catch {}
+
+        if (!isAdmin && existingOrder.customerId !== uid) {
+          return jsonResponse(
+            request,
+            { success: false, error: "Unauthorized access to this order." },
+            403
+          );
+        }
+
+        // Check cancellable status (only Pending or Confirmed allowed)
+        const currentStatus = existingOrder.status;
+        if (currentStatus === "Cancelled") {
+          return jsonResponse(request, {
+            success: true,
+            orderId,
+            status: "Cancelled",
+            message: "Order is already cancelled.",
+          });
+        }
+
+        if (currentStatus !== "Pending" && currentStatus !== "Confirmed") {
+          return jsonResponse(
+            request,
+            {
+              success: false,
+              error: `Cannot cancel order. The current status is "${currentStatus}". 3D print fabrication or dispatch has already commenced.`,
+            },
+            400
+          );
+        }
+
+        const cancelledAt = new Date().toISOString();
+        const finalReason = String(reason || "Customer requested cancellation before production").trim();
+        const timeline = Array.isArray(existingOrder.timeline) ? existingOrder.timeline : [];
+
+        const updateData: Record<string, any> = {
+          status: "Cancelled",
+          cancelledAt,
+          cancellationReason: finalReason,
+          timeline: [
+            ...timeline,
+            {
+              id: `tl_${Date.now()}`,
+              status: "Cancelled",
+              note: `Order cancelled (${finalReason})`,
+              timestamp: cancelledAt,
+              updatedBy: isAdmin ? "Admin" : "Customer",
+            },
+          ],
+        };
+
+        await patchFirestoreDoc(
+          projectId,
+          "orders",
+          orderId,
+          updateData,
+          ["status", "cancelledAt", "cancellationReason", "timeline"],
+          apiKey,
+          firestoreToken
+        );
+
+        // Authoritatively restore inventory stock for catalogue items
+        if (Array.isArray(existingOrder.items)) {
+          for (const item of existingOrder.items) {
+            if (!item?.productId) continue;
+            try {
+              const productDoc = await getFirestoreDoc(
+                projectId,
+                "products",
+                item.productId,
+                apiKey,
+                firestoreToken
+              );
+              if (productDoc) {
+                const currentStock = Number(productDoc.stock) || 0;
+                const qtyToRestore = Number(item.quantity) || 1;
+                const newStock = currentStock + qtyToRestore;
+                const productPatch: Record<string, any> = {
+                  stock: newStock,
+                  updatedAt: cancelledAt,
+                };
+                const patchFields = ["stock", "updatedAt"];
+
+                if (item.variantId && Array.isArray(productDoc.variants)) {
+                  const updatedVariants = productDoc.variants.map((v: any) => {
+                    if (v.id === item.variantId) {
+                      const vStock = Number(v.stock) || 0;
+                      return { ...v, stock: vStock + qtyToRestore };
+                    }
+                    return v;
+                  });
+                  productPatch.variants = updatedVariants;
+                  patchFields.push("variants");
+                }
+
+                await patchFirestoreDoc(
+                  projectId,
+                  "products",
+                  item.productId,
+                  productPatch,
+                  patchFields,
+                  apiKey,
+                  firestoreToken
+                );
+              }
+            } catch (stockErr) {
+              console.warn(`[orders] Stock restoration warning for product ${item.productId}:`, stockErr);
+            }
+          }
+        }
+
+        // Queue order cancellation email
+        if (existingOrder.customerEmail) {
+          const mailDocId = `mail_order_cancelled_${orderId}`;
+          const mailPayload = {
+            to: [existingOrder.customerEmail],
+            message: {
+              subject: `Order Cancelled & Refund Initiated #${orderId.slice(0, 8).toUpperCase()} — Shilp Sahayak`,
+              html: `
+                <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e7e5e4; border-radius: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1c1917;">
+                  <div style="background-color: #0c0a09; padding: 24px; text-align: center; border-top-left-radius: 12px; border-top-right-radius: 12px;">
+                    <h1 style="color: #ff4d00; margin: 0; font-size: 24px; font-weight: 800;">SHILP SAHAYAK</h1>
+                    <p style="color: #a8a29e; margin: 4px 0 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; font-family: monospace;">3D Fabrication & Precision Prototyping Studio</p>
+                  </div>
+                  <div style="padding: 32px 24px;">
+                    <div style="display: inline-block; background-color: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; font-family: monospace; text-transform: uppercase;">
+                      Order Cancelled &amp; Refund Initiated
+                    </div>
+                    <h2 style="font-size: 20px; font-weight: 700; margin: 12px 0 8px 0; color: #0c0a09;">
+                      Order #${orderId.slice(0, 8).toUpperCase()} has been cancelled
+                    </h2>
+                    <p style="font-size: 14px; line-height: 1.5; color: #57534e; margin: 0 0 20px 0;">
+                      Hello ${escapeHtml(existingOrder.customerName || "Customer")}, your order has been cancelled prior to 3D production.
+                    </p>
+                    <div style="background-color: #fff7ed; border: 1px solid #ffedd5; border-radius: 10px; padding: 18px; text-align: center; margin-bottom: 20px;">
+                      <span style="font-size: 11px; font-family: monospace; color: #9a3412; font-weight: 700; text-transform: uppercase;">
+                        100% Refund Amount
+                      </span>
+                      <div style="font-size: 28px; font-weight: 800; color: #ea580c; margin: 4px 0;">
+                        ₹${Number(existingOrder.total || 0).toLocaleString("en-IN")}
+                      </div>
+                      <p style="font-size: 12px; color: #78716c; margin: 4px 0 0 0;">
+                        Your refund will be credited to your original payment method within <strong>2–3 business days</strong>.
+                      </p>
+                    </div>
+                    <p style="font-size: 12px; color: #78716c;"><strong>Cancellation Reason:</strong> ${escapeHtml(finalReason)}</p>
+                  </div>
+                </div>
+              `,
+              text: `Your order #${orderId.slice(0, 8).toUpperCase()} has been cancelled. A 100% refund of ₹${Number(existingOrder.total || 0)} will be credited within 2-3 business days.`,
+            },
+            type: "order_cancelled",
+            metadata: {
+              orderId,
+              cancelledAt,
+              reason: finalReason,
+            },
+            createdAt: cancelledAt,
+            status: "queued",
+          };
+
+          await setFirestoreDoc(
+            projectId,
+            "mail",
+            mailDocId,
+            mailPayload,
+            apiKey,
+            firestoreToken
+          );
+        }
+
+        return jsonResponse(request, {
+          success: true,
+          orderId,
+          status: "Cancelled",
+          cancelledAt,
+        });
+      } catch (cancelErr: any) {
+        console.error("[orders] Cancellation error:", cancelErr);
+        return jsonResponse(
+          request,
+          {
+            success: false,
+            error: cancelErr?.message || "Failed to cancel order.",
+          },
+          500
         );
       }
     }

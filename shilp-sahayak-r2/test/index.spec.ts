@@ -1957,4 +1957,293 @@ describe("Generic Server Configuration Error on Missing SA Credentials", () => {
   });
 });
 
+describe("Strict Production CORS Security Matrix", () => {
+  it("allows requests from legitimate production domain", async () => {
+    const response = await SELF.fetch("https://example.com/health", {
+      method: "GET",
+      headers: {
+        Origin: "https://shilpsahayak.com",
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("https://shilpsahayak.com");
+  });
+
+  it("rejects unauthorized third-party vercel or web.app origins", async () => {
+    const response = await SELF.fetch("https://example.com/health", {
+      method: "GET",
+      headers: {
+        Origin: "https://malicious-attacker.vercel.app",
+      },
+    });
+
+    expect(response.status).toBe(200);
+    // Should NOT reflect the attacker origin
+    expect(response.headers.get("Access-Control-Allow-Origin")).not.toBe("https://malicious-attacker.vercel.app");
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("https://shilpsahayak.com");
+  });
+});
+
+describe("Authoritative Order Cancellation Endpoint (POST /api/orders/cancel)", () => {
+  it("successfully cancels order when requested by the order customer", async () => {
+    const customerToken = await createMockIdToken("user_customer_123");
+
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: "sa_token_mock" }), { status: 200 }));
+      }
+      if (url.includes("documents/orders/ORD_CANCEL_ME")) {
+        if (init?.method === "PATCH") {
+          return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
+        }
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "ORD_CANCEL_ME",
+            customerId: "user_customer_123",
+            customerName: "Alice",
+            customerEmail: "alice@example.com",
+            status: "Confirmed",
+            total: 1500,
+            items: [{ productId: "PROD_1", quantity: 2 }],
+          }),
+        }), { status: 200 }));
+      }
+      if (url.includes("documents/products/PROD_1")) {
+        if (init?.method === "PATCH") {
+          return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
+        }
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "PROD_1",
+            stock: 8,
+          }),
+        }), { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/orders/cancel", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${customerToken}`,
+      },
+      body: JSON.stringify({
+        orderId: "ORD_CANCEL_ME",
+        reason: "Change of plans",
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    const body: any = await response.json();
+    expect(body.success).toBe(true);
+    expect(body.status).toBe("Cancelled");
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects cancellation if requested by another unauthorized customer", async () => {
+    const attackerToken = await createMockIdToken("user_attacker_999");
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: "sa_token_mock" }), { status: 200 }));
+      }
+      if (url.includes("documents/users/user_attacker_999")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({ role: "customer" }),
+        }), { status: 200 }));
+      }
+      if (url.includes("documents/orders/ORD_VICTIM_ORDER")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "ORD_VICTIM_ORDER",
+            customerId: "user_victim_original",
+            status: "Confirmed",
+          }),
+        }), { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/orders/cancel", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${attackerToken}`,
+      },
+      body: JSON.stringify({
+        orderId: "ORD_VICTIM_ORDER",
+      }),
+    });
+
+    expect(response.status).toBe(403);
+    const body: any = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toContain("Unauthorized access");
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects cancellation if order status is already Shipped or Delivered", async () => {
+    const customerToken = await createMockIdToken("user_customer_123");
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: "sa_token_mock" }), { status: 200 }));
+      }
+      if (url.includes("documents/orders/ORD_SHIPPED")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "ORD_SHIPPED",
+            customerId: "user_customer_123",
+            status: "Shipped",
+          }),
+        }), { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/orders/cancel", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${customerToken}`,
+      },
+      body: JSON.stringify({
+        orderId: "ORD_SHIPPED",
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    const body: any = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toContain("Cannot cancel order");
+    vi.unstubAllGlobals();
+  });
+
+  it("handles double cancel as safe idempotent no-op without restoring duplicate stock", async () => {
+    const customerToken = await createMockIdToken("user_customer_123");
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: "sa_token_mock" }), { status: 200 }));
+      }
+      if (url.includes("documents/orders/ORD_ALREADY_CANCELLED")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "ORD_ALREADY_CANCELLED",
+            customerId: "user_customer_123",
+            status: "Cancelled",
+            cancelledAt: "2026-09-24T12:00:00.000Z",
+          }),
+        }), { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/orders/cancel", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${customerToken}`,
+      },
+      body: JSON.stringify({
+        orderId: "ORD_ALREADY_CANCELLED",
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    const body: any = await response.json();
+    expect(body.success).toBe(true);
+    expect(body.status).toBe("Cancelled");
+    expect(body.message).toContain("already cancelled");
+    vi.unstubAllGlobals();
+  });
+
+  it("cancels an order that is Paid (status Confirmed) and records refund notice", async () => {
+    const customerToken = await createMockIdToken("user_customer_123");
+
+    let orderPatchBody: any = null;
+    let mailCreated = false;
+
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: "sa_token_mock" }), { status: 200 }));
+      }
+      if (url.includes("documents/orders/ORD_PAID_CONFIRMED")) {
+        if (init?.method === "PATCH") {
+          orderPatchBody = JSON.parse(init?.body as string);
+          return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
+        }
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "ORD_PAID_CONFIRMED",
+            customerId: "user_customer_123",
+            customerName: "Alice",
+            customerEmail: "alice@example.com",
+            paymentStatus: "Paid",
+            status: "Confirmed",
+            total: 2499,
+            items: [{ productId: "PROD_2", quantity: 1 }],
+          }),
+        }), { status: 200 }));
+      }
+      if (url.includes("documents/products/PROD_2")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "PROD_2",
+            stock: 3,
+          }),
+        }), { status: 200 }));
+      }
+      if (url.includes("documents/mail")) {
+        mailCreated = true;
+        return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/orders/cancel", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${customerToken}`,
+      },
+      body: JSON.stringify({
+        orderId: "ORD_PAID_CONFIRMED",
+        reason: "Ordered wrong filament",
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    const body: any = await response.json();
+    expect(body.success).toBe(true);
+    expect(body.status).toBe("Cancelled");
+    expect(orderPatchBody).not.toBeNull();
+    expect(mailCreated).toBe(true);
+    vi.unstubAllGlobals();
+  });
+});
+
+
 

@@ -44,6 +44,7 @@ service cloud.firestore {
         (
           isSignedIn() &&
           request.auth.uid == userId &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'adminNotes', 'customerType']) &&
           request.resource.data.get('role', 'customer') ==
             resource.data.get('role', 'customer')
         );
@@ -59,7 +60,7 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
       
                   match /reviews/{reviewId} {
-        allow read: if true;
+        allow read: if resource.data.status == "approved" || isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
         
         allow create: if isSignedIn()
           && reviewId == request.auth.uid + "_" + request.resource.data.orderId + "_" + productId
@@ -181,7 +182,7 @@ service cloud.firestore {
     // SETTINGS
     // =========================================================
     match /settings/{settingId} {
-      allow read: if true;
+      allow read: if settingId in ['business', 'settings', 'storefront', 'public', 'pricing', 'homepage'] || isAdmin();
       allow write: if isAdmin();
     }
 

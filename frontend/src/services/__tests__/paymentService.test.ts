@@ -235,4 +235,58 @@ describe('Payment Service', () => {
       await expect(verifyPaymentSignature(input)).rejects.toThrow('Invalid payment signature');
     });
   });
+
+  describe('cancelOrderRequest', () => {
+    it('sends order cancellation with auth token to Worker', async () => {
+      const mockResult = {
+        success: true,
+        orderId: 'ORD_CANCEL_123',
+        status: 'Cancelled',
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockResult,
+      });
+
+      const { cancelOrderRequest } = await import('../paymentService');
+      const result = await cancelOrderRequest({
+        orderId: 'ORD_CANCEL_123',
+        reason: 'Customer requested cancellation',
+      });
+
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      const [url, options] = (global.fetch as any).mock.calls[0];
+      expect(url).toContain('/api/orders/cancel');
+      expect(options.method).toBe('POST');
+      expect(options.headers['Authorization']).toBe('Bearer mock-id-token-xyz');
+      expect(result).toEqual(mockResult);
+    });
+
+    it('throws error when user is not authenticated', async () => {
+      (auth as any).currentUser = null;
+
+      const { cancelOrderRequest } = await import('../paymentService');
+      await expect(
+        cancelOrderRequest({ orderId: 'ORD_UNAUTH' })
+      ).rejects.toThrow('Authentication required to cancel an order');
+    });
+
+    it('throws error when server responds with failure', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          success: false,
+          error: 'Cannot cancel order. The current status is "Shipped".',
+        }),
+      });
+
+      const { cancelOrderRequest } = await import('../paymentService');
+      await expect(
+        cancelOrderRequest({ orderId: 'ORD_SHIPPED' })
+      ).rejects.toThrow('Cannot cancel order. The current status is "Shipped".');
+    });
+  });
 });

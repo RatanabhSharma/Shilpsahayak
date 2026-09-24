@@ -23,6 +23,7 @@ import {
   sendOrderStatusUpdateNotification,
   sendOrderCancelledNotification,
 } from '../services/emailNotifications';
+import { cancelOrderRequest } from '../services/paymentService';
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -1218,76 +1219,9 @@ export function useCancelOrder() {
       orderId: string;
       reason?: string;
     }) => {
-      console.log('Processing cancellation for order:', orderId);
-      const orderRef = doc(db, 'orders', orderId);
-      const orderSnap = await getDoc(orderRef);
-
-      if (!orderSnap.exists()) {
-        throw new Error('Order not found.');
-      }
-
-      const orderData = orderSnap.data() as Order;
-
-      // Only allow cancellation if status is Pending or Confirmed
-      if (orderData.status !== 'Pending' && orderData.status !== 'Confirmed') {
-        throw new Error(
-          `Cannot cancel order. The current status is "${orderData.status}". 3D print fabrication or dispatch has already commenced.`
-        );
-      }
-
-      // 1. Update order status to Cancelled in Firestore
-      const cancellationTime = new Date().toISOString();
-      await updateDoc(orderRef, {
-        status: 'Cancelled',
-        cancelledAt: cancellationTime,
-        cancellationReason: reason || 'Customer requested cancellation before production',
-      });
-
-      // 2. Automatically restore inventory stock for all catalogue items
-      if (Array.isArray(orderData.items)) {
-        for (const item of orderData.items) {
-          if (!item.productId) continue;
-          try {
-            const productRef = doc(db, 'products', item.productId);
-            const productSnap = await getDoc(productRef);
-            if (productSnap.exists()) {
-              const productData = productSnap.data() as Product;
-              const currentStock = Number(productData.stock) || 0;
-              const qtyToRestore = Number(item.quantity) || 1;
-
-              // If item was a variant, also restore variant stock
-              if (item.variantId && Array.isArray(productData.variants)) {
-                const updatedVariants = productData.variants.map((v) => {
-                  if (v.id === item.variantId) {
-                    return { ...v, stock: (Number(v.stock) || 0) + qtyToRestore };
-                  }
-                  return v;
-                });
-                await updateDoc(productRef, {
-                  stock: currentStock + qtyToRestore,
-                  variants: updatedVariants,
-                });
-              } else {
-                await updateDoc(productRef, {
-                  stock: currentStock + qtyToRestore,
-                });
-              }
-            }
-          } catch (stockErr) {
-            console.error('Error restoring stock for product:', item.productId, stockErr);
-          }
-        }
-      }
-
-      // 3. Dispatch order cancellation email
-      sendOrderCancelledNotification({
-        order: orderData,
-        reason,
-      }).catch((err) =>
-        console.error('[Notification] Failed to send order cancelled email:', err)
-      );
-
-      return { orderId, status: 'Cancelled' };
+      console.log('Processing secure server cancellation for order:', orderId);
+      const result = await cancelOrderRequest({ orderId, reason });
+      return { orderId, status: result.status || 'Cancelled' };
     },
     onSuccess: async () => {
       await Promise.all([

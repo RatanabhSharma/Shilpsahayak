@@ -157,3 +157,49 @@ export async function verifyPaymentSignature(
   return data as VerifyPaymentResult;
 }
 
+export interface CancelOrderInput {
+  orderId: string;
+  reason?: string;
+}
+
+export interface CancelOrderResult {
+  success: boolean;
+  orderId: string;
+  status: string;
+  cancelledAt?: string;
+  error?: string;
+}
+
+/**
+ * Requests the Cloudflare Worker to securely and authoritatively cancel an order.
+ * Strictly requires an authenticated customer (or admin).
+ */
+export async function cancelOrderRequest(
+  input: CancelOrderInput
+): Promise<CancelOrderResult> {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('Authentication required to cancel an order');
+  }
+
+  const endpoint = `${CLOUDFLARE_WORKER_URL}/api/orders/cancel`;
+  const idToken = await user.getIdToken();
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${idToken}`,
+    },
+    body: JSON.stringify(input),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.error || `Order cancellation failed (HTTP ${response.status})`);
+  }
+
+  return data as CancelOrderResult;
+}
+
