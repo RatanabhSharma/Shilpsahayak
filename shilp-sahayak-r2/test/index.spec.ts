@@ -1997,31 +1997,21 @@ describe("Authoritative Order Cancellation Endpoint (POST /api/orders/cancel)", 
         return Promise.resolve(new Response(JSON.stringify({ access_token: "sa_token_mock" }), { status: 200 }));
       }
       if (url.includes("documents/orders/ORD_CANCEL_ME")) {
-        if (init?.method === "PATCH") {
-          return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
-        }
         return Promise.resolve(new Response(JSON.stringify({
           fields: toFirestoreFields({
             id: "ORD_CANCEL_ME",
             customerId: "user_customer_123",
             customerName: "Alice",
             customerEmail: "alice@example.com",
-            status: "Confirmed",
+            status: "Pending",
+            paymentStatus: "Pending",
             total: 1500,
             items: [{ productId: "PROD_1", quantity: 2 }],
           }),
         }), { status: 200 }));
       }
-      if (url.includes("documents/products/PROD_1")) {
-        if (init?.method === "PATCH") {
-          return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
-        }
-        return Promise.resolve(new Response(JSON.stringify({
-          fields: toFirestoreFields({
-            id: "PROD_1",
-            stock: 8,
-          }),
-        }), { status: 200 }));
+      if (url.includes("documents:commit")) {
+        return Promise.resolve(new Response(JSON.stringify({ writeResults: [{}] }), { status: 200 }));
       }
       return Promise.resolve(new Response("{}", { status: 200 }));
     });
@@ -2176,48 +2166,27 @@ describe("Authoritative Order Cancellation Endpoint (POST /api/orders/cancel)", 
     vi.unstubAllGlobals();
   });
 
-  it("cancels an order that is Paid (status Confirmed) and records refund notice", async () => {
+  it("Option C: rejects customer cancellation for already Paid order with studio support message", async () => {
     const customerToken = await createMockIdToken("user_customer_123");
 
-    let orderPatchBody: any = null;
-    let mailCreated = false;
-
-    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
       if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
         return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
       }
       if (url.includes("oauth2.googleapis.com/token")) {
         return Promise.resolve(new Response(JSON.stringify({ access_token: "sa_token_mock" }), { status: 200 }));
       }
-      if (url.includes("documents/orders/ORD_PAID_CONFIRMED")) {
-        if (init?.method === "PATCH") {
-          orderPatchBody = JSON.parse(init?.body as string);
-          return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
-        }
+      if (url.includes("documents/orders/ORD_PAID_OPTION_C")) {
         return Promise.resolve(new Response(JSON.stringify({
           fields: toFirestoreFields({
-            id: "ORD_PAID_CONFIRMED",
+            id: "ORD_PAID_OPTION_C",
             customerId: "user_customer_123",
             customerName: "Alice",
-            customerEmail: "alice@example.com",
             paymentStatus: "Paid",
             status: "Confirmed",
             total: 2499,
-            items: [{ productId: "PROD_2", quantity: 1 }],
           }),
         }), { status: 200 }));
-      }
-      if (url.includes("documents/products/PROD_2")) {
-        return Promise.resolve(new Response(JSON.stringify({
-          fields: toFirestoreFields({
-            id: "PROD_2",
-            stock: 3,
-          }),
-        }), { status: 200 }));
-      }
-      if (url.includes("documents/mail")) {
-        mailCreated = true;
-        return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
       }
       return Promise.resolve(new Response("{}", { status: 200 }));
     });
@@ -2230,8 +2199,69 @@ describe("Authoritative Order Cancellation Endpoint (POST /api/orders/cancel)", 
         Authorization: `Bearer ${customerToken}`,
       },
       body: JSON.stringify({
-        orderId: "ORD_PAID_CONFIRMED",
-        reason: "Ordered wrong filament",
+        orderId: "ORD_PAID_OPTION_C",
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    const body: any = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toContain("Order is already paid");
+    expect(body.error).toContain("hello@shilpsahayak.in");
+    vi.unstubAllGlobals();
+  });
+
+  it("Option C: allows Admin to cancel a Paid order and executes atomic commit writes", async () => {
+    const adminToken = await createMockIdToken("user_admin_999");
+    let commitRequestBody: any = null;
+
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: "sa_token_mock" }), { status: 200 }));
+      }
+      if (url.includes("documents/users/user_admin_999")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({ role: "admin" }),
+        }), { status: 200 }));
+      }
+      if (url.includes("documents/orders/ORD_ADMIN_CANCEL_PAID")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "ORD_ADMIN_CANCEL_PAID",
+            customerId: "user_customer_123",
+            customerName: "Customer Alice",
+            customerEmail: "alice@example.com",
+            paymentStatus: "Paid",
+            status: "Confirmed",
+            stockDeducted: true,
+            total: 3500,
+            items: [{ productId: "PROD_XYZ", quantity: 2 }],
+          }),
+        }), { status: 200 }));
+      }
+      if (url.includes("documents:commit")) {
+        commitRequestBody = JSON.parse(init?.body as string);
+        return Promise.resolve(new Response(JSON.stringify({ writeResults: [{}, {}] }), { status: 200 }));
+      }
+      if (url.includes("documents/mail")) {
+        return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/orders/cancel", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        orderId: "ORD_ADMIN_CANCEL_PAID",
+        reason: "Customer requested cancellation via studio phone support",
       }),
     });
 
@@ -2239,8 +2269,87 @@ describe("Authoritative Order Cancellation Endpoint (POST /api/orders/cancel)", 
     const body: any = await response.json();
     expect(body.success).toBe(true);
     expect(body.status).toBe("Cancelled");
-    expect(orderPatchBody).not.toBeNull();
-    expect(mailCreated).toBe(true);
+
+    // Verify commit payload contains atomic order update with precondition AND fieldTransforms increment
+    expect(commitRequestBody).not.toBeNull();
+    expect(commitRequestBody.writes).toHaveLength(2);
+    // Write 1: Order update with precondition
+    expect(commitRequestBody.writes[0].update.name).toContain("ORD_ADMIN_CANCEL_PAID");
+    expect(commitRequestBody.writes[0].currentDocument.exists).toBe(true);
+    // Write 2: Atomic fieldTransforms increment for product stock
+    expect(commitRequestBody.writes[1].transform.document).toContain("PROD_XYZ");
+    expect(commitRequestBody.writes[1].transform.fieldTransforms[0].fieldPath).toBe("stock");
+    expect(commitRequestBody.writes[1].transform.fieldTransforms[0].increment.integerValue).toBe("2");
+
+    vi.unstubAllGlobals();
+  });
+
+  it("concurrency & idempotency: concurrent cancellation requests succeed safely without duplicate stock restoration", async () => {
+    const customerToken = await createMockIdToken("user_customer_123");
+    let commitCount = 0;
+    let orderStatus = "Pending";
+
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: "sa_token_mock" }), { status: 200 }));
+      }
+      if (url.includes("documents/orders/ORD_CONCURRENT_RACE")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "ORD_CONCURRENT_RACE",
+            customerId: "user_customer_123",
+            customerName: "Alice",
+            status: orderStatus,
+            paymentStatus: "Pending",
+            stockDeducted: true,
+            total: 1000,
+            items: [{ productId: "PROD_RACE", quantity: 1 }],
+          }),
+        }), { status: 200 }));
+      }
+      if (url.includes("documents:commit")) {
+        commitCount++;
+        orderStatus = "Cancelled"; // State transitions after first commit
+        return Promise.resolve(new Response(JSON.stringify({ writeResults: [{}] }), { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    // Call 1: Initiates cancellation
+    const res1 = await SELF.fetch("https://example.com/api/orders/cancel", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${customerToken}`,
+      },
+      body: JSON.stringify({ orderId: "ORD_CONCURRENT_RACE" }),
+    });
+
+    // Call 2: Arrives concurrently or immediately after
+    const res2 = await SELF.fetch("https://example.com/api/orders/cancel", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${customerToken}`,
+      },
+      body: JSON.stringify({ orderId: "ORD_CONCURRENT_RACE" }),
+    });
+
+    expect(res1.status).toBe(200);
+    const body1: any = await res1.json();
+    expect(body1.success).toBe(true);
+
+    expect(res2.status).toBe(200);
+    const body2: any = await res2.json();
+    expect(body2.success).toBe(true);
+    expect(body2.message).toContain("already cancelled");
+
+    // Commit only called once; no duplicate stock restoration occurred
+    expect(commitCount).toBe(1);
     vi.unstubAllGlobals();
   });
 });

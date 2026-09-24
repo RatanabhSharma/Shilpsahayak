@@ -37,10 +37,6 @@ const ALLOWED_EXTENSIONS = [
 ];
 
 const STRICT_ALLOWED_ORIGINS = new Set([
-  "http://localhost:5173",
-  "http://localhost:5174",
-  "http://127.0.0.1:5173",
-  "http://127.0.0.1:5174",
   "https://shilpsahayak.com",
   "https://www.shilpsahayak.com",
   "https://shilpsahayak.in",
@@ -50,13 +46,22 @@ const STRICT_ALLOWED_ORIGINS = new Set([
   "https://shilp-sahayak.firebaseapp.com",
 ]);
 
-function isAllowedOrigin(origin: string | null): boolean {
+function isAllowedOrigin(origin: string | null, requestUrl?: string): boolean {
   if (!origin) return true;
+  // Only allow localhost if the request itself is targeting localhost / local development
   if (
     origin.startsWith("http://localhost:") ||
     origin.startsWith("http://127.0.0.1:")
   ) {
-    return true;
+    if (requestUrl) {
+      try {
+        const u = new URL(requestUrl);
+        if (u.hostname === "localhost" || u.hostname === "127.0.0.1") {
+          return true;
+        }
+      } catch {}
+    }
+    return false;
   }
   return STRICT_ALLOWED_ORIGINS.has(origin);
 }
@@ -64,7 +69,7 @@ function isAllowedOrigin(origin: string | null): boolean {
 function getCorsHeaders(request: Request): Headers {
   const origin = request.headers.get("Origin");
 
-  const allowed = isAllowedOrigin(origin);
+  const allowed = isAllowedOrigin(origin, request.url);
   const allowedOrigin = allowed && origin ? origin : "https://shilpsahayak.com";
 
   return new Headers({
@@ -487,6 +492,40 @@ export async function patchFirestoreDoc(
     throw new FirestoreRequestError("Firestore patch", res.status, await res.text());
   }
   return true;
+}
+
+/**
+ * Perform atomic multi-document writes/transforms via the Firestore commit API.
+ */
+export async function commitFirestoreWrites(
+  projectId: string,
+  writes: any[],
+  apiKey?: string,
+  authToken?: string
+): Promise<any> {
+  if (!authToken) {
+    throw new Error("A privileged Firestore access token is required.");
+  }
+  const baseUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:commit`;
+  const url = apiKey ? `${baseUrl}?key=${apiKey}` : baseUrl;
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ writes }),
+  });
+
+  if (!res.ok) {
+    throw new FirestoreRequestError("Firestore commit", res.status, await res.text());
+  }
+  return await res.json();
 }
 
 /**
@@ -2084,7 +2123,34 @@ export default {
           });
         }
 
-        if (currentStatus !== "Pending" && currentStatus !== "Confirmed") {
+        // Option C for paid orders: non-admin customers cannot cancel already Paid orders.
+        // They must contact studio support for verification & refund handling.
+        const isPaid = existingOrder.paymentStatus === "Paid";
+        if (!isAdmin && isPaid) {
+          return jsonResponse(
+            request,
+            {
+              success: false,
+              error: "Order is already paid. Please contact studio support (hello@shilpsahayak.in) to request cancellation and refund.",
+            },
+            400
+          );
+        }
+
+        // Non-admin customers can only cancel unpaid Pending orders
+        if (!isAdmin && currentStatus !== "Pending") {
+          return jsonResponse(
+            request,
+            {
+              success: false,
+              error: `Cannot cancel order. The current status is "${currentStatus}". 3D print fabrication or dispatch has already commenced.`,
+            },
+            400
+          );
+        }
+
+        // Admin can cancel Pending or Confirmed orders
+        if (isAdmin && currentStatus !== "Pending" && currentStatus !== "Confirmed") {
           return jsonResponse(
             request,
             {
@@ -2115,65 +2181,57 @@ export default {
           ],
         };
 
-        await patchFirestoreDoc(
+        // Prepare atomic commit writes (order update + atomic stock restoration)
+        const commitWrites: any[] = [];
+
+        // 1. Order status update write with precondition (document must exist)
+        const orderDocPath = `projects/${projectId}/databases/(default)/documents/orders/${encodeURIComponent(orderId)}`;
+        commitWrites.push({
+          update: {
+            name: orderDocPath,
+            fields: toFirestoreFields(updateData),
+          },
+          updateMask: {
+            fieldPaths: ["status", "cancelledAt", "cancellationReason", "timeline"],
+          },
+          currentDocument: {
+            exists: true,
+          },
+        });
+
+        // 2. Authoritative atomic stock restoration:
+        // Only restore inventory if stock was actually deducted for this order.
+        // In this system, if existingOrder.stockDeducted === true, restore catalogue stock using atomic fieldTransforms increment.
+        const shouldRestoreStock = existingOrder.stockDeducted === true;
+        if (shouldRestoreStock && Array.isArray(existingOrder.items)) {
+          for (const item of existingOrder.items) {
+            if (!item?.productId) continue;
+            const qtyToRestore = Number(item.quantity) || 1;
+            const productDocPath = `projects/${projectId}/databases/(default)/documents/products/${encodeURIComponent(item.productId)}`;
+
+            commitWrites.push({
+              transform: {
+                document: productDocPath,
+                fieldTransforms: [
+                  {
+                    fieldPath: "stock",
+                    increment: {
+                      integerValue: String(qtyToRestore),
+                    },
+                  },
+                ],
+              },
+            });
+          }
+        }
+
+        // Execute atomic commit
+        await commitFirestoreWrites(
           projectId,
-          "orders",
-          orderId,
-          updateData,
-          ["status", "cancelledAt", "cancellationReason", "timeline"],
+          commitWrites,
           apiKey,
           firestoreToken
         );
-
-        // Authoritatively restore inventory stock for catalogue items
-        if (Array.isArray(existingOrder.items)) {
-          for (const item of existingOrder.items) {
-            if (!item?.productId) continue;
-            try {
-              const productDoc = await getFirestoreDoc(
-                projectId,
-                "products",
-                item.productId,
-                apiKey,
-                firestoreToken
-              );
-              if (productDoc) {
-                const currentStock = Number(productDoc.stock) || 0;
-                const qtyToRestore = Number(item.quantity) || 1;
-                const newStock = currentStock + qtyToRestore;
-                const productPatch: Record<string, any> = {
-                  stock: newStock,
-                  updatedAt: cancelledAt,
-                };
-                const patchFields = ["stock", "updatedAt"];
-
-                if (item.variantId && Array.isArray(productDoc.variants)) {
-                  const updatedVariants = productDoc.variants.map((v: any) => {
-                    if (v.id === item.variantId) {
-                      const vStock = Number(v.stock) || 0;
-                      return { ...v, stock: vStock + qtyToRestore };
-                    }
-                    return v;
-                  });
-                  productPatch.variants = updatedVariants;
-                  patchFields.push("variants");
-                }
-
-                await patchFirestoreDoc(
-                  projectId,
-                  "products",
-                  item.productId,
-                  productPatch,
-                  patchFields,
-                  apiKey,
-                  firestoreToken
-                );
-              }
-            } catch (stockErr) {
-              console.warn(`[orders] Stock restoration warning for product ${item.productId}:`, stockErr);
-            }
-          }
-        }
 
         // Queue order cancellation email
         if (existingOrder.customerEmail) {
