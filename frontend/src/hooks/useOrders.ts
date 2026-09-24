@@ -20,7 +20,6 @@ import { useStore, Product } from '../store';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
 import {
-  sendOrderConfirmationNotification,
   sendOrderStatusUpdateNotification,
   sendOrderCancelledNotification,
 } from '../services/emailNotifications';
@@ -505,11 +504,6 @@ export function useCreateOrder() {
 
     onSuccess:
       async (newOrder) => {
-        // Dispatch order confirmation email to customer
-        sendOrderConfirmationNotification(newOrder as Order).catch((err) =>
-          console.error('[Notification] Failed to send order confirmation email:', err)
-        );
-
         /*
          * Invalidate admin orders.
          */
