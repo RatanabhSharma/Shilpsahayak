@@ -155,6 +155,23 @@ export async function computeHmacSha256(
     .join("");
 }
 
+/**
+ * Constant-time comparison between two strings or byte arrays to prevent timing attacks.
+ */
+export function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const aBytes = enc.encode(a);
+  const bBytes = enc.encode(b);
+  if (aBytes.length !== bBytes.length) {
+    return false;
+  }
+  let diff = 0;
+  for (let i = 0; i < aBytes.length; i++) {
+    diff |= aBytes[i] ^ bBytes[i];
+  }
+  return diff === 0;
+}
+
 export async function verifyHmacSha256(
   secret: string,
   data: string,
@@ -163,11 +180,24 @@ export async function verifyHmacSha256(
   if (!secret || !expectedHexSignature) return false;
   try {
     const computed = await computeHmacSha256(secret, data);
-    return computed.toLowerCase() === expectedHexSignature.toLowerCase().trim();
+    return timingSafeEqual(
+      computed.toLowerCase(),
+      expectedHexSignature.toLowerCase().trim()
+    );
   } catch (err) {
     console.error("HMAC verification error:", err);
     return false;
   }
+}
+
+export function escapeHtml(str: any): string {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 /* ========================================================================== */
@@ -647,10 +677,22 @@ export async function verifyRazorpayPaymentCapture(
   expectedAmountInPaise: number,
   expectedCurrency: string = "INR"
 ): Promise<{ valid: boolean; error?: string }> {
-  // If test placeholders are used without live network credentials (e.g. unit test runner)
-  if (!keyId || !keySecret || keySecret.includes("placeholder")) {
-    return { valid: true };
+  // Fail closed if credentials are missing, empty, or placeholder
+  if (
+    !keyId ||
+    !keySecret ||
+    keyId.trim().length === 0 ||
+    keySecret.trim().length === 0 ||
+    keySecret.includes("placeholder") ||
+    keyId.includes("placeholder")
+  ) {
+    console.error("[payment] verifyRazorpayPaymentCapture: Razorpay credentials missing or placeholder. Failing closed.");
+    return {
+      valid: false,
+      error: "Payment gateway credentials are not properly configured on server.",
+    };
   }
+
 
   try {
     const authHeader = `Basic ${btoa(`${keyId}:${keySecret}`)}`;
@@ -848,60 +890,66 @@ export default {
 
         const amountInPaise = Math.round(pricing.total * 100);
 
-        // Razorpay test credentials
-        const keyId = env.RAZORPAY_KEY_ID || "rzp_test_placeholder";
-        const keySecret = env.RAZORPAY_KEY_SECRET || "dummy_secret_placeholder";
+        // Razorpay credentials
+        const keyId = env.RAZORPAY_KEY_ID;
+        const keySecret = env.RAZORPAY_KEY_SECRET;
 
-        let razorpayOrderId = `order_test_${Date.now()}`;
-
-        // If real Razorpay test keys are configured, create order via Razorpay API
         if (
-          env.RAZORPAY_KEY_ID &&
-          env.RAZORPAY_KEY_SECRET &&
-          !env.RAZORPAY_KEY_SECRET.includes("placeholder")
+          !keyId ||
+          !keySecret ||
+          keyId.trim().length === 0 ||
+          keySecret.trim().length === 0 ||
+          keySecret.includes("placeholder") ||
+          keyId.includes("placeholder")
         ) {
-          const authString = btoa(`${keyId}:${keySecret}`);
-          const rzpResponse = await fetch("https://api.razorpay.com/v1/orders", {
-            method: "POST",
-            headers: {
-              Authorization: `Basic ${authString}`,
-              "Content-Type": "application/json",
+          console.error("[payment] create-order: Razorpay credentials missing or placeholder. Failing closed.");
+          return jsonResponse(
+            request,
+            {
+              success: false,
+              error: "Payment gateway credentials are not properly configured on server.",
             },
-            body: JSON.stringify({
-              amount: amountInPaise,
-              currency: "INR",
-              receipt: orderId,
-              // payment_capture: 1 ensures Razorpay auto-captures on payment completion.
-              // Without this, some Razorpay account configurations default to manual capture,
-              // leaving the payment in "authorized" state instead of "captured".
-              // verifyRazorpayPaymentCapture() explicitly requires status === "captured",
-              // so this aligns upstream order creation with the downstream verification contract.
-              payment_capture: 1,
-              notes: {
-                internalOrderId: orderId,
-                customerId: uid,
-                purchaseMode,
-              },
-            }),
-          });
-
-          if (!rzpResponse.ok) {
-            const rzpError = await rzpResponse.text();
-            console.error("Razorpay order creation failed:", rzpError);
-            return jsonResponse(
-              request,
-              {
-                success: false,
-                error: "Failed to initiate payment session with gateway.",
-                details: rzpError,
-              },
-              502
-            );
-          }
-
-          const rzpData: any = await rzpResponse.json();
-          razorpayOrderId = rzpData.id;
+            500
+          );
         }
+
+        const authString = btoa(`${keyId}:${keySecret}`);
+        const rzpResponse = await fetch("https://api.razorpay.com/v1/orders", {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${authString}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            amount: amountInPaise,
+            currency: "INR",
+            receipt: orderId,
+            payment_capture: 1,
+            notes: {
+              internalOrderId: orderId,
+              customerId: uid,
+              purchaseMode,
+            },
+          }),
+        });
+
+        if (!rzpResponse.ok) {
+          const rzpError = await rzpResponse.text();
+          console.error("Razorpay order creation failed:", rzpError);
+          return jsonResponse(
+            request,
+            {
+              success: false,
+              error: "Failed to initiate payment session with gateway.",
+              details: rzpError,
+            },
+            502
+          );
+        }
+
+        const rzpData: any = await rzpResponse.json();
+        const razorpayOrderId = rzpData.id;
+
 
         // Write internal order to Firestore
         const internalOrderData: Record<string, any> = {
@@ -1060,12 +1108,46 @@ export default {
           );
         }
 
+        // 4b. Re-marking protection: if order is already Paid, verify it's the exact same paymentId or reject
+        if (existingOrder.paymentStatus === "Paid") {
+          if (existingOrder.paymentId === razorpayPaymentId || existingOrder.razorpayPaymentId === razorpayPaymentId) {
+            console.log(`Order ${orderId} already marked Paid with matching payment ID ${razorpayPaymentId}. Idempotent return.`);
+            return jsonResponse(request, {
+              success: true,
+              orderId,
+              paymentId: razorpayPaymentId,
+              status: existingOrder.status || "Confirmed",
+              paymentStatus: "Paid",
+            });
+          } else {
+            console.warn(`Order ${orderId} already paid with different payment ID: ${existingOrder.paymentId} vs ${razorpayPaymentId}`);
+            return jsonResponse(
+              request,
+              { success: false, error: "Order is already paid with a different payment reference." },
+              400
+            );
+          }
+        }
+
         // 5. Verify Razorpay checkout signature using the trusted internal Razorpay order ID + payment ID
-        const keySecret = env.RAZORPAY_KEY_SECRET || "dummy_secret_placeholder";
+        const keySecret = env.RAZORPAY_KEY_SECRET;
+        const keyId = env.RAZORPAY_KEY_ID;
+
+        if (
+          !keySecret ||
+          keySecret.trim().length === 0 ||
+          keySecret.includes("placeholder")
+        ) {
+          console.error("[payment] verify: RAZORPAY_KEY_SECRET missing or placeholder. Failing closed.");
+          return jsonResponse(
+            request,
+            { success: false, error: "Payment verification credentials are not configured on server." },
+            500
+          );
+        }
+
         const dataToSign = `${existingOrder.razorpayOrderId}|${razorpayPaymentId}`;
-        const isValidSignature =
-          keySecret.includes("placeholder") ||
-          (await verifyHmacSha256(keySecret, dataToSign, razorpaySignature));
+        const isValidSignature = await verifyHmacSha256(keySecret, dataToSign, razorpaySignature);
 
         if (!isValidSignature) {
           console.warn("Invalid payment signature received for order:", orderId);
@@ -1081,14 +1163,24 @@ export default {
         const expectedCurrency = "INR";
 
         // 7. Verify payment is actually captured and valid before marking it Paid
+        if (!keyId || keyId.trim().length === 0 || keyId.includes("placeholder")) {
+          console.error("[payment] verify: RAZORPAY_KEY_ID missing or placeholder. Failing closed.");
+          return jsonResponse(
+            request,
+            { success: false, error: "Payment gateway key ID is not configured on server." },
+            500
+          );
+        }
+
         const captureVerification = await verifyRazorpayPaymentCapture(
-          env.RAZORPAY_KEY_ID || "rzp_test_placeholder",
+          keyId,
           keySecret,
           razorpayPaymentId,
           existingOrder.razorpayOrderId,
           expectedAmountInPaise,
           expectedCurrency
         );
+
 
         if (!captureVerification.valid) {
           return jsonResponse(
@@ -1195,18 +1287,26 @@ export default {
     // ------------------------------------------------------------------------
     if (request.method === "POST" && pathname === "/api/payment/webhook") {
       try {
-        const webhookSecret =
-          env.RAZORPAY_WEBHOOK_SECRET || "dummy_webhook_secret_placeholder";
+        const webhookSecret = env.RAZORPAY_WEBHOOK_SECRET;
         const signature = request.headers.get("X-Razorpay-Signature") || "";
+
+        // Fail closed if webhook secret is missing, empty, or placeholder
+        if (
+          !webhookSecret ||
+          webhookSecret.trim().length === 0 ||
+          webhookSecret.includes("placeholder")
+        ) {
+          console.error("[webhook] RAZORPAY_WEBHOOK_SECRET missing or placeholder. Failing closed.");
+          return jsonResponse(
+            request,
+            { success: false, error: "Webhook verification secret is not configured on server." },
+            500
+          );
+        }
 
         // Raw body preserved for cryptographic HMAC SHA-256 verification
         const rawBody = await request.text();
-
-        const isValidSignature =
-          !webhookSecret.includes("placeholder")
-            ? await verifyHmacSha256(webhookSecret, rawBody, signature)
-            : (signature === "mock_webhook_signature" ||
-               (await verifyHmacSha256(webhookSecret, rawBody, signature)));
+        const isValidSignature = await verifyHmacSha256(webhookSecret, rawBody, signature);
 
         if (!isValidSignature) {
           console.warn("Invalid webhook signature rejected.");
@@ -1320,7 +1420,24 @@ export default {
               );
 
               if (orderDoc) {
+                // Ensure Razorpay order ID matches the order document's stored Razorpay order ID
+                if (
+                  razorpayOrderId &&
+                  orderDoc.razorpayOrderId &&
+                  orderDoc.razorpayOrderId !== razorpayOrderId
+                ) {
+                  console.warn(
+                    `Webhook order_id mismatch for order ${internalOrderId}: expected ${orderDoc.razorpayOrderId}, got ${razorpayOrderId}`
+                  );
+                  return jsonResponse(
+                    request,
+                    { success: false, error: "Mismatched Razorpay order ID for order." },
+                    400
+                  );
+                }
+
                 // Out-of-order check: do not double-process if already Paid
+                if (orderDoc.paymentStatus === "Paid") {
                   console.log(`Order ${internalOrderId} is already marked Paid.`);
                 } else {
                   const paidAt = new Date().toISOString();
@@ -1346,6 +1463,7 @@ export default {
                       },
                     ],
                   };
+
 
                   // TASK 2.5: capture and log patchFirestoreDoc result for webhook path.
                   let webhookPatchOk = false;
@@ -1382,6 +1500,7 @@ export default {
                   }
                 }
               }
+            }
           } else if (event.event === "payment.failed") {
             const paymentEntity = event.payload?.payment?.entity;
             const internalOrderId = paymentEntity?.notes?.internalOrderId;
@@ -1663,6 +1782,397 @@ export default {
                 : "Authentication or delete failed.",
           },
           401
+        );
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // SERVER-CONTROLLED EMAIL DISPATCH (POST /api/mail/send)
+    // ------------------------------------------------------------------------
+    if (request.method === "POST" && pathname === "/api/mail/send") {
+      let uid: string;
+      let adminToken: string;
+      try {
+        uid = await authenticateUser(request);
+        adminToken = await getPrivilegedFirestoreAccessToken(env);
+      } catch (authErr: any) {
+        return jsonResponse(
+          request,
+          {
+            success: false,
+            error: `Authentication required: ${authErr?.message || "Missing or invalid token."}`,
+          },
+          401
+        );
+      }
+
+      try {
+        const body: any = await request.json();
+        const { targetId, eventType, data = {} } = body || {};
+
+        if (!targetId || typeof targetId !== "string" || !eventType) {
+          return jsonResponse(
+            request,
+            { success: false, error: "targetId and eventType are required." },
+            400
+          );
+        }
+
+        if (!/^[A-Za-z0-9_-]+$/.test(targetId)) {
+          return jsonResponse(
+            request,
+            { success: false, error: "Invalid targetId format. Must match ^[A-Za-z0-9_-]+$." },
+            400
+          );
+        }
+
+        // Caller must either be an admin or the owner of the target document
+        let userRole = "customer";
+        try {
+          const userDoc = await getFirestoreDoc(projectId, "users", uid, apiKey, adminToken);
+          if (userDoc?.role === "admin") {
+            userRole = "admin";
+          }
+        } catch (e) {
+          console.warn("[mail] Could not look up user role, assuming customer:", e);
+        }
+
+        const isAdmin = userRole === "admin";
+
+        let recipientEmail = "";
+        let recipientName = "Customer";
+        let mailSubject = "";
+        let mailHtml = "";
+        let mailText = "";
+        let mailDocId = "";
+
+        const emailHeaderHtml = `
+          <div style="background-color: #0c0a09; padding: 24px; text-align: center; border-top-left-radius: 12px; border-top-right-radius: 12px;">
+            <h1 style="color: #ff4d00; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">
+              SHILP SAHAYAK
+            </h1>
+            <p style="color: #a8a29e; margin: 4px 0 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; font-family: monospace;">
+              3D Fabrication & Precision Prototyping Studio
+            </p>
+          </div>
+        `;
+
+        const emailFooterHtml = `
+          <div style="background-color: #fafaf9; border-top: 1px solid #e7e5e4; padding: 20px; text-align: center; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+            <p style="color: #78716c; font-size: 12px; margin: 0 0 8px 0;">
+              Have questions about slicing, materials, or your custom fabrication order?
+            </p>
+            <p style="margin: 0; font-size: 12px;">
+              <a href="mailto:support@shilpsahayak.in" style="color: #ff4d00; text-decoration: none; font-weight: 600;">support@shilpsahayak.in</a>
+              &nbsp;•&nbsp;
+              <a href="https://shilpsahayak.in/account" style="color: #ff4d00; text-decoration: none; font-weight: 600;">Studio Dashboard</a>
+            </p>
+            <p style="color: #a8a29e; font-size: 10px; margin: 12px 0 0 0; font-family: monospace;">
+              © ${new Date().getFullYear()} Shilp Sahayak Studio. Patiala, Punjab, India.
+            </p>
+          </div>
+        `;
+
+        if (eventType === "quote_ready" || eventType === "quote_received") {
+          const quoteDoc = await getFirestoreDoc(projectId, "quotes", targetId, apiKey, adminToken);
+          if (!quoteDoc) {
+            return jsonResponse(request, { success: false, error: "Quote not found." }, 404);
+          }
+
+          if (eventType === "quote_ready" && !isAdmin) {
+            return jsonResponse(request, { success: false, error: "Only admins can send quote_ready notifications." }, 403);
+          }
+
+          if (eventType === "quote_ready") {
+            const actualQuoteStatus = String(quoteDoc.status || "").toLowerCase();
+            if (actualQuoteStatus !== "quoted" && actualQuoteStatus !== "ready") {
+              return jsonResponse(
+                request,
+                { success: false, error: `Cannot send quote_ready email for quote with status "${quoteDoc.status}". Expected "Quoted" or "Ready".` },
+                400
+              );
+            }
+          }
+
+          if (eventType === "quote_received" && quoteDoc.customerId && quoteDoc.customerId !== uid && !isAdmin) {
+            return jsonResponse(request, { success: false, error: "Unauthorized access to quote." }, 403);
+          }
+
+          recipientEmail = quoteDoc.customerEmail;
+          recipientName = quoteDoc.customerName || "Creator";
+          if (!recipientEmail || !recipientEmail.includes("@")) {
+            return jsonResponse(request, { success: false, error: "Target quote does not have a valid customer email." }, 400);
+          }
+
+          const shortId = targetId.slice(0, 8).toUpperCase();
+          const safeCustomerName = escapeHtml(recipientName);
+          const safeFileName = escapeHtml(quoteDoc.fileName || "Uploaded Model");
+
+          if (eventType === "quote_ready") {
+            const price = Number(data.price ?? quoteDoc.adminPrice ?? 0);
+            const expiresAt = data.expiresAt || quoteDoc.expiresAt;
+            const expiryFormatted = expiresAt
+              ? new Date(expiresAt).toLocaleDateString("en-IN", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })
+              : "7 Days";
+
+            mailDocId = `mail_quote_ready_${targetId}_${price}`;
+            mailSubject = `Your 3D Print Quote #${shortId} is Ready — ₹${price.toLocaleString("en-IN")}`;
+            mailText = `Hello ${safeCustomerName}, your custom 3D quote for ${safeFileName} is ready: ₹${price.toLocaleString("en-IN")}. Offer valid until ${expiryFormatted}. View your quote: https://shilpsahayak.in/account`;
+            mailHtml = `
+              <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e7e5e4; border-radius: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1c1917;">
+                ${emailHeaderHtml}
+                <div style="padding: 32px 24px;">
+                  <div style="display: inline-block; background-color: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; font-family: monospace; text-transform: uppercase;">
+                    CAD Quotation Ready
+                  </div>
+                  <h2 style="font-size: 20px; font-weight: 700; margin: 12px 0 8px 0; color: #0c0a09;">
+                    Hello ${safeCustomerName}, your custom 3D quote is ready!
+                  </h2>
+                  <p style="font-size: 14px; line-height: 1.5; color: #57534e; margin: 0 0 24px 0;">
+                    Our workshop engineers have inspected your 3D CAD model <strong>"${safeFileName}"</strong> and prepared your official quotation.
+                  </p>
+                  <div style="background-color: #fff7ed; border: 1px solid #ffedd5; border-radius: 10px; padding: 20px; text-align: center; margin-bottom: 24px;">
+                    <span style="font-size: 11px; font-family: monospace; color: #9a3412; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
+                      Quoted Fabrication Price
+                    </span>
+                    <div style="font-size: 32px; font-weight: 800; color: #ea580c; margin: 6px 0;">
+                      ₹${price.toLocaleString("en-IN")}
+                    </div>
+                    <div style="font-size: 12px; color: #b45309; font-weight: 600;">
+                      ⏳ Offer valid until: <strong>${escapeHtml(expiryFormatted)}</strong>
+                    </div>
+                  </div>
+                  <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 28px;">
+                    <tr style="border-bottom: 1px solid #f5f5f4;">
+                      <td style="padding: 8px 0; color: #78716c; font-family: monospace;">Model File:</td>
+                      <td style="padding: 8px 0; font-weight: 600; text-align: right; color: #0c0a09;">${safeFileName}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #f5f5f4;">
+                      <td style="padding: 8px 0; color: #78716c; font-family: monospace;">Material &amp; Color:</td>
+                      <td style="padding: 8px 0; font-weight: 600; text-align: right; color: #0c0a09;">${escapeHtml(quoteDoc.material || "PLA")} (${escapeHtml(quoteDoc.color || "Standard")})</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #f5f5f4;">
+                      <td style="padding: 8px 0; color: #78716c; font-family: monospace;">Quantity:</td>
+                      <td style="padding: 8px 0; font-weight: 600; text-align: right; color: #0c0a09;">${Number(quoteDoc.quantity || 1)} unit(s)</td>
+                    </tr>
+                  </table>
+                  <div style="text-align: center; margin-bottom: 24px;">
+                    <a href="https://shilpsahayak.in/account" style="display: inline-block; background-color: #ff4d00; color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none; padding: 14px 32px; border-radius: 8px;">
+                      Review &amp; Accept Quote ➔
+                    </a>
+                  </div>
+                </div>
+                ${emailFooterHtml}
+              </div>
+            `;
+          } else {
+            // quote_received
+            const safeNotes = escapeHtml(data.notes || quoteDoc.notes || "");
+            mailDocId = `mail_quote_received_${targetId}`;
+            mailSubject = `Quote Request #${shortId} Received — Shilp Sahayak`;
+            mailText = `Hi ${safeCustomerName}, we received your custom 3D printing quote request #${shortId}. Our engineering team will review your model and send you a quote within 48 hours.`;
+            mailHtml = `
+              <div style="max-width: 600px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; border-radius: 12px; overflow: hidden; border: 1px solid #e7e5e4;">
+                ${emailHeaderHtml}
+                <div style="padding: 32px 24px; background: #ffffff;">
+                  <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 700; color: #1c1917;">
+                    Quote Request Received ✓
+                  </h2>
+                  <p style="color: #44403c; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
+                    Hi ${safeCustomerName},<br/><br/>
+                    We have received your custom 3D printing quote request. Our engineering team will review your model and send you a detailed quotation within <strong>48 hours</strong>.
+                  </p>
+                  <div style="background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 10px; padding: 20px; margin: 0 0 24px 0;">
+                    <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #78716c; font-family: monospace;">Request Summary</p>
+                    <table style="width: 100%; border-collapse: collapse;">
+                      <tr>
+                        <td style="padding: 6px 0; font-size: 13px; color: #78716c; width: 140px;">Request ID</td>
+                        <td style="padding: 6px 0; font-size: 13px; font-weight: 700; color: #1c1917; font-family: monospace;">#${shortId}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; font-size: 13px; color: #78716c;">File</td>
+                        <td style="padding: 6px 0; font-size: 13px; color: #1c1917;">${safeFileName}</td>
+                      </tr>
+                      ${safeNotes ? `<tr>
+                        <td style="padding: 6px 0; font-size: 13px; color: #78716c; vertical-align: top;">Notes</td>
+                        <td style="padding: 6px 0; font-size: 13px; color: #1c1917;">${safeNotes}</td>
+                      </tr>` : ""}
+                    </table>
+                  </div>
+                  <div style="text-align: center;">
+                    <a href="https://shilpsahayak.in/account" style="display: inline-block; background: #ff4d00; color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-family: monospace; text-transform: uppercase;">
+                      View My Requests
+                    </a>
+                  </div>
+                </div>
+                ${emailFooterHtml}
+              </div>
+            `;
+          }
+        } else if (eventType === "order_status" || eventType === "order_cancelled") {
+          const orderDoc = await getFirestoreDoc(projectId, "orders", targetId, apiKey, adminToken);
+          if (!orderDoc) {
+            return jsonResponse(request, { success: false, error: "Order not found." }, 404);
+          }
+
+          if (eventType === "order_status" && !isAdmin) {
+            return jsonResponse(request, { success: false, error: "Only admins can send order_status notifications." }, 403);
+          }
+
+          if (eventType === "order_cancelled" && orderDoc.customerId !== uid && !isAdmin) {
+            return jsonResponse(request, { success: false, error: "Unauthorized access to order." }, 403);
+          }
+
+          if (eventType === "order_cancelled") {
+            const actualStatus = String(orderDoc.status || "").toLowerCase();
+            if (actualStatus !== "cancelled") {
+              return jsonResponse(
+                request,
+                { success: false, error: `Cannot send order_cancelled email for order with status "${orderDoc.status}". Order must be Cancelled in database first.` },
+                400
+              );
+            }
+          }
+
+          if (eventType === "order_status") {
+            const expectedStatus = String(data.status || "").trim();
+            const actualStatus = String(orderDoc.status || "").trim();
+            if (expectedStatus && actualStatus.toLowerCase() !== expectedStatus.toLowerCase()) {
+              return jsonResponse(
+                request,
+                { success: false, error: `Status mismatch: Requested email for status "${expectedStatus}", but order in database has status "${actualStatus}".` },
+                400
+              );
+            }
+          }
+
+          recipientEmail = orderDoc.customerEmail;
+          recipientName = orderDoc.customerName || "Customer";
+          if (!recipientEmail || !recipientEmail.includes("@")) {
+            return jsonResponse(request, { success: false, error: "Target order does not have a valid customer email." }, 400);
+          }
+
+          const shortId = targetId.slice(0, 8).toUpperCase();
+          const safeCustomerName = escapeHtml(recipientName);
+
+          if (eventType === "order_status") {
+            const status = String(data.status || orderDoc.status || "");
+            const trackingNumber = data.trackingNumber || orderDoc.trackingNumber;
+            const courierPartner = data.courierPartner || orderDoc.courierPartner;
+            const safeStatus = escapeHtml(status);
+            const safeTracking = trackingNumber ? escapeHtml(trackingNumber) : "";
+            const safeCourier = courierPartner ? escapeHtml(courierPartner) : "";
+
+            mailDocId = `mail_order_status_${targetId}_${status}`;
+            mailSubject = `Update on Order #${shortId}: ${safeStatus} — Shilp Sahayak`;
+            mailText = `Update on Order #${shortId}: Your order status has been updated to ${safeStatus}. Track online: https://shilpsahayak.in/account`;
+            mailHtml = `
+              <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e7e5e4; border-radius: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1c1917;">
+                ${emailHeaderHtml}
+                <div style="padding: 32px 24px;">
+                  <h2 style="font-size: 20px; font-weight: 700; margin: 0 0 10px 0; color: #0c0a09;">
+                    Order Status: ${safeStatus}
+                  </h2>
+                  <p style="font-size: 14px; line-height: 1.5; color: #57534e; margin: 0 0 20px 0;">
+                    Hello ${safeCustomerName}, your order #${shortId} status has been updated to "${safeStatus}".
+                  </p>
+                  <div style="background-color: #f5f5f4; border-radius: 8px; padding: 16px; margin-bottom: 24px; font-size: 13px;">
+                    <div style="margin-bottom: 6px;"><strong>Order ID:</strong> #${shortId}</div>
+                    <div><strong>Current Status:</strong> <span style="color: #ff4d00; font-weight: 700;">${safeStatus}</span></div>
+                    ${safeTracking ? `<div style="margin-top: 6px;"><strong>Tracking AWB:</strong> <span style="font-family: monospace;">${safeTracking} (${safeCourier || "Courier"})</span></div>` : ""}
+                  </div>
+                  <div style="text-align: center; margin-bottom: 20px;">
+                    <a href="https://shilpsahayak.in/account" style="display: inline-block; background-color: #ff4d00; color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 28px; border-radius: 8px;">
+                      View Order in Account ➔
+                    </a>
+                  </div>
+                </div>
+                ${emailFooterHtml}
+              </div>
+            `;
+          } else {
+            // order_cancelled
+            const reason = data.reason || "Cancelled as requested prior to production";
+            const safeReason = escapeHtml(reason);
+            const total = Number(orderDoc.total || 0);
+
+            mailDocId = `mail_order_cancelled_${targetId}`;
+            mailSubject = `Order Cancelled & Refund Initiated #${shortId} — Shilp Sahayak`;
+            mailText = `Your order #${shortId} has been cancelled. A 100% refund of ₹${total.toLocaleString("en-IN")} will be credited within 2-3 business days.`;
+            mailHtml = `
+              <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e7e5e4; border-radius: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1c1917;">
+                ${emailHeaderHtml}
+                <div style="padding: 32px 24px;">
+                  <div style="display: inline-block; background-color: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; font-family: monospace; text-transform: uppercase;">
+                    Order Cancelled &amp; Refund Initiated
+                  </div>
+                  <h2 style="font-size: 20px; font-weight: 700; margin: 12px 0 8px 0; color: #0c0a09;">
+                    Order #${shortId} has been cancelled
+                  </h2>
+                  <p style="font-size: 14px; line-height: 1.5; color: #57534e; margin: 0 0 20px 0;">
+                    Hello ${safeCustomerName}, as requested, your order has been cancelled prior to 3D production.
+                  </p>
+                  <div style="background-color: #fff7ed; border: 1px solid #ffedd5; border-radius: 10px; padding: 18px; text-align: center; margin-bottom: 20px;">
+                    <span style="font-size: 11px; font-family: monospace; color: #9a3412; font-weight: 700; text-transform: uppercase;">
+                      100% Refund Amount
+                    </span>
+                    <div style="font-size: 28px; font-weight: 800; color: #ea580c; margin: 4px 0;">
+                      ₹${total.toLocaleString("en-IN")}
+                    </div>
+                    <p style="font-size: 12px; color: #78716c; margin: 4px 0 0 0;">
+                      Your refund will be credited to your original payment method within <strong>2–3 business days</strong>.
+                    </p>
+                  </div>
+                  ${safeReason ? `<p style="font-size: 12px; color: #78716c;"><strong>Cancellation Reason:</strong> ${safeReason}</p>` : ""}
+                </div>
+                ${emailFooterHtml}
+              </div>
+            `;
+          }
+        } else {
+          return jsonResponse(request, { success: false, error: `Unsupported eventType: "${eventType}".` }, 400);
+        }
+
+        const mailPayload = {
+          to: [recipientEmail],
+          message: {
+            subject: mailSubject,
+            html: mailHtml,
+            text: mailText,
+          },
+          type: eventType,
+          metadata: {
+            targetId,
+            eventType,
+            triggeredBy: uid,
+          },
+          createdAt: new Date().toISOString(),
+          status: "queued",
+        };
+
+        await setFirestoreDoc(
+          projectId,
+          "mail",
+          mailDocId,
+          mailPayload,
+          apiKey,
+          adminToken
+        );
+
+        return jsonResponse(request, {
+          success: true,
+          mailId: mailDocId,
+        });
+      } catch (err: any) {
+        console.error("[mail] Dispatch error:", err);
+        return jsonResponse(
+          request,
+          { success: false, error: err?.message || "Failed to dispatch email." },
+          500
         );
       }
     }
