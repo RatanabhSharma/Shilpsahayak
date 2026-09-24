@@ -48,6 +48,11 @@ slicer-service/app/bin/venv/
 # Shilpsahayak Backend specifics
 slicer-service/venv/
 slicer-service/env/
-slicer-service/app/slicer_debug.log
-slicer-service/app/slicer_debug.log.*
+future-tasks/slicer/slicer-service/venv*/
+venv*/
+.venv*/
 *.log
+checkout_dump.txt
+search.ps1
+patch_rules.py
+
