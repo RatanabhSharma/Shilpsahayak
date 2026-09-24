@@ -2284,7 +2284,10 @@ describe("Authoritative Order Cancellation Endpoint (POST /api/orders/cancel)", 
     vi.unstubAllGlobals();
   });
 
-  it("concurrency & idempotency: concurrent cancellation requests succeed safely without duplicate stock restoration", async () => {
+  // NOTE: This test executes sequentially in the mock runner, not with true operating-system/network concurrency.
+  // In live multi-instance Cloudflare Worker deployments, a true atomic concurrency guard against concurrent
+  // cancellation races requires Firestore's `currentDocument.updateTime` precondition or transactional read-modify-write.
+  it("concurrency & idempotency: consecutive cancellation requests succeed safely without duplicate stock restoration", async () => {
     const customerToken = await createMockIdToken("user_customer_123");
     let commitCount = 0;
     let orderStatus = "Pending";
@@ -2329,7 +2332,7 @@ describe("Authoritative Order Cancellation Endpoint (POST /api/orders/cancel)", 
       body: JSON.stringify({ orderId: "ORD_CONCURRENT_RACE" }),
     });
 
-    // Call 2: Arrives concurrently or immediately after
+    // Call 2: Arrives immediately after or in sequence
     const res2 = await SELF.fetch("https://example.com/api/orders/cancel", {
       method: "POST",
       headers: {
@@ -2350,6 +2353,180 @@ describe("Authoritative Order Cancellation Endpoint (POST /api/orders/cancel)", 
 
     // Commit only called once; no duplicate stock restoration occurred
     expect(commitCount).toBe(1);
+    vi.unstubAllGlobals();
+  });
+});
+
+describe("Payment Capture on Cancelled Orders (/verify and webhook)", () => {
+  it("/api/payment/verify: preserves Cancelled status, records payment, sets needsRefund: true, and appends refund note", async () => {
+    const customerToken = await createMockIdToken("user_customer_123");
+    let patchBody: any = null;
+
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: "sa_token_mock" }), { status: 200 }));
+      }
+      if (url.includes("api.razorpay.com/v1/payments/pay_CANCELLED_LATE")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          id: "pay_CANCELLED_LATE",
+          order_id: "order_rzp_cancel_123",
+          status: "captured",
+          amount: 250000,
+          currency: "INR",
+          notes: { internalOrderId: "ORD_ALREADY_CANCELLED_BUYER" },
+        }), { status: 200 }));
+      }
+      if (url.includes("api.razorpay.com/v1/orders/order_rzp_cancel_123")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          id: "order_rzp_cancel_123",
+          receipt: "ORD_ALREADY_CANCELLED_BUYER",
+          status: "paid",
+        }), { status: 200 }));
+      }
+      if (url.includes("documents/orders/ORD_ALREADY_CANCELLED_BUYER")) {
+        if (init?.method === "PATCH") {
+          patchBody = JSON.parse(init?.body as string);
+          return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
+        }
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "ORD_ALREADY_CANCELLED_BUYER",
+            customerId: "user_customer_123",
+            customerName: "Alice",
+            customerEmail: "alice@example.com",
+            status: "Cancelled",
+            paymentStatus: "Pending",
+            razorpayOrderId: "order_rzp_cancel_123",
+            total: 2500,
+            timeline: [{ id: "tl_init", status: "Cancelled", note: "Customer cancelled" }],
+          }),
+        }), { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const secret = "your_razorpay_test_key_secret";
+    const sigPayload = `order_rzp_cancel_123|pay_CANCELLED_LATE`;
+    const validSignature = await computeHmacSha256(secret, sigPayload);
+
+    const response = await SELF.fetch("https://example.com/api/payment/verify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${customerToken}`,
+      },
+      body: JSON.stringify({
+        orderId: "ORD_ALREADY_CANCELLED_BUYER",
+        razorpayPaymentId: "pay_CANCELLED_LATE",
+        razorpayOrderId: "order_rzp_cancel_123",
+        razorpaySignature: validSignature,
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    const body: any = await response.json();
+    expect(body.success).toBe(true);
+    expect(body.status).toBe("Cancelled"); // Preserves Cancelled!
+    expect(body.paymentStatus).toBe("Paid");
+    expect(body.needsRefund).toBe(true);
+
+    // Verify Firestore patch payload
+    expect(patchBody).not.toBeNull();
+    const patchedFields = fromFirestoreFields(patchBody.fields);
+    expect(patchedFields.status).toBe("Cancelled");
+    expect(patchedFields.paymentStatus).toBe("Paid");
+    expect(patchedFields.needsRefund).toBe(true);
+    expect(patchedFields.paymentId).toBe("pay_CANCELLED_LATE");
+    const lastTl = patchedFields.timeline[patchedFields.timeline.length - 1];
+    expect(lastTl.note).toContain("Marked for refund");
+
+    vi.unstubAllGlobals();
+  });
+
+  it("webhook payment.captured: preserves Cancelled status, records payment, and sets needsRefund: true", async () => {
+    let webhookPatchBody: any = null;
+
+    const webhookSecret = "your_razorpay_webhook_secret";
+    const payload = {
+      event: "payment.captured",
+      id: "evt_wh_cancel_123",
+      payload: {
+        payment: {
+          entity: {
+            id: "pay_WH_CANCELLED_123",
+            order_id: "order_rzp_wh_cancel",
+            status: "captured",
+            notes: { internalOrderId: "ORD_WH_CANCELLED" },
+          },
+        },
+        order: {
+          entity: {
+            id: "order_rzp_wh_cancel",
+            receipt: "ORD_WH_CANCELLED",
+          },
+        },
+      },
+    };
+
+    const rawBody = JSON.stringify(payload);
+    const signature = await computeHmacSha256(webhookSecret, rawBody);
+
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: "sa_token_mock" }), { status: 200 }));
+      }
+      if (url.includes("documents/webhook_events/")) {
+        return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
+      }
+      if (url.includes("documents/orders/ORD_WH_CANCELLED")) {
+        if (init?.method === "PATCH") {
+          webhookPatchBody = JSON.parse(init?.body as string);
+          return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
+        }
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "ORD_WH_CANCELLED",
+            customerId: "user_customer_123",
+            customerName: "Alice",
+            customerEmail: "alice@example.com",
+            status: "Cancelled",
+            paymentStatus: "Pending",
+            razorpayOrderId: "order_rzp_wh_cancel",
+            total: 1999,
+          }),
+        }), { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/payment/webhook", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Razorpay-Signature": signature,
+      },
+      body: rawBody,
+    });
+
+    expect(response.status).toBe(200);
+    const body: any = await response.json();
+    expect(body.status).toBe("processed");
+
+    expect(webhookPatchBody).not.toBeNull();
+    const fields = fromFirestoreFields(webhookPatchBody.fields);
+    expect(fields.status).toBe("Cancelled");
+    expect(fields.paymentStatus).toBe("Paid");
+    expect(fields.needsRefund).toBe(true);
+    expect(fields.paymentId).toBe("pay_WH_CANCELLED_123");
+    const lastTl = fields.timeline[fields.timeline.length - 1];
+    expect(lastTl.note).toContain("cancelled order");
+    expect(lastTl.note).toContain("Marked for refund");
+
     vi.unstubAllGlobals();
   });
 });

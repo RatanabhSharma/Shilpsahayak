@@ -1387,30 +1387,54 @@ export default {
           ? existingOrder.timeline
           : [];
 
-        // Check email deduplication guard: only send once per order
+        // 8. If order is already Cancelled: do not set it to Confirmed!
+        // Record paymentStatus = Paid, paymentId, needsRefund = true, and append a timeline note for admin refund.
+        const isCancelled = existingOrder.status === "Cancelled";
+        const targetStatus = isCancelled ? "Cancelled" : "Confirmed";
+
+        // Check email deduplication guard: only send confirmation once per non-cancelled order
         const shouldSendEmail =
+          !isCancelled &&
           !existingOrder.confirmationEmailSent &&
           existingOrder.paymentStatus !== "Paid";
 
         const updateData: Record<string, any> = {
           paymentStatus: "Paid",
-          status: "Confirmed",
+          status: targetStatus,
           paymentId: razorpayPaymentId,
           razorpayPaymentId,
           razorpayOrderId: existingOrder.razorpayOrderId,
           paidAt,
-          confirmationEmailSent: true,
+          confirmationEmailSent: !isCancelled,
           timeline: [
             ...timeline,
             {
               id: `tl_${Date.now()}`,
-              status: "Confirmed",
-              note: `Payment verified & captured via Razorpay (Ref: ${razorpayPaymentId})`,
+              status: targetStatus,
+              note: isCancelled
+                ? `Payment received after order was cancelled (Ref: ${razorpayPaymentId}). Marked for refund.`
+                : `Payment verified & captured via Razorpay (Ref: ${razorpayPaymentId})`,
               timestamp: paidAt,
               updatedBy: "Razorpay Gateway",
             },
           ],
         };
+
+        const patchFields = [
+          "paymentStatus",
+          "status",
+          "paymentId",
+          "razorpayPaymentId",
+          "razorpayOrderId",
+          "paidAt",
+          "confirmationEmailSent",
+          "timeline",
+        ];
+
+        if (isCancelled) {
+          updateData.needsRefund = true;
+          patchFields.push("needsRefund");
+        }
 
         // TASK 2.5: capture and log patchFirestoreDoc result.
         // patchFirestoreDoc throws a FirestoreRequestError on failure (it never silently returns false),
@@ -1423,16 +1447,7 @@ export default {
             "orders",
             orderId,
             updateData,
-            [
-              "paymentStatus",
-              "status",
-              "paymentId",
-              "razorpayPaymentId",
-              "razorpayOrderId",
-              "paidAt",
-              "confirmationEmailSent",
-              "timeline",
-            ],
+            patchFields,
             apiKey,
             firestoreToken
           );
@@ -1440,7 +1455,7 @@ export default {
           console.log(`[payment] Firestore patch result: ${patchOk ? "OK" : "FAILED"} (order ${orderId})`);
         }
 
-        // Queue order confirmation email if not already sent
+        // Queue order confirmation email if not already sent and not cancelled
         if (shouldSendEmail) {
           await queueConfirmationEmail(
             projectId,
@@ -1454,8 +1469,9 @@ export default {
           success: true,
           orderId,
           paymentId: razorpayPaymentId,
-          status: "Confirmed",
+          status: targetStatus,
           paymentStatus: "Paid",
+          ...(isCancelled ? { needsRefund: true } : {}),
         });
       } catch (error: any) {
         console.error("Payment verification error:", error);
@@ -1674,29 +1690,49 @@ export default {
                   console.log(`Order ${internalOrderId} is already marked Paid.`);
                 } else {
                   const paidAt = new Date().toISOString();
+                  const isCancelled = orderDoc.status === "Cancelled";
+                  const targetStatus = isCancelled ? "Cancelled" : "Confirmed";
+
                   const shouldSendEmail =
+                    !isCancelled &&
                     !orderDoc.confirmationEmailSent &&
                     orderDoc.paymentStatus !== "Paid";
 
-                  const updateData = {
+                  const updateData: Record<string, any> = {
                     paymentStatus: "Paid",
-                    status: "Confirmed",
+                    status: targetStatus,
                     paymentId,
                     razorpayOrderId,
                     paidAt,
-                    confirmationEmailSent: true,
+                    confirmationEmailSent: !isCancelled,
                     timeline: [
                       ...(orderDoc.timeline || []),
                       {
                         id: `tl_${Date.now()}`,
-                        status: "Confirmed",
-                        note: `Payment captured via Razorpay Webhook (Ref: ${paymentId})`,
+                        status: targetStatus,
+                        note: isCancelled
+                          ? `Payment captured via Razorpay Webhook for cancelled order (Ref: ${paymentId}). Marked for refund.`
+                          : `Payment captured via Razorpay Webhook (Ref: ${paymentId})`,
                         timestamp: paidAt,
                         updatedBy: "Razorpay Webhook",
                       },
                     ],
                   };
 
+                  const patchFields = [
+                    "paymentStatus",
+                    "status",
+                    "paymentId",
+                    "razorpayOrderId",
+                    "paidAt",
+                    "confirmationEmailSent",
+                    "timeline",
+                  ];
+
+                  if (isCancelled) {
+                    updateData.needsRefund = true;
+                    patchFields.push("needsRefund");
+                  }
 
                   // TASK 2.5: capture and log patchFirestoreDoc result for webhook path.
                   let webhookPatchOk = false;
@@ -1706,15 +1742,7 @@ export default {
                       "orders",
                       internalOrderId,
                       updateData,
-                      [
-                        "paymentStatus",
-                        "status",
-                        "paymentId",
-                        "razorpayOrderId",
-                        "paidAt",
-                        "confirmationEmailSent",
-                        "timeline",
-                      ],
+                      patchFields,
                       apiKey,
                       adminToken
                     );
@@ -1722,7 +1750,7 @@ export default {
                     console.log(`[payment] Firestore patch result: ${webhookPatchOk ? "OK" : "FAILED"} (order ${internalOrderId}) [webhook]`);
                   }
 
-                  // Dispatch deduplicated confirmation email
+                  // Dispatch deduplicated confirmation email only if not cancelled
                   if (shouldSendEmail) {
                     await queueConfirmationEmail(
                       projectId,
