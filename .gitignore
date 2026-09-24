@@ -55,4 +55,5 @@ venv*/
 checkout_dump.txt
 search.ps1
 patch_rules.py
+security.diff
 

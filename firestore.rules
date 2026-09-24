@@ -127,7 +127,20 @@ service cloud.firestore {
         ||
         (
           isSignedIn() &&
-          request.resource.data.customerId == request.auth.uid
+          request.resource.data.customerId == request.auth.uid &&
+          request.resource.data.status == 'Pending' &&
+          !request.resource.data.keys().hasAny([
+            'finalPrice',
+            'totalPrice',
+            'adminPrice',
+            'adminNotes',
+            'adminAdjustmentReason',
+            'orderId',
+            'reviewedAt',
+            'quotedAt',
+            'convertedAt',
+            'expiresAt'
+          ])
         );
 
       allow update: if
@@ -176,9 +189,26 @@ service cloud.firestore {
     // INQUIRIES / CONTACT SUBMISSIONS
     // =========================================================
     match /inquiries/{inquiryId} {
-      allow create: if request.resource.data.name is string
+      allow create: if request.resource.data.keys().hasOnly([
+                        'name', 'email', 'phone', 'subject', 'message', 'status', 'createdAt'
+                      ])
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() <= 100
                     && request.resource.data.email is string
-                    && request.resource.data.message is string;
+                    && request.resource.data.email.size() > 0
+                    && request.resource.data.email.size() <= 150
+                    && request.resource.data.phone is string
+                    && request.resource.data.phone.size() <= 30
+                    && request.resource.data.subject is string
+                    && request.resource.data.subject.size() > 0
+                    && request.resource.data.subject.size() <= 200
+                    && request.resource.data.message is string
+                    && request.resource.data.message.size() > 0
+                    && request.resource.data.message.size() <= 3000
+                    && request.resource.data.status in ['unread', 'pending']
+                    && request.resource.data.createdAt is string
+                    && request.resource.data.createdAt.size() <= 50;
       allow read, update, delete: if isAdmin();
     }
   }
