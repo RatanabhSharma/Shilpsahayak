@@ -82,10 +82,21 @@ function jsonResponse(
   });
 }
 
+export interface AuthenticatedUser {
+  uid: string;
+  email?: string;
+  emailVerified?: boolean;
+}
+
 /**
- * Verify Firebase ID token and return Firebase UID.
+ * Verify Firebase ID token and return Firebase user identity.
  */
 export async function authenticateUser(request: Request): Promise<string> {
+  const user = await authenticateFirebaseUser(request);
+  return user.uid;
+}
+
+export async function authenticateFirebaseUser(request: Request): Promise<AuthenticatedUser> {
   const authorization = request.headers.get("Authorization");
 
   if (!authorization) {
@@ -112,7 +123,11 @@ export async function authenticateUser(request: Request): Promise<string> {
     throw new Error("Invalid Firebase UID.");
   }
 
-  return payload.sub;
+  return {
+    uid: payload.sub,
+    email: typeof payload.email === "string" ? payload.email : undefined,
+    emailVerified: Boolean(payload.email_verified),
+  };
 }
 
 function getFileExtension(fileName: string): string {
@@ -676,7 +691,7 @@ export async function verifyRazorpayPaymentCapture(
   expectedOrderId: string,
   expectedAmountInPaise: number,
   expectedCurrency: string = "INR"
-): Promise<{ valid: boolean; error?: string }> {
+): Promise<{ valid: boolean; error?: string; payment?: any }> {
   // Fail closed if credentials are missing, empty, or placeholder
   if (
     !keyId ||
@@ -692,7 +707,6 @@ export async function verifyRazorpayPaymentCapture(
       error: "Payment gateway credentials are not properly configured on server.",
     };
   }
-
 
   try {
     const authHeader = `Basic ${btoa(`${keyId}:${keySecret}`)}`;
@@ -740,7 +754,7 @@ export async function verifyRazorpayPaymentCapture(
       };
     }
 
-    return { valid: true };
+    return { valid: true, payment };
   } catch (err: any) {
     console.error("Error verifying payment capture with Razorpay:", err);
     return { valid: false, error: err?.message || "Failed to reach Razorpay API." };
@@ -794,12 +808,6 @@ export default {
       let firestoreToken: string;
       try {
         uid = await authenticateUser(request);
-        firestoreToken = await getPrivilegedFirestoreAccessToken(env);
-        // TASK 2-B/C diagnostics: log token source and project ID.
-        // getPrivilegedFirestoreAccessToken throws if credentials are missing or token acquisition fails,
-        // so reaching this line confirms a service-account token was obtained.
-        console.log("[payment] Firestore write token source: service-account");
-        console.log(`[payment] Firestore project: ${env.FIREBASE_PROJECT_ID || DEFAULT_FIREBASE_PROJECT_ID}`);
       } catch (authErr: any) {
         return jsonResponse(
           request,
@@ -808,6 +816,22 @@ export default {
             error: `Authentication required: ${authErr?.message || "Missing or invalid token."}`,
           },
           401
+        );
+      }
+
+      try {
+        firestoreToken = await getPrivilegedFirestoreAccessToken(env);
+        // TASK 2-B/C diagnostics: log token source and project ID.
+        // getPrivilegedFirestoreAccessToken throws if credentials are missing or token acquisition fails,
+        // so reaching this line confirms a service-account token was obtained.
+        console.log("[payment] Firestore write token source: service-account");
+        console.log(`[payment] Firestore project: ${env.FIREBASE_PROJECT_ID || DEFAULT_FIREBASE_PROJECT_ID}`);
+      } catch (tokenErr: any) {
+        console.error("[payment] Service account credentials error in create-order:", tokenErr?.message);
+        return jsonResponse(
+          request,
+          { success: false, error: "Server configuration error." },
+          500
         );
       }
 
@@ -1043,13 +1067,24 @@ export default {
         );
       }
 
+      let firestoreToken: string;
       try {
-        const firestoreToken = await getPrivilegedFirestoreAccessToken(env);
+        firestoreToken = await getPrivilegedFirestoreAccessToken(env);
         // TASK 2-B/C diagnostics: log token source and project ID.
         // getPrivilegedFirestoreAccessToken throws if credentials are missing or token acquisition fails,
         // so reaching this line confirms a service-account token was obtained.
         console.log("[payment] Firestore write token source: service-account");
         console.log(`[payment] Firestore project: ${env.FIREBASE_PROJECT_ID || DEFAULT_FIREBASE_PROJECT_ID}`);
+      } catch (tokenErr: any) {
+        console.error("[payment] Service account credentials error in verify:", tokenErr?.message);
+        return jsonResponse(
+          request,
+          { success: false, error: "Server configuration error." },
+          500
+        );
+      }
+
+      try {
         const body: any = await request.json();
         const {
           orderId,
@@ -1108,28 +1143,7 @@ export default {
           );
         }
 
-        // 4b. Re-marking protection: if order is already Paid, verify it's the exact same paymentId or reject
-        if (existingOrder.paymentStatus === "Paid") {
-          if (existingOrder.paymentId === razorpayPaymentId || existingOrder.razorpayPaymentId === razorpayPaymentId) {
-            console.log(`Order ${orderId} already marked Paid with matching payment ID ${razorpayPaymentId}. Idempotent return.`);
-            return jsonResponse(request, {
-              success: true,
-              orderId,
-              paymentId: razorpayPaymentId,
-              status: existingOrder.status || "Confirmed",
-              paymentStatus: "Paid",
-            });
-          } else {
-            console.warn(`Order ${orderId} already paid with different payment ID: ${existingOrder.paymentId} vs ${razorpayPaymentId}`);
-            return jsonResponse(
-              request,
-              { success: false, error: "Order is already paid with a different payment reference." },
-              400
-            );
-          }
-        }
-
-        // 5. Verify Razorpay checkout signature using the trusted internal Razorpay order ID + payment ID
+        // 5. STEP A: Verify Razorpay checkout signature FIRST (before any idempotency or status checks)
         const keySecret = env.RAZORPAY_KEY_SECRET;
         const keyId = env.RAZORPAY_KEY_ID;
 
@@ -1156,6 +1170,27 @@ export default {
             { success: false, error: "Invalid payment signature verification failed." },
             400
           );
+        }
+
+        // 5b. Re-marking protection: if order is already Paid, verify it's the exact same paymentId or reject
+        if (existingOrder.paymentStatus === "Paid") {
+          if (existingOrder.paymentId === razorpayPaymentId || existingOrder.razorpayPaymentId === razorpayPaymentId) {
+            console.log(`Order ${orderId} already marked Paid with matching payment ID ${razorpayPaymentId}. Idempotent return.`);
+            return jsonResponse(request, {
+              success: true,
+              orderId,
+              paymentId: razorpayPaymentId,
+              status: existingOrder.status || "Confirmed",
+              paymentStatus: "Paid",
+            });
+          } else {
+            console.warn(`Order ${orderId} already paid with different payment ID: ${existingOrder.paymentId} vs ${razorpayPaymentId}`);
+            return jsonResponse(
+              request,
+              { success: false, error: "Order is already paid with a different payment reference." },
+              400
+            );
+          }
         }
 
         // 6. Verify payment/order amount and currency
@@ -1189,6 +1224,26 @@ export default {
               success: false,
               error: captureVerification.error || "Payment is not verified as captured.",
             },
+            400
+          );
+        }
+
+        // Verify that the Razorpay payment's receipt or notes matches the internal order ID
+        const paymentData = captureVerification.payment;
+        const paymentInternalOrder =
+          paymentData?.notes?.internalOrderId ||
+          paymentData?.description?.match(/Order #(ORD_[A-Za-z0-9_-]+)/)?.[1];
+        if (
+          paymentData?.notes?.internalOrderId &&
+          paymentData.notes.internalOrderId !== orderId
+        ) {
+          console.warn("Razorpay payment notes internalOrderId mismatch:", {
+            expected: orderId,
+            received: paymentData.notes.internalOrderId,
+          });
+          return jsonResponse(
+            request,
+            { success: false, error: "Razorpay payment receipt does not match this internal order." },
             400
           );
         }
@@ -1329,7 +1384,17 @@ export default {
         }
 
         // Webhooks have no browser token; use only the service-account credential.
-        const adminToken = await getPrivilegedFirestoreAccessToken(env);
+        let adminToken: string;
+        try {
+          adminToken = await getPrivilegedFirestoreAccessToken(env);
+        } catch (tokenErr: any) {
+          console.error("[webhook] Service account credentials error in webhook:", tokenErr?.message);
+          return jsonResponse(
+            request,
+            { success: false, error: "Server configuration error." },
+            500
+          );
+        }
 
         // Webhook Idempotency Check
         const existingEvent = await getFirestoreDoc(
@@ -1420,18 +1485,31 @@ export default {
               );
 
               if (orderDoc) {
-                // Ensure Razorpay order ID matches the order document's stored Razorpay order ID
+                // Reject if either razorpayOrderId is missing or they differ
                 if (
-                  razorpayOrderId &&
-                  orderDoc.razorpayOrderId &&
+                  !razorpayOrderId ||
+                  !orderDoc.razorpayOrderId ||
                   orderDoc.razorpayOrderId !== razorpayOrderId
                 ) {
                   console.warn(
-                    `Webhook order_id mismatch for order ${internalOrderId}: expected ${orderDoc.razorpayOrderId}, got ${razorpayOrderId}`
+                    `Webhook order_id verification failed for order ${internalOrderId}: event order_id="${razorpayOrderId}", stored razorpayOrderId="${orderDoc.razorpayOrderId}"`
                   );
                   return jsonResponse(
                     request,
-                    { success: false, error: "Mismatched Razorpay order ID for order." },
+                    { success: false, error: "Mismatched or missing Razorpay order ID for order." },
+                    400
+                  );
+                }
+
+                // Verify the Razorpay payment/order receipt or notes matches this internal order ID
+                const eventReceipt = orderEntity?.receipt || paymentEntity?.notes?.internalOrderId || orderEntity?.notes?.internalOrderId;
+                if (eventReceipt && eventReceipt !== internalOrderId) {
+                  console.warn(
+                    `Webhook internalOrderId mismatch: event receipt/note="${eventReceipt}", internalOrderId="${internalOrderId}"`
+                  );
+                  return jsonResponse(
+                    request,
+                    { success: false, error: "Mismatched internal order receipt in webhook." },
                     400
                   );
                 }
@@ -1790,11 +1868,10 @@ export default {
     // SERVER-CONTROLLED EMAIL DISPATCH (POST /api/mail/send)
     // ------------------------------------------------------------------------
     if (request.method === "POST" && pathname === "/api/mail/send") {
-      let uid: string;
+      let authUser: AuthenticatedUser;
       let adminToken: string;
       try {
-        uid = await authenticateUser(request);
-        adminToken = await getPrivilegedFirestoreAccessToken(env);
+        authUser = await authenticateFirebaseUser(request);
       } catch (authErr: any) {
         return jsonResponse(
           request,
@@ -1805,6 +1882,19 @@ export default {
           401
         );
       }
+
+      try {
+        adminToken = await getPrivilegedFirestoreAccessToken(env);
+      } catch (tokenErr: any) {
+        console.error("[mail] Service account token error:", tokenErr?.message);
+        return jsonResponse(
+          request,
+          { success: false, error: "Server configuration error." },
+          500
+        );
+      }
+
+      const uid = authUser.uid;
 
       try {
         const body: any = await request.json();
@@ -1892,14 +1982,24 @@ export default {
                 400
               );
             }
+            recipientEmail = quoteDoc.customerEmail;
+            recipientName = quoteDoc.customerName || "Creator";
+          } else {
+            // quote_received (customer-triggered): require verified email from Firebase auth token
+            if (quoteDoc.customerId && quoteDoc.customerId !== uid && !isAdmin) {
+              return jsonResponse(request, { success: false, error: "Unauthorized access to quote." }, 403);
+            }
+            if (!authUser.email || !authUser.emailVerified) {
+              return jsonResponse(
+                request,
+                { success: false, error: "Verified email address is required in your authentication token to dispatch quote emails." },
+                403
+              );
+            }
+            recipientEmail = authUser.email;
+            recipientName = quoteDoc.customerName || "Creator";
           }
 
-          if (eventType === "quote_received" && quoteDoc.customerId && quoteDoc.customerId !== uid && !isAdmin) {
-            return jsonResponse(request, { success: false, error: "Unauthorized access to quote." }, 403);
-          }
-
-          recipientEmail = quoteDoc.customerEmail;
-          recipientName = quoteDoc.customerName || "Creator";
           if (!recipientEmail || !recipientEmail.includes("@")) {
             return jsonResponse(request, { success: false, error: "Target quote does not have a valid customer email." }, 400);
           }
@@ -2036,6 +2136,20 @@ export default {
                 400
               );
             }
+            // Customer-triggered cancellation: enforce email directly from verified token
+            if (!authUser.email || !authUser.emailVerified) {
+              return jsonResponse(
+                request,
+                { success: false, error: "Verified email address is required in your authentication token to dispatch cancellation emails." },
+                403
+              );
+            }
+            recipientEmail = authUser.email;
+            recipientName = orderDoc.customerName || "Customer";
+          } else {
+            // order_status (admin-triggered): send to stored customer record email
+            recipientEmail = orderDoc.customerEmail;
+            recipientName = orderDoc.customerName || "Customer";
           }
 
           if (eventType === "order_status") {
@@ -2050,8 +2164,6 @@ export default {
             }
           }
 
-          recipientEmail = orderDoc.customerEmail;
-          recipientName = orderDoc.customerName || "Customer";
           if (!recipientEmail || !recipientEmail.includes("@")) {
             return jsonResponse(request, { success: false, error: "Target order does not have a valid customer email." }, 400);
           }

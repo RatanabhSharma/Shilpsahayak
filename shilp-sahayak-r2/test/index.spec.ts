@@ -359,6 +359,7 @@ describe("Webhook Processing & Idempotency", () => {
         return Promise.resolve(new Response(JSON.stringify({
           fields: toFirestoreFields({
             id: "ORD_WEBHOOK_1",
+            razorpayOrderId: "order_webhook_test_1",
             paymentStatus: "Pending",
             status: "Pending",
             customerEmail: "client@example.com",
@@ -490,7 +491,7 @@ describe("Webhook Processing & Idempotency", () => {
     expect(response.status).toBe(400);
     const body: any = await response.json();
     expect(body.success).toBe(false);
-    expect(body.error).toContain("Mismatched Razorpay order ID");
+    expect(body.error).toContain("Mismatched or missing Razorpay order ID");
     vi.unstubAllGlobals();
   });
 
@@ -601,29 +602,33 @@ describe("Payment Endpoints Authentication & Security (Worker)", () => {
   });
 });
 
+const testPrivateKey = `-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQChj9OsiFMNYk+W\nx+x8TIf15qXlpzSfcTXj4yU2Fa1/Op4ycGpvBtTZvKncuZUY4FMQ95Id3P/ANXAY\niqP9UgWux3Z8g7Aysi0KfNjhcXLZqQSo6u8nE8WJ/MLPvpRbrAoPW3hjoMlwQIky\n9Ubd1WDwccSyIJi2GeyMXvO4y0J5XS5kpZ/nsC9oeuYmC6luxSWGN8/LOwcCn0nu\nVczYLf8JkJb5r/X9TKgMp6Baw1WgoAdq3sMBfUqh0MJYRDLkiTFkEhdpuCmXxcu5\n6WNYYtIdoVwdBPRXvXkDsE8jM+s90iwL+tp3UwdfrRaIGn/gL1zcLm4x26vL8UPL\nEx3mdQcFAgMBAAECggEAPPXwmFrN/7BXOJ0SKeqUqJ/RfCCFth25CFZmbYxrbSTY\nmU6akm8g9FGARHVQAVVvcmj/3L3NUKC5PcFeVFDVLRg9KIll/BMH9Lub+CDfBasF\nQ5l2CKgossLJXSrbfuWg3B+XAvyh1XW8bxpmlYCUddVvswiipp+MhoCzdMhZOkJp\nhd53JSRAWwVTGu3ck5XHtwtT/ULUC3ySKC3ecNBChBdiT04n3AL+JFbqEBmC1o3W\nfHL/3ToyLMc483vbeW1/KDc2NTeSu9yuiGV6Um3znUc8Baz0jxuvqDp1j+rlemQD\nd7PujYKvtfCyjZbfsscLAOMEDVC4/6fSbzp53q9xlwKBgQDUhO77swos96vOd2D8\ny3OS5nsmLdfrvhsT3S8yrAOHE/C74HOJa56IACi3UTklRKhqMSus3fjMRxgT9L2p\n8y8DtqWlecF46/AqrHrnjG8OrKvtB8Gmn1iYWJ7PCbx8xEwMddN+UJxdGuk3jX+9\nm6iIvmE0o3e/syTs0SOVl5WF5wKBgQDCneiKPEjSeu/bTJPqHHl+aFHpxJKtjKKr\n9ojQgV6VoDpxyq6isz6I57UzDpX5zSC30q7FfbEWcTFCPB2mVeaH1FBZcGc+Aidm\nGt0eIlHV4wtGQQcsnNFc9dpkM3JFnaoRh+eYwpZqPiKlxgvHTCIaCuiFBvOsPTrx\ntALZXFqWMwKBgA+WfIz7sehgdjqbqQKBzcVdoHTJcgf5lrTbSWX3Ff8naEXvjanr\nueIR2OqxS3a/VXcMij6QvXoGUO7NyceYbb9g+z9q8dTzwVbv9cfcFh1GbwngwsR8\n9ZufDG71MN0Z7NYRImUmdoGhwq9vcoouy6rUA/8/aj4mXrP8FxcW2kHLAoGAWl64\n/HfB2Pr9JfgJN0zBndETOFnvQmdroi54mVl5ckFU4kIblbFl+Gyf13WObtCxwKo0\nPcB/2sv086y2l+aLhccxCFcJmeGmKeOPic6l8YvcUGMh0bWAAoqnPqAlD+6Gal2R\nTX4OGod/zzqHfaP8sdse3aa8v94u4M2WBRi9d8ECgYEAhq68yFzrnvmPrxHhFvOn\nkqm4H8OOGCCPjjppYXseL3CE4d1VHMLGmoCrXDt1sai6vgjZUfkj3ntgO6lgfS8W\ny+eK9R1a0vZDhA2Fg9hGbHHHWHP32Uhcg/l+OHTcjN7KHz1ZRTU3Khcq1xfLxJNc\nc9bUX0b9ZDzsTeI6RnXoT/g=\n-----END PRIVATE KEY-----`;
+
+const testJwk = {
+  kty: "RSA",
+  n: "oY_TrIhTDWJPlsfsfEyH9eal5ac0n3E14-MlNhWtfzqeMnBqbwbU2byp3LmVGOBTEPeSHdz_wDVwGIqj_VIFrsd2fIOwMrItCnzY4XFy2akEqOrvJxPFifzCz76UW6wKD1t4Y6DJcECJMvVG3dVg8HHEsiCYthnsjF7zuMtCeV0uZKWf57AvaHrmJgupbsUlhjfPyzsHAp9J7lXM2C3_CZCW-a_1_UyoDKegWsNVoKAHat7DAX1KodDCWEQy5IkxZBIXabgpl8XLueljWGLSHaFcHQT0V715A7BPIzPrPdIsC_rad1MHX60WiBp_4C9c3C5uMdury_FDyxMd5nUHBQ",
+  e: "AQAB",
+  kid: "test-kid-1",
+  alg: "RS256",
+  use: "sig",
+};
+
+async function createMockIdToken(uid: string, email = "alice@example.com", emailVerified = true) {
+  const key = await importPKCS8(testPrivateKey, "RS256");
+  return await new SignJWT({
+    email,
+    email_verified: emailVerified,
+  })
+    .setProtectedHeader({ alg: "RS256", kid: "test-kid-1" })
+    .setSubject(uid)
+    .setIssuer("https://securetoken.google.com/shilp-sahayak")
+    .setAudience("shilp-sahayak")
+    .setIssuedAt()
+    .setExpirationTime("1h")
+    .sign(key);
+}
+
 describe("Detailed Payment Verification & Security Matrix (POST /api/payment/verify)", () => {
-  const testPrivateKey = `-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQChj9OsiFMNYk+W\nx+x8TIf15qXlpzSfcTXj4yU2Fa1/Op4ycGpvBtTZvKncuZUY4FMQ95Id3P/ANXAY\niqP9UgWux3Z8g7Aysi0KfNjhcXLZqQSo6u8nE8WJ/MLPvpRbrAoPW3hjoMlwQIky\n9Ubd1WDwccSyIJi2GeyMXvO4y0J5XS5kpZ/nsC9oeuYmC6luxSWGN8/LOwcCn0nu\nVczYLf8JkJb5r/X9TKgMp6Baw1WgoAdq3sMBfUqh0MJYRDLkiTFkEhdpuCmXxcu5\n6WNYYtIdoVwdBPRXvXkDsE8jM+s90iwL+tp3UwdfrRaIGn/gL1zcLm4x26vL8UPL\nEx3mdQcFAgMBAAECggEAPPXwmFrN/7BXOJ0SKeqUqJ/RfCCFth25CFZmbYxrbSTY\nmU6akm8g9FGARHVQAVVvcmj/3L3NUKC5PcFeVFDVLRg9KIll/BMH9Lub+CDfBasF\nQ5l2CKgossLJXSrbfuWg3B+XAvyh1XW8bxpmlYCUddVvswiipp+MhoCzdMhZOkJp\nhd53JSRAWwVTGu3ck5XHtwtT/ULUC3ySKC3ecNBChBdiT04n3AL+JFbqEBmC1o3W\nfHL/3ToyLMc483vbeW1/KDc2NTeSu9yuiGV6Um3znUc8Baz0jxuvqDp1j+rlemQD\nd7PujYKvtfCyjZbfsscLAOMEDVC4/6fSbzp53q9xlwKBgQDUhO77swos96vOd2D8\ny3OS5nsmLdfrvhsT3S8yrAOHE/C74HOJa56IACi3UTklRKhqMSus3fjMRxgT9L2p\n8y8DtqWlecF46/AqrHrnjG8OrKvtB8Gmn1iYWJ7PCbx8xEwMddN+UJxdGuk3jX+9\nm6iIvmE0o3e/syTs0SOVl5WF5wKBgQDCneiKPEjSeu/bTJPqHHl+aFHpxJKtjKKr\n9ojQgV6VoDpxyq6isz6I57UzDpX5zSC30q7FfbEWcTFCPB2mVeaH1FBZcGc+Aidm\nGt0eIlHV4wtGQQcsnNFc9dpkM3JFnaoRh+eYwpZqPiKlxgvHTCIaCuiFBvOsPTrx\ntALZXFqWMwKBgA+WfIz7sehgdjqbqQKBzcVdoHTJcgf5lrTbSWX3Ff8naEXvjanr\nueIR2OqxS3a/VXcMij6QvXoGUO7NyceYbb9g+z9q8dTzwVbv9cfcFh1GbwngwsR8\n9ZufDG71MN0Z7NYRImUmdoGhwq9vcoouy6rUA/8/aj4mXrP8FxcW2kHLAoGAWl64\n/HfB2Pr9JfgJN0zBndETOFnvQmdroi54mVl5ckFU4kIblbFl+Gyf13WObtCxwKo0\nPcB/2sv086y2l+aLhccxCFcJmeGmKeOPic6l8YvcUGMh0bWAAoqnPqAlD+6Gal2R\nTX4OGod/zzqHfaP8sdse3aa8v94u4M2WBRi9d8ECgYEAhq68yFzrnvmPrxHhFvOn\nkqm4H8OOGCCPjjppYXseL3CE4d1VHMLGmoCrXDt1sai6vgjZUfkj3ntgO6lgfS8W\ny+eK9R1a0vZDhA2Fg9hGbHHHWHP32Uhcg/l+OHTcjN7KHz1ZRTU3Khcq1xfLxJNc\nc9bUX0b9ZDzsTeI6RnXoT/g=\n-----END PRIVATE KEY-----`;
-
-  const testJwk = {
-    kty: "RSA",
-    n: "oY_TrIhTDWJPlsfsfEyH9eal5ac0n3E14-MlNhWtfzqeMnBqbwbU2byp3LmVGOBTEPeSHdz_wDVwGIqj_VIFrsd2fIOwMrItCnzY4XFy2akEqOrvJxPFifzCz76UW6wKD1t4Y6DJcECJMvVG3dVg8HHEsiCYthnsjF7zuMtCeV0uZKWf57AvaHrmJgupbsUlhjfPyzsHAp9J7lXM2C3_CZCW-a_1_UyoDKegWsNVoKAHat7DAX1KodDCWEQy5IkxZBIXabgpl8XLueljWGLSHaFcHQT0V715A7BPIzPrPdIsC_rad1MHX60WiBp_4C9c3C5uMdury_FDyxMd5nUHBQ",
-    e: "AQAB",
-    kid: "test-kid-1",
-    alg: "RS256",
-    use: "sig",
-  };
-
-  async function createMockIdToken(uid: string) {
-    const key = await importPKCS8(testPrivateKey, "RS256");
-    return await new SignJWT({})
-      .setProtectedHeader({ alg: "RS256", kid: "test-kid-1" })
-      .setSubject(uid)
-      .setIssuer("https://securetoken.google.com/shilp-sahayak")
-      .setAudience("shilp-sahayak")
-      .setIssuedAt()
-      .setExpirationTime("1h")
-      .sign(key);
-  }
 
   it("marks order paid when signature, amount, currency, and capture verification all pass", async () => {
     const idToken = await createMockIdToken("user_alice");
@@ -726,6 +731,10 @@ describe("Detailed Payment Verification & Security Matrix (POST /api/payment/ver
     });
     vi.stubGlobal("fetch", fetchMock);
 
+    const razorpaySecret = "your_razorpay_test_key_secret";
+    const dataToSign = "order_rzp_paid|pay_DIFFERENT_ATTACK";
+    const signature = await computeHmacSha256(razorpaySecret, dataToSign);
+
     const response = await SELF.fetch("https://example.com/api/payment/verify", {
       method: "POST",
       headers: {
@@ -736,7 +745,7 @@ describe("Detailed Payment Verification & Security Matrix (POST /api/payment/ver
         orderId: "ORD_ALREADY_PAID",
         razorpayPaymentId: "pay_DIFFERENT_ATTACK",
         razorpayOrderId: "order_rzp_paid",
-        razorpaySignature: "dummy_sig",
+        razorpaySignature: signature,
       }),
     });
 
@@ -749,6 +758,9 @@ describe("Detailed Payment Verification & Security Matrix (POST /api/payment/ver
 
   it("returns idempotent success if re-verifying a Paid order with the identical payment ID", async () => {
     const idToken = await createMockIdToken("user_alice");
+    const razorpaySecret = "your_razorpay_test_key_secret";
+    const dataToSign = "order_rzp_paid|pay_original";
+    const signature = await computeHmacSha256(razorpaySecret, dataToSign);
 
     const fetchMock = vi.fn().mockImplementation((url: string) => {
       if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
@@ -784,7 +796,7 @@ describe("Detailed Payment Verification & Security Matrix (POST /api/payment/ver
         orderId: "ORD_MATCHING_PAID",
         razorpayPaymentId: "pay_original",
         razorpayOrderId: "order_rzp_paid",
-        razorpaySignature: "any_sig",
+        razorpaySignature: signature,
       }),
     });
 
@@ -842,28 +854,6 @@ describe("Detailed Payment Verification & Security Matrix (POST /api/payment/ver
 });
 
 describe("Server Mail Security & Relay Prevention (POST /api/mail/send)", () => {
-  const testPrivateKey = `-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQChj9OsiFMNYk+W\nx+x8TIf15qXlpzSfcTXj4yU2Fa1/Op4ycGpvBtTZvKncuZUY4FMQ95Id3P/ANXAY\niqP9UgWux3Z8g7Aysi0KfNjhcXLZqQSo6u8nE8WJ/MLPvpRbrAoPW3hjoMlwQIky\n9Ubd1WDwccSyIJi2GeyMXvO4y0J5XS5kpZ/nsC9oeuYmC6luxSWGN8/LOwcCn0nu\nVczYLf8JkJb5r/X9TKgMp6Baw1WgoAdq3sMBfUqh0MJYRDLkiTFkEhdpuCmXxcu5\n6WNYYtIdoVwdBPRXvXkDsE8jM+s90iwL+tp3UwdfrRaIGn/gL1zcLm4x26vL8UPL\nEx3mdQcFAgMBAAECggEAPPXwmFrN/7BXOJ0SKeqUqJ/RfCCFth25CFZmbYxrbSTY\nmU6akm8g9FGARHVQAVVvcmj/3L3NUKC5PcFeVFDVLRg9KIll/BMH9Lub+CDfBasF\nQ5l2CKgossLJXSrbfuWg3B+XAvyh1XW8bxpmlYCUddVvswiipp+MhoCzdMhZOkJp\nhd53JSRAWwVTGu3ck5XHtwtT/ULUC3ySKC3ecNBChBdiT04n3AL+JFbqEBmC1o3W\nfHL/3ToyLMc483vbeW1/KDc2NTeSu9yuiGV6Um3znUc8Baz0jxuvqDp1j+rlemQD\nd7PujYKvtfCyjZbfsscLAOMEDVC4/6fSbzp53q9xlwKBgQDUhO77swos96vOd2D8\ny3OS5nsmLdfrvhsT3S8yrAOHE/C74HOJa56IACi3UTklRKhqMSus3fjMRxgT9L2p\n8y8DtqWlecF46/AqrHrnjG8OrKvtB8Gmn1iYWJ7PCbx8xEwMddN+UJxdGuk3jX+9\nm6iIvmE0o3e/syTs0SOVl5WF5wKBgQDCneiKPEjSeu/bTJPqHHl+aFHpxJKtjKKr\n9ojQgV6VoDpxyq6isz6I57UzDpX5zSC30q7FfbEWcTFCPB2mVeaH1FBZcGc+Aidm\nGt0eIlHV4wtGQQcsnNFc9dpkM3JFnaoRh+eYwpZqPiKlxgvHTCIaCuiFBvOsPTrx\ntALZXFqWMwKBgA+WfIz7sehgdjqbqQKBzcVdoHTJcgf5lrTbSWX3Ff8naEXvjanr\nueIR2OqxS3a/VXcMij6QvXoGUO7NyceYbb9g+z9q8dTzwVbv9cfcFh1GbwngwsR8\n9ZufDG71MN0Z7NYRImUmdoGhwq9vcoouy6rUA/8/aj4mXrP8FxcW2kHLAoGAWl64\n/HfB2Pr9JfgJN0zBndETOFnvQmdroi54mVl5ckFU4kIblbFl+Gyf13WObtCxwKo0\nPcB/2sv086y2l+aLhccxCFcJmeGmKeOPic6l8YvcUGMh0bWAAoqnPqAlD+6Gal2R\nTX4OGod/zzqHfaP8sdse3aa8v94u4M2WBRi9d8ECgYEAhq68yFzrnvmPrxHhFvOn\nkqm4H8OOGCCPjjppYXseL3CE4d1VHMLGmoCrXDt1sai6vgjZUfkj3ntgO6lgfS8W\ny+eK9R1a0vZDhA2Fg9hGbHHHWHP32Uhcg/l+OHTcjN7KHz1ZRTU3Khcq1xfLxJNc\nc9bUX0b9ZDzsTeI6RnXoT/g=\n-----END PRIVATE KEY-----`;
-
-  const testJwk = {
-    kty: "RSA",
-    n: "oY_TrIhTDWJPlsfsfEyH9eal5ac0n3E14-MlNhWtfzqeMnBqbwbU2byp3LmVGOBTEPeSHdz_wDVwGIqj_VIFrsd2fIOwMrItCnzY4XFy2akEqOrvJxPFifzCz76UW6wKD1t4Y6DJcECJMvVG3dVg8HHEsiCYthnsjF7zuMtCeV0uZKWf57AvaHrmJgupbsUlhjfPyzsHAp9J7lXM2C3_CZCW-a_1_UyoDKegWsNVoKAHat7DAX1KodDCWEQy5IkxZBIXabgpl8XLueljWGLSHaFcHQT0V715A7BPIzPrPdIsC_rad1MHX60WiBp_4C9c3C5uMdury_FDyxMd5nUHBQ",
-    e: "AQAB",
-    kid: "test-kid-1",
-    alg: "RS256",
-    use: "sig",
-  };
-
-  async function createMockIdToken(uid: string) {
-    const key = await importPKCS8(testPrivateKey, "RS256");
-    return await new SignJWT({})
-      .setProtectedHeader({ alg: "RS256", kid: "test-kid-1" })
-      .setSubject(uid)
-      .setIssuer("https://securetoken.google.com/shilp-sahayak")
-      .setAudience("shilp-sahayak")
-      .setIssuedAt()
-      .setExpirationTime("1h")
-      .sign(key);
-  }
 
   it("rejects non-owner non-admin caller trying to send cancellation email for another customer order", async () => {
     const idToken = await createMockIdToken("attacker_bob");
@@ -1011,7 +1001,7 @@ describe("Server Mail Security & Relay Prevention (POST /api/mail/send)", () => 
   });
 
   it("ignores any attacker-supplied 'to' field in request body and strictly sends to customer record email", async () => {
-    const idToken = await createMockIdToken("user_alice");
+    const idToken = await createMockIdToken("user_alice", "legit_alice@example.com", true);
     let recordedMailDoc: any = null;
 
     const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
@@ -1253,6 +1243,392 @@ describe("Server Mail Security & Relay Prevention (POST /api/mail/send)", () => 
     const body: any = await response.json();
     expect(body.success).toBe(false);
     expect(body.error).toContain("Expected \"Quoted\" or \"Ready\"");
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects customer-triggered mail if token has unverified email", async () => {
+    const unverifiedToken = await createMockIdToken("user_bob", "bob@example.com", false);
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: "mock-sa-token" }), { status: 200 }));
+      }
+      if (url.includes("/users/user_bob")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({ role: "customer" }),
+        }), { status: 200 }));
+      }
+      if (url.includes("/quotes/QUO_CUST")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "QUO_CUST",
+            customerId: "user_bob",
+            customerEmail: "attacker_spoofed@example.com",
+            customerName: "Bob",
+            status: "Pending",
+          }),
+        }), { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/mail/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${unverifiedToken}`,
+      },
+      body: JSON.stringify({
+        targetId: "QUO_CUST",
+        eventType: "quote_received",
+      }),
+    });
+
+    expect(response.status).toBe(403);
+    const body: any = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toContain("Verified email address is required");
+    vi.unstubAllGlobals();
+  });
+});
+
+describe("Webhook Order-ID & Receipt Validation Security Tests", () => {
+  const webhookSecret = "your_razorpay_webhook_secret";
+
+  it("rejects webhook if payload order_id is missing", async () => {
+    const payload = JSON.stringify({
+      id: "evt_missing_order_id",
+      event: "payment.captured",
+      payload: {
+        payment: {
+          entity: {
+            id: "pay_test123",
+            // order_id is missing!
+            amount: 50000,
+            currency: "INR",
+            status: "captured",
+            notes: { internalOrderId: "ORD_MISSING_RZP" },
+          },
+        },
+      },
+    });
+
+    const signature = await computeHmacSha256(webhookSecret, payload);
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: "mock-sa-token" }), { status: 200 }));
+      }
+      if (url.includes("/webhook_events/evt_missing_order_id")) {
+        return Promise.resolve(new Response("{}", { status: 404 }));
+      }
+      if (url.includes("/orders/ORD_MISSING_RZP")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "ORD_MISSING_RZP",
+            razorpayOrderId: "order_rzp_expected",
+            paymentStatus: "Pending",
+          }),
+        }), { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/payment/webhook", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Razorpay-Signature": signature,
+      },
+      body: payload,
+    });
+
+    expect(response.status).toBe(400);
+    const body: any = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toContain("Mismatched or missing Razorpay order ID");
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects webhook if stored order doc is missing razorpayOrderId", async () => {
+    const payload = JSON.stringify({
+      id: "evt_missing_stored_order_id",
+      event: "payment.captured",
+      payload: {
+        payment: {
+          entity: {
+            id: "pay_test123",
+            order_id: "order_rzp_123",
+            amount: 50000,
+            currency: "INR",
+            status: "captured",
+            notes: { internalOrderId: "ORD_NO_STORED_RZP" },
+          },
+        },
+      },
+    });
+
+    const signature = await computeHmacSha256(webhookSecret, payload);
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: "mock-sa-token" }), { status: 200 }));
+      }
+      if (url.includes("/webhook_events/evt_missing_stored_order_id")) {
+        return Promise.resolve(new Response("{}", { status: 404 }));
+      }
+      if (url.includes("/orders/ORD_NO_STORED_RZP")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "ORD_NO_STORED_RZP",
+            // razorpayOrderId is missing in stored doc!
+            paymentStatus: "Pending",
+          }),
+        }), { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/payment/webhook", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Razorpay-Signature": signature,
+      },
+      body: payload,
+    });
+
+    expect(response.status).toBe(400);
+    const body: any = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toContain("Mismatched or missing Razorpay order ID");
+    vi.unstubAllGlobals();
+  });
+});
+
+describe("Client-Forged Order Protection & Receipt/Notes Validation (/verify)", () => {
+  const testJwk = {
+    kty: "RSA",
+    n: "oY_TrIhTDWJPlsfsfEyH9eal5ac0n3E14-MlNhWtfzqeMnBqbwbU2byp3LmVGOBTEPeSHdz_wDVwGIqj_VIFrsd2fIOwMrItCnzY4XFy2akEqOrvJxPFifzCz76UW6wKD1t4Y6DJcECJMvVG3dVg8HHEsiCYthnsjF7zuMtCeV0uZKWf57AvaHrmJgupbsUlhjfPyzsHAp9J7lXM2C3_CZCW-a_1_UyoDKegWsNVoKAHat7DAX1KodDCWEQy5IkxZBIXabgpl8XLueljWGLSHaFcHQT0V715A7BPIzPrPdIsC_rad1MHX60WiBp_4C9c3C5uMdury_FDyxMd5nUHBQ",
+    e: "AQAB",
+    kid: "test-kid-1",
+    alg: "RS256",
+    use: "sig",
+  };
+
+  it("rejects verification if Razorpay payment notes internalOrderId does not match internal orderId", async () => {
+    const idToken = await createMockIdToken("user_alice");
+    const razorpaySecret = "your_razorpay_test_key_secret";
+    const dataToSign = "order_rzp_legit|pay_rzp_stolen";
+    const signature = await computeHmacSha256(razorpaySecret, dataToSign);
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: "mock-sa-token" }), { status: 200 }));
+      }
+      // Stored order points at order_rzp_legit
+      if (url.includes("/orders/ORD_FORGED_ATTACK")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "ORD_FORGED_ATTACK",
+            customerId: "user_alice",
+            customerEmail: "alice@example.com",
+            total: 500,
+            razorpayOrderId: "order_rzp_legit",
+            paymentStatus: "Pending",
+          }),
+        }), { status: 200 }));
+      }
+      // Re-fetched Razorpay payment belongs to another internal order: ORD_VICTIM_REAL!
+      if (url.includes("api.razorpay.com/v1/payments/pay_rzp_stolen")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          id: "pay_rzp_stolen",
+          order_id: "order_rzp_legit",
+          amount: 50000,
+          currency: "INR",
+          status: "captured",
+          notes: {
+            internalOrderId: "ORD_VICTIM_REAL", // Mismatched internal order!
+          },
+        }), { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/payment/verify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        orderId: "ORD_FORGED_ATTACK",
+        razorpayPaymentId: "pay_rzp_stolen",
+        razorpayOrderId: "order_rzp_legit",
+        razorpaySignature: signature,
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    const body: any = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toContain("Razorpay payment receipt does not match this internal order");
+    vi.unstubAllGlobals();
+  });
+});
+
+describe("Generic Server Configuration Error on Missing SA Credentials", () => {
+  const testJwk = {
+    kty: "RSA",
+    n: "oY_TrIhTDWJPlsfsfEyH9eal5ac0n3E14-MlNhWtfzqeMnBqbwbU2byp3LmVGOBTEPeSHdz_wDVwGIqj_VIFrsd2fIOwMrItCnzY4XFy2akEqOrvJxPFifzCz76UW6wKD1t4Y6DJcECJMvVG3dVg8HHEsiCYthnsjF7zuMtCeV0uZKWf57AvaHrmJgupbsUlhjfPyzsHAp9J7lXM2C3_CZCW-a_1_UyoDKegWsNVoKAHat7DAX1KodDCWEQy5IkxZBIXabgpl8XLueljWGLSHaFcHQT0V715A7BPIzPrPdIsC_rad1MHX60WiBp_4C9c3C5uMdury_FDyxMd5nUHBQ",
+    e: "AQAB",
+    kid: "test-kid-1",
+    alg: "RS256",
+    use: "sig",
+  };
+
+  it("returns generic 500 Server configuration error on /api/payment/create-order when SA token fails", async () => {
+    const idToken = await createMockIdToken("user_alice");
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      // Simulate Google OAuth token endpoint failing (e.g. invalid or missing SA credentials)
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ error: "invalid_grant" }), { status: 401 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/payment/create-order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        items: [{ productId: "test_prod", quantity: 1 }],
+        shippingAddress: {
+          fullName: "Alice Smith",
+          email: "alice@example.com",
+          phone: "9876543210",
+        },
+      }),
+    });
+
+    expect(response.status).toBe(500);
+    const body: any = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toBe("Server configuration error.");
+    vi.unstubAllGlobals();
+  });
+
+  it("returns generic 500 Server configuration error on /api/payment/verify when SA token fails", async () => {
+    const idToken = await createMockIdToken("user_alice");
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ error: "invalid_grant" }), { status: 401 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/payment/verify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        orderId: "ORD_TEST",
+        razorpayPaymentId: "pay_test",
+        razorpayOrderId: "order_test",
+        razorpaySignature: "sig_test",
+      }),
+    });
+
+    expect(response.status).toBe(500);
+    const body: any = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toBe("Server configuration error.");
+    vi.unstubAllGlobals();
+  });
+
+  it("returns generic 500 Server configuration error on /api/payment/webhook when SA token fails", async () => {
+    const webhookSecret = "your_razorpay_webhook_secret";
+    const payload = JSON.stringify({ id: "evt_sa_fail", event: "payment.captured" });
+    const signature = await computeHmacSha256(webhookSecret, payload);
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ error: "invalid_grant" }), { status: 401 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/payment/webhook", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Razorpay-Signature": signature,
+      },
+      body: payload,
+    });
+
+    expect(response.status).toBe(500);
+    const body: any = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toBe("Server configuration error.");
+    vi.unstubAllGlobals();
+  });
+
+  it("returns generic 500 Server configuration error on /api/mail/send when SA token fails", async () => {
+    const idToken = await createMockIdToken("user_alice");
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ error: "invalid_grant" }), { status: 401 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/mail/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        targetId: "ORD_123",
+        eventType: "order_cancelled",
+      }),
+    });
+
+    expect(response.status).toBe(500);
+    const body: any = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toBe("Server configuration error.");
     vi.unstubAllGlobals();
   });
 });

@@ -98,25 +98,9 @@ service cloud.firestore {
           resource.data.customerId == request.auth.uid
         );
 
-      // Customers can only create orders with initial 'Pending' state and cannot self-assign payment IDs or Paid/Confirmed status
-      allow create: if
-        isAdmin()
-        ||
-        (
-          isSignedIn() &&
-          request.resource.data.customerId == request.auth.uid &&
-          request.resource.data.get('paymentStatus', 'Pending') == 'Pending' &&
-          request.resource.data.get('status', 'Pending') == 'Pending' &&
-          !('paymentId' in request.resource.data.keys()) &&
-          !('razorpayPaymentId' in request.resource.data.keys()) &&
-          !('razorpaySignature' in request.resource.data.keys()) &&
-          !('paidAt' in request.resource.data.keys()) &&
-          !('refundStatus' in request.resource.data.keys()) &&
-          !('refundAmount' in request.resource.data.keys())
-        );
-
-      // Only admins or trusted server credentials can update or delete orders
-      allow update, delete: if isAdmin();
+      // Orders can only be created by admins or the trusted Cloudflare Worker using service account credentials.
+      // Direct client SDK document creation is strictly forbidden.
+      allow create, update, delete: if isAdmin();
     }
 
     // =========================================================
