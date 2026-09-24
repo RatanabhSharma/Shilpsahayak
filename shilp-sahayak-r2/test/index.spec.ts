@@ -12,6 +12,7 @@ import worker, {
   timingSafeEqual,
   escapeHtml,
   verifyRazorpayPaymentCapture,
+  fetchRazorpayOrder,
   getPrivilegedFirestoreAccessToken,
   patchFirestoreDoc,
   FirestoreRequestError,
@@ -655,6 +656,16 @@ describe("Detailed Payment Verification & Security Matrix (POST /api/payment/ver
           status: "captured",
         }), { status: 200 }));
       }
+      // Razorpay order lookup
+      if (url.includes("api.razorpay.com/v1/orders/order_rzp_valid100")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          id: "order_rzp_valid100",
+          receipt: "ORD_TEST_VALID",
+          amount: 50000,
+          currency: "INR",
+          status: "paid",
+        }), { status: 200 }));
+      }
       // Firestore order lookup
       if (url.includes("/orders/ORD_TEST_VALID")) {
         if (init?.method === "PATCH") {
@@ -849,6 +860,96 @@ describe("Detailed Payment Verification & Security Matrix (POST /api/payment/ver
     const body: any = await response.json();
     expect(body.success).toBe(false);
     expect(body.error).toContain("Mismatched Razorpay order identifier");
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects verification if internal order has no customerId", async () => {
+    const idToken = await createMockIdToken("user_alice");
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: "mock-sa-token" }), { status: 200 }));
+      }
+      if (url.includes("/orders/ORD_NO_CUSTOMER")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "ORD_NO_CUSTOMER",
+            // customerId is missing!
+            paymentStatus: "Pending",
+            razorpayOrderId: "order_INTERNAL_123",
+          }),
+        }), { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/payment/verify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        orderId: "ORD_NO_CUSTOMER",
+        razorpayPaymentId: "pay_123",
+        razorpayOrderId: "order_INTERNAL_123",
+        razorpaySignature: "sig",
+      }),
+    });
+
+    expect(response.status).toBe(403);
+    const body: any = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toContain("Unauthorized access to this order");
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects verification if internal order belongs to a different customerId", async () => {
+    const idToken = await createMockIdToken("attacker_eve");
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: "mock-sa-token" }), { status: 200 }));
+      }
+      if (url.includes("/orders/ORD_VICTIM_BOB")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "ORD_VICTIM_BOB",
+            customerId: "victim_bob", // Does not match caller attacker_eve
+            paymentStatus: "Pending",
+            razorpayOrderId: "order_INTERNAL_123",
+          }),
+        }), { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/payment/verify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        orderId: "ORD_VICTIM_BOB",
+        razorpayPaymentId: "pay_123",
+        razorpayOrderId: "order_INTERNAL_123",
+        razorpaySignature: "sig",
+      }),
+    });
+
+    expect(response.status).toBe(403);
+    const body: any = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toContain("Unauthorized access to this order");
     vi.unstubAllGlobals();
   });
 });
@@ -1461,6 +1562,16 @@ describe("Client-Forged Order Protection & Receipt/Notes Validation (/verify)", 
           },
         }), { status: 200 }));
       }
+      // Re-fetched Razorpay order
+      if (url.includes("api.razorpay.com/v1/orders/order_rzp_legit")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          id: "order_rzp_legit",
+          receipt: "ORD_FORGED_ATTACK",
+          amount: 50000,
+          currency: "INR",
+          status: "paid",
+        }), { status: 200 }));
+      }
       return Promise.resolve(new Response("{}", { status: 200 }));
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -1483,6 +1594,219 @@ describe("Client-Forged Order Protection & Receipt/Notes Validation (/verify)", 
     const body: any = await response.json();
     expect(body.success).toBe(false);
     expect(body.error).toContain("Razorpay payment receipt does not match this internal order");
+    vi.unstubAllGlobals();
+  });
+
+  it("accepts verification when fetched Razorpay order receipt matches internal order ID", async () => {
+    const idToken = await createMockIdToken("user_alice");
+    const razorpaySecret = "your_razorpay_test_key_secret";
+    const dataToSign = "order_rzp_legit|pay_rzp_legit";
+    const signature = await computeHmacSha256(razorpaySecret, dataToSign);
+
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: "mock-sa-token" }), { status: 200 }));
+      }
+      if (url.includes("/orders/ORD_RECEIPT_MATCH")) {
+        if (init?.method === "PATCH") {
+          return Promise.resolve(new Response("{}", { status: 200 }));
+        }
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "ORD_RECEIPT_MATCH",
+            customerId: "user_alice",
+            customerEmail: "alice@example.com",
+            customerName: "Alice",
+            total: 500,
+            razorpayOrderId: "order_rzp_legit",
+            paymentStatus: "Pending",
+          }),
+        }), { status: 200 }));
+      }
+      if (url.includes("api.razorpay.com/v1/payments/pay_rzp_legit")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          id: "pay_rzp_legit",
+          order_id: "order_rzp_legit",
+          amount: 50000,
+          currency: "INR",
+          status: "captured",
+        }), { status: 200 }));
+      }
+      // Razorpay order returns receipt: ORD_RECEIPT_MATCH
+      if (url.includes("api.razorpay.com/v1/orders/order_rzp_legit")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          id: "order_rzp_legit",
+          receipt: "ORD_RECEIPT_MATCH",
+          amount: 50000,
+          currency: "INR",
+          status: "paid",
+        }), { status: 200 }));
+      }
+      if (url.includes("/mail/")) {
+        return Promise.resolve(new Response("{}", { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/payment/verify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        orderId: "ORD_RECEIPT_MATCH",
+        razorpayPaymentId: "pay_rzp_legit",
+        razorpayOrderId: "order_rzp_legit",
+        razorpaySignature: signature,
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    const body: any = await response.json();
+    expect(body.success).toBe(true);
+    expect(body.paymentStatus).toBe("Paid");
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects verification when fetched Razorpay order receipt mismatches internal order ID", async () => {
+    const idToken = await createMockIdToken("user_alice");
+    const razorpaySecret = "your_razorpay_test_key_secret";
+    const dataToSign = "order_rzp_legit|pay_rzp_legit";
+    const signature = await computeHmacSha256(razorpaySecret, dataToSign);
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: "mock-sa-token" }), { status: 200 }));
+      }
+      if (url.includes("/orders/ORD_RECEIPT_MISMATCH")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "ORD_RECEIPT_MISMATCH",
+            customerId: "user_alice",
+            customerEmail: "alice@example.com",
+            total: 500,
+            razorpayOrderId: "order_rzp_legit",
+            paymentStatus: "Pending",
+          }),
+        }), { status: 200 }));
+      }
+      if (url.includes("api.razorpay.com/v1/payments/pay_rzp_legit")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          id: "pay_rzp_legit",
+          order_id: "order_rzp_legit",
+          amount: 50000,
+          currency: "INR",
+          status: "captured",
+        }), { status: 200 }));
+      }
+      // Razorpay order returns mismatched receipt!
+      if (url.includes("api.razorpay.com/v1/orders/order_rzp_legit")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          id: "order_rzp_legit",
+          receipt: "ORD_ANOTHER_CLIENT_DIFFERENT",
+          amount: 50000,
+          currency: "INR",
+          status: "paid",
+        }), { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/payment/verify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        orderId: "ORD_RECEIPT_MISMATCH",
+        razorpayPaymentId: "pay_rzp_legit",
+        razorpayOrderId: "order_rzp_legit",
+        razorpaySignature: signature,
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    const body: any = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toContain("Razorpay order receipt does not match this internal order");
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects verification when fetched Razorpay order is missing receipt identifier", async () => {
+    const idToken = await createMockIdToken("user_alice");
+    const razorpaySecret = "your_razorpay_test_key_secret";
+    const dataToSign = "order_rzp_legit|pay_rzp_legit";
+    const signature = await computeHmacSha256(razorpaySecret, dataToSign);
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Promise.resolve(new Response(JSON.stringify({ access_token: "mock-sa-token" }), { status: 200 }));
+      }
+      if (url.includes("/orders/ORD_RECEIPT_MISSING")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          fields: toFirestoreFields({
+            id: "ORD_RECEIPT_MISSING",
+            customerId: "user_alice",
+            customerEmail: "alice@example.com",
+            total: 500,
+            razorpayOrderId: "order_rzp_legit",
+            paymentStatus: "Pending",
+          }),
+        }), { status: 200 }));
+      }
+      if (url.includes("api.razorpay.com/v1/payments/pay_rzp_legit")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          id: "pay_rzp_legit",
+          order_id: "order_rzp_legit",
+          amount: 50000,
+          currency: "INR",
+          status: "captured",
+        }), { status: 200 }));
+      }
+      // Razorpay order is missing receipt and notes!
+      if (url.includes("api.razorpay.com/v1/orders/order_rzp_legit")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          id: "order_rzp_legit",
+          amount: 50000,
+          currency: "INR",
+          status: "paid",
+        }), { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/payment/verify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        orderId: "ORD_RECEIPT_MISSING",
+        razorpayPaymentId: "pay_rzp_legit",
+        razorpayOrderId: "order_rzp_legit",
+        razorpaySignature: signature,
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    const body: any = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toContain("Razorpay order is missing receipt identifier");
     vi.unstubAllGlobals();
   });
 });

@@ -761,6 +761,53 @@ export async function verifyRazorpayPaymentCapture(
   }
 }
 
+/**
+ * Validates and retrieves a Razorpay order from the Razorpay API.
+ */
+export async function fetchRazorpayOrder(
+  keyId: string,
+  keySecret: string,
+  razorpayOrderId: string
+): Promise<{ success: boolean; error?: string; order?: any }> {
+  if (
+    !keyId ||
+    !keySecret ||
+    keyId.trim().length === 0 ||
+    keySecret.trim().length === 0 ||
+    keySecret.includes("placeholder") ||
+    keyId.includes("placeholder")
+  ) {
+    console.error("[payment] fetchRazorpayOrder: Razorpay credentials missing or placeholder. Failing closed.");
+    return {
+      success: false,
+      error: "Payment gateway credentials are not properly configured on server.",
+    };
+  }
+
+  try {
+    const authHeader = `Basic ${btoa(`${keyId}:${keySecret}`)}`;
+    const res = await fetch(`https://api.razorpay.com/v1/orders/${encodeURIComponent(razorpayOrderId)}`, {
+      method: "GET",
+      headers: {
+        Authorization: authHeader,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`Razorpay order fetch failed (${res.status}):`, errText);
+      return { success: false, error: `Gateway rejected order lookup (HTTP ${res.status}).` };
+    }
+
+    const order: any = await res.json();
+    return { success: true, order };
+  } catch (err: any) {
+    console.error("Error fetching order from Razorpay API:", err);
+    return { success: false, error: err?.message || "Failed to reach Razorpay API." };
+  }
+}
+
 /* ========================================================================== */
 /* Main Worker Fetch Handler                                                  */
 /* ========================================================================== */
@@ -1119,7 +1166,7 @@ export default {
         }
 
         // 3. Ensure internal order belongs to the requester
-        if (existingOrder.customerId && existingOrder.customerId !== uid) {
+        if (!existingOrder.customerId || existingOrder.customerId !== uid) {
           return jsonResponse(
             request,
             { success: false, error: "Unauthorized access to this order." },
@@ -1228,11 +1275,50 @@ export default {
           );
         }
 
-        // Verify that the Razorpay payment's receipt or notes matches the internal order ID
+        // Fetch the Razorpay ORDER from Razorpay API to verify receipt / notes
+        const rzpOrderLookup = await fetchRazorpayOrder(
+          keyId,
+          keySecret,
+          existingOrder.razorpayOrderId
+        );
+
+        if (!rzpOrderLookup.success || !rzpOrderLookup.order) {
+          return jsonResponse(
+            request,
+            {
+              success: false,
+              error: rzpOrderLookup.error || "Failed to retrieve Razorpay order details for verification.",
+            },
+            400
+          );
+        }
+
+        const rzpOrder = rzpOrderLookup.order;
+        const rzpOrderReceipt = rzpOrder.receipt || rzpOrder.notes?.internalOrderId;
+
+        if (!rzpOrderReceipt) {
+          console.warn("Razorpay order missing receipt and internalOrderId notes:", rzpOrder.id);
+          return jsonResponse(
+            request,
+            { success: false, error: "Razorpay order is missing receipt identifier." },
+            400
+          );
+        }
+
+        if (rzpOrderReceipt !== orderId) {
+          console.warn("Razorpay order receipt mismatch:", {
+            expected: orderId,
+            received: rzpOrderReceipt,
+          });
+          return jsonResponse(
+            request,
+            { success: false, error: "Razorpay order receipt does not match this internal order." },
+            400
+          );
+        }
+
+        // Verify that the Razorpay payment's receipt or notes matches the internal order ID (if present)
         const paymentData = captureVerification.payment;
-        const paymentInternalOrder =
-          paymentData?.notes?.internalOrderId ||
-          paymentData?.description?.match(/Order #(ORD_[A-Za-z0-9_-]+)/)?.[1];
         if (
           paymentData?.notes?.internalOrderId &&
           paymentData.notes.internalOrderId !== orderId
@@ -1502,8 +1588,30 @@ export default {
                 }
 
                 // Verify the Razorpay payment/order receipt or notes matches this internal order ID
-                const eventReceipt = orderEntity?.receipt || paymentEntity?.notes?.internalOrderId || orderEntity?.notes?.internalOrderId;
-                if (eventReceipt && eventReceipt !== internalOrderId) {
+                let eventReceipt = orderEntity?.receipt || orderEntity?.notes?.internalOrderId || paymentEntity?.notes?.internalOrderId;
+
+                // If receipt/notes is not present in the webhook payload, fetch the Razorpay ORDER from Razorpay API
+                if (!eventReceipt && env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET) {
+                  const rzpOrderLookup = await fetchRazorpayOrder(
+                    env.RAZORPAY_KEY_ID,
+                    env.RAZORPAY_KEY_SECRET,
+                    razorpayOrderId
+                  );
+                  if (rzpOrderLookup.success && rzpOrderLookup.order) {
+                    eventReceipt = rzpOrderLookup.order.receipt || rzpOrderLookup.order.notes?.internalOrderId;
+                  }
+                }
+
+                if (!eventReceipt) {
+                  console.warn("Webhook order missing receipt/notes identifier for order:", internalOrderId);
+                  return jsonResponse(
+                    request,
+                    { success: false, error: "Razorpay order is missing receipt identifier in webhook." },
+                    400
+                  );
+                }
+
+                if (eventReceipt !== internalOrderId) {
                   console.warn(
                     `Webhook internalOrderId mismatch: event receipt/note="${eventReceipt}", internalOrderId="${internalOrderId}"`
                   );
