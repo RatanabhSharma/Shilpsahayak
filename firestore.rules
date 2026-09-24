@@ -170,17 +170,15 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-// =========================================================
-// MAIL QUEUE (Trigger Email Extension)
-// =========================================================
-match /mail/{mailId} {
-  // Only signed-in users can queue emails
-  allow create: if isSignedIn()
-                && request.resource.data.keys().hasAll(['to', 'message']);
+    // =========================================================
+    // MAIL QUEUE (Trigger Email Extension - Server-Only via Admin/Service-Account)
+    // =========================================================
+    match /mail/{mailId} {
+      // Clients must never write or read email jobs directly.
+      // All mail dispatch is strictly handled by the Cloudflare Worker via Google Service Account OAuth.
+      allow read, write: if false;
+    }
 
-  // Only admins can read / update / delete
-  allow read, update, delete: if isAdmin();
-}
 
     // =========================================================
     // SETTINGS
