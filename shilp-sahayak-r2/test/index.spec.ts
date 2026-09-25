@@ -2669,9 +2669,9 @@ describe("Order Pricing & Quotation Authoritative Enforcement", () => {
     vi.unstubAllGlobals();
   });
 
-  it("rejects an order if the quote has already been converted to an order (one-time-use)", async () => {
+  it("rejects an order if the quote's linked order is already Paid/Confirmed (hard one-time-use)", async () => {
     const fetchMock = vi.fn().mockImplementation((url: string) => {
-      if (url.includes("/quotes/quote_already_used")) {
+      if (url.includes("/quotes/quote_already_paid")) {
         return Promise.resolve(
           new Response(
             JSON.stringify({
@@ -2679,7 +2679,21 @@ describe("Order Pricing & Quotation Authoritative Enforcement", () => {
                 status: "Accepted",
                 customerId: "user_abc",
                 adminPrice: 500,
-                orderId: "ORD_EXISTING_123",
+                orderId: "ORD_EXISTING_PAID",
+              }),
+            }),
+            { status: 200 }
+          )
+        );
+      }
+      if (url.includes("/orders/ORD_EXISTING_PAID")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              fields: toFirestoreFields({
+                status: "Confirmed",
+                paymentStatus: "Paid",
+                customerId: "user_abc",
               }),
             }),
             { status: 200 }
@@ -2696,7 +2710,7 @@ describe("Order Pricing & Quotation Authoritative Enforcement", () => {
           {
             productId: "custom-print",
             quantity: 1,
-            quoteId: "quote_already_used",
+            quoteId: "quote_already_paid",
           },
         ],
         "shilp-sahayak",
@@ -2704,11 +2718,85 @@ describe("Order Pricing & Quotation Authoritative Enforcement", () => {
         "mock-auth-token",
         "user_abc"
       )
-    ).rejects.toThrow("has already been converted to Order");
+    ).rejects.toThrow("has already been paid");
+
+    vi.unstubAllGlobals();
+  });
+
+  it("allows a retry when the previously linked order is still Pending (abandoned checkout)", async () => {
+    // Scenario: customer started checkout (quote got orderId = ORD_ABANDONED_001, status: 'Converted to Order'),
+    // but never paid. Their quote.orderId is set but the order is still Pending.
+    // The system should allow them to retry — pricing succeeds without throwing.
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("/settings/settings")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              fields: toFirestoreFields({ shippingFlatRate: 100, freeShippingThreshold: 1000 }),
+            }),
+            { status: 200 }
+          )
+        );
+      }
+      if (url.includes("/quotes/quote_abandoned_retry")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              fields: toFirestoreFields({
+                status: "Accepted",
+                customerId: "user_abc",
+                adminPrice: 600,
+                fileName: "bracket.stl",
+                // A previous checkout attempt set this, but the customer abandoned the payment
+                orderId: "ORD_ABANDONED_001",
+              }),
+            }),
+            { status: 200 }
+          )
+        );
+      }
+      if (url.includes("/orders/ORD_ABANDONED_001")) {
+        // Stale order still in Pending — never paid
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              fields: toFirestoreFields({
+                status: "Pending",
+                paymentStatus: "Pending",
+                customerId: "user_abc",
+              }),
+            }),
+            { status: 200 }
+          )
+        );
+      }
+      return Promise.resolve(new Response("Not found", { status: 404 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    // Should NOT throw — retry is allowed because old order is still Pending
+    const pricing = await calculateOrderPricing(
+      [
+        {
+          productId: "custom-print",
+          quantity: 1,
+          quoteId: "quote_abandoned_retry",
+        },
+      ],
+      "shilp-sahayak",
+      undefined,
+      "mock-auth-token",
+      "user_abc"
+    );
+
+    // Pricing must still be authoritative (from quote.adminPrice, not client)
+    expect(pricing.subtotal).toBe(600);
+    expect(pricing.total).toBe(700); // 600 + 100 shipping
+    expect(pricing.verifiedItems[0].price).toBe(600);
+    expect(pricing.verifiedItems[0].productName).toBe("Custom 3D Print: bracket.stl");
 
     vi.unstubAllGlobals();
   });
 });
-
 
 

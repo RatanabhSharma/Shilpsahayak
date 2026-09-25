@@ -699,8 +699,26 @@ export async function calculateOrderPricing(
       }
 
       if (quote.orderId) {
-        throw new Error(
-          `Quotation #${quoteId.slice(0, 8)} has already been converted to Order #${String(quote.orderId).slice(0, 8)}.`
+        // Check whether the previously linked order is already Confirmed/Paid.
+        // If it's still Pending (i.e. the customer started checkout and abandoned it),
+        // we allow a retry — the caller will mark the stale order Abandoned before stamping the new one.
+        const linkedOrder = await getFirestoreDoc(
+          projectId,
+          "orders",
+          quote.orderId,
+          apiKey,
+          authToken
+        );
+
+        if (!linkedOrder || linkedOrder.paymentStatus === "Paid" || linkedOrder.status === "Confirmed") {
+          throw new Error(
+            `Quotation #${quoteId.slice(0, 8)} has already been paid (Order #${String(quote.orderId).slice(0, 8)}).`
+          );
+        }
+        // Linked order exists but is still Pending — stale/abandoned checkout.
+        // Allow retry. The caller stamps the NEW orderId, which supersedes the stale one.
+        console.warn(
+          `[pricing] Quotation ${quoteId}: stale Pending order ${quote.orderId} detected — allowing retry.`
         );
       }
 
@@ -1165,7 +1183,9 @@ export default {
           firestoreToken
         );
 
-        // One-time-use protection: stamp orderId on any custom print quotes involved in this order
+        // One-time-use protection: stamp orderId on any custom print quotes involved in this order.
+        // If a stale Pending order was previously linked to the quote (abandoned checkout),
+        // mark it Abandoned first so it's visibly dead in the admin dashboard.
         const associatedQuoteIds = Array.from(
           new Set(
             pricing.verifiedItems
@@ -1176,6 +1196,49 @@ export default {
 
         for (const qId of associatedQuoteIds) {
           try {
+            // Check if the quote has a stale Pending order and abandon it first
+            const existingQuote = await getFirestoreDoc(
+              projectId,
+              "quotes",
+              qId,
+              apiKey,
+              firestoreToken
+            );
+
+            if (existingQuote?.orderId && existingQuote.orderId !== orderId) {
+              // A stale order exists — mark it Abandoned before we overwrite the link
+              const staleOrderId = existingQuote.orderId;
+              try {
+                const staleOrder = await getFirestoreDoc(
+                  projectId,
+                  "orders",
+                  staleOrderId,
+                  apiKey,
+                  firestoreToken
+                );
+                if (staleOrder && staleOrder.paymentStatus !== "Paid" && staleOrder.status !== "Confirmed") {
+                  await patchFirestoreDoc(
+                    projectId,
+                    "orders",
+                    staleOrderId,
+                    {
+                      status: "Abandoned",
+                      paymentStatus: "Abandoned",
+                      abandonedAt: dateNow,
+                      abandonedReason: `Customer retried payment for Quote #${qId.slice(0, 8)} with new Order #${orderId.slice(0, 8)}`,
+                    },
+                    ["status", "paymentStatus", "abandonedAt", "abandonedReason"],
+                    apiKey,
+                    firestoreToken
+                  );
+                  console.log(`[create-order] Marked stale order ${staleOrderId} as Abandoned (quote ${qId} retry).`);
+                }
+              } catch (abandonErr) {
+                console.warn(`[create-order] Could not abandon stale order ${staleOrderId}:`, abandonErr);
+              }
+            }
+
+            // Stamp the new orderId on the quote
             await patchFirestoreDoc(
               projectId,
               "quotes",
