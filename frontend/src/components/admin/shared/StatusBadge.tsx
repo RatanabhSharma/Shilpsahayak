@@ -62,7 +62,7 @@ export function getStatusColor(
     };
   }
 
-  // Warning / Attention / Low stock / Under Review / Processing
+  // Warning / Attention / Low stock / Under Review / Processing / Awaiting Payment
   if (
     [
       'pending',
@@ -71,6 +71,8 @@ export function getStatusColor(
       'under review',
       'draft',
       'partially refunded',
+      'accepted (awaiting payment)',
+      'awaiting payment',
     ].includes(normalized)
   ) {
     return {

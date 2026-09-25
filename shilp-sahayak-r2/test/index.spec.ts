@@ -15,6 +15,7 @@ import worker, {
   fetchRazorpayOrder,
   getPrivilegedFirestoreAccessToken,
   patchFirestoreDoc,
+  calculateOrderPricing,
   FirestoreRequestError,
   toFirestoreFields,
   fromFirestoreFields,
@@ -603,6 +604,7 @@ describe("Payment Endpoints Authentication & Security (Worker)", () => {
   });
 });
 
+<<<<<<< HEAD
 const testPrivateKey = `-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQChj9OsiFMNYk+W\nx+x8TIf15qXlpzSfcTXj4yU2Fa1/Op4ycGpvBtTZvKncuZUY4FMQ95Id3P/ANXAY\niqP9UgWux3Z8g7Aysi0KfNjhcXLZqQSo6u8nE8WJ/MLPvpRbrAoPW3hjoMlwQIky\n9Ubd1WDwccSyIJi2GeyMXvO4y0J5XS5kpZ/nsC9oeuYmC6luxSWGN8/LOwcCn0nu\nVczYLf8JkJb5r/X9TKgMp6Baw1WgoAdq3sMBfUqh0MJYRDLkiTFkEhdpuCmXxcu5\n6WNYYtIdoVwdBPRXvXkDsE8jM+s90iwL+tp3UwdfrRaIGn/gL1zcLm4x26vL8UPL\nEx3mdQcFAgMBAAECggEAPPXwmFrN/7BXOJ0SKeqUqJ/RfCCFth25CFZmbYxrbSTY\nmU6akm8g9FGARHVQAVVvcmj/3L3NUKC5PcFeVFDVLRg9KIll/BMH9Lub+CDfBasF\nQ5l2CKgossLJXSrbfuWg3B+XAvyh1XW8bxpmlYCUddVvswiipp+MhoCzdMhZOkJp\nhd53JSRAWwVTGu3ck5XHtwtT/ULUC3ySKC3ecNBChBdiT04n3AL+JFbqEBmC1o3W\nfHL/3ToyLMc483vbeW1/KDc2NTeSu9yuiGV6Um3znUc8Baz0jxuvqDp1j+rlemQD\nd7PujYKvtfCyjZbfsscLAOMEDVC4/6fSbzp53q9xlwKBgQDUhO77swos96vOd2D8\ny3OS5nsmLdfrvhsT3S8yrAOHE/C74HOJa56IACi3UTklRKhqMSus3fjMRxgT9L2p\n8y8DtqWlecF46/AqrHrnjG8OrKvtB8Gmn1iYWJ7PCbx8xEwMddN+UJxdGuk3jX+9\nm6iIvmE0o3e/syTs0SOVl5WF5wKBgQDCneiKPEjSeu/bTJPqHHl+aFHpxJKtjKKr\n9ojQgV6VoDpxyq6isz6I57UzDpX5zSC30q7FfbEWcTFCPB2mVeaH1FBZcGc+Aidm\nGt0eIlHV4wtGQQcsnNFc9dpkM3JFnaoRh+eYwpZqPiKlxgvHTCIaCuiFBvOsPTrx\ntALZXFqWMwKBgA+WfIz7sehgdjqbqQKBzcVdoHTJcgf5lrTbSWX3Ff8naEXvjanr\nueIR2OqxS3a/VXcMij6QvXoGUO7NyceYbb9g+z9q8dTzwVbv9cfcFh1GbwngwsR8\n9ZufDG71MN0Z7NYRImUmdoGhwq9vcoouy6rUA/8/aj4mXrP8FxcW2kHLAoGAWl64\n/HfB2Pr9JfgJN0zBndETOFnvQmdroi54mVl5ckFU4kIblbFl+Gyf13WObtCxwKo0\nPcB/2sv086y2l+aLhccxCFcJmeGmKeOPic6l8YvcUGMh0bWAAoqnPqAlD+6Gal2R\nTX4OGod/zzqHfaP8sdse3aa8v94u4M2WBRi9d8ECgYEAhq68yFzrnvmPrxHhFvOn\nkqm4H8OOGCCPjjppYXseL3CE4d1VHMLGmoCrXDt1sai6vgjZUfkj3ntgO6lgfS8W\ny+eK9R1a0vZDhA2Fg9hGbHHHWHP32Uhcg/l+OHTcjN7KHz1ZRTU3Khcq1xfLxJNc\nc9bUX0b9ZDzsTeI6RnXoT/g=\n-----END PRIVATE KEY-----`;
 
 const testJwk = {
@@ -2526,6 +2528,183 @@ describe("Payment Capture on Cancelled Orders (/verify and webhook)", () => {
     const lastTl = fields.timeline[fields.timeline.length - 1];
     expect(lastTl.note).toContain("cancelled order");
     expect(lastTl.note).toContain("Marked for refund");
+    
+    vi.unstubAllGlobals();
+  });
+});
+
+describe("Order Pricing & Quotation Authoritative Enforcement", () => {
+  it("authoritatively prices an Accepted custom quote for the authorized customer", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("/settings/settings")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              fields: toFirestoreFields({ shippingFlatRate: 100, freeShippingThreshold: 1000 }),
+            }),
+            { status: 200 }
+          )
+        );
+      }
+      if (url.includes("/quotes/quote_valid_123")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              fields: toFirestoreFields({
+                status: "Accepted",
+                customerId: "user_abc",
+                adminPrice: 750,
+                fileName: "dragon.stl",
+              }),
+            }),
+            { status: 200 }
+          )
+        );
+      }
+      return Promise.resolve(new Response("Not found", { status: 404 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const pricing = await calculateOrderPricing(
+      [
+        {
+          productId: "custom-print",
+          quantity: 1,
+          quoteId: "quote_valid_123",
+        },
+      ],
+      "shilp-sahayak",
+      undefined,
+      "mock-auth-token",
+      "user_abc"
+    );
+
+    expect(pricing.subtotal).toBe(750);
+    expect(pricing.shipping).toBe(100);
+    expect(pricing.total).toBe(850);
+    expect(pricing.verifiedItems[0].price).toBe(750);
+    expect(pricing.verifiedItems[0].productName).toBe("Custom 3D Print: dragon.stl");
+
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects an order if the quote is not in 'Accepted' status", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("/settings/settings")) {
+        return Promise.resolve(new Response("Not found", { status: 404 }));
+      }
+      if (url.includes("/quotes/quote_pending_123")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              fields: toFirestoreFields({
+                status: "Quoted",
+                customerId: "user_abc",
+                adminPrice: 500,
+              }),
+            }),
+            { status: 200 }
+          )
+        );
+      }
+      return Promise.resolve(new Response("Not found", { status: 404 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      calculateOrderPricing(
+        [
+          {
+            productId: "custom-print",
+            quantity: 1,
+            quoteId: "quote_pending_123",
+          },
+        ],
+        "shilp-sahayak",
+        undefined,
+        "mock-auth-token",
+        "user_abc"
+      )
+    ).rejects.toThrow('cannot be ordered because its status is "Quoted"');
+
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects an order if the quote belongs to a different customer", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("/quotes/quote_other_user")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              fields: toFirestoreFields({
+                status: "Accepted",
+                customerId: "different_user",
+                adminPrice: 900,
+              }),
+            }),
+            { status: 200 }
+          )
+        );
+      }
+      return Promise.resolve(new Response("Not found", { status: 404 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      calculateOrderPricing(
+        [
+          {
+            productId: "custom-print",
+            quantity: 1,
+            quoteId: "quote_other_user",
+          },
+        ],
+        "shilp-sahayak",
+        undefined,
+        "mock-auth-token",
+        "user_abc"
+      )
+    ).rejects.toThrow("Unauthorized: Quotation does not belong to the current user.");
+
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects an order if the quote has already been converted to an order (one-time-use)", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("/quotes/quote_already_used")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              fields: toFirestoreFields({
+                status: "Accepted",
+                customerId: "user_abc",
+                adminPrice: 500,
+                orderId: "ORD_EXISTING_123",
+              }),
+            }),
+            { status: 200 }
+          )
+        );
+      }
+      return Promise.resolve(new Response("Not found", { status: 404 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      calculateOrderPricing(
+        [
+          {
+            productId: "custom-print",
+            quantity: 1,
+            quoteId: "quote_already_used",
+          },
+        ],
+        "shilp-sahayak",
+        undefined,
+        "mock-auth-token",
+        "user_abc"
+      )
+    ).rejects.toThrow("has already been converted to Order");
 
     vi.unstubAllGlobals();
   });

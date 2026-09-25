@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   FileBox,
@@ -21,6 +22,9 @@ import {
   Quote,
 } from '../../hooks/useQuotes';
 import { useCreateOrder } from '../../hooks/useOrders';
+import { useAuth } from '../../hooks/useAuth';
+import { doc, collection, runTransaction } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import { exportQuotesToCsv } from '../../utils/exportCsv';
 import { sendQuoteReadyNotification } from '../../services/emailNotifications';
 import { useNotification } from '../../components/NotificationContext';
@@ -78,6 +82,8 @@ const ITEMS_PER_PAGE = 8;
 
 export function Quotes() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
   const {
     data: quotes = [],
     isLoading,
@@ -248,7 +254,7 @@ export function Quotes() {
       await updateQuote.mutateAsync({
         id,
         adminPrice: price,
-        status: 'Quote Sent',
+        status: 'Quoted',
         expiresAt,
         adminNotes,
         quotedAt: new Date().toISOString(),
@@ -269,7 +275,7 @@ export function Quotes() {
             ? {
                 ...prev,
                 adminPrice: price,
-                status: 'Quote Sent',
+                status: 'Quoted',
                 expiresAt,
                 adminNotes,
               }
@@ -289,7 +295,7 @@ export function Quotes() {
     }
   };
 
-  // Convert to Confirmed Order Workflow
+  // Record Offline Order Workflow (Atomic Transaction)
   const handleConvertToOrder = async (quote: Quote) => {
     try {
       setIsConverting(true);
@@ -299,12 +305,21 @@ export function Quotes() {
         quote.estimatedPrice ||
         0;
 
-      const created = await createOrder.mutateAsync({
+      if (orderPrice <= 0) {
+        throw new Error('Cannot record order: Quote has no valid price.');
+      }
+
+      const dateNow = new Date().toISOString();
+      const orderDocRef = doc(collection(db, 'orders'));
+      const quoteDocRef = doc(db, 'quotes', quote.id);
+
+      const newOrderPayload = {
+        id: orderDocRef.id,
         customerId: quote.customerId || null,
         customerName: quote.customerName,
         customerEmail: quote.customerEmail,
         customerPhone: quote.customerPhone,
-        address: 'Specified in Custom CAD Quote Request',
+        address: 'Specified in Custom CAD Quote Request (Offline Order)',
         items: [
           {
             productId: `custom-${quote.id}`,
@@ -330,34 +345,99 @@ export function Quotes() {
             },
           },
         ],
+        productIds: [`custom-${quote.id}`],
+        subtotal: orderPrice,
+        shipping: 0,
         total: orderPrice,
         quoteId: quote.id,
-        notes: `Converted from Custom CAD Quote #${quote.id.slice(0, 8)}${
+        purchaseMode: 'offline_quote_conversion',
+        notes: `Recorded offline from Custom CAD Quote #${quote.id.slice(0, 8)}${
           quote.notes ? ` — ${quote.notes}` : ''
         }`,
+        date: dateNow,
+        status: 'Confirmed',
+        paymentStatus: 'Paid',
+        fulfillmentType: 'Standard Shipping',
+        timeline: [
+          {
+            id: `tl_${Date.now()}`,
+            status: 'Confirmed',
+            note: 'Order recorded as paid offline by studio administrator',
+            timestamp: dateNow,
+            updatedBy: user?.displayName || user?.email || 'Admin',
+          },
+        ],
+        internalNotes: [
+          {
+            id: `note_${Date.now()}`,
+            content: `Payment collected directly outside website. Converted from Quote #${quote.id.slice(0, 8)} at ₹${orderPrice.toLocaleString('en-IN')}.`,
+            createdAt: dateNow,
+            createdBy: user?.displayName || user?.email || 'Admin',
+          },
+        ],
+      };
+
+      await runTransaction(db, async (transaction) => {
+        const freshQuoteSnap = await transaction.get(quoteDocRef);
+        if (!freshQuoteSnap.exists()) {
+          throw new Error('Quote document no longer exists.');
+        }
+
+        const freshData = freshQuoteSnap.data();
+        if (freshData.status !== 'Accepted') {
+          throw new Error(
+            `Quote cannot be converted: status is "${freshData.status}". Only "Accepted" quotes can be converted.`
+          );
+        }
+
+        if (freshData.orderId) {
+          throw new Error(
+            `Quote has already been converted to Order #${String(freshData.orderId).slice(0, 8)}.`
+          );
+        }
+
+        // 1. Write the new confirmed order
+        transaction.set(orderDocRef, newOrderPayload);
+
+        // 2. Mark the quote converted and link the orderId atomically
+        transaction.update(quoteDocRef, {
+          status: 'Converted to Order',
+          orderId: orderDocRef.id,
+          convertedAt: dateNow,
+        });
       });
 
-      await updateQuote.mutateAsync({
-        id: quote.id,
-        status: 'Converted to Order',
-        orderId: created.id,
-        convertedAt: new Date().toISOString(),
-      });
+      // Invalidate relevant React Query caches
+      queryClient.invalidateQueries({ queryKey: ['quotes'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+
+      // Dispatch order confirmation email asynchronously
+      sendOrderConfirmationNotification(newOrderPayload as any).catch((err) =>
+        console.error('[Notification] Failed to send offline order confirmation email:', err)
+      );
 
       if (selectedQuote && selectedQuote.id === quote.id) {
         setSelectedQuote((prev) =>
           prev
-            ? { ...prev, status: 'Converted to Order', orderId: created.id }
+            ? { ...prev, status: 'Converted to Order', orderId: orderDocRef.id }
             : null
         );
       }
 
       setQuoteToConvert(null);
-      notify({ type: 'success', title: 'Order Created', message: `Quote converted to Order #${created.id}!` });
-      navigate(`/admin/orders/${created.id}`);
+      notify({
+        type: 'success',
+        title: 'Offline Order Recorded',
+        message: `Quote converted to Order #${orderDocRef.id}!`,
+      });
+      navigate(`/admin/orders/${orderDocRef.id}`);
     } catch (err: any) {
       console.error('Failed to convert quote to order:', err);
-      notify({ type: 'error', title: 'Conversion Failed', message: err?.message || 'Failed to convert quote to order.' });
+      notify({
+        type: 'error',
+        title: 'Conversion Failed',
+        message: err?.message || 'Failed to convert quote to order.',
+      });
     } finally {
       setIsConverting(false);
     }
@@ -587,6 +667,8 @@ export function Quotes() {
             const effectiveStatus =
               isExpired && (quote.status === 'Quote Sent' || quote.status === 'Quoted')
                 ? 'Expired'
+                : quote.status === 'Accepted' && !quote.orderId
+                ? 'Accepted (Awaiting Payment)'
                 : quote.status;
 
             const finalPrice =
@@ -605,6 +687,8 @@ export function Quotes() {
                     ? 'border-rose-200 bg-rose-50/10'
                     : quote.status === 'Converted to Order'
                     ? 'border-purple-200 bg-purple-50/10'
+                    : quote.status === 'Accepted' && !quote.orderId
+                    ? 'border-amber-200 bg-amber-50/10'
                     : 'border-line'
                 }`}
               >
@@ -784,16 +868,17 @@ export function Quotes() {
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>Order #{quote.orderId.slice(0, 6)}</span>
                           </Link>
-                        ) : (
+                        ) : quote.status === 'Accepted' ? (
                           <button
                             type="button"
                             onClick={() => setQuoteToConvert(quote)}
                             className="flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-mono text-[11px] font-bold transition-colors shadow-2xs cursor-pointer"
+                            title="Record payment collected offline (cash/UPI) and create order"
                           >
                             <ShoppingCart className="w-3.5 h-3.5" />
-                            <span>To Order</span>
+                            <span>Record Offline Order</span>
                           </button>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -830,14 +915,14 @@ export function Quotes() {
       {quoteToConvert && (
         <ConfirmationDialog
           isOpen={Boolean(quoteToConvert)}
-          title={`Convert Quote #${quoteToConvert.id.slice(0, 8)} to Order?`}
-          description={`This will generate a confirmed fabrication order for "${quoteToConvert.customerName}" with a total amount of ₹${(
+          title={`Record Quote #${quoteToConvert.id.slice(0, 8)} as Offline Order?`}
+          description={`This will record an offline-paid order (cash/UPI) for "${quoteToConvert.customerName}" with a total amount of ₹${(
             quoteToConvert.adminPrice ||
             quoteToConvert.systemEstimatedPrice ||
             quoteToConvert.estimatedPrice ||
             0
-          ).toLocaleString('en-IN')}.`}
-          confirmText="Convert to Order"
+          ).toLocaleString('en-IN')}. The quote will be locked to this order.`}
+          confirmText="Record Offline Order"
           variant="primary"
           isLoading={isConverting}
           onConfirm={() => handleConvertToOrder(quoteToConvert)}

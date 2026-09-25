@@ -601,6 +601,7 @@ export interface OrderItemInput {
   variantId?: string;
   variantLabel?: string;
   customNotes?: string;
+  quoteId?: string;
   customPrint?: any;
 }
 
@@ -627,7 +628,8 @@ export async function calculateOrderPricing(
   items: OrderItemInput[],
   projectId: string,
   apiKey?: string,
-  authToken?: string
+  authToken?: string,
+  uid?: string
 ): Promise<CalculatedPricing> {
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error("Order must contain at least one item.");
@@ -667,46 +669,94 @@ export async function calculateOrderPricing(
       throw new Error(`Invalid quantity for item ${item.productId}.`);
     }
 
-    const product = await getFirestoreDoc(
-      projectId,
-      "products",
-      item.productId,
-      apiKey,
-      authToken
-    );
+    const quoteId = item.quoteId || item.customPrint?.quoteId;
 
-    if (!product) {
-      throw new Error(`Product ${item.productId} was not found.`);
-    }
+    let unitPrice: number;
+    let productName: string;
 
-    if (product.active === false) {
-      throw new Error(`Product "${product.name}" is not currently available.`);
-    }
+    if (quoteId) {
+      // Authoritatively resolve and verify custom print quote
+      const quote = await getFirestoreDoc(
+        projectId,
+        "quotes",
+        quoteId,
+        apiKey,
+        authToken
+      );
 
-    // Check available finished inventory stock (if managed)
-    if (typeof product.stock === "number" && product.stock < qty) {
-      throw new Error(`Insufficient stock for "${product.name}". Only ${product.stock} units available.`);
-    }
-
-    let unitPrice = Number(product.price);
-
-    // If item specifies a variant, resolve authoritative variant price
-    if (item.variantId && Array.isArray(product.variants)) {
-      const variant = product.variants.find((v: any) => v.id === item.variantId);
-      if (variant && typeof variant.price === "number") {
-        unitPrice = variant.price;
+      if (!quote) {
+        throw new Error(`Quotation ${quoteId} not found.`);
       }
-    }
 
-    if (isNaN(unitPrice) || unitPrice < 0) {
-      throw new Error(`Invalid price configuration for product "${product.name}".`);
+      if (quote.status !== "Accepted") {
+        throw new Error(
+          `Quotation #${quoteId.slice(0, 8)} cannot be ordered because its status is "${quote.status}". It must be "Accepted" by the customer.`
+        );
+      }
+
+      if (uid && quote.customerId && quote.customerId !== uid) {
+        throw new Error("Unauthorized: Quotation does not belong to the current user.");
+      }
+
+      if (quote.orderId) {
+        throw new Error(
+          `Quotation #${quoteId.slice(0, 8)} has already been converted to Order #${String(quote.orderId).slice(0, 8)}.`
+        );
+      }
+
+      const adminPrice = Number(quote.adminPrice);
+      if (isNaN(adminPrice) || adminPrice <= 0) {
+        throw new Error(`Quotation #${quoteId.slice(0, 8)} does not have a valid quoted price.`);
+      }
+
+      unitPrice = adminPrice;
+      productName = quote.fileName
+        ? `Custom 3D Print: ${quote.fileName}`
+        : (quote.productName || "Custom 3D Print");
+    } else {
+      const product = await getFirestoreDoc(
+        projectId,
+        "products",
+        item.productId,
+        apiKey,
+        authToken
+      );
+
+      if (!product) {
+        throw new Error(`Product ${item.productId} was not found.`);
+      }
+
+      if (product.active === false) {
+        throw new Error(`Product "${product.name}" is not currently available.`);
+      }
+
+      // Check available finished inventory stock (if managed)
+      if (typeof product.stock === "number" && product.stock < qty) {
+        throw new Error(`Insufficient stock for "${product.name}". Only ${product.stock} units available.`);
+      }
+
+      unitPrice = Number(product.price);
+
+      // If item specifies a variant, resolve authoritative variant price
+      if (item.variantId && Array.isArray(product.variants)) {
+        const variant = product.variants.find((v: any) => v.id === item.variantId);
+        if (variant && typeof variant.price === "number") {
+          unitPrice = variant.price;
+        }
+      }
+
+      if (isNaN(unitPrice) || unitPrice < 0) {
+        throw new Error(`Invalid price configuration for product "${product.name}".`);
+      }
+
+      productName = product.name || "3D Printed Item";
     }
 
     subtotal += unitPrice * qty;
 
     verifiedItems.push({
       productId: item.productId,
-      productName: product.name || "3D Printed Item",
+      productName,
       quantity: qty,
       price: unitPrice,
       variantId: item.variantId,
@@ -970,7 +1020,8 @@ export default {
           items,
           projectId,
           apiKey,
-          firestoreToken
+          firestoreToken,
+          uid
         );
 
         // Reject client price manipulation attempts
@@ -1113,6 +1164,35 @@ export default {
           apiKey,
           firestoreToken
         );
+
+        // One-time-use protection: stamp orderId on any custom print quotes involved in this order
+        const associatedQuoteIds = Array.from(
+          new Set(
+            pricing.verifiedItems
+              .map((i) => i.customPrint?.quoteId || (i as any).quoteId)
+              .filter(Boolean)
+          )
+        );
+
+        for (const qId of associatedQuoteIds) {
+          try {
+            await patchFirestoreDoc(
+              projectId,
+              "quotes",
+              qId,
+              {
+                orderId,
+                status: "Converted to Order",
+                convertedAt: dateNow,
+              },
+              ["orderId", "status", "convertedAt"],
+              apiKey,
+              firestoreToken
+            );
+          } catch (patchErr) {
+            console.error(`Failed to stamp orderId on quotation ${qId}:`, patchErr);
+          }
+        }
 
         return jsonResponse(request, {
           success: true,

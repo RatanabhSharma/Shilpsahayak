@@ -163,6 +163,8 @@ export const QuoteReviewDrawer: React.FC<QuoteReviewDrawerProps> = ({
   const effectiveStatus =
     isExpired && (quote.status === 'Quote Sent' || quote.status === 'Quoted')
       ? 'Expired'
+      : quote.status === 'Accepted' && !quote.orderId
+      ? 'Accepted (Awaiting Payment)'
       : quote.status;
 
   const colorHex = quote.color
@@ -691,25 +693,27 @@ export const QuoteReviewDrawer: React.FC<QuoteReviewDrawerProps> = ({
               <div className="p-4 rounded-xl border border-line bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
                 <div>
                   <span className="font-mono text-xs font-bold text-ink block">
-                    Ready to start manufacturing?
+                    Record payment collected offline?
                   </span>
                   <span className="text-xs text-muted font-sans">
-                    Instantly convert this CAD quote into an official confirmed customer order.
+                    {quote.status === 'Accepted'
+                      ? 'Create a confirmed order and record payment collected offline (cash/UPI).'
+                      : 'Quote must be accepted by the customer before recording as an order.'}
                   </span>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setShowConvertConfirm(true)}
-                  disabled={isConverting}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-mono text-xs font-bold transition-colors shadow-xs cursor-pointer shrink-0 disabled:opacity-50"
+                  disabled={isConverting || quote.status !== 'Accepted' || Boolean(quote.orderId)}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-mono text-xs font-bold transition-colors shadow-xs cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isConverting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <ShoppingCart className="w-4 h-4" />
                   )}
-                  <span>Convert to Order</span>
+                  <span>Record as Offline Order</span>
                 </button>
               </div>
             )}
@@ -720,15 +724,15 @@ export const QuoteReviewDrawer: React.FC<QuoteReviewDrawerProps> = ({
       {/* Confirmation Dialog for Conversion */}
       <ConfirmationDialog
         isOpen={showConvertConfirm}
-        title={`Convert Quote #${quote.id.slice(0, 8)} to Order?`}
-        description={`This will generate a confirmed production order for "${quote.customerName}" with a total amount of ₹${(
+        title={`Record Quote #${quote.id.slice(0, 8)} as Offline Order?`}
+        description={`This will record an offline-paid order (cash/UPI) for "${quote.customerName}" with a total amount of ₹${(
           adminPriceNum ||
           quote.adminPrice ||
           quote.systemEstimatedPrice ||
           quote.estimatedPrice ||
           0
-        ).toLocaleString('en-IN')}. The quote status will update to 'Converted to Order'.`}
-        confirmText="Convert to Order"
+        ).toLocaleString('en-IN')}. The quote will update to 'Converted to Order' and cannot be paid again.`}
+        confirmText="Record as Offline Order"
         variant="primary"
         isLoading={isConverting}
         onConfirm={async () => {

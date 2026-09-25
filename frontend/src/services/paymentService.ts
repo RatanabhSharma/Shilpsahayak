@@ -24,6 +24,7 @@ export interface PaymentOrderItemInput {
   variantLabel?: string;
   customNotes?: string;
   customPrint?: any;
+  quoteId?: string;
 }
 
 export interface CreatePaymentOrderInput {

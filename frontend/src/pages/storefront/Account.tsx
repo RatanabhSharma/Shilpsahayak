@@ -20,6 +20,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { usePincodeLookup } from '../../hooks/usePincodeLookup';
 import { useNotification, useConfirmDialog } from '../../components/NotificationContext';
+import { useStore } from '../../store';
 
 import {
   emptyAddress,
@@ -396,14 +397,62 @@ export function Account() {
     }
   };
 
+  const addToCart = useStore((state) => state.addToCart);
+
   const handleAcceptQuote = async (quoteId: string) => {
     try {
       await updateQuote.mutateAsync({ id: quoteId, status: 'Accepted' });
-      notify({ type: 'success', title: 'Quote Accepted', message: 'Your quote has been accepted successfully.' });
+      notify({ type: 'success', title: 'Quote Accepted', message: 'Your quote has been accepted successfully. You can now proceed to checkout.' });
     } catch (error) {
       console.error('Failed to accept quote:', error);
       notify({ type: 'error', title: 'Failed to Accept', message: 'Unable to accept quote. Please try again.' });
     }
+  };
+
+  const handlePayQuote = (quote: (typeof myQuotes)[number]) => {
+    const finalPrice = quote.adminPrice || quote.systemEstimatedPrice || quote.estimatedPrice || 0;
+    if (finalPrice <= 0) {
+      notify({
+        type: 'error',
+        title: 'Invalid Quote Price',
+        message: 'This quote does not have a valid final price. Please contact studio.',
+      });
+      return;
+    }
+
+    addToCart(
+      {
+        id: `custom-${quote.id}`,
+        name: `Custom 3D Print: ${quote.fileName || '3D Model'}`,
+        description: `${quote.material || 'PLA'} (${quote.color || 'Standard'}) · ${quote.infill || 20}% Infill (${quote.quantity || 1} pcs)`,
+        price: finalPrice,
+        category: 'Custom 3D Print',
+        image: '/custom-print-placeholder.png',
+        stock: 999,
+        active: true,
+      },
+      quote.quantity || 1,
+      quote.notes || quote.description || undefined,
+      undefined,
+      undefined,
+      {
+        fileName: quote.fileName,
+        fileUrl: quote.fileUrl,
+        material: quote.material,
+        color: quote.color,
+        quality: quote.quality,
+        infill: quote.infill,
+        layerHeight: quote.layerHeight,
+        estimatedWeight: quote.estimatedWeight,
+        volume: quote.volume,
+        estimatedPrintTimeHours: quote.estimatedPrintTimeHours,
+        packagingIncluded: quote.packagingIncluded,
+        quoteId: quote.id,
+        customPrice: finalPrice,
+      }
+    );
+
+    navigate('/checkout');
   };
 
   const handleRejectQuote = async (quoteId: string) => {
@@ -937,7 +986,25 @@ export function Account() {
                               )}
                             </td>
                             <td className="px-6 py-4 text-right">
-                              {quote.status === 'Quoted' && quote.adminPrice && !isExpired ? (
+                              {quote.orderId ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveTab('orders')}
+                                  className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-purple-700 hover:text-purple-800 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                                >
+                                  <Package className="w-3.5 h-3.5" />
+                                  <span>View Order #{quote.orderId.slice(0, 8)}</span>
+                                </button>
+                              ) : (quote.status === 'Accepted' || quote.status === 'Approved') ? (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handlePayQuote(quote)}
+                                  className="bg-accent hover:bg-accent-dark text-white border-accent"
+                                >
+                                  <ShoppingCart className="w-3.5 h-3.5" />
+                                  <span>Pay Now & Checkout</span>
+                                </Button>
+                              ) : quote.status === 'Quoted' && quote.adminPrice && !isExpired ? (
                                 <div className="flex justify-end gap-2">
                                   <Button
                                     size="sm"
