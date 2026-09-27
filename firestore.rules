@@ -49,7 +49,7 @@ service cloud.firestore {
             resource.data.get('role', 'customer')
         );
 
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
     }
 
     // =========================================================

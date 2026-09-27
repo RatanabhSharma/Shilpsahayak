@@ -14,6 +14,10 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  deleteUser,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
+  EmailAuthProvider,
   signInWithPopup,
   GoogleAuthProvider,
   OAuthProvider,
@@ -41,6 +45,7 @@ const EMAIL_VERIFICATION_ACTION_CODE_SETTINGS: ActionCodeSettings = {
 import {
   doc,
   getDoc,
+  deleteDoc,
   serverTimestamp,
   setDoc,
 } from 'firebase/firestore';
@@ -72,6 +77,7 @@ export interface AuthContextValue {
   /* Account Management */
   logout: () => Promise<void>;
   updateAccount: (data: { name: string; email: string }) => Promise<void>;
+  deleteAccount: (password?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -322,6 +328,58 @@ export function AuthProvider({ children }: AuthProviderProps) {
         });
 
         setUser(auth.currentUser);
+      },
+
+      // --------------------------------------------------
+      // DELETE ACCOUNT
+      // --------------------------------------------------
+      deleteAccount: async (password?: string) => {
+        const currentUser = auth.currentUser;
+        if (!currentUser) throw new Error('You must be logged in to delete your account.');
+
+        const providerId = currentUser.providerData[0]?.providerId;
+        
+        // 1. Re-authenticate
+        if (providerId === 'password') {
+          if (!password) {
+             throw new Error('Password is required for account deletion.');
+          }
+          const credential = EmailAuthProvider.credential(currentUser.email!, password);
+          await reauthenticateWithCredential(currentUser, credential);
+        } else if (providerId === 'google.com') {
+          await reauthenticateWithPopup(currentUser, new GoogleAuthProvider());
+        } else if (providerId === 'microsoft.com') {
+          await reauthenticateWithPopup(currentUser, new OAuthProvider('microsoft.com'));
+        }
+
+        // 2. Fetch current Firestore user document for fallback
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        let userData = null;
+        try {
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+             userData = userDocSnap.data();
+          }
+        } catch (e) {
+          console.warn('Could not fetch user document before deletion:', e);
+        }
+
+        // 3. Delete Firestore document and Auth record
+        try {
+           // Delete from Firestore first
+           await deleteDoc(userDocRef);
+           // Delete from Auth
+           await deleteUser(currentUser);
+           setUser(null);
+        } catch (err: any) {
+           // Rollback Firestore if Auth deletion failed
+           if (err.code && (err.code.includes('auth') || err.message?.includes('auth'))) {
+             if (userData) {
+                await setDoc(userDocRef, userData);
+             }
+           }
+           throw err;
+        }
       },
     }),
     [loading, user]

@@ -15,6 +15,8 @@ import {
   ChevronRight,
   ShieldCheck,
   Mail,
+  AlertTriangle,
+  Trash2,
 } from 'lucide-react';
 
 import { useAuth } from '../../hooks/useAuth';
@@ -108,6 +110,7 @@ export function Account() {
     updateAccount,
     sendVerificationEmail,
     reloadUser,
+    deleteAccount,
   } = useAuth();
 
   const notify = useNotification();
@@ -212,6 +215,10 @@ export function Account() {
   } = usePincodeLookup(profileAddress.pincode, isAddressEditing);
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     if (!profile) return;
@@ -394,6 +401,24 @@ export function Account() {
     } catch (error) {
       console.error('Logout failed:', error);
       setIsLoggingOut(false);
+    }
+  };
+
+  const handleConfirmDeleteAccount = async () => {
+    setDeleteError('');
+    setIsDeletingAccount(true);
+    try {
+      await deleteAccount(deletePassword);
+      notify({
+        type: 'success',
+        title: 'Account Deleted',
+        message: 'Your account has been permanently deleted.',
+      });
+      navigate('/', { replace: true });
+    } catch (error: any) {
+      console.error('Account deletion failed:', error);
+      setDeleteError(error.message || 'Failed to delete account.');
+      setIsDeletingAccount(false);
     }
   };
 
@@ -676,10 +701,20 @@ export function Account() {
                 size="sm"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="text-rose-600 hover:bg-rose-50"
+                className="text-muted hover:text-ink hover:bg-shell"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>{isLoggingOut ? 'Signing out...' : 'Sign out'}</span>
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDeleteModal(true)}
+                className="text-rose-600 hover:bg-rose-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Account</span>
               </Button>
             </div>
           </div>
@@ -1365,6 +1400,87 @@ export function Account() {
           </div>
         )}
       </main>
+
+      {/* DELETE ACCOUNT MODAL */}
+      {showDeleteModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-8"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => !isDeletingAccount && setShowDeleteModal(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-3xl border border-line bg-white shadow-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-mono text-base font-bold text-ink">Delete Account</h3>
+                <p className="font-sans text-xs text-muted">This action is permanent and cannot be undone.</p>
+              </div>
+            </div>
+
+            <div className="font-sans text-sm text-ink mb-6 space-y-3">
+              <p>
+                Deleting your account will permanently remove your login credentials and profile information. 
+              </p>
+              <p className="font-semibold text-rose-600">
+                Your past orders and quotes will NOT be deleted, but you will lose access to view them.
+              </p>
+              <p className="text-xs text-muted">
+                If you need a copy of your data before proceeding, please contact support.
+              </p>
+            </div>
+
+            {user?.providerData[0]?.providerId === 'password' ? (
+              <div className="mb-6">
+                <label className="mb-1 block font-mono text-xs font-medium text-muted">
+                  Confirm Password
+                </label>
+                <Input
+                  type="password"
+                  placeholder="Enter your current password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  disabled={isDeletingAccount}
+                />
+              </div>
+            ) : (
+              <div className="mb-6 text-sm font-medium text-ink bg-shell p-3 rounded-xl border border-line">
+                You will be prompted to re-authenticate with your provider ({user?.providerData[0]?.providerId}) in a popup.
+              </div>
+            )}
+
+            {deleteError && (
+              <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 border-t border-line pt-5">
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeletingAccount}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                className="bg-rose-600 hover:bg-rose-700 focus-visible:ring-rose-500 border-rose-600 text-white"
+                onClick={handleConfirmDeleteAccount}
+                disabled={isDeletingAccount || (user?.providerData[0]?.providerId === 'password' && !deletePassword)}
+              >
+                {isDeletingAccount ? 'Deleting...' : 'Permanently Delete Account'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* ORDER DETAILS MODAL */}
       {selectedOrder && (
