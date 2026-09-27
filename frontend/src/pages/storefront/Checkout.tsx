@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -198,6 +198,25 @@ export function Checkout() {
   const [cityValue, setCityValue] = useState(() => savedForm?.city || '');
   const [pincodeValue, setPincodeValue] = useState(() => savedForm?.pincode || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [formAttempted, setFormAttempted] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const handleFieldBlur = (e: React.FocusEvent<HTMLFormElement>) => {
+    const target = e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+    if (target.name) {
+      setTouched(prev => ({ ...prev, [target.name]: true }));
+      if (formRef.current) {
+        validateForm(new FormData(formRef.current));
+      }
+    }
+  };
+
+  const handleFieldChange = (e: React.ChangeEvent<HTMLFormElement>) => {
+    if (formRef.current) {
+      validateForm(new FormData(formRef.current));
+    }
+  };
 
   const {
     location: pincodeLocation,
@@ -274,6 +293,7 @@ export function Checkout() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setFormAttempted(true);
     if (isSubmitting) return;
     if (cart.length === 0) return;
 
@@ -629,7 +649,7 @@ export function Checkout() {
         <div className="grid gap-10 lg:grid-cols-12 lg:gap-14">
           {/* Checkout Form */}
           <div id="checkout-form" className="lg:col-span-7">
-            <form onSubmit={handleSubmit} noValidate className="space-y-8">
+            <form ref={formRef} onSubmit={handleSubmit} onChange={handleFieldChange} onBlur={handleFieldBlur} noValidate className="space-y-8">
               {/* Email Verification Banner */}
               {user && !user.emailVerified && !profile?.emailVerified && (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-2 text-xs text-amber-900 shadow-2xs">
@@ -692,7 +712,7 @@ export function Checkout() {
                       autoComplete="name"
                       required
                     />
-                    {errors.name && (
+                    {(formAttempted || touched.name) && errors.name && (
                       <p className="mt-1 text-xs font-semibold text-rose-600">
                         {errors.name}
                       </p>
@@ -712,7 +732,7 @@ export function Checkout() {
                     <p className="mt-1 font-mono text-[11px] text-muted">
                       Invoices & tracking updates sent here.
                     </p>
-                    {errors.email && (
+                    {(formAttempted || touched.email) && errors.email && (
                       <p className="mt-1 text-xs font-semibold text-rose-600">
                         {errors.email}
                       </p>
@@ -735,7 +755,7 @@ export function Checkout() {
                     <p className="mt-1 font-mono text-[11px] text-muted">
                       +91 India format for dispatch.
                     </p>
-                    {errors.phone && (
+                    {(formAttempted || touched.phone) && errors.phone && (
                       <p className="mt-1 text-xs font-semibold text-rose-600">
                         {errors.phone}
                       </p>
@@ -765,7 +785,7 @@ export function Checkout() {
                       autoComplete="address-line1"
                       required
                     />
-                    {errors.houseNo && (
+                    {(formAttempted || touched.houseNo) && errors.houseNo && (
                       <p className="mt-1 text-xs font-semibold text-rose-600">
                         {errors.houseNo}
                       </p>
@@ -781,7 +801,7 @@ export function Checkout() {
                       autoComplete="address-line2"
                       required
                     />
-                    {errors.street && (
+                    {(formAttempted || touched.street) && errors.street && (
                       <p className="mt-1 text-xs font-semibold text-rose-600">
                         {errors.street}
                       </p>
@@ -807,7 +827,7 @@ export function Checkout() {
                         autoComplete="address-level2"
                         required
                       />
-                      {errors.city && (
+                      {(formAttempted || touched.city) && errors.city && (
                         <p className="mt-1 text-xs font-semibold text-rose-600">
                           {errors.city}
                         </p>
@@ -825,7 +845,7 @@ export function Checkout() {
                         placeholder="Select state"
                       />
                       <input type="hidden" name="state" value={stateValue} readOnly />
-                      {errors.state && (
+                      {(formAttempted || touched.state) && errors.state && (
                         <p className="mt-1 text-xs font-semibold text-rose-600">
                           {errors.state}
                         </p>
@@ -865,7 +885,7 @@ export function Checkout() {
                           ) : null}
                         </p>
                       )}
-                      {errors.pincode && (
+                      {(formAttempted || touched.pincode) && errors.pincode && (
                         <p className="mt-1 text-xs font-semibold text-rose-600">
                           {errors.pincode}
                         </p>
