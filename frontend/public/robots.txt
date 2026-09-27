@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin
 Disallow: /account
 
-Sitemap: https://shilpsahayak.com/sitemap.xml
+Sitemap: https://shilpsahayak.vercel.app/sitemap.xml

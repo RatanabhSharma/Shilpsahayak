@@ -35,7 +35,6 @@ import { useUserRole } from '../hooks/useUserRole';
 import { useProducts } from '../hooks/useProducts';
 import { BrandLogo } from './ui';
 import { CartDrawer } from './CartDrawer';
-import whatsappLogo from '../assets/pictures/whatsapp.png';
 
 type NavItem = {
   name: string;
@@ -720,25 +719,7 @@ export function StorefrontLayout() {
         </div>
       </footer>
 
-      {/* Floating WhatsApp Support Button (Compact Circular Logo Only) */}
-      <aside className="fixed bottom-5 right-5 z-40 sm:bottom-6 sm:right-6">
-        <a
-          href={whatsappLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group flex h-[52px] w-[52px] sm:h-[58px] sm:w-[58px] items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg shadow-emerald-600/30 transition-all duration-200 ease-out hover:scale-105 hover:bg-[#1EBE5D] hover:shadow-xl hover:shadow-emerald-600/40 active:scale-95 touch-manipulation"
-          aria-label="Chat with Shilp Sahayak on WhatsApp"
-          title="Chat with Shilp Sahayak on WhatsApp"
-        >
-          <img
-            src={whatsappLogo}
-            alt=""
-            aria-hidden="true"
-            className="h-7 w-7 sm:h-8 sm:w-8 object-contain transition-transform duration-200 group-hover:scale-105"
-          />
-          <span className="sr-only">Chat with Shilp Sahayak on WhatsApp</span>
-        </a>
-      </aside>
+      {/* Floating WhatsApp button removed temporarily */}
 
       {/* Quick Search Modal Dialog */}
       <AnimatePresence>
@@ -849,5 +830,7 @@ export function StorefrontLayout() {
     </div>
   );
 }
+
+
 
 

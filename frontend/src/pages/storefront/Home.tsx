@@ -403,7 +403,7 @@ export function Home() {
   }, []);
 
   const heroPosterImage =
-    'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=2000&q=80';
+    '/images/logo.png';
 
   const featuredProducts = useMemo(() => {
     const configuredIds = homepageSettings?.featuredProductIds ?? [];
@@ -580,7 +580,7 @@ export function Home() {
               <button
                 type="button"
                 onClick={featuredCarousel.stepPrev}
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
+                className="flex h-8 w-8 items-center justify-center rounded-md border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
                 aria-label="Previous products"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -588,7 +588,7 @@ export function Home() {
               <button
                 type="button"
                 onClick={featuredCarousel.stepNext}
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
+                className="flex h-8 w-8 items-center justify-center rounded-md border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
                 aria-label="Next products"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -603,7 +603,7 @@ export function Home() {
           <button
             type="button"
             onClick={featuredCarousel.stepPrev}
-            className="hidden sm:flex absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
+            className="hidden sm:flex absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-md border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
             aria-label="Previous featured products"
           >
             <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -613,7 +613,7 @@ export function Home() {
           <button
             type="button"
             onClick={featuredCarousel.stepNext}
-            className="hidden sm:flex absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
+            className="hidden sm:flex absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-md border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
             aria-label="Next featured products"
           >
             <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -674,7 +674,7 @@ export function Home() {
 
               {/* Right Column: Instant Slicer Pitch & Material Matrix */}
               <div className="space-y-5">
-                <span className="inline-flex items-center gap-2 rounded-full bg-accent/20 border border-accent/30 px-3.5 py-1 font-mono text-xs font-bold text-accent-light">
+                <span className="inline-flex items-center gap-2 rounded-md bg-accent/20 border border-accent/30 px-3.5 py-1 font-mono text-xs font-bold text-accent-light">
                   <Sparkles className="w-3.5 h-3.5" />
                   Instant STL Slicer &amp; Estimator
                 </span>
@@ -814,7 +814,7 @@ export function Home() {
                 <button
                   type="button"
                   onClick={categoryCarousel.stepPrev}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
+                  className="flex h-8 w-8 items-center justify-center rounded-md border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
                   aria-label="Previous categories"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -822,7 +822,7 @@ export function Home() {
                 <button
                   type="button"
                   onClick={categoryCarousel.stepNext}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
+                  className="flex h-8 w-8 items-center justify-center rounded-md border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
                   aria-label="Next categories"
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -837,7 +837,7 @@ export function Home() {
             <button
               type="button"
               onClick={categoryCarousel.stepPrev}
-              className="hidden sm:flex absolute -left-3 sm:-left-5 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
+              className="hidden sm:flex absolute -left-3 sm:-left-5 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-md border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
               aria-label="Previous categories"
             >
               <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -847,7 +847,7 @@ export function Home() {
             <button
               type="button"
               onClick={categoryCarousel.stepNext}
-              className="hidden sm:flex absolute -right-3 sm:-right-5 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
+              className="hidden sm:flex absolute -right-3 sm:-right-5 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-md border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
               aria-label="Next categories"
             >
               <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -876,7 +876,7 @@ export function Home() {
                   >
                     <div className="relative aspect-[4/3] w-full overflow-hidden bg-shell shine-sweep-container">
                       <img
-                        src={cat.image || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80'}
+                        src={cat.image || '/images/logo.png'}
                         alt={cat.name}
                         className="h-full w-full object-cover transition-all duration-700 group-hover/cat:scale-108"
                       />
@@ -919,7 +919,7 @@ export function Home() {
         >
           <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
             <div className="text-center max-w-2xl mx-auto space-y-3 mb-12">
-              <span className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1 border border-line font-mono text-[11px] font-bold uppercase tracking-widest text-muted">
+              <span className="inline-flex items-center gap-2 rounded-md bg-white px-3.5 py-1 border border-line font-mono text-[11px] font-bold uppercase tracking-widest text-muted">
                 • COMMUNITY VOICES
               </span>
               <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-ink">
@@ -947,7 +947,7 @@ export function Home() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3 pt-3 border-t border-line">
-                    <div className="w-8 h-8 rounded-full bg-ink text-white font-mono text-xs font-bold flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-md bg-ink text-white font-mono text-xs font-bold flex items-center justify-center">
                       {r.name?.[0] || 'U'}
                     </div>
                     <span className="font-sans text-xs font-bold text-ink">{r.name}</span>

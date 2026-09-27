@@ -4,10 +4,7 @@
   "redirects": [
     { "source": "/catalog", "destination": "/shop", "permanent": true },
     { "source": "/about", "destination": "/our-story", "permanent": true },
-    { "source": "/contact", "destination": "/reach-us", "permanent": true },
-    { "source": "/shilp-studio", "destination": "/shop", "permanent": false },
-    { "source": "/custom-printing", "destination": "/shop", "permanent": false },
-    { "source": "/custom-service", "destination": "/shop", "permanent": false }
+    { "source": "/contact", "destination": "/reach-us", "permanent": true }
   ],
   "rewrites": [
     {
@@ -19,6 +16,7 @@
     {
       "source": "/(.*)",
       "headers": [
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; font-src 'self' data: https:; img-src 'self' data: https: blob:; connect-src 'self' https: wss:; media-src 'self' data: https: blob:; object-src 'none'; base-uri 'self';" },
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
