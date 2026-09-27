@@ -1004,26 +1004,50 @@ export function Checkout() {
               )}
 
               {/* Submit CTA */}
-              <Button
-                type="submit"
-                size="lg"
-                variant="primary"
-                disabled={isSubmitting}
-                className="w-full font-semibold"
-                isLoading={isSubmitting}
-              >
-                {paymentUiState === 'preparing'
-                  ? 'Preparing secure payment...'
-                  : paymentUiState === 'razorpay_open'
-                  ? 'Complete payment in popup...'
-                  : paymentUiState === 'verifying'
-                  ? 'Verifying payment...'
-                  : paymentUiState === 'cancelled' || paymentUiState === 'failed'
-                  ? `Retry Payment • ₹${total.toLocaleString('en-IN')}`
-                  : !user
-                  ? `Continue to Login & Pay • ₹${total.toLocaleString('en-IN')}`
-                  : `Pay Now • ₹${total.toLocaleString('en-IN')}`}
-              </Button>
+              {user && !user.emailVerified && !profile?.emailVerified ? (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-sans text-rose-900 space-y-3 shadow-2xs">
+                  <div className="flex items-center gap-2 font-bold font-display text-sm text-rose-950">
+                    <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+                    <span>Email Verification Required</span>
+                  </div>
+                  <p className="text-rose-800 leading-relaxed">
+                    You must verify your email address before you can place an order. 
+                    Please check your inbox or click below to resend the verification link.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full bg-white border-rose-200 hover:bg-rose-100 text-rose-700"
+                    onClick={handleSendEmailVerification}
+                    disabled={isSendingEmailVerification || emailVerificationSent}
+                    isLoading={isSendingEmailVerification}
+                  >
+                    {emailVerificationSent ? 'Verification Email Sent' : 'Resend Verification Email'}
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="submit"
+                  size="lg"
+                  variant="primary"
+                  disabled={isSubmitting}
+                  className="w-full font-semibold"
+                  isLoading={isSubmitting}
+                >
+                  {paymentUiState === 'preparing'
+                    ? 'Preparing secure payment...'
+                    : paymentUiState === 'razorpay_open'
+                    ? 'Complete payment in popup...'
+                    : paymentUiState === 'verifying'
+                    ? 'Verifying payment...'
+                    : paymentUiState === 'cancelled' || paymentUiState === 'failed'
+                    ? `Retry Payment • ₹${total.toLocaleString('en-IN')}`
+                    : !user
+                    ? `Continue to Login & Pay • ₹${total.toLocaleString('en-IN')}`
+                    : `Pay Now • ₹${total.toLocaleString('en-IN')}`}
+                </Button>
+              )}
             </form>
           </div>
 

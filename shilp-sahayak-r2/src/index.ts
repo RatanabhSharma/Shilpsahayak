@@ -976,10 +976,12 @@ export default {
       request.method === "POST" &&
       pathname === "/api/payment/create-order"
     ) {
+      let authUser;
       let uid: string;
       let firestoreToken: string;
       try {
-        uid = await authenticateUser(request);
+        authUser = await authenticateFirebaseUser(request);
+        uid = authUser.uid;
       } catch (authErr: any) {
         return jsonResponse(
           request,
@@ -988,6 +990,17 @@ export default {
             error: `Authentication required: ${authErr?.message || "Missing or invalid token."}`,
           },
           401
+        );
+      }
+
+      if (!authUser.emailVerified) {
+        return jsonResponse(
+          request,
+          {
+            success: false,
+            error: "Email verification required. Please verify your email before placing an order.",
+          },
+          403
         );
       }
 
