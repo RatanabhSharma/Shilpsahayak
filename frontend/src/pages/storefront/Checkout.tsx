@@ -636,10 +636,6 @@ export function Checkout() {
               </h1>
             </div>
 
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-mono font-bold text-emerald-800">
-              <Lock className="h-3.5 w-3.5 text-emerald-600" />
-              <span>256-Bit SSL Encrypted</span>
-            </div>
           </div>
         </div>
       </section>
