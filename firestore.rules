@@ -124,39 +124,45 @@ service cloud.firestore {
         );
 
       allow create: if
-        isAdmin()
-        ||
         (
-          isSignedIn() &&
-          request.resource.data.customerId == request.auth.uid &&
-          request.resource.data.status == 'Pending' &&
-          !request.resource.data.keys().hasAny([
-            'finalPrice',
-            'totalPrice',
-            'adminPrice',
-            'adminNotes',
-            'adminAdjustmentReason',
-            'orderId',
-            'reviewedAt',
-            'quotedAt',
-            'convertedAt',
-            'expiresAt'
-          ])
-        );
+          isAdmin()
+          ||
+          (
+            isSignedIn() &&
+            request.resource.data.customerId == request.auth.uid &&
+            request.resource.data.status == 'Pending' &&
+            !request.resource.data.keys().hasAny([
+              'finalPrice',
+              'totalPrice',
+              'adminPrice',
+              'adminNotes',
+              'adminAdjustmentReason',
+              'orderId',
+              'reviewedAt',
+              'quotedAt',
+              'convertedAt',
+              'expiresAt'
+            ])
+          )
+        )
+        && request.resource.data.status in ['Pending', 'New Request', 'Under Review', 'Quoted', 'Quote Sent', 'Accepted', 'Approved', 'Rejected', 'Converted to Order', 'Cancelled', 'Completed', 'Expired'];
 
       allow update: if
-        isAdmin()
-        ||
         (
-          isSignedIn() &&
-          resource.data.customerId == request.auth.uid &&
-          resource.data.status == 'Quoted' &&
-          request.resource.data.status in ['Accepted', 'Rejected'] &&
-          request.resource.data
-            .diff(resource.data)
-            .affectedKeys()
-            .hasOnly(['status'])
-        );
+          isAdmin()
+          ||
+          (
+            isSignedIn() &&
+            resource.data.customerId == request.auth.uid &&
+            resource.data.status == 'Quoted' &&
+            request.resource.data.status in ['Accepted', 'Rejected'] &&
+            request.resource.data
+              .diff(resource.data)
+              .affectedKeys()
+              .hasOnly(['status'])
+          )
+        )
+        && request.resource.data.status in ['Pending', 'New Request', 'Under Review', 'Quoted', 'Quote Sent', 'Accepted', 'Approved', 'Rejected', 'Converted to Order', 'Cancelled', 'Completed', 'Expired'];
 
       allow delete: if isAdmin();
     }

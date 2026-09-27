@@ -44,6 +44,8 @@ const STRICT_ALLOWED_ORIGINS = new Set([
   "https://shilpsahayak.vercel.app",
   "https://shilp-sahayak.web.app",
   "https://shilp-sahayak.firebaseapp.com",
+  "https://shilp-sahayak-r2-git-quote-workflow-v2-ratanabhsharmas-projects.vercel.app",
+  "https://shilp-sahayak-5j14seyul-ratanabhsharmas-projects.vercel.app",
 ]);
 
 function isAllowedOrigin(origin: string | null, requestUrl?: string): boolean {
@@ -70,15 +72,19 @@ function getCorsHeaders(request: Request): Headers {
   const origin = request.headers.get("Origin");
 
   const allowed = isAllowedOrigin(origin, request.url);
-  const allowedOrigin = allowed && origin ? origin : "https://shilpsahayak.com";
 
-  return new Headers({
-    "Access-Control-Allow-Origin": allowedOrigin,
+  const headers = new Headers({
     "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
     "Access-Control-Allow-Headers":
       "Content-Type, Authorization, X-File-Name, X-Razorpay-Signature",
     "Access-Control-Max-Age": "86400",
   });
+
+  if (allowed && origin) {
+    headers.set("Access-Control-Allow-Origin", origin);
+  }
+
+  return headers;
 }
 
 function jsonResponse(
@@ -688,7 +694,7 @@ export async function calculateOrderPricing(
         throw new Error(`Quotation ${quoteId} not found.`);
       }
 
-      if (quote.status !== "Accepted") {
+      if (String(quote.status || "").toLowerCase() !== "accepted") {
         throw new Error(
           `Quotation #${quoteId.slice(0, 8)} cannot be ordered because its status is "${quote.status}". It must be "Accepted" by the customer.`
         );

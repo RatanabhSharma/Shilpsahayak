@@ -497,7 +497,8 @@ export function Account() {
 
   const isOrderCancellable = (order: (typeof myOrders)[number]) => {
     // 1. Status must be Pending or Confirmed (before printing / fabrication)
-    if (order.status !== 'Pending' && order.status !== 'Confirmed') {
+    const statusLower = order.status?.toLowerCase() || '';
+    if (statusLower !== 'pending' && statusLower !== 'confirmed') {
       return false;
     }
     // 2. Order level override
@@ -812,15 +813,15 @@ export function Account() {
                         })}
                       </p>
 
-                      {order.status === 'Cancelled' ? (
+                      {order.status?.toLowerCase() === 'cancelled' ? (
                         <p className="text-[11px] text-rose-600 font-medium">
                           ✕ Cancelled • 100% Refund credited in 2–3 business days
                         </p>
-                      ) : order.status === 'Printing' || order.status === 'Quality Check' ? (
+                      ) : order.status?.toLowerCase() === 'printing' || order.status?.toLowerCase() === 'quality check' ? (
                         <p className="text-[11px] text-accent font-medium">
                           🖨️ Active on 3D Printer Bed (Non-cancellable)
                         </p>
-                      ) : !isOrderCancellable(order) && (order.status === 'Pending' || order.status === 'Confirmed') ? (
+                      ) : !isOrderCancellable(order) && (order.status?.toLowerCase() === 'pending' || order.status?.toLowerCase() === 'confirmed') ? (
                         <p className="text-[11px] text-muted font-medium">
                           🔒 Bespoke Custom Fabrication (Non-cancellable)
                         </p>
@@ -950,7 +951,7 @@ export function Account() {
                               <p className="font-mono text-[10px] text-muted">{quote.infill}% Infill</p>
                             </td>
                             <td className="px-6 py-4">
-                              {isExpired && quote.status === 'Quoted' ? (
+                              {isExpired && quote.status.toLowerCase() === 'quoted' ? (
                                 <div className="space-y-1">
                                   <span className="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-rose-700">
                                     Expired
@@ -964,7 +965,7 @@ export function Account() {
                               ) : (
                                 <div className="space-y-1">
                                   {getStatusBadge(quote.status)}
-                                  {quote.status === 'Quoted' && quote.expiresAt && (
+                                  {quote.status.toLowerCase() === 'quoted' && quote.expiresAt && (
                                     <p className="font-mono text-[10px] text-amber-700 font-semibold">
                                       ⏳ Valid until {new Date(quote.expiresAt).toLocaleDateString('en-IN')}
                                     </p>
@@ -995,7 +996,7 @@ export function Account() {
                                   <Package className="w-3.5 h-3.5" />
                                   <span>View Order #{quote.orderId.slice(0, 8)}</span>
                                 </button>
-                              ) : (quote.status === 'Accepted' || quote.status === 'Approved') ? (
+                              ) : (quote.status.toLowerCase() === 'accepted' || quote.status.toLowerCase() === 'approved') ? (
                                 <Button
                                   size="sm"
                                   onClick={() => handlePayQuote(quote)}
@@ -1004,7 +1005,7 @@ export function Account() {
                                   <ShoppingCart className="w-3.5 h-3.5" />
                                   <span>Pay Now & Checkout</span>
                                 </Button>
-                              ) : quote.status === 'Quoted' && quote.adminPrice && !isExpired ? (
+                              ) : quote.status.toLowerCase() === 'quoted' && quote.adminPrice && !isExpired ? (
                                 <div className="flex justify-end gap-2">
                                   <Button
                                     size="sm"
@@ -1025,7 +1026,7 @@ export function Account() {
                                     <span>Decline</span>
                                   </Button>
                                 </div>
-                              ) : quote.status === 'Quoted' && isExpired ? (
+                              ) : quote.status.toLowerCase() === 'quoted' && isExpired ? (
                                 <Link to="/reach-us">
                                   <Button size="sm" variant="outline" className="font-mono text-xs text-accent border-accent/40 hover:bg-accent-soft">
                                     Contact Studio
@@ -1424,7 +1425,7 @@ export function Account() {
                 </div>
               )}
 
-              {selectedOrder.status === 'Cancelled' && (
+              {selectedOrder.status?.toLowerCase() === 'cancelled' && (
                 <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-sans text-rose-800 space-y-1">
                   <p className="font-bold font-display text-sm text-rose-900">This order is Cancelled</p>
                   <p>

@@ -1981,8 +1981,7 @@ describe("Strict Production CORS Security Matrix", () => {
 
     expect(response.status).toBe(200);
     // Should NOT reflect the attacker origin
-    expect(response.headers.get("Access-Control-Allow-Origin")).not.toBe("https://malicious-attacker.vercel.app");
-    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("https://shilpsahayak.com");
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
   });
 });
 
