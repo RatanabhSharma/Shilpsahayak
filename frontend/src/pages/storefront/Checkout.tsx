@@ -13,7 +13,7 @@ import {
 
 import { CartItem, useStore } from '../../store';
 import { useAuth } from '../../hooks/useAuth';
-import { useUserProfile } from '../../hooks/useUserProfile';
+import { useUserProfile, useSaveUserProfile } from '../../hooks/useUserProfile';
 import { usePincodeLookup } from '../../hooks/usePincodeLookup';
 import { useSettings } from '../../hooks/useSettings';
 import { useNotification } from '../../components/NotificationContext';
@@ -149,6 +149,9 @@ export function Checkout() {
       return null;
     }
   });
+
+  const saveUserProfile = useSaveUserProfile();
+  const [saveAddressToProfile, setSaveAddressToProfile] = useState(true);
 
   const [isSendingEmailVerification, setIsSendingEmailVerification] = useState(false);
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
@@ -487,6 +490,24 @@ export function Checkout() {
               } else {
                 clearCart();
               }
+
+              // Update address
+              if (user && saveAddressToProfile) {
+                try {
+                  await saveUserProfile.mutateAsync({
+                    address: {
+                      line1: orderDataToPlace.shippingAddress.houseNo,
+                      line2: orderDataToPlace.shippingAddress.street,
+                      city: orderDataToPlace.shippingAddress.city,
+                      state: orderDataToPlace.shippingAddress.state,
+                      pincode: orderDataToPlace.shippingAddress.pincode,
+                    }
+                  });
+                } catch (e) {
+                  console.warn('Failed to save profile address:', e);
+                }
+              }
+
               setPaymentUiState('success');
               setIsSuccess(true);
             } else {
@@ -894,6 +915,22 @@ export function Checkout() {
                         <span>Pan-India tracked courier delivery across all 29 states & UTs.</span>
                       </div>
                     </div>
+
+                    {user && (
+                      <div className="col-span-1 sm:col-span-2 pt-2">
+                        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-line text-accent focus:ring-accent accent-accent cursor-pointer"
+                            checked={saveAddressToProfile}
+                            onChange={(e) => setSaveAddressToProfile(e.target.checked)}
+                          />
+                          <span className="font-sans text-sm font-medium text-ink">
+                            Save this address to my account
+                          </span>
+                        </label>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
