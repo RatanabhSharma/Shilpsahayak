@@ -1168,7 +1168,7 @@ export function useReorderOrder() {
             }
 
             return {
-              product,
+              product: variant ? { ...product, price: variant.price } : product,
               quantity:
                 item.quantity,
               customNotes:
