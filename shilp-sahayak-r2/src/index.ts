@@ -553,7 +553,7 @@ export async function queueConfirmationEmail(
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e7e5e4; border-radius: 12px; overflow: hidden;">
           <div style="background: #0c0a09; padding: 24px; text-align: center;">
-            <h1 style="color: #ff4d00; margin: 0; font-size: 24px; font-weight: 800;">SHILP SAHAYAK</h1>
+            <img src="https://shilpsahayak.vercel.app/images/logo.png" alt="Shilp Sahayak" style="height: 36px; margin: 0 auto; display: block;" />
             <p style="color: #a8a29e; margin: 4px 0 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 2px;">3D Fabrication & Precision Prototyping Studio</p>
           </div>
           <div style="padding: 32px 24px;">
@@ -2433,7 +2433,7 @@ export default {
               html: `
                 <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e7e5e4; border-radius: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1c1917;">
                   <div style="background-color: #0c0a09; padding: 24px; text-align: center; border-top-left-radius: 12px; border-top-right-radius: 12px;">
-                    <h1 style="color: #ff4d00; margin: 0; font-size: 24px; font-weight: 800;">SHILP SAHAYAK</h1>
+                    <img src="https://shilpsahayak.vercel.app/images/logo.png" alt="Shilp Sahayak" style="height: 36px; margin: 0 auto; display: block;" />
                     <p style="color: #a8a29e; margin: 4px 0 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; font-family: monospace;">3D Fabrication & Precision Prototyping Studio</p>
                   </div>
                   <div style="padding: 32px 24px;">
