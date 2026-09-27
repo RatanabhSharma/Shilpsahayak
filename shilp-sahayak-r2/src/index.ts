@@ -737,6 +737,10 @@ export async function calculateOrderPricing(
       productName = quote.fileName
         ? `Custom 3D Print: ${quote.fileName}`
         : (quote.productName || "Custom 3D Print");
+
+      if (quote.colorReplacements && item.customPrint) {
+        item.customPrint.colorReplacements = quote.colorReplacements;
+      }
     } else {
       const product = await getFirestoreDoc(
         projectId,

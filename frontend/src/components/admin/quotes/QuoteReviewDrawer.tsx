@@ -325,6 +325,7 @@ export const QuoteReviewDrawer: React.FC<QuoteReviewDrawerProps> = ({
                       modelResult={parsedModel}
                       geometry={parsedModel?.geometry || null}
                       colorHex={colorHex}
+                      colorReplacements={quote.colorReplacements}
                       isLoading={isLoadingModel}
                       error={modelError}
                       dimensions={parsedModel?.dimensions}
@@ -422,7 +423,23 @@ export const QuoteReviewDrawer: React.FC<QuoteReviewDrawerProps> = ({
                 <div className="grid grid-cols-2 gap-2 text-xs font-mono">
                   <div className="bg-shell p-2 rounded-lg border border-line/60">
                     <span className="text-[10px] text-muted uppercase block">Material / Color</span>
-                    <span className="font-bold text-ink">{quote.material || 'PLA'} / {quote.color || 'Standard'}</span>
+                    <div className="font-bold text-ink mt-0.5">
+                      {quote.colorReplacements && Object.keys(quote.colorReplacements).length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          {Object.values(quote.colorReplacements).map((rep: any, idx: number) => (
+                            <div key={idx} className="flex items-center gap-1.5 text-[10px]">
+                              <div
+                                className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0"
+                                style={{ backgroundColor: rep.productionHex }}
+                              />
+                              <span className="truncate">{rep.materialType || quote.material || 'PLA'} / {rep.productionHex}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span>{quote.material || 'PLA'} / {quote.color || 'Standard'}</span>
+                      )}
+                    </div>
                   </div>
                   <div className="bg-shell p-2 rounded-lg border border-line/60">
                     <span className="text-[10px] text-muted uppercase block">Infill / Layer</span>

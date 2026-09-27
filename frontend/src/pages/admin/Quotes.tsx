@@ -333,6 +333,7 @@ export function Quotes() {
               fileUrl: quote.fileUrl,
               material: quote.material,
               color: quote.color,
+              colorReplacements: quote.colorReplacements,
               quality: quote.quality,
               infill: quote.infill,
               layerHeight: quote.layerHeight,

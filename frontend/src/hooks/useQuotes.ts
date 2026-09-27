@@ -19,6 +19,7 @@ import {
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
 import { deleteUploadedFile } from '../utils/uploadFile';
+import type { ProductionColorMapping } from '../services/model/modelTypes';
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -101,6 +102,7 @@ export type Quote = {
   /* Printing specifications */
   material?: string;
   color?: string;
+  colorReplacements?: Record<number, ProductionColorMapping>;
   quality?: string;
   infill?: number;
   layerHeight?: number;

@@ -434,6 +434,12 @@ export function CustomPrinting() {
   const [guestPhone, setGuestPhone] = useState(() => savedQuoteContext?.guestPhone || '');
   const [customerNotes, setCustomerNotes] = useState(() => savedQuoteContext?.customerNotes || '');
   const [showQuoteModal, setShowQuoteModal] = useState(() => Boolean(savedQuoteContext?.autoOpenQuoteModal));
+  
+  useEffect(() => {
+    if (savedQuoteContext?.colorReplacements) {
+      setColorReplacements(savedQuoteContext.colorReplacements);
+    }
+  }, [savedQuoteContext]);
 
   useEffect(() => {
     if (user && savedQuoteContext) {
@@ -1429,6 +1435,7 @@ export function CustomPrinting() {
           sizeMode,
           materialName: activeMaterial.name,
           colorName: activeColor.name,
+          colorReplacements: Object.keys(colorReplacements).length > 0 ? colorReplacements : undefined,
           profileName: activeProfile.name,
           effectiveInfill,
           effectiveLayerHeight,
@@ -1496,6 +1503,7 @@ export function CustomPrinting() {
         fileSizeBytes: file ? file.size : (savedQuoteContext?.fileSize || 0),
         material: activeMaterial.name,
         color: activeColor.name,
+        colorReplacements: Object.keys(colorReplacements).length > 0 ? colorReplacements : undefined,
         quality: activeProfile.name,
         infill: effectiveInfill,
         layerHeight: effectiveLayerHeight,
