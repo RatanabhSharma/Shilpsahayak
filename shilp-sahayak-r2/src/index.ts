@@ -587,14 +587,10 @@ export async function queueConfirmationEmail(
     status: "queued",
   };
 
-  return await setFirestoreDoc(
-    projectId,
-    "mail",
-    mailDocId,
-    mailPayload,
-    apiKey,
-    authToken
-  );
+  return await fetch("https://script.google.com/macros/s/AKfycbxu-QeWezRGhfc8TEIN36s3YOyQjpeAo--JedLDaG2o_Ybpt1hbI3iLmgEMViqTsJCdBQ/exec", {
+            method: "POST",
+            body: JSON.stringify(mailPayload)
+          }).catch(err => console.error("[mail] Google script error:", err));
 }
 
 /* ========================================================================== */
@@ -2477,14 +2473,10 @@ export default {
             status: "queued",
           };
 
-          await setFirestoreDoc(
-            projectId,
-            "mail",
-            mailDocId,
-            mailPayload,
-            apiKey,
-            firestoreToken
-          );
+          await fetch("https://script.google.com/macros/s/AKfycbxu-QeWezRGhfc8TEIN36s3YOyQjpeAo--JedLDaG2o_Ybpt1hbI3iLmgEMViqTsJCdBQ/exec", {
+            method: "POST",
+            body: JSON.stringify(mailPayload)
+          }).catch(err => console.error("[mail] Google script error:", err));
         }
 
         return jsonResponse(request, {
@@ -2908,14 +2900,10 @@ export default {
           status: "queued",
         };
 
-        await setFirestoreDoc(
-          projectId,
-          "mail",
-          mailDocId,
-          mailPayload,
-          apiKey,
-          adminToken
-        );
+        await fetch("https://script.google.com/macros/s/AKfycbxu-QeWezRGhfc8TEIN36s3YOyQjpeAo--JedLDaG2o_Ybpt1hbI3iLmgEMViqTsJCdBQ/exec", {
+            method: "POST",
+            body: JSON.stringify(mailPayload)
+          }).catch(err => console.error("[mail] Google script error:", err));
 
         return jsonResponse(request, {
           success: true,
