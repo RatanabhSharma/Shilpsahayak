@@ -157,19 +157,17 @@ function validateFile(file: File): void {
  *
  * @returns Accessible file URL (R2 worker GET URL or local Object URL)
  */
-export async function upload3DFile(
+export async function uploadFileToR2(
   file: File,
   userId?: string,
   onProgress?: (progress: number) => void
 ): Promise<string> {
-  validateFile(file);
-
   const user = auth.currentUser;
   const effectiveUserId = userId || user?.uid || 'guest';
 
   // Resilient fallback helper if worker is unreachable, offline, or user is guest
   const fallbackToLocal = async (reason: string): Promise<string> => {
-    console.warn(`[Storage Fallback] ${reason}. Saving 3D model locally to ensure uninterrupted order/quote completion.`);
+    console.warn(`[Storage Fallback] ${reason}. Saving file locally to ensure uninterrupted order/quote completion.`);
     const localKey = `local:quotes/${effectiveUserId}/${Date.now()}_${file.name}`;
     onProgress?.(50);
     const localUrl = await saveModelLocally(localKey, file);
@@ -237,7 +235,7 @@ export async function upload3DFile(
       if (onProgress) onProgress(100);
 
       const fullUrl = `${CLOUDFLARE_WORKER_URL}/file?key=${encodeURIComponent(response.key)}`;
-      console.log('3D file uploaded successfully to R2:', fullUrl);
+      console.log('File uploaded successfully to R2:', fullUrl);
       resolve(fullUrl);
     });
 
@@ -269,6 +267,15 @@ export async function upload3DFile(
       handleFailure(err?.message || 'Failed to initialize upload request');
     }
   });
+}
+
+export async function upload3DFile(
+  file: File,
+  userId?: string,
+  onProgress?: (progress: number) => void
+): Promise<string> {
+  validateFile(file);
+  return uploadFileToR2(file, userId, onProgress);
 }
 
 /**

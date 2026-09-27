@@ -41,7 +41,7 @@ import type { QuoteSnapshot } from '../../services/pricing/pricingTypes';
 import { createDefaultProductionMapping } from '../../services/filament/filamentCatalog';
 import { useStore } from '../../store';
 import { useAuth } from '../../hooks/useAuth';
-import { upload3DFile } from '../../utils/uploadFile';
+import { upload3DFile, uploadFileToR2 } from '../../utils/uploadFile';
 import { useSubmitQuote } from '../../hooks/useQuotes';
 import { SlicingSuccessResult, ColorAnalysis, UniversalModelAnalysis } from '../../services/slicing/slicingClient';
 import { sendManualQuoteReceivedNotification } from '../../services/emailNotifications';
@@ -276,7 +276,7 @@ export function CustomPrinting() {
       try {
         let fileUrl: string | undefined = undefined;
         if (assistedFile) {
-          fileUrl = await upload3DFile(assistedFile, 'guest', (p) => setAssistedUploadProgress(p));
+          fileUrl = await uploadFileToR2(assistedFile, 'guest', (p) => setAssistedUploadProgress(p));
         }
 
         const savedContext = {
@@ -325,7 +325,7 @@ export function CustomPrinting() {
 
       let fileUrl: string | undefined = savedAssistedContext?.fileUrl;
       if (assistedFile) {
-        fileUrl = await upload3DFile(assistedFile, user.uid, (p) => setAssistedUploadProgress(p));
+        fileUrl = await uploadFileToR2(assistedFile, user.uid, (p) => setAssistedUploadProgress(p));
       }
 
       await submitQuoteMutation.mutateAsync({
