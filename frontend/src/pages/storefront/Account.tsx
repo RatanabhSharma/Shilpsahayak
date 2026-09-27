@@ -1329,7 +1329,7 @@ export function Account() {
 
                     <Input
                       name="profilePhone"
-                      label="Mobile Number (Optional)"
+                      label="Mobile Number *"
                       type="tel"
                       value={profilePhone}
                       onChange={(e) => setProfilePhone(e.target.value.replace(/\D/g, '').slice(0, 10))}

@@ -504,8 +504,8 @@ export function ProductDetail() {
                   Engineering Specifications
                 </span>
 
-                <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-line bg-shell p-3.5">
+                <div className="mt-4 flex flex-wrap gap-4">
+                  <div className="flex-1 min-w-[120px] rounded-xl border border-line bg-shell/50 p-4">
                     <div className="flex items-center gap-1.5 text-muted">
                       <Layers className="h-3.5 w-3.5 text-accent" />
                       <span className="font-mono text-[11px] uppercase">Material</span>
@@ -515,7 +515,7 @@ export function ProductDetail() {
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-line bg-shell p-3.5">
+                  <div className="flex-1 min-w-[120px] rounded-xl border border-line bg-shell/50 p-4">
                     <div className="flex items-center gap-1.5 text-muted">
                       <Box className="h-3.5 w-3.5 text-accent" />
                       <span className="font-mono text-[11px] uppercase">Category</span>
@@ -525,7 +525,7 @@ export function ProductDetail() {
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-line bg-shell p-3.5">
+                  <div className="flex-1 min-w-[120px] rounded-xl border border-line bg-shell/50 p-4">
                     <div className="flex items-center gap-1.5 text-muted">
                       <ShieldCheck className="h-3.5 w-3.5 text-accent" />
                       <span className="font-mono text-[11px] uppercase">Quality</span>
@@ -1042,22 +1042,22 @@ export function ProductDetail() {
               <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
                 Engineering Specifications
               </span>
-              <div className="mt-4 grid grid-cols-3 gap-3">
-                <div className="rounded-xl border border-line bg-shell p-3">
+              <div className="mt-4 flex flex-wrap gap-3">
+                <div className="flex-1 min-w-[110px] rounded-xl border border-line bg-shell/50 p-3.5">
                   <div className="flex items-center gap-1 text-muted mb-1">
                     <Layers className="h-3 w-3 text-accent" />
                     <span className="font-mono text-[10px] uppercase">Material</span>
                   </div>
                   <p className="font-mono text-xs font-bold text-ink">{product.material || 'PLA'}</p>
                 </div>
-                <div className="rounded-xl border border-line bg-shell p-3">
+                <div className="flex-1 min-w-[110px] rounded-xl border border-line bg-shell/50 p-3.5">
                   <div className="flex items-center gap-1 text-muted mb-1">
                     <Box className="h-3 w-3 text-accent" />
                     <span className="font-mono text-[10px] uppercase">Category</span>
                   </div>
-                  <p className="font-mono text-xs font-bold text-ink truncate">{product.category || 'Standard'}</p>
+                  <p className="font-mono text-xs font-bold text-ink whitespace-normal">{product.category || 'Standard'}</p>
                 </div>
-                <div className="rounded-xl border border-line bg-shell p-3">
+                <div className="flex-1 min-w-[110px] rounded-xl border border-line bg-shell/50 p-3.5">
                   <div className="flex items-center gap-1 text-muted mb-1">
                     <ShieldCheck className="h-3 w-3 text-accent" />
                     <span className="font-mono text-[10px] uppercase">Quality</span>

@@ -1553,7 +1553,7 @@ export function CustomPrinting() {
   return (
     <div className="min-h-screen bg-[#FDFBF7] dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors pb-28">
       {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-line dark:border-slate-800 bg-white/80 dark:bg-slate-900/60 backdrop-blur-xs py-10 sm:py-14 px-4 sm:px-6 lg:px-8">
+      <section className="relative overflow-hidden border-b border-line dark:border-slate-800 bg-white/80 dark:bg-slate-900/60 backdrop-blur-xs pt-24 pb-10 sm:pt-32 sm:pb-14 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto text-center space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 font-mono text-xs font-semibold uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5 text-brand-500" />
@@ -3295,15 +3295,13 @@ export function CustomPrinting() {
                         : 'border-line dark:border-slate-800 bg-shell/50 dark:bg-slate-800/40 hover:border-accent/40'
                     }`}
                   >
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-center justify-between">
                       <div className={`p-2.5 rounded-xl ${
                         assistedSub === 'has-reference' ? 'bg-accent text-white' : 'bg-line dark:bg-slate-700 text-muted'
                       }`}>
                         <ImageIcon className="w-5 h-5" />
                       </div>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-line dark:bg-slate-700 text-muted">
-                        Photo / Drawing
-                      </span>
+                      <span className="text-[11px] font-sans font-semibold px-2.5 py-1 rounded-md bg-line dark:bg-slate-700 text-ink dark:text-slate-200">Photo / Drawing</span>
                     </div>
                     <h3 className="mt-3 font-display text-sm font-bold text-ink dark:text-white">
                       I have a photo, sketch, or 2D drawing
@@ -3322,15 +3320,13 @@ export function CustomPrinting() {
                         : 'border-line dark:border-slate-800 bg-shell/50 dark:bg-slate-800/40 hover:border-accent/40'
                     }`}
                   >
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-center justify-between">
                       <div className={`p-2.5 rounded-xl ${
                         assistedSub === 'idea-only' ? 'bg-accent text-white' : 'bg-line dark:bg-slate-700 text-muted'
                       }`}>
                         <MessageSquare className="w-5 h-5" />
                       </div>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-line dark:bg-slate-700 text-muted">
-                        Text Concept
-                      </span>
+                      <span className="text-[11px] font-sans font-semibold px-2.5 py-1 rounded-md bg-line dark:bg-slate-700 text-ink dark:text-slate-200">Text Concept</span>
                     </div>
                     <h3 className="mt-3 font-display text-sm font-bold text-ink dark:text-white">
                       I just have an idea or concept
@@ -3484,7 +3480,7 @@ export function CustomPrinting() {
                   </div>
                   <div className="sm:col-span-2">
                     <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted block mb-1">
-                      Phone Number (WhatsApp for updates)
+                      Phone Number (WhatsApp for updates) *
                     </label>
                     <input
                       type="tel"
@@ -3628,7 +3624,7 @@ export function CustomPrinting() {
               {/* Phone */}
               <div>
                 <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-muted mb-1">
-                  Phone Number <span className="text-muted font-normal">(optional)</span>
+                  Phone Number *
                 </label>
                 <input
                   type="tel"

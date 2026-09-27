@@ -448,12 +448,10 @@ export function Login() {
                 {/* Phone Number (Optional with +91 Indian prefix) */}
                 <div>
                   <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block mb-1">
-                    INDIAN MOBILE NUMBER (OPTIONAL)
+                    INDIAN MOBILE NUMBER *
                   </label>
                   <div className="flex items-center rounded-xl border border-line bg-shell/40 px-3.5 focus-within:border-accent focus-within:bg-white transition-colors">
-                    <span className="font-mono text-xs font-bold text-ink mr-2">
-                      🇮🇳 +91
-                    </span>
+                    <span className="font-mono text-xs font-bold text-ink mr-2">IN +91</span>
                     <input
                       type="tel"
                       maxLength={10}
@@ -620,6 +618,7 @@ export function Login() {
     </div>
   );
 }
+
 
 
 

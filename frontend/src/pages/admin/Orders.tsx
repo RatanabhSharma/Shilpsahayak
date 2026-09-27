@@ -26,7 +26,7 @@ import {
   LoadingState,
   ErrorState,
 } from '../../components/admin/shared';
-import { exportOrdersToCsv } from '../../utils/exportCsv';
+import { exportOrdersToCsv, exportIndiaPostCsv } from '../../utils/exportCsv';
 import { useNotification } from '../../components/NotificationContext';
 
 const ORDER_STATUS_OPTIONS: { value: string; label: string }[] = [
@@ -421,9 +421,17 @@ export function Orders() {
         breadcrumbs={[{ label: 'Orders' }]}
         actions={
           <>
-            <button
-              type="button"
-              onClick={() => exportOrdersToCsv(filteredOrders)}
+                          <button
+                type="button"
+                onClick={() => exportIndiaPostCsv(filteredOrders)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-xs font-semibold text-emerald-800 transition-colors shadow-xs cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>India Post Export</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => exportOrdersToCsv(filteredOrders)}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-line bg-white hover:bg-shell text-xs font-semibold text-ink transition-colors shadow-xs cursor-pointer"
             >
               <Download className="w-4 h-4 text-accent" />
@@ -605,3 +613,4 @@ export function Orders() {
 }
 
 export default Orders;
+
