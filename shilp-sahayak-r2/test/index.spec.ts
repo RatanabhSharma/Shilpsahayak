@@ -1860,6 +1860,40 @@ describe("Generic Server Configuration Error on Missing SA Credentials", () => {
     vi.unstubAllGlobals();
   });
 
+  it("rejects valid but unverified token on /api/payment/create-order with HTTP 403", async () => {
+    const unverifiedToken = await createMockIdToken("user_bob", "bob@example.com", false);
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("jwk/securetoken@system.gserviceaccount.com")) {
+        return Promise.resolve(new Response(JSON.stringify({ keys: [testJwk] }), { status: 200 }));
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await SELF.fetch("https://example.com/api/payment/create-order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${unverifiedToken}`,
+      },
+      body: JSON.stringify({
+        items: [{ productId: "test_prod", quantity: 1 }],
+        shippingAddress: {
+          fullName: "Bob Smith",
+          email: "bob@example.com",
+          phone: "9876543210",
+        },
+      }),
+    });
+
+    expect(response.status).toBe(403);
+    const body: any = await response.json();
+    expect(body.success).toBe(false);
+    expect(body.error).toContain("Email verification required");
+    vi.unstubAllGlobals();
+  });
+
   it("returns generic 500 Server configuration error on /api/payment/verify when SA token fails", async () => {
     const idToken = await createMockIdToken("user_alice");
 
