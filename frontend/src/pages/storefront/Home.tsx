@@ -580,7 +580,7 @@ export function Home() {
               <button
                 type="button"
                 onClick={featuredCarousel.stepPrev}
-                className="flex h-8 w-8 items-center justify-center rounded-md border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
                 aria-label="Previous products"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -588,7 +588,7 @@ export function Home() {
               <button
                 type="button"
                 onClick={featuredCarousel.stepNext}
-                className="flex h-8 w-8 items-center justify-center rounded-md border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
                 aria-label="Next products"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -603,7 +603,7 @@ export function Home() {
           <button
             type="button"
             onClick={featuredCarousel.stepPrev}
-            className="hidden sm:flex absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-md border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
+            className="hidden sm:flex absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
             aria-label="Previous featured products"
           >
             <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -613,7 +613,7 @@ export function Home() {
           <button
             type="button"
             onClick={featuredCarousel.stepNext}
-            className="hidden sm:flex absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-md border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
+            className="hidden sm:flex absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
             aria-label="Next featured products"
           >
             <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -814,7 +814,7 @@ export function Home() {
                 <button
                   type="button"
                   onClick={categoryCarousel.stepPrev}
-                  className="flex h-8 w-8 items-center justify-center rounded-md border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
                   aria-label="Previous categories"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -822,7 +822,7 @@ export function Home() {
                 <button
                   type="button"
                   onClick={categoryCarousel.stepNext}
-                  className="flex h-8 w-8 items-center justify-center rounded-md border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
                   aria-label="Next categories"
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -837,7 +837,7 @@ export function Home() {
             <button
               type="button"
               onClick={categoryCarousel.stepPrev}
-              className="hidden sm:flex absolute -left-3 sm:-left-5 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-md border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
+              className="hidden sm:flex absolute -left-3 sm:-left-5 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
               aria-label="Previous categories"
             >
               <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -847,7 +847,7 @@ export function Home() {
             <button
               type="button"
               onClick={categoryCarousel.stepNext}
-              className="hidden sm:flex absolute -right-3 sm:-right-5 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-md border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
+              className="hidden sm:flex absolute -right-3 sm:-right-5 top-1/2 -translate-y-1/2 z-20 h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-accent hover:text-white hover:border-accent active:scale-95 cursor-pointer focus:outline-none"
               aria-label="Next categories"
             >
               <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
