@@ -336,26 +336,26 @@ export function Settings() {
 
                 <div>
                   <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
-                    Primary Phone Number *
+                    Primary Phone Number (Optional)
                   </label>
                   <input
                     type="tel"
                     value={form.phone || ''}
                     onChange={(e) => updateField('phone', e.target.value)}
-                    required
+                    
                     className="w-full px-3 py-2 text-xs font-mono text-ink bg-white border border-line rounded-lg outline-none focus:border-accent"
                   />
                 </div>
 
                 <div>
                   <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
-                    WhatsApp Customer Hotline *
+                    WhatsApp Customer Hotline (Optional)
                   </label>
                   <input
                     type="tel"
                     value={form.whatsappNumber || ''}
                     onChange={(e) => updateField('whatsappNumber', e.target.value)}
-                    required
+                    
                     className="w-full px-3 py-2 text-xs font-mono text-ink bg-white border border-line rounded-lg outline-none focus:border-accent"
                   />
                 </div>
