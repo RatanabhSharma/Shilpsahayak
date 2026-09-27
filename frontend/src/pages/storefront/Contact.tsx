@@ -30,7 +30,7 @@ export function Contact() {
 
   const businessName = settings?.businessName || 'Shilp Sahayak';
   const whatsappNumber = settings?.whatsappNumber || '';
-  const email = settings?.email || 'hello@shilpsahayak.com';
+  const email = settings?.email || 'info.shilpsahayak@gmail.com';
   const phone = settings?.phone || '';
   const address = settings?.address || 'Patiala, Punjab, India';
 

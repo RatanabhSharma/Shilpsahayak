@@ -220,7 +220,7 @@ export function RefundPolicy() {
                 {
                   step: '01',
                   title: 'Contact us within 7 days of delivery',
-                  desc: 'Send a WhatsApp message or email to hello@shilpsahayak.com with your Order ID and a clear description of the issue.',
+                  desc: 'Send a WhatsApp message or email to info.shilpsahayak@gmail.com with your Order ID and a clear description of the issue.',
                 },
                 {
                   step: '02',
@@ -303,8 +303,8 @@ export function RefundPolicy() {
             <div className="rounded-2xl border border-accent/30 bg-accent-soft p-5 space-y-2 text-xs">
               <p className="font-bold text-ink text-sm">Shilp Sahayak — Returns &amp; Refunds</p>
               <p>
-                <a href="mailto:hello@shilpsahayak.com" className="text-accent font-mono hover:underline">
-                  hello@shilpsahayak.com
+                <a href="mailto:info.shilpsahayak@gmail.com" className="text-accent font-mono hover:underline">
+                  info.shilpsahayak@gmail.com
                 </a>
               </p>
               <p className="text-muted">

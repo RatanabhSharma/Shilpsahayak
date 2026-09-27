@@ -980,7 +980,7 @@ export function OrderDetail() {
               3D Prototyping & Custom Fabrication Studio
             </p>
             <p className="text-[10px] text-zinc-500 mt-1">
-              Patiala, Punjab, India · Contact: hello@shilpsahayak.in
+              Patiala, Punjab, India · Contact: info.shilpsahayak@gmail.com
             </p>
           </div>
           <div className="text-right">

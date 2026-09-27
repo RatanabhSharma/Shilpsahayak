@@ -713,7 +713,7 @@ export function Settings() {
                     type="email"
                     value={form.notifications?.alertEmailRecipient || form.email || ''}
                     onChange={(e) => updateNestedNotification('alertEmailRecipient', e.target.value)}
-                    placeholder="orders@shilpsahayak.in"
+                    placeholder="info.shilpsahayak@gmail.com"
                     className="w-full px-3 py-2 text-xs font-mono text-ink bg-white border border-line rounded-lg outline-none focus:border-accent"
                   />
                 </div>

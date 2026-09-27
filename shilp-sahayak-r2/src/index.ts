@@ -2321,7 +2321,7 @@ export default {
             request,
             {
               success: false,
-              error: "Order is already paid. Please contact studio support (hello@shilpsahayak.in) to request cancellation and refund.",
+              error: "Order is already paid. Please contact studio support (info.shilpsahayak@gmail.com) to request cancellation and refund.",
             },
             400
           );
@@ -2587,7 +2587,7 @@ export default {
               Have questions about slicing, materials, or your custom fabrication order?
             </p>
             <p style="margin: 0; font-size: 12px;">
-              <a href="mailto:support@shilpsahayak.in" style="color: #ff4d00; text-decoration: none; font-weight: 600;">support@shilpsahayak.in</a>
+              <a href="mailto:info.shilpsahayak@gmail.com" style="color: #ff4d00; text-decoration: none; font-weight: 600;">info.shilpsahayak@gmail.com</a>
               &nbsp;•&nbsp;
               <a href="https://shilpsahayak.in/account" style="color: #ff4d00; text-decoration: none; font-weight: 600;">Studio Dashboard</a>
             </p>

@@ -215,8 +215,8 @@ export function CookiePolicy() {
             <div className="rounded-2xl border border-accent/30 bg-accent-soft p-5 text-xs space-y-2">
               <p className="font-bold text-ink text-sm">Questions about cookies?</p>
               <p>
-                <a href="mailto:hello@shilpsahayak.com" className="text-accent font-mono hover:underline">
-                  hello@shilpsahayak.com
+                <a href="mailto:info.shilpsahayak@gmail.com" className="text-accent font-mono hover:underline">
+                  info.shilpsahayak@gmail.com
                 </a>
               </p>
               <p className="text-muted">

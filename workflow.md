@@ -306,7 +306,11 @@ The application defines and uses the following statuses:
 ## 6. Notifications & Email
 
 ### Customer-Facing Emails Sent Today
-Every email in the site is dispatched by writing a JSON payload document to the Firestore `mail` collection (used by the official Firebase "Trigger Email" extension). There is **no `/api/mail/send` Worker endpoint**; the Cloudflare Worker also writes directly to the Firestore `mail` collection via Google REST API ([`shilp-sahayak-r2/src/index.ts#L442-L500`](file:///d:/Shilp%20buss/Supabase/New%20folder/Shilpsahayak/shilp-sahayak-r2/src/index.ts#L442-L500)).
+Every automated order and quote email is dispatched securely by the **Cloudflare Worker** via a direct `fetch()` POST request to a dedicated **Google Apps Script Webhook** (running on `orders.shilpsahayak@gmail.com`).
+
+The paid Firebase "Trigger Email" extension and the `/mail` Firestore collection have been completely **bypassed and replaced** to avoid Firebase paywalls.
+
+There is **no `/api/mail/send` Worker endpoint**; the Cloudflare Worker writes directly to the webhook via REST API ([`shilp-sahayak-r2/src/index.ts#L442-L500`](file:///d:/Shilp%20buss/Supabase/New%20folder/Shilpsahayak/shilp-sahayak-r2/src/index.ts#L442-L500)).
 
 | Email Type | Trigger Event | Dispatch Path | Destination / Subject |
 | :--- | :--- | :--- | :--- |
@@ -323,7 +327,7 @@ Every email in the site is dispatched by writing a JSON payload document to the 
   * `newOrderAlerts: true`
   * `quoteAlerts: true`
   * `lowStockAlerts: true`
-  * `alertEmailRecipient: 'orders@shilpsahayak.in'`
+  * `alertEmailRecipient: 'info.shilpsahayak@gmail.com'`
 * **Reality**: **These are CONFIGURED BUT UNUSED / DEAD**.
   * Searching the entire codebase for `alertEmailRecipient`, `newOrderAlerts`, `quoteAlerts`, or `lowStockAlerts` reveals **zero** triggers, handlers, or dispatch routines.
   * Staff do **not** receive emails when a new order is paid, when a quote is submitted, or when an item runs low on stock.
@@ -437,14 +441,14 @@ flowchart TD
             ColQuotes["/quotes/{id}"]
             ColInquiries["/inquiries/{id}"]
             ColSettings["/settings/settings"]
-            ColMail["/mail/{mailId}\n(Email Queue)"]
+            GoogleWebhook1["Google Apps Script Webhook\n(orders.shilpsahayak)"]
             ColWebhooks["/webhook_events/{id}"]
         end
     end
 
     subgraph External ["External Services"]
         RazorpayGateway["Razorpay Gateway API\n(Sandbox / Test Mode)"]
-        MailExtension["Firebase Trigger Email Extension\n(SMTP / SendGrid)"]
+        GoogleWebhook2["Google Apps Script Webhook\n(info.shilpsahayak)"]
     end
 
     %% Client Interactions
@@ -469,13 +473,13 @@ flowchart TD
     UI -->|3. Verify Payment Signature| VerifyHandler
     VerifyHandler -->|Cryptographic Verification| RazorpayGateway
     VerifyHandler -->|Update Order to Paid & Confirmed| ColOrders
-    VerifyHandler -->|Queue Confirmation Email| ColMail
+    VerifyHandler -->|Trigger Confirmation Email| GoogleWebhook1
 
     %% Webhook Flow
     RazorpayGateway -->|payment.captured Webhook| WebhookHandler
     WebhookHandler -->|Log Idempotency| ColWebhooks
     WebhookHandler -->|Backup Mark Paid & Confirmed| ColOrders
-    WebhookHandler -->|Queue Confirmation Email| ColMail
+    WebhookHandler -->|Trigger Confirmation Email| GoogleWebhook1
 
     %% Email Delivery
     ColMail -->|Process Queue| MailExtension

@@ -119,10 +119,10 @@ export function PrivacyPolicy() {
               <p>
                 Privacy inquiries:{' '}
                 <a
-                  href="mailto:hello@shilpsahayak.com"
+                  href="mailto:info.shilpsahayak@gmail.com"
                   className="text-accent font-mono hover:underline"
                 >
-                  hello@shilpsahayak.com
+                  info.shilpsahayak@gmail.com
                 </a>
               </p>
               <p className="mt-1 text-muted">
@@ -349,8 +349,8 @@ export function PrivacyPolicy() {
             </ul>
             <p>
               To exercise any right, email{' '}
-              <a href="mailto:hello@shilpsahayak.com" className="text-accent font-mono hover:underline">
-                hello@shilpsahayak.com
+              <a href="mailto:info.shilpsahayak@gmail.com" className="text-accent font-mono hover:underline">
+                info.shilpsahayak@gmail.com
               </a>{' '}
               with subject line <em>&ldquo;Data Rights Request — [Your Name]&rdquo;</em>. We will
               respond within <strong className="text-ink">30 days</strong>.
@@ -376,8 +376,8 @@ export function PrivacyPolicy() {
             <p>
               No system is 100% secure. If you discover a security vulnerability, please report it
               responsibly to{' '}
-              <a href="mailto:hello@shilpsahayak.com" className="text-accent font-mono hover:underline">
-                hello@shilpsahayak.com
+              <a href="mailto:info.shilpsahayak@gmail.com" className="text-accent font-mono hover:underline">
+                info.shilpsahayak@gmail.com
               </a>
               .
             </p>
@@ -412,8 +412,8 @@ export function PrivacyPolicy() {
               <p>
                 <strong className="text-ink">Shilp Sahayak — Privacy & Grievance</strong>
                 <br />
-                <a href="mailto:hello@shilpsahayak.com" className="text-accent font-mono hover:underline">
-                  hello@shilpsahayak.com
+                <a href="mailto:info.shilpsahayak@gmail.com" className="text-accent font-mono hover:underline">
+                  info.shilpsahayak@gmail.com
                 </a>
                 <br />
                 Workshop: Patiala, Punjab — 147001, India

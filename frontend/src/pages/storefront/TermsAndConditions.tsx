@@ -376,8 +376,8 @@ export function TermsAndConditions() {
             <div className="rounded-2xl border border-accent/30 bg-accent-soft p-5 space-y-2 text-xs">
               <p className="font-bold text-ink text-sm">Shilp Sahayak — Legal</p>
               <p>
-                <a href="mailto:hello@shilpsahayak.com" className="text-accent font-mono hover:underline">
-                  hello@shilpsahayak.com
+                <a href="mailto:info.shilpsahayak@gmail.com" className="text-accent font-mono hover:underline">
+                  info.shilpsahayak@gmail.com
                 </a>
               </p>
               <p className="text-muted">

@@ -22,7 +22,7 @@ const DEFAULT_SETTINGS: Settings = {
   businessName: 'Shilp Sahayak',
   logoUrl: '',
   whatsappNumber: '+91 98765 43210',
-  email: 'hello@shilpsahayak.in',
+  email: 'info.shilpsahayak@gmail.com',
   phone: '+91 98765 43210',
   address: 'Urban Estate Phase 2, Patiala, Punjab 147002, India',
   gstin: '03AAAAA0000A1Z5',
@@ -53,7 +53,7 @@ const DEFAULT_SETTINGS: Settings = {
     newOrderAlerts: true,
     quoteAlerts: true,
     lowStockAlerts: true,
-    alertEmailRecipient: 'orders@shilpsahayak.in',
+    alertEmailRecipient: 'info.shilpsahayak@gmail.com',
   },
 
   adminUsers: [

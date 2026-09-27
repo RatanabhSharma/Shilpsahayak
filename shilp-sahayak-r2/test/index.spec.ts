@@ -2241,7 +2241,7 @@ describe("Authoritative Order Cancellation Endpoint (POST /api/orders/cancel)", 
     const body: any = await response.json();
     expect(body.success).toBe(false);
     expect(body.error).toContain("Order is already paid");
-    expect(body.error).toContain("hello@shilpsahayak.in");
+    expect(body.error).toContain("info.shilpsahayak@gmail.com");
     vi.unstubAllGlobals();
   });
 
