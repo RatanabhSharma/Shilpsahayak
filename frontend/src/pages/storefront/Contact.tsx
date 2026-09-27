@@ -63,6 +63,23 @@ export function Contact() {
         status: 'unread',
         createdAt: new Date().toISOString(),
       });
+
+      // Dispatch email alert to info.shilpsahayak@gmail.com
+      try {
+        await fetch('https://script.google.com/macros/s/AKfycbyeIpTVAK9peue5pG1JnceLDFC2fRtcNYzO52wXsKgRNWVfO7kkdW9adK8EYZ8h4n4muA/exec', {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify({
+            name,
+            email: emailVal,
+            phone: phoneVal,
+            subject,
+            message
+          })
+        });
+      } catch (emailErr) {
+        console.error("Email alert dispatch failed (silent)", emailErr);
+      }
       setSubmitted(true);
       form.reset();
     } catch (err: any) {
