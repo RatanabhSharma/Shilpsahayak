@@ -11,8 +11,6 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react';
-import { collection, addDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
 
 import {
   Button,
@@ -54,36 +52,28 @@ export function Contact() {
     const message = String(formData.get('message') || '').trim();
 
     try {
-      await addDoc(collection(db, 'inquiries'), {
-        name,
-        email: emailVal,
-        phone: phoneVal,
-        subject,
-        message,
-        status: 'unread',
-        createdAt: new Date().toISOString(),
+      const res = await fetch(import.meta.env.VITE_CLOUDFLARE_WORKER_URL + '/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          email: emailVal,
+          phone: phoneVal,
+          subject,
+          message,
+          website: '' // honeypot
+        })
       });
 
-      // Dispatch email alert to info.shilpsahayak@gmail.com
-      try {
-        await fetch('https://script.google.com/macros/s/AKfycbyeIpTVAK9peue5pG1JnceLDFC2fRtcNYzO52wXsKgRNWVfO7kkdW9adK8EYZ8h4n4muA/exec', {
-          method: 'POST',
-          mode: 'no-cors',
-          body: JSON.stringify({
-            name,
-            email: emailVal,
-            phone: phoneVal,
-            subject,
-            message
-          })
-        });
-      } catch (emailErr) {
-        console.error("Email alert dispatch failed (silent)", emailErr);
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send message.');
       }
+
       setSubmitted(true);
       form.reset();
     } catch (err: any) {
-      console.error('Failed to submit contact inquiry:', err);
+      console.error('Error sending message:', err);
       setSubmitError(err?.message || 'Failed to dispatch inquiry. Please try again or reach out on WhatsApp.');
     } finally {
       setSubmitting(false);

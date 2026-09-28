@@ -575,6 +575,7 @@ export async function commitFirestoreWrites(
  * Helper to queue an email in the Firestore 'mail' collection.
  */
 export async function queueConfirmationEmail(
+  env: Env,
   projectId: string,
   order: any,
   authToken?: string,
@@ -624,7 +625,7 @@ export async function queueConfirmationEmail(
     status: "queued",
   };
 
-  return await sendMailViaWebhook(env, mailPayload));
+  return await sendMailViaWebhook(env, mailPayload);
 }
 
 /* ========================================================================== */
@@ -1654,6 +1655,7 @@ export default {
         // Queue order confirmation email if not already sent and not cancelled
         if (shouldSendEmail) {
           await queueConfirmationEmail(
+            env,
             projectId,
             { ...existingOrder, ...updateData },
             firestoreToken,
@@ -1949,6 +1951,7 @@ export default {
                   // Dispatch deduplicated confirmation email only if not cancelled
                   if (shouldSendEmail) {
                     await queueConfirmationEmail(
+                      env,
                       projectId,
                       { ...orderDoc, ...updateData },
                       adminToken,
@@ -2507,7 +2510,7 @@ export default {
             status: "queued",
           };
 
-          await sendMailViaWebhook(env, mailPayload));
+          await sendMailViaWebhook(env, mailPayload);
         }
 
         return jsonResponse(request, {
@@ -2931,7 +2934,7 @@ export default {
           status: "queued",
         };
 
-        await sendMailViaWebhook(env, mailPayload));
+        await sendMailViaWebhook(env, mailPayload);
 
         return jsonResponse(request, {
           success: true,
@@ -2963,30 +2966,27 @@ export default {
 
         const { name, email, phone, subject, message } = body;
 
-        if (!name || typeof name !== "string" || name.trim().length === 0) {
-          return jsonResponse(request, { success: false, error: "Name is required." }, 400);
+        if (typeof name !== "string" || name.trim().length === 0 || name.length > 100) {
+          return jsonResponse(request, { success: false, error: "Name is required and must be under 100 characters." }, 400);
         }
-        if (!email || typeof email !== "string" || email.trim().length === 0) {
-          return jsonResponse(request, { success: false, error: "Email is required." }, 400);
+        if (typeof email !== "string" || email.trim().length === 0 || email.length > 150 || !/^\S+@\S+\.\S+$/.test(email)) {
+          return jsonResponse(request, { success: false, error: "A valid email is required (max 150 characters)." }, 400);
         }
-        if (!message || typeof message !== "string" || message.trim().length === 0) {
-          return jsonResponse(request, { success: false, error: "Message is required." }, 400);
+        if (phone && (typeof phone !== "string" || phone.length > 30)) {
+          return jsonResponse(request, { success: false, error: "Phone must be a string under 30 characters." }, 400);
+        }
+        if (subject && (typeof subject !== "string" || subject.length > 200)) {
+          return jsonResponse(request, { success: false, error: "Subject must be a string under 200 characters." }, 400);
+        }
+        if (typeof message !== "string" || message.trim().length === 0 || message.length > 3000) {
+          return jsonResponse(request, { success: false, error: "Message is required and must be under 3000 characters." }, 400);
         }
 
-        const escapeHtml = (unsafe: string) => {
-          return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-        };
-
-        const safeName = escapeHtml(name.trim());
-        const safeEmail = escapeHtml(email.trim());
-        const safePhone = escapeHtml(phone?.trim() || "N/A");
-        const safeSubject = escapeHtml(subject?.trim() || "General Inquiry");
-        const safeMessage = escapeHtml(message.trim());
+        const rawName = name.trim();
+        const rawEmail = email.trim();
+        const rawPhone = phone ? phone.trim() : "N/A";
+        const rawSubject = subject ? subject.trim() : "General Inquiry";
+        const rawMessage = message.trim();
 
         let adminToken: string;
         try {
@@ -2996,28 +2996,17 @@ export default {
           return jsonResponse(request, { success: false, error: "Server configuration error." }, 500);
         }
 
-        const inquiryData = {
-          name: safeName,
-          email: safeEmail,
-          phone: safePhone,
-          subject: safeSubject,
-          message: safeMessage,
-          status: "unread",
-          createdAt: new Date().toISOString()
-        };
-
-        // Write to Firestore (as admin)
+        // Write to Firestore (RAW)
         const docId = crypto.randomUUID().replace(/-/g, "").substring(0, 20);
         const fbUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/inquiries/${docId}`;
 
-        // We map to Firestore REST format
         const firestorePayload = {
           fields: {
-            name: { stringValue: safeName },
-            email: { stringValue: safeEmail },
-            phone: { stringValue: safePhone },
-            subject: { stringValue: safeSubject },
-            message: { stringValue: safeMessage },
+            name: { stringValue: rawName },
+            email: { stringValue: rawEmail },
+            phone: { stringValue: rawPhone },
+            subject: { stringValue: rawSubject },
+            message: { stringValue: rawMessage },
             status: { stringValue: "unread" },
             createdAt: { timestampValue: new Date().toISOString() }
           }
@@ -3037,22 +3026,31 @@ export default {
           return jsonResponse(request, { success: false, error: "Failed to save inquiry." }, 500);
         }
 
-        // Dispatch Email
+        const escapeHtml = (unsafe: string) => {
+          return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+        };
+
+        // Dispatch Email (ESCAPED)
         const mailPayload = {
           to: ["info.shilpsahayak@gmail.com"],
           message: {
-            subject: `Contact Form: ${safeSubject}`,
+            subject: `Contact Form: ${escapeHtml(rawSubject)}`,
             html: `
-              <p><strong>Name:</strong> ${safeName}</p>
-              <p><strong>Email:</strong> ${safeEmail}</p>
-              <p><strong>Phone:</strong> ${safePhone}</p>
-              <p><strong>Subject:</strong> ${safeSubject}</p>
-              <p><strong>Message:</strong><br>${safeMessage.replace(/\n/g, "<br>")}</p>
+              <p><strong>Name:</strong> ${escapeHtml(rawName)}</p>
+              <p><strong>Email:</strong> ${escapeHtml(rawEmail)}</p>
+              <p><strong>Phone:</strong> ${escapeHtml(rawPhone)}</p>
+              <p><strong>Subject:</strong> ${escapeHtml(rawSubject)}</p>
+              <p><strong>Message:</strong><br>${escapeHtml(rawMessage).replace(/\n/g, "<br>")}</p>
             `,
-            text: `Name: ${safeName}\nEmail: ${safeEmail}\nPhone: ${safePhone}\nSubject: ${safeSubject}\nMessage:\n${safeMessage}`
+            text: `Name: ${rawName}\nEmail: ${rawEmail}\nPhone: ${rawPhone}\nSubject: ${rawSubject}\nMessage:\n${rawMessage}`
           },
           type: "contact_form",
-          replyTo: safeEmail,
+          replyTo: rawEmail,
           metadata: { docId },
           createdAt: new Date().toISOString(),
           status: "queued"
@@ -3060,7 +3058,6 @@ export default {
 
         const mailOk = await sendMailViaWebhook(env, mailPayload);
         if (!mailOk) {
-          // If mail fails due to missing secrets etc., return 500
           return jsonResponse(request, { success: false, error: "Failed to dispatch email alert." }, 500);
         }
 
