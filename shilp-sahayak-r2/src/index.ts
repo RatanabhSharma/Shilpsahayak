@@ -9,6 +9,8 @@ export interface Env {
   FIREBASE_API_KEY?: string;
   FIREBASE_CLIENT_EMAIL?: string;
   FIREBASE_PRIVATE_KEY?: string;
+  MAIL_WEBHOOK_URL?: string;
+  MAIL_WEBHOOK_SECRET?: string;
 }
 
 const DEFAULT_FIREBASE_PROJECT_ID = "shilp-sahayak";
@@ -354,6 +356,41 @@ export async function getServiceAccountAccessToken(
   }
 }
 
+
+/**
+ * Safely sends an email payload via the configured Google Apps Script Webhook.
+ */
+async function sendMailViaWebhook(env: Env, payload: any): Promise<boolean> {
+  if (!env.MAIL_WEBHOOK_URL || !env.MAIL_WEBHOOK_SECRET) {
+    console.error("[mail] Webhook URL or Secret is missing in environment variables. Failing closed.");
+    return false;
+  }
+
+  try {
+    const finalPayload = {
+      ...payload,
+      secret: env.MAIL_WEBHOOK_SECRET
+    };
+
+    const res = await fetch(env.MAIL_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(finalPayload)
+    });
+
+    if (!res.ok) {
+      console.error(`[mail] Webhook returned non-OK status: ${res.status}`);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[mail] Network error calling webhook:", err);
+    return false;
+  }
+}
+
 export async function getPrivilegedFirestoreAccessToken(
   env: Pick<Env, "FIREBASE_CLIENT_EMAIL" | "FIREBASE_PRIVATE_KEY">
 ): Promise<string> {
@@ -587,10 +624,7 @@ export async function queueConfirmationEmail(
     status: "queued",
   };
 
-  return await fetch("https://script.google.com/macros/s/AKfycbxu-QeWezRGhfc8TEIN36s3YOyQjpeAo--JedLDaG2o_Ybpt1hbI3iLmgEMViqTsJCdBQ/exec", {
-            method: "POST",
-            body: JSON.stringify(mailPayload)
-          }).catch(err => console.error("[mail] Google script error:", err));
+  return await sendMailViaWebhook(env, mailPayload));
 }
 
 /* ========================================================================== */
@@ -2473,10 +2507,7 @@ export default {
             status: "queued",
           };
 
-          await fetch("https://script.google.com/macros/s/AKfycbxu-QeWezRGhfc8TEIN36s3YOyQjpeAo--JedLDaG2o_Ybpt1hbI3iLmgEMViqTsJCdBQ/exec", {
-            method: "POST",
-            body: JSON.stringify(mailPayload)
-          }).catch(err => console.error("[mail] Google script error:", err));
+          await sendMailViaWebhook(env, mailPayload));
         }
 
         return jsonResponse(request, {
@@ -2900,10 +2931,7 @@ export default {
           status: "queued",
         };
 
-        await fetch("https://script.google.com/macros/s/AKfycbxu-QeWezRGhfc8TEIN36s3YOyQjpeAo--JedLDaG2o_Ybpt1hbI3iLmgEMViqTsJCdBQ/exec", {
-            method: "POST",
-            body: JSON.stringify(mailPayload)
-          }).catch(err => console.error("[mail] Google script error:", err));
+        await sendMailViaWebhook(env, mailPayload));
 
         return jsonResponse(request, {
           success: true,
@@ -2916,6 +2944,131 @@ export default {
           { success: false, error: err?.message || "Failed to dispatch email." },
           500
         );
+      }
+    }
+
+    
+    // ------------------------------------------------------------------------
+    // CONTACT FORM (POST /api/contact)
+    // ------------------------------------------------------------------------
+    if (request.method === "POST" && pathname === "/api/contact") {
+      try {
+        const body: any = await request.json();
+
+        // Honeypot check
+        if (body.website) {
+          // Silent success for bots
+          return jsonResponse(request, { success: true, message: "Inquiry received." });
+        }
+
+        const { name, email, phone, subject, message } = body;
+
+        if (!name || typeof name !== "string" || name.trim().length === 0) {
+          return jsonResponse(request, { success: false, error: "Name is required." }, 400);
+        }
+        if (!email || typeof email !== "string" || email.trim().length === 0) {
+          return jsonResponse(request, { success: false, error: "Email is required." }, 400);
+        }
+        if (!message || typeof message !== "string" || message.trim().length === 0) {
+          return jsonResponse(request, { success: false, error: "Message is required." }, 400);
+        }
+
+        const escapeHtml = (unsafe: string) => {
+          return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+        };
+
+        const safeName = escapeHtml(name.trim());
+        const safeEmail = escapeHtml(email.trim());
+        const safePhone = escapeHtml(phone?.trim() || "N/A");
+        const safeSubject = escapeHtml(subject?.trim() || "General Inquiry");
+        const safeMessage = escapeHtml(message.trim());
+
+        let adminToken: string;
+        try {
+          adminToken = await getPrivilegedFirestoreAccessToken(env);
+        } catch (tokenErr) {
+          console.error("[contact] Service account token error:", tokenErr);
+          return jsonResponse(request, { success: false, error: "Server configuration error." }, 500);
+        }
+
+        const inquiryData = {
+          name: safeName,
+          email: safeEmail,
+          phone: safePhone,
+          subject: safeSubject,
+          message: safeMessage,
+          status: "unread",
+          createdAt: new Date().toISOString()
+        };
+
+        // Write to Firestore (as admin)
+        const docId = crypto.randomUUID().replace(/-/g, "").substring(0, 20);
+        const fbUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/inquiries/${docId}`;
+
+        // We map to Firestore REST format
+        const firestorePayload = {
+          fields: {
+            name: { stringValue: safeName },
+            email: { stringValue: safeEmail },
+            phone: { stringValue: safePhone },
+            subject: { stringValue: safeSubject },
+            message: { stringValue: safeMessage },
+            status: { stringValue: "unread" },
+            createdAt: { timestampValue: new Date().toISOString() }
+          }
+        };
+
+        const fbRes = await fetch(fbUrl, {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(firestorePayload)
+        });
+
+        if (!fbRes.ok) {
+          console.error("[contact] Firestore write failed:", await fbRes.text());
+          return jsonResponse(request, { success: false, error: "Failed to save inquiry." }, 500);
+        }
+
+        // Dispatch Email
+        const mailPayload = {
+          to: ["info.shilpsahayak@gmail.com"],
+          message: {
+            subject: `Contact Form: ${safeSubject}`,
+            html: `
+              <p><strong>Name:</strong> ${safeName}</p>
+              <p><strong>Email:</strong> ${safeEmail}</p>
+              <p><strong>Phone:</strong> ${safePhone}</p>
+              <p><strong>Subject:</strong> ${safeSubject}</p>
+              <p><strong>Message:</strong><br>${safeMessage.replace(/\n/g, "<br>")}</p>
+            `,
+            text: `Name: ${safeName}\nEmail: ${safeEmail}\nPhone: ${safePhone}\nSubject: ${safeSubject}\nMessage:\n${safeMessage}`
+          },
+          type: "contact_form",
+          replyTo: safeEmail,
+          metadata: { docId },
+          createdAt: new Date().toISOString(),
+          status: "queued"
+        };
+
+        const mailOk = await sendMailViaWebhook(env, mailPayload);
+        if (!mailOk) {
+          // If mail fails due to missing secrets etc., return 500
+          return jsonResponse(request, { success: false, error: "Failed to dispatch email alert." }, 500);
+        }
+
+        return jsonResponse(request, { success: true, message: "Inquiry sent successfully." });
+
+      } catch (err: any) {
+        console.error("[contact] Processing error:", err);
+        return jsonResponse(request, { success: false, error: "Internal server error." }, 500);
       }
     }
 
