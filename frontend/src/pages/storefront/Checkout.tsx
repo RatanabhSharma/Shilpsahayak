@@ -725,7 +725,7 @@ export function Checkout() {
                       name="name"
                       label="Full Name *"
                       defaultValue={savedForm?.name || profile?.name || user?.displayName || ''}
-                      placeholder="Your full name"
+                      placeholder="As on delivery address"
                       autoComplete="name"
                       required
                     />
@@ -742,12 +742,12 @@ export function Checkout() {
                       label="Email Address *"
                       type="email"
                       defaultValue={savedForm?.email || profile?.email || user?.email || ''}
-                      placeholder="you@example.com"
+                      placeholder="For order updates & invoice"
                       autoComplete="email"
                       required
                     />
                     <p className="mt-1 font-mono text-[11px] text-muted">
-                      Invoices & tracking updates sent here.
+                      Invoices &amp; tracking updates sent here.
                     </p>
                     {(formAttempted || touched.email) && errors.email && (
                       <p className="mt-1 text-xs font-semibold text-rose-600">
@@ -759,18 +759,18 @@ export function Checkout() {
                   <div>
                     <Input
                       name="phone"
-                      label="Mobile Phone (for delivery SMS/call) *"
+                      label="Mobile Number (for delivery updates) *"
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(normalizePhone(e.target.value))}
-                      placeholder="Enter your number"
+                      placeholder="10-digit mobile number"
                       maxLength={10}
                       inputMode="numeric"
                       autoComplete="tel"
                       required
                     />
                     <p className="mt-1 font-mono text-[11px] text-muted">
-                      +91 India format for dispatch.
+                      +91 India format. Courier will use this for delivery.
                     </p>
                     {(formAttempted || touched.phone) && errors.phone && (
                       <p className="mt-1 text-xs font-semibold text-rose-600">
@@ -798,7 +798,7 @@ export function Checkout() {
                       name="houseNo"
                       label="Flat / House / Building Number *"
                       defaultValue={savedForm?.houseNo || profile?.address?.line1 || ''}
-                      placeholder="e.g. Flat 304, Green Heights"
+                      placeholder="Building name, floor, flat no."
                       autoComplete="address-line1"
                       required
                     />
@@ -814,7 +814,7 @@ export function Checkout() {
                       name="street"
                       label="Street / Locality / Sector *"
                       defaultValue={savedForm?.street || profile?.address?.line2 || ''}
-                      placeholder="e.g. Model Town Road"
+                      placeholder="Street name, area, sector"
                       autoComplete="address-line2"
                       required
                     />
@@ -829,7 +829,7 @@ export function Checkout() {
                     name="landmark"
                     label="Landmark (Optional)"
                     defaultValue={savedForm?.landmark || ''}
-                    placeholder="e.g. Opposite Central Mall"
+                    placeholder="Near a school, hospital, or known building"
                     autoComplete="off"
                   />
 
@@ -853,7 +853,7 @@ export function Checkout() {
                           name="city"
                           value={cityValue}
                           onChange={(e) => setCityValue(e.target.value)}
-                          placeholder="e.g. Patiala"
+                          placeholder="Your city or district"
                           autoComplete="address-level2"
                           required
                         />
@@ -893,7 +893,7 @@ export function Checkout() {
                         onChange={(e) =>
                           setPincodeValue(e.target.value.replace(/\D/g, '').slice(0, 6))
                         }
-                        placeholder="e.g. 147001"
+                        placeholder="Enter 6-digit PIN code"
                         maxLength={6}
                         inputMode="numeric"
                         pattern="[0-9]{6}"
@@ -926,7 +926,7 @@ export function Checkout() {
                     <div className="flex items-end">
                       <div className="w-full rounded-xl border border-accent/30 bg-accent-soft p-3 text-xs text-ink flex items-center gap-2 font-sans">
                         <MapPin className="h-4 w-4 text-accent shrink-0" />
-                        <span>Pan-India tracked courier delivery across all 29 states & UTs.</span>
+                        <span>Pan-India tracked courier delivery across all 36 states &amp; UTs.</span>
                       </div>
                     </div>
 

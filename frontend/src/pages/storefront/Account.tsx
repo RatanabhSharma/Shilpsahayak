@@ -1225,7 +1225,7 @@ export function Account() {
                           label="Flat / House / Building *"
                           value={profileAddress.line1}
                           onChange={(e) => updateAddressField('line1', e.target.value)}
-                          placeholder="e.g. Flat 304, Green Heights"
+                          placeholder="Building name, floor, flat no."
                           required
                         />
 
@@ -1234,7 +1234,7 @@ export function Account() {
                           label="Street / Locality"
                           value={profileAddress.line2}
                           onChange={(e) => updateAddressField('line2', e.target.value)}
-                          placeholder="e.g. Model Town Road"
+                          placeholder="Street name, area, sector"
                         />
 
                         <div className="grid gap-4 sm:grid-cols-2">
@@ -1256,7 +1256,7 @@ export function Account() {
                                 type="text"
                                 value={profileAddress.city}
                                 onChange={(e) => updateAddressField('city', e.target.value)}
-                                placeholder="Enter City"
+                                placeholder="Your city or district"
                                 className="flex h-11 w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm font-sans transition-all duration-150 ease-out hover:border-zinc-300 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
                                 required
                               />
@@ -1289,7 +1289,7 @@ export function Account() {
                                 e.target.value.replace(/\D/g, '').slice(0, 6)
                               )
                             }
-                            placeholder="e.g. 147001"
+                            placeholder="Enter 6-digit PIN code"
                             maxLength={6}
                             required
                           />
