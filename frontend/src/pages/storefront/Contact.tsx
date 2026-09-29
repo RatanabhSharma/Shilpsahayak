@@ -52,7 +52,7 @@ export function Contact() {
     const message = String(formData.get('message') || '').trim();
 
     try {
-      const res = await fetch(import.meta.env.VITE_CLOUDFLARE_WORKER_URL + '/api/contact', {
+      const res = await fetch((import.meta.env.VITE_CLOUDFLARE_WORKER_URL || 'https://shilp-sahayak-r2.shilpsahayaktech.workers.dev') + '/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
