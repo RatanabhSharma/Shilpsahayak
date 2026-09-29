@@ -2,6 +2,7 @@ import { createRemoteJWKSet, jwtVerify, importPKCS8, SignJWT } from "jose";
 
 export interface Env {
   STORAGE: R2Bucket;
+  RATE_LIMITER: KVNamespace;
   RAZORPAY_KEY_ID?: string;
   RAZORPAY_KEY_SECRET?: string;
   RAZORPAY_WEBHOOK_SECRET?: string;
@@ -68,6 +69,32 @@ function isAllowedOrigin(origin: string | null, requestUrl?: string): boolean {
     return false;
   }
   return STRICT_ALLOWED_ORIGINS.has(origin);
+}
+
+
+async function checkRateLimit(
+  env: Env,
+  ip: string,
+  action: string,
+  maxRequests: number,
+  ttlSeconds: number = 3600
+): Promise<boolean> {
+  const currentHour = Math.floor(Date.now() / (1000 * ttlSeconds)); // Epoch hour
+  const key = `ratelimit:${action}:${ip}:${currentHour}`;
+
+  const currentCount = await env.RATE_LIMITER.get(key);
+  const count = currentCount ? parseInt(currentCount, 10) : 0;
+
+  if (count >= maxRequests) {
+    return false; // Rate limited
+  }
+
+  // Increment the count (this is subject to race conditions but sufficient for soft rate limiting)
+  await env.RATE_LIMITER.put(key, (count + 1).toString(), {
+    expirationTtl: ttlSeconds, // Store for an hour
+  });
+
+  return true;
 }
 
 function getCorsHeaders(request: Request): Headers {
@@ -1004,6 +1031,12 @@ export default {
       request.method === "POST" &&
       pathname === "/api/payment/create-order"
     ) {
+      const ip = request.headers.get("cf-connecting-ip") || "unknown";
+      const allowed = await checkRateLimit(env, ip, "create_order", 20); // 20 per hour
+      if (!allowed) {
+        return jsonResponse(request, { success: false, error: "Too many requests. Please try again later." }, 429);
+      }
+
       let authUser;
       let uid: string;
       let firestoreToken: string;
@@ -2953,6 +2986,12 @@ export default {
     // ------------------------------------------------------------------------
     if (request.method === "POST" && pathname === "/api/contact") {
       try {
+        const ip = request.headers.get("cf-connecting-ip") || "unknown";
+        const allowed = await checkRateLimit(env, ip, "contact", 3); // 3 per hour
+        if (!allowed) {
+          return jsonResponse(request, { success: false, error: "Too many requests. Please try again later." }, 429);
+        }
+
         const body: any = await request.json();
 
         // Honeypot check

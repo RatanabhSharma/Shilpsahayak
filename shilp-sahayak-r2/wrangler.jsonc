@@ -3,26 +3,21 @@
  * https://developers.cloudflare.com/workers/wrangler/configuration/
  */
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "shilp-sahayak-r2",
-  "main": "src/index.ts",
-  "compatibility_date": "2026-08-20",
-
-  "observability": {
-    "enabled": true
-  },
-
-  "upload_source_maps": true,
-
- "r2_buckets": [
-  {
-    "binding": "STORAGE",
-    "bucket_name": "shilp-sahayak-storage",
-    "remote": false
-  }
-]
-,
-
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "shilp-sahayak-r2",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-08-20",
+	"observability": {
+		"enabled": true
+	},
+	"upload_source_maps": true,
+	"r2_buckets": [
+		{
+			"binding": "STORAGE",
+			"bucket_name": "shilp-sahayak-storage",
+			"remote": false
+		}
+	],
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
@@ -45,7 +40,14 @@
 	"vars": {
 		"FIREBASE_PROJECT_ID": "shilp-sahayak",
 		"RAZORPAY_KEY_ID": "rzp_test_TehBawkSUvlsjS"
-	}
+	},
+	"kv_namespaces": [
+		{
+			"binding": "RATE_LIMITER",
+			"id": "fc1f7f0cf02e48eaa6fb85f4852db0b2",
+			"remote": true
+		}
+	]
 	/**
 	 * Static Assets
 	 * https://developers.cloudflare.com/workers/static-assets/binding/
