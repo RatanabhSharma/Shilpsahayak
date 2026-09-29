@@ -1087,11 +1087,93 @@ export function Account() {
           </div>
         )}
 
-        {/* ADDRESS TAB */}
-        {activeTab === 'addresses' && (
+        {/* PROFILE TAB */}
+        {activeTab === 'profile' && (
           <div className="mt-8 grid gap-8 lg:grid-cols-12">
-            <div className="lg:col-span-7">
+            <div className="lg:col-span-7 space-y-6">
               <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
+                <h2 className="font-display text-xl font-bold text-ink">
+                  Account Details
+                </h2>
+                <p className="font-sans text-xs text-muted">
+                  Update your contact details for order notifications and invoices.
+                </p>
+
+                {profileLoading ? (
+                  <div className="py-8 text-center">
+                    <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                  </div>
+                ) : (
+                  <form onSubmit={handleSaveProfile} className="mt-6 space-y-4 font-sans">
+                    <Input
+                      name="profileName"
+                      label="Full Name *"
+                      value={profileName}
+                      onChange={(e) => setProfileName(e.target.value)}
+                      disabled={!isProfileEditing}
+                      required
+                    />
+
+                    <Input
+                      name="profileEmail"
+                      label="Email Address *"
+                      type="email"
+                      value={profileEmail}
+                      onChange={(e) => setProfileEmail(e.target.value)}
+                      disabled={!isProfileEditing}
+                      required
+                    />
+
+                    <Input
+                      name="profilePhone"
+                      label="Mobile Number *"
+                      type="tel"
+                      value={profilePhone}
+                      onChange={(e) => setProfilePhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      disabled={!isProfileEditing}
+                      maxLength={10}
+                    />
+
+                    {profileError && (
+                      <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 font-sans text-xs font-semibold text-rose-700">
+                        {profileError}
+                      </div>
+                    )}
+
+                    {profileMessage && (
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 font-sans text-xs font-bold text-emerald-700">
+                        {profileMessage}
+                      </div>
+                    )}
+
+                    <div className="pt-2">
+                      {!isProfileEditing ? (
+                        <Button type="button" size="md" variant="primary" onClick={startProfileEditing}>
+                          Edit Profile
+                        </Button>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Button type="submit" size="md" variant="primary" isLoading={saveUserProfile.isPending}>
+                            Save Changes
+                          </Button>
+                          <Button
+                            type="button"
+                            size="md"
+                            variant="outline"
+                            onClick={cancelProfileEditing}
+                            disabled={saveUserProfile.isPending}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
+
+<div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
                 <div className="flex items-center justify-between border-b border-line pb-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-soft text-accent">
@@ -1296,109 +1378,9 @@ export function Account() {
                   <p className="mt-3 font-sans text-xs text-muted">No prior addresses recorded.</p>
                 )}
               </div>
-            </div>
 
-            <aside className="lg:col-span-5">
-              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft space-y-4">
-                <div className="flex items-center gap-2 text-ink font-display font-bold text-sm">
-                  <ShieldCheck className="h-4 w-4 text-accent" />
-                  <span>Pan-India Delivery Guarantee</span>
-                </div>
-                <p className="font-sans text-xs text-muted leading-relaxed">
-                  We verify pin codes directly with Indian Postal & courier databases to prevent dispatch errors and transit delays.
-                </p>
-              </div>
-            </aside>
-          </div>
-        )}
 
-        {/* PROFILE TAB */}
-        {activeTab === 'profile' && (
-          <div className="mt-8 grid gap-8 lg:grid-cols-12">
-            <div className="lg:col-span-7">
-              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
-                <h2 className="font-display text-xl font-bold text-ink">
-                  Account Details
-                </h2>
-                <p className="font-sans text-xs text-muted">
-                  Update your contact details for order notifications and invoices.
-                </p>
-
-                {profileLoading ? (
-                  <div className="py-8 text-center">
-                    <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-                  </div>
-                ) : (
-                  <form onSubmit={handleSaveProfile} className="mt-6 space-y-4 font-sans">
-                    <Input
-                      name="profileName"
-                      label="Full Name *"
-                      value={profileName}
-                      onChange={(e) => setProfileName(e.target.value)}
-                      disabled={!isProfileEditing}
-                      required
-                    />
-
-                    <Input
-                      name="profileEmail"
-                      label="Email Address *"
-                      type="email"
-                      value={profileEmail}
-                      onChange={(e) => setProfileEmail(e.target.value)}
-                      disabled={!isProfileEditing}
-                      required
-                    />
-
-                    <Input
-                      name="profilePhone"
-                      label="Mobile Number *"
-                      type="tel"
-                      value={profilePhone}
-                      onChange={(e) => setProfilePhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      disabled={!isProfileEditing}
-                      maxLength={10}
-                    />
-
-                    {profileError && (
-                      <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 font-sans text-xs font-semibold text-rose-700">
-                        {profileError}
-                      </div>
-                    )}
-
-                    {profileMessage && (
-                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 font-sans text-xs font-bold text-emerald-700">
-                        {profileMessage}
-                      </div>
-                    )}
-
-                    <div className="pt-2">
-                      {!isProfileEditing ? (
-                        <Button type="button" size="md" variant="primary" onClick={startProfileEditing}>
-                          Edit Profile
-                        </Button>
-                      ) : (
-                        <div className="flex gap-2">
-                          <Button type="submit" size="md" variant="primary" isLoading={saveUserProfile.isPending}>
-                            Save Changes
-                          </Button>
-                          <Button
-                            type="button"
-                            size="md"
-                            variant="outline"
-                            onClick={cancelProfileEditing}
-                            disabled={saveUserProfile.isPending}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </form>
-                )}
-              </div>
-            </div>
-
-            <aside className="lg:col-span-5">
+            <aside className="lg:col-span-5 space-y-6">
               <div className="rounded-3xl border border-line bg-white p-7 shadow-soft space-y-4">
                 <h3 className="font-display text-lg font-bold text-ink">
                   Account Overview
@@ -1418,7 +1400,18 @@ export function Account() {
                   </div>
                 </dl>
               </div>
-            </aside>
+            
+
+<div className="rounded-3xl border border-line bg-white p-7 shadow-soft space-y-4">
+                <div className="flex items-center gap-2 text-ink font-display font-bold text-sm">
+                  <ShieldCheck className="h-4 w-4 text-accent" />
+                  <span>Pan-India Delivery Guarantee</span>
+                </div>
+                <p className="font-sans text-xs text-muted leading-relaxed">
+                  We verify pin codes directly with Indian Postal & courier databases to prevent dispatch errors and transit delays.
+                </p>
+              </div>
+</aside>
           </div>
         )}
       </main>
