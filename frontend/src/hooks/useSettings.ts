@@ -17,6 +17,7 @@ import {
 } from '../store';
 
 const SETTINGS_DOCUMENT_ID = 'business';
+const PRIVATE_SETTINGS_DOCUMENT_ID = 'private';
 
 const DEFAULT_SETTINGS: Settings = {
   businessName: 'Shilp Sahayak',
@@ -42,24 +43,7 @@ const DEFAULT_SETTINGS: Settings = {
   upiId: 'shilpsahayak@okaxis',
   codEnabled: true,
   maxCodOrderValue: 5000,
-  bankAccountDetails: {
-    accountName: 'Shilp Sahayak 3D Technologies Pvt Ltd',
-    accountNumber: '924020012345678',
-    ifscCode: 'UTIB0000123',
-    bankName: 'Axis Bank Ltd',
-  },
 
-  notifications: {
-    newOrderAlerts: true,
-    quoteAlerts: true,
-    lowStockAlerts: true,
-    alertEmailRecipient: 'info.shilpsahayak@gmail.com',
-  },
-
-  adminUsers: [
-    { email: 'admin@shilpsahayak.in', role: 'Super Admin', addedAt: '2025-01-01' },
-    { email: 'workshop@shilpsahayak.in', role: 'Workshop Manager', addedAt: '2025-02-15' },
-  ],
 };
 
 /**
@@ -146,3 +130,38 @@ export function useUpdateSettings() {
 }
 
 
+
+
+export function usePrivateSettings(isAdmin: boolean) {
+  const localPrivateSettings = useStore(state => state.privateSettings);
+  return useQuery({
+    queryKey: ['settings', PRIVATE_SETTINGS_DOCUMENT_ID],
+    queryFn: async (): Promise<PrivateSettings> => {
+      const settingsRef = doc(db, 'settings', PRIVATE_SETTINGS_DOCUMENT_ID);
+      const snapshot = await getDoc(settingsRef);
+      if (!snapshot.exists()) {
+        return { ...DEFAULT_PRIVATE_SETTINGS, ...localPrivateSettings };
+      }
+      return { ...DEFAULT_PRIVATE_SETTINGS, ...snapshot.data() } as PrivateSettings;
+    },
+    enabled: !!isAdmin,
+    staleTime: 5 * 60 * 1000,
+    initialData: localPrivateSettings
+  });
+}
+
+export function useUpdatePrivateSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (settings: PrivateSettings) => {
+      const settingsRef = doc(db, 'settings', PRIVATE_SETTINGS_DOCUMENT_ID);
+      await setDoc(settingsRef, settings, { merge: true });
+      return settings;
+    },
+    onSuccess: (settings) => {
+      queryClient.setQueryData(['settings', PRIVATE_SETTINGS_DOCUMENT_ID], settings);
+      useStore.getState().updatePrivateSettings(settings);
+    }
+  });
+}
