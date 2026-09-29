@@ -152,6 +152,7 @@ export function Checkout() {
 
   const saveUserProfile = useSaveUserProfile();
   const [saveAddressToProfile, setSaveAddressToProfile] = useState(true);
+  const [showDeliveryInstructions, setShowDeliveryInstructions] = useState(() => !!savedForm?.notes);
 
   const [isSendingEmailVerification, setIsSendingEmailVerification] = useState(false);
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
@@ -797,6 +798,44 @@ export function Checkout() {
                 <div className="space-y-4">
                   <div>
                     <Input
+                      name="pincode"
+                      label="6-Digit PIN Code *"
+                      value={pincodeValue}
+                      onChange={(e) =>
+                        setPincodeValue(e.target.value.replace(/\D/g, '').slice(0, 6))
+                      }
+                      placeholder="Enter 6-digit PIN code"
+                      maxLength={6}
+                      inputMode="numeric"
+                      pattern="[0-9]{6}"
+                      autoComplete="postal-code"
+                      required
+                    />
+                    {pincodeValue.length === 6 && (
+                      <p className="mt-1 min-h-5 text-[11px] leading-5 font-mono">
+                        {isPincodeLookingUp ? (
+                          <span className="inline-flex items-center gap-1.5 text-muted">
+                            <span className="h-3 w-3 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                            Auto-detecting postal circle...
+                          </span>
+                        ) : pincodeLookupError ? (
+                          <span className="text-rose-600">{pincodeLookupError}</span>
+                        ) : pincodeLocation ? (
+                          <span className="text-emerald-700 font-bold">
+                            ✓ {pincodeLocation.city}, {pincodeLocation.state}
+                          </span>
+                        ) : null}
+                      </p>
+                    )}
+                    {(formAttempted || touched.pincode) && errors.pincode && (
+                      <p className="mt-1 text-xs font-semibold text-rose-600">
+                        {errors.pincode}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Input
                       name="houseNo"
                       label="Flat / House / Building Number *"
                       defaultValue={savedForm?.houseNo || profile?.address?.line1 || ''}
@@ -916,44 +955,6 @@ export function Checkout() {
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <Input
-                        name="pincode"
-                        label="6-Digit PIN Code *"
-                        value={pincodeValue}
-                        onChange={(e) =>
-                          setPincodeValue(e.target.value.replace(/\D/g, '').slice(0, 6))
-                        }
-                        placeholder="Enter 6-digit PIN code"
-                        maxLength={6}
-                        inputMode="numeric"
-                        pattern="[0-9]{6}"
-                        autoComplete="postal-code"
-                        required
-                      />
-                      {pincodeValue.length === 6 && (
-                        <p className="mt-1 min-h-5 text-[11px] leading-5 font-mono">
-                          {isPincodeLookingUp ? (
-                            <span className="inline-flex items-center gap-1.5 text-muted">
-                              <span className="h-3 w-3 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-                              Auto-detecting postal circle...
-                            </span>
-                          ) : pincodeLookupError ? (
-                            <span className="text-rose-600">{pincodeLookupError}</span>
-                          ) : pincodeLocation ? (
-                            <span className="text-emerald-700 font-bold">
-                              ✓ {pincodeLocation.city}, {pincodeLocation.state}
-                            </span>
-                          ) : null}
-                        </p>
-                      )}
-                      {(formAttempted || touched.pincode) && errors.pincode && (
-                        <p className="mt-1 text-xs font-semibold text-rose-600">
-                          {errors.pincode}
-                        </p>
-                      )}
-                    </div>
-
                     <div className="flex items-end">
                       <div className="w-full rounded-xl border border-accent/30 bg-accent-soft p-3 text-xs text-ink flex items-center gap-2 font-sans">
                         <MapPin className="h-4 w-4 text-accent shrink-0" />
@@ -962,7 +963,7 @@ export function Checkout() {
                     </div>
 
                     {user && (
-                      <div className="col-span-1 sm:col-span-2 pt-2">
+                      <div className="col-span-1 sm:col-span-1 flex items-center">
                         <label className="flex items-center gap-2.5 cursor-pointer select-none">
                           <input
                             type="checkbox"
@@ -986,17 +987,31 @@ export function Checkout() {
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent font-mono text-xs font-bold text-white">
                     3
                   </span>
-                  <h2 className="font-display text-xl font-bold text-ink">
-                    Special Delivery Instructions
-                  </h2>
+                  <label className="font-display text-xl font-bold text-ink cursor-pointer flex items-center gap-2 select-none">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-line text-accent focus:ring-accent accent-accent cursor-pointer"
+                      checked={showDeliveryInstructions}
+                      onChange={(e) => {
+                        setShowDeliveryInstructions(e.target.checked);
+                        if (!e.target.checked && formRef.current) {
+                          const notesEl = formRef.current.elements.namedItem('notes') as HTMLTextAreaElement;
+                          if (notesEl) notesEl.value = '';
+                        }
+                      }}
+                    />
+                    Add Special Delivery Instructions (Optional)
+                  </label>
                 </div>
 
-                <Textarea
-                  name="notes"
-                  defaultValue={savedForm?.notes || ''}
-                  placeholder="Gate instructions, preferred delivery timing, or packaging remarks..."
-                  rows={2}
-                />
+                {showDeliveryInstructions && (
+                  <Textarea
+                    name="notes"
+                    defaultValue={savedForm?.notes || ''}
+                    placeholder="Gate instructions, preferred delivery timing, or packaging remarks..."
+                    rows={2}
+                  />
+                )}
               </div>
 
               {/* Consent notice */}
