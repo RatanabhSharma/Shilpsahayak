@@ -178,6 +178,26 @@ export type QuoteRequest = {
 /* Settings                                                                   */
 /* -------------------------------------------------------------------------- */
 
+export type PrivateSettings = {
+  bankAccountDetails?: {
+    accountName: string;
+    accountNumber: string;
+    ifscCode: string;
+    bankName: string;
+  };
+  notifications?: {
+    newOrderAlerts: boolean;
+    quoteAlerts: boolean;
+    lowStockAlerts: boolean;
+    alertEmailRecipient: string;
+  };
+  adminUsers?: {
+    email: string;
+    role: string;
+    addedAt: string;
+  }[];
+};
+
 export type Settings = {
   // Business Information
   businessName: string;

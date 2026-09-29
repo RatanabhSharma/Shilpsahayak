@@ -677,10 +677,7 @@ export async function calculateOrderPricing(
   let freeShippingThreshold = 499;
 
   try {
-    const settings = await getFirestoreDoc(
-      projectId,
-      "settings",
-      "settings",
+    const settings = await getFirestoreDoc(projectId, "settings", "business",
       apiKey,
       authToken
     );
@@ -3079,4 +3076,5 @@ export default {
     );
   },
 } satisfies ExportedHandler<Env>;
+
 
