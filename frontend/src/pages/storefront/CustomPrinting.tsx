@@ -43,7 +43,7 @@ import { useStore } from '../../store';
 import { useAuth } from '../../hooks/useAuth';
 import { upload3DFile, uploadFileToR2 } from '../../utils/uploadFile';
 import { useSubmitQuote } from '../../hooks/useQuotes';
-import { SlicingSuccessResult, ColorAnalysis, UniversalModelAnalysis } from '../../services/slicing/slicingClient';
+import { SlicingSuccessResult, ColorAnalysis, UniversalModelAnalysis } from '../../services/model/slicingTypes';
 import { sendManualQuoteReceivedNotification } from '../../services/emailNotifications';
 import { useNotification } from '../../components/NotificationContext';
 

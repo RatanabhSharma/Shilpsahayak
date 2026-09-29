@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
+  MessageSquare,
   ShoppingBag,
   FileText,
   Package,

@@ -37,6 +37,7 @@ import { Catalog as AdminCatalog } from './pages/admin/Catalog';
 import { Inventory } from './pages/admin/Inventory';
 import { Customers } from './pages/admin/Customers';
 import { Settings } from './pages/admin/Settings';
+import { Inquiries } from './pages/admin/Inquiries';
 import { AdminHome } from './pages/admin/AdminHome';
 import { Reviews } from './pages/admin/Reviews';
 
@@ -105,6 +106,7 @@ export function App() {
           <Route path="catalog" element={<AdminCatalog />} />
           <Route path="inventory" element={<Inventory />} />
           <Route path="customers" element={<Customers />} />
+          <Route path="inquiries" element={<Inquiries />} />
           <Route path="settings" element={<Settings />} />
         </Route>
 
