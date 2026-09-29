@@ -207,6 +207,7 @@ export function Account() {
   const [addressMessage, setAddressMessage] = useState('');
   const [addressError, setAddressError] = useState('');
   const [isAddressEditing, setIsAddressEditing] = useState(false);
+  const [isManualAddressCity, setIsManualAddressCity] = useState(false);
   const [profileAddress, setProfileAddress] = useState<UserAddress>(emptyAddress);
 
   const {
@@ -248,6 +249,7 @@ export function Account() {
       state: pincodeLocation.state,
       pincode: pincodeLocation.pincode,
     }));
+    setIsManualAddressCity(false);
   }, [pincodeLocation]);
 
   const startProfileEditing = () => {
@@ -1239,27 +1241,55 @@ export function Account() {
 
                         <div className="grid gap-4 sm:grid-cols-2">
                           <div className="w-full">
-                            <label className="mb-1.5 block font-mono text-xs font-semibold uppercase tracking-wider text-muted">City / District *</label>
-                            {pincodeLocation?.availableCities?.length ? (
+                            <label className="mb-1.5 block font-mono text-xs font-semibold uppercase tracking-wider text-muted">City / Locality *</label>
+                            {pincodeLocation?.availableCities?.length && !isManualAddressCity ? (
                               <select
                                 name="addressCity"
                                 value={profileAddress.city}
-                                onChange={(e) => updateAddressField('city', e.target.value)}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val === 'OTHER_MANUAL') {
+                                    updateAddressField('city', '');
+                                    setIsManualAddressCity(true);
+                                  } else {
+                                    updateAddressField('city', val);
+                                  }
+                                }}
                                 className="flex h-11 w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm font-sans transition-all duration-150 ease-out hover:border-zinc-300 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
                                 required
                               >
                                 {pincodeLocation.availableCities.map(c => <option key={c} value={c}>{c}</option>)}
+                                <option value="OTHER_MANUAL">+ Other (Enter manually)</option>
                               </select>
                             ) : (
-                              <input
-                                name="addressCity"
-                                type="text"
-                                value={profileAddress.city}
-                                onChange={(e) => updateAddressField('city', e.target.value)}
-                                placeholder="Your city or district"
-                                className="flex h-11 w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm font-sans transition-all duration-150 ease-out hover:border-zinc-300 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
-                                required
-                              />
+                              <div className="relative">
+                                <input
+                                  name="addressCity"
+                                  type="text"
+                                  value={profileAddress.city}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (/^[A-Za-z\s\-]*$/.test(val)) {
+                                      updateAddressField('city', val);
+                                    }
+                                  }}
+                                  placeholder="Type your city name"
+                                  className="flex h-11 w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm font-sans transition-all duration-150 ease-out hover:border-zinc-300 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+                                  required
+                                />
+                                {pincodeLocation?.availableCities?.length ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setIsManualAddressCity(false);
+                                      updateAddressField('city', pincodeLocation.city);
+                                    }}
+                                    className="absolute right-3 top-3 text-xs text-accent hover:underline font-semibold bg-white px-1"
+                                  >
+                                    View List
+                                  </button>
+                                ) : null}
+                              </div>
                             )}
                           </div>
 

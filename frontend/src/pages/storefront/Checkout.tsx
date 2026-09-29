@@ -199,6 +199,7 @@ export function Checkout() {
   const [stateValue, setStateValue] = useState(() => savedForm?.state || '');
   const [phone, setPhone] = useState(() => normalizePhone(savedForm?.phone || ''));
   const [cityValue, setCityValue] = useState(() => savedForm?.city || '');
+  const [isManualCity, setIsManualCity] = useState(false);
   const [pincodeValue, setPincodeValue] = useState(() => savedForm?.pincode || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -240,6 +241,7 @@ export function Checkout() {
     setCityValue(pincodeLocation.city);
     setStateValue(pincodeLocation.state);
     setPincodeValue(pincodeLocation.pincode);
+    setIsManualCity(false);
   }, [pincodeLocation]);
 
   const getItemPrice = (item: (typeof cart)[number]) =>
@@ -836,27 +838,56 @@ export function Checkout() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <label className="mb-1.5 block font-mono text-xs font-bold uppercase tracking-wider text-muted">
-                        City / District *
+                        City / Locality *
                       </label>
-                      {pincodeLocation?.availableCities?.length ? (
+                      {pincodeLocation?.availableCities?.length && !isManualCity ? (
                         <>
                           <Select
                             value={cityValue}
-                            onChange={setCityValue}
-                            options={pincodeLocation.availableCities.map(c => ({ value: c, label: c }))}
+                            onChange={(val) => {
+                              if (val === 'OTHER_MANUAL') {
+                                setCityValue('');
+                                setIsManualCity(true);
+                              } else {
+                                setCityValue(val);
+                              }
+                            }}
+                            options={[
+                              ...pincodeLocation.availableCities.map(c => ({ value: c, label: c })),
+                              { value: 'OTHER_MANUAL', label: '+ Other (Enter manually)' }
+                            ]}
                             placeholder="Select locality / city"
                           />
                           <input type="hidden" name="city" value={cityValue} readOnly />
                         </>
                       ) : (
-                        <Input
-                          name="city"
-                          value={cityValue}
-                          onChange={(e) => setCityValue(e.target.value)}
-                          placeholder="Your city or district"
-                          autoComplete="address-level2"
-                          required
-                        />
+                        <div className="relative">
+                          <Input
+                            name="city"
+                            value={cityValue}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (/^[A-Za-z\s\-]*$/.test(val)) {
+                                setCityValue(val);
+                              }
+                            }}
+                            placeholder="Type your city name"
+                            autoComplete="address-level2"
+                            required
+                          />
+                          {pincodeLocation?.availableCities?.length ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsManualCity(false);
+                                setCityValue(pincodeLocation.city);
+                              }}
+                              className="absolute right-3 top-2.5 text-xs text-accent hover:underline font-semibold bg-white px-1"
+                            >
+                              View List
+                            </button>
+                          ) : null}
+                        </div>
                       )}
                       {(formAttempted || touched.city) && errors.city && (
                         <p className="mt-1 text-xs font-semibold text-rose-600">

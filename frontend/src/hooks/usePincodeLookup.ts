@@ -76,24 +76,30 @@ export async function lookupPincode(
     );
   }
   
-  // Build ordered city list: post office Names first (most specific),
-  // then Block (sub-district), then District as final fallback.
-  // This ensures users see actual localities (e.g. "Rajpur", "Chowhati")
-  // before the broad administrative district (e.g. "South 24 Parganas").
+  // Helper to clean up India Post names (removes " HO", " SO", " BO" etc.)
+  const cleanPostOfficeName = (name: string) => {
+    return name.replace(/\s+(B\.?O\.?|S\.?O\.?|H\.?O\.?)$/i, '').trim();
+  };
+
   const nameOptions: string[] = [];
   const blockOptions: string[] = [];
 
   result.PostOffice.forEach(po => {
-    if (po.Name && po.Name !== 'NA') nameOptions.push(po.Name);
-    if (po.Block && po.Block !== 'NA' && !nameOptions.includes(po.Block)) {
-      blockOptions.push(po.Block);
+    if (po.Name && po.Name !== 'NA') {
+      nameOptions.push(cleanPostOfficeName(po.Name));
+    }
+    if (po.Block && po.Block !== 'NA') {
+      const cleanedBlock = cleanPostOfficeName(po.Block);
+      if (!nameOptions.includes(cleanedBlock)) {
+        blockOptions.push(cleanedBlock);
+      }
     }
   });
 
   // Remove duplicate names
   const uniqueNames = Array.from(new Set(nameOptions));
   const uniqueBlocks = Array.from(new Set(blockOptions));
-  const district = office.District && office.District !== 'NA' ? office.District : '';
+  const district = office.District && office.District !== 'NA' ? cleanPostOfficeName(office.District) : '';
 
   // All options: specific names → blocks → district
   const availableCities = [
@@ -103,7 +109,7 @@ export async function lookupPincode(
   ];
 
   // Default: prefer first specific name (e.g. "Chowhati"), then block, then district
-  const defaultCity = uniqueNames[0] || uniqueBlocks[0] || district || office.District;
+  const defaultCity = uniqueNames[0] || uniqueBlocks[0] || district || cleanPostOfficeName(office.District || '');
 
   return {
     city: defaultCity,
