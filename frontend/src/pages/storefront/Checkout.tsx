@@ -835,15 +835,29 @@ export function Checkout() {
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <Input
-                        name="city"
-                        label="City *"
-                        value={cityValue}
-                        onChange={(e) => setCityValue(e.target.value)}
-                        placeholder="e.g. Patiala"
-                        autoComplete="address-level2"
-                        required
-                      />
+                      <label className="mb-1.5 block font-mono text-xs font-bold uppercase tracking-wider text-muted">
+                        City / District *
+                      </label>
+                      {pincodeLocation?.availableCities?.length ? (
+                        <>
+                          <Select
+                            value={cityValue}
+                            onChange={setCityValue}
+                            options={pincodeLocation.availableCities.map(c => ({ value: c, label: c }))}
+                            placeholder="Select locality / city"
+                          />
+                          <input type="hidden" name="city" value={cityValue} readOnly />
+                        </>
+                      ) : (
+                        <Input
+                          name="city"
+                          value={cityValue}
+                          onChange={(e) => setCityValue(e.target.value)}
+                          placeholder="e.g. Patiala"
+                          autoComplete="address-level2"
+                          required
+                        />
+                      )}
                       {(formAttempted || touched.city) && errors.city && (
                         <p className="mt-1 text-xs font-semibold text-rose-600">
                           {errors.city}

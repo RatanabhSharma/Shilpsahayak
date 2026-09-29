@@ -76,16 +76,34 @@ export async function lookupPincode(
     );
   }
   
-  const citySet = new Set<string>();
-  if (office.District && office.District !== 'NA') citySet.add(office.District);
-  
+  // Build ordered city list: post office Names first (most specific),
+  // then Block (sub-district), then District as final fallback.
+  // This ensures users see actual localities (e.g. "Rajpur", "Chowhati")
+  // before the broad administrative district (e.g. "South 24 Parganas").
+  const nameOptions: string[] = [];
+  const blockOptions: string[] = [];
+
   result.PostOffice.forEach(po => {
-      if (po.Block && po.Block !== 'NA') citySet.add(po.Block);
-      if (po.Name && po.Name !== 'NA') citySet.add(po.Name);
+    if (po.Name && po.Name !== 'NA') nameOptions.push(po.Name);
+    if (po.Block && po.Block !== 'NA' && !nameOptions.includes(po.Block)) {
+      blockOptions.push(po.Block);
+    }
   });
-  
-  const availableCities = Array.from(citySet);
-  const defaultCity = office.Block && office.Block !== 'NA' ? office.Block : office.District;
+
+  // Remove duplicate names
+  const uniqueNames = Array.from(new Set(nameOptions));
+  const uniqueBlocks = Array.from(new Set(blockOptions));
+  const district = office.District && office.District !== 'NA' ? office.District : '';
+
+  // All options: specific names → blocks → district
+  const availableCities = [
+    ...uniqueNames,
+    ...uniqueBlocks,
+    ...(district && !uniqueNames.includes(district) && !uniqueBlocks.includes(district) ? [district] : []),
+  ];
+
+  // Default: prefer first specific name (e.g. "Chowhati"), then block, then district
+  const defaultCity = uniqueNames[0] || uniqueBlocks[0] || district || office.District;
 
   return {
     city: defaultCity,
