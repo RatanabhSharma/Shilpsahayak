@@ -19,6 +19,7 @@ import {
   Trash2,
 } from 'lucide-react';
 
+import { INDIAN_STATES } from '../../lib/constants';
 import { useAuth } from '../../hooks/useAuth';
 import { usePincodeLookup } from '../../hooks/usePincodeLookup';
 import { useNotification, useConfirmDialog } from '../../components/NotificationContext';
@@ -185,7 +186,7 @@ export function Account() {
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] =
-    useState<'orders' | 'quotes' | 'addresses' | 'profile'>('orders');
+    useState<'orders' | 'quotes' | 'profile'>('orders');
 
   const [selectedOrder, setSelectedOrder] =
     useState<(typeof myOrders)[number] | null>(null);
@@ -754,8 +755,8 @@ export function Account() {
           {[
             { id: 'orders', label: 'Orders', count: myOrders.length, icon: Package },
             { id: 'quotes', label: 'CAD Quotes', count: myQuotes.length, icon: FileText },
-            { id: 'addresses', label: 'Saved Address', icon: MapPin },
-            { id: 'profile', label: 'Profile Settings', icon: User },
+            
+            { id: 'profile', label: 'Profile & Addresses', icon: User },
           ].map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
@@ -1155,23 +1156,44 @@ export function Account() {
                         />
 
                         <div className="grid gap-4 sm:grid-cols-2">
-                          <Input
-                            name="addressCity"
-                            label="City *"
-                            value={profileAddress.city}
-                            onChange={(e) => updateAddressField('city', e.target.value)}
-                            placeholder="e.g. Patiala"
-                            required
-                          />
+                          <div className="w-full">
+                            <label className="mb-1.5 block font-mono text-xs font-semibold uppercase tracking-wider text-muted">City / District *</label>
+                            {pincodeLocation?.availableCities?.length ? (
+                              <select
+                                name="addressCity"
+                                value={profileAddress.city}
+                                onChange={(e) => updateAddressField('city', e.target.value)}
+                                className="flex h-11 w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm font-sans transition-all duration-150 ease-out hover:border-zinc-300 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+                                required
+                              >
+                                {pincodeLocation.availableCities.map(c => <option key={c} value={c}>{c}</option>)}
+                              </select>
+                            ) : (
+                              <input
+                                name="addressCity"
+                                type="text"
+                                value={profileAddress.city}
+                                onChange={(e) => updateAddressField('city', e.target.value)}
+                                placeholder="Enter City"
+                                className="flex h-11 w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm font-sans transition-all duration-150 ease-out hover:border-zinc-300 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+                                required
+                              />
+                            )}
+                          </div>
 
-                          <Input
-                            name="addressState"
-                            label="State *"
-                            value={profileAddress.state}
-                            onChange={(e) => updateAddressField('state', e.target.value)}
-                            placeholder="e.g. Punjab"
-                            required
-                          />
+                          <div className="w-full">
+                            <label className="mb-1.5 block font-mono text-xs font-semibold uppercase tracking-wider text-muted">State *</label>
+                            <select
+                              name="addressState"
+                              value={profileAddress.state}
+                              onChange={(e) => updateAddressField('state', e.target.value)}
+                              className="flex h-11 w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm font-sans transition-all duration-150 ease-out hover:border-zinc-300 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+                              required
+                            >
+                              <option value="">Select State</option>
+                              {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                          </div>
                         </div>
 
                         <div>

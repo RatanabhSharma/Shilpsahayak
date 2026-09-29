@@ -6,9 +6,12 @@ export type PincodeLocation = {
   district: string;
   country: string;
   pincode: string;
+  availableCities: string[];
 };
 
 type PincodeApiPostOffice = {
+  Name?: string;
+  Block?: string;
   District?: string;
   State?: string;
   Country?: string;
@@ -72,13 +75,25 @@ export async function lookupPincode(
       'Location details are unavailable for this PIN code.'
     );
   }
+  
+  const citySet = new Set<string>();
+  if (office.District && office.District !== 'NA') citySet.add(office.District);
+  
+  result.PostOffice.forEach(po => {
+      if (po.Block && po.Block !== 'NA') citySet.add(po.Block);
+      if (po.Name && po.Name !== 'NA') citySet.add(po.Name);
+  });
+  
+  const availableCities = Array.from(citySet);
+  const defaultCity = office.Block && office.Block !== 'NA' ? office.Block : office.District;
 
   return {
-    city: office.District,
+    city: defaultCity,
     state: office.State,
     district: office.District,
     country: office.Country || 'India',
     pincode: cleanPincode,
+    availableCities,
   };
 }
 
@@ -162,6 +177,3 @@ export function usePincodeLookup(
     lookup,
   };
 }
-
-
-
