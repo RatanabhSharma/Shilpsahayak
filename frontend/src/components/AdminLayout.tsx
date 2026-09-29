@@ -83,6 +83,11 @@ export function AdminLayout() {
       icon: Users,
     },
     {
+      name: 'Inquiries',
+      path: '/admin/inquiries',
+      icon: MessageSquare,
+    },
+    {
       name: 'Platform Settings',
       path: '/admin/settings',
       icon: Settings,
