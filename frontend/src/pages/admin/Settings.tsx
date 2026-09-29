@@ -41,7 +41,6 @@ type SettingsTab =
   | 'pricing'
   | 'printers'
   | 'shipping'
-  | 'payments'
   | 'notifications'
   | 'admin-access';
 
@@ -147,8 +146,13 @@ export function Settings() {
       });
 
       await updatePrivateSettings.mutateAsync({
-        notifications,
-        adminUsers,
+        notifications: notifications ?? {
+          newOrderAlerts: true,
+          quoteAlerts: true,
+          lowStockAlerts: true,
+          alertEmailRecipient: 'info.shilpsahayak@gmail.com',
+        },
+        adminUsers: adminUsers ?? [],
       });
 
       setShowSuccess(true);
@@ -193,7 +197,6 @@ export function Settings() {
     { id: 'pricing', label: 'Pricing & Slicing Engine', icon: Layers },
     { id: 'printers', label: 'Printers & Production Profiles', icon: Key },
     { id: 'shipping', label: 'Shipping & Delivery', icon: Truck },
-    { id: 'payments', label: 'Payments & Accounts', icon: CreditCard },
     { id: 'notifications', label: 'Operational Alerts', icon: Bell },
     { id: 'admin-access', label: 'Admin Access & Security', icon: ShieldCheck },
   ];
@@ -210,7 +213,7 @@ export function Settings() {
             Platform Settings
           </h1>
           <p className="mt-1 text-xs text-muted font-sans">
-            Manage legal business details, custom printing pricing matrix, shipping zones, payments, and admin access.
+            Manage legal business details, custom printing pricing matrix, shipping zones, and admin access.
           </p>
         </div>
 
@@ -541,87 +544,6 @@ export function Settings() {
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* TAB 4: PAYMENTS & ACCOUNTS */}
-          {activeTab === 'payments' && (
-            <div className="rounded-xl border border-line bg-white p-6 shadow-xs space-y-5">
-              <div className="flex items-center gap-2.5 border-b border-line pb-3">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-                  <CreditCard className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="font-display text-base font-bold text-ink">
-                    Payment Gateway & Direct Settle
-                  </h2>
-                  <p className="text-xs text-muted">
-                    Configure UPI VPA, Cash on Delivery limits, and corporate bank transfer accounts.
-                  </p>
-                </div>
-              </div>
-
-              {/* PCI-DSS Security Compliance Alert */}
-              <div className="p-3.5 rounded-lg bg-emerald-50/80 border border-emerald-200 text-emerald-900 text-xs flex items-start gap-2.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div className="space-y-0.5">
-                  <p className="font-bold">PCI-DSS Compliant Gateway Architecture</p>
-                  <p className="text-[11px] text-emerald-800 leading-relaxed">
-                    Shilp Sahayak never stores sensitive customer payment cards, CVVs, or bank net-banking passwords. Transactions are settled securely via verified UPI handles and licensed gateway tokens.
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                <div className="md:col-span-2">
-                  <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
-                    Primary Studio UPI ID (VPA) *
-                  </label>
-                  <input
-                    type="text"
-                    value={form.upiId || ''}
-                    onChange={(e) => updateField('upiId', e.target.value)}
-                    placeholder="e.g. shilpsahayak@okaxis"
-                    required
-                    className="w-full px-3 py-2 text-xs font-mono font-bold text-ink bg-white border border-line rounded-lg outline-none focus:border-accent"
-                  />
-                  <span className="text-[10px] text-muted font-mono mt-0.5 block">
-                    Rendered dynamically as a QR code and instant UPI intent link at checkout
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-shell/50 rounded-lg border border-line md:col-span-2">
-                  <input
-                    type="checkbox"
-                    id="codEnabled"
-                    checked={form.codEnabled ?? true}
-                    onChange={(e) => updateField('codEnabled', e.target.checked)}
-                    className="rounded border-line text-accent focus:ring-accent w-4 h-4 cursor-pointer"
-                  />
-                  <div>
-                    <label htmlFor="codEnabled" className="font-bold text-ink cursor-pointer block">
-                      Enable Cash on Delivery (COD) for Retail Products
-                    </label>
-                    <span className="text-[11px] text-muted block">
-                      Custom 3D printing orders require upfront payment or partial advance before fabrication.
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
-                    Max Allowed COD Order Value (₹)
-                  </label>
-                  <input
-                    type="number"
-                    min="500"
-                    value={form.maxCodOrderValue ?? 5000}
-                    onChange={(e) => updateField('maxCodOrderValue', Number(e.target.value))}
-                    className="w-full px-3 py-2 text-xs font-mono text-ink bg-white border border-line rounded-lg outline-none focus:border-accent"
-                  />
-                </div>
-
-</div>
             </div>
           )}
 
