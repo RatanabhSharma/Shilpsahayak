@@ -20,12 +20,15 @@ import {
 
 import {
   Settings as SettingsType,
+  PrivateSettings,
   useStore,
 } from '../../store';
 
 import {
   useSettings,
   useUpdateSettings,
+  usePrivateSettings,
+  useUpdatePrivateSettings
 } from '../../hooks/useSettings';
 import { useAuth } from '../../hooks/useAuth';
 import { useUserRole } from '../../hooks/useUserRole';
@@ -49,12 +52,11 @@ export function Settings() {
   const { role } = useUserRole();
   const notify = useNotification();
 
-  const {
-    data: firestoreSettings,
-    isLoading,
-    isError,
-    refetch,
-  } = useSettings();
+  const { data: firestoreSettings, isLoading: isLoadingPub, isError: isErrorPub, refetch: refetchPub } = useSettings();
+  const { data: currentPrivateSettings, isLoading: isLoadingPriv, isError: isErrorPriv, refetch: refetchPriv } = usePrivateSettings(true);
+  const isLoading = isLoadingPub || isLoadingPriv;
+  const isError = isErrorPub || isErrorPriv;
+  const refetch = () => { refetchPub(); refetchPriv(); };
 
   const updateSettings = useUpdateSettings();
   const updatePrivateSettings = useUpdatePrivateSettings();
@@ -65,9 +67,9 @@ export function Settings() {
 
   useEffect(() => {
     if (firestoreSettings) {
-      setForm(firestoreSettings);
+      setForm({ ...firestoreSettings, ...(currentPrivateSettings || {}) });
     }
-  }, [firestoreSettings]);
+  }, [firestoreSettings, currentPrivateSettings]);
 
   const updateField = <K extends keyof SettingsType>(
     field: K,
@@ -97,18 +99,6 @@ export function Settings() {
     }));
   };
 
-  const updateNestedBank = (
-    key: keyof NonNullable<PrivateSettings['bankAccountDetails']>,
-    value: string
-  ) => {
-    setForm((current) => ({
-      ...current,
-      bankAccountDetails: {
-        ...(current.bankAccountDetails || {}),
-        [key]: value,
-      },
-    }));
-  };
 
   const handleAddZone = (e: React.KeyboardEvent | React.MouseEvent) => {
     if ('key' in e && e.key !== 'Enter') return;
@@ -133,8 +123,10 @@ export function Settings() {
     e.preventDefault();
 
     try {
+      const { notifications, adminUsers, ...publicFields } = form;
+
       await updateSettings.mutateAsync({
-        ...form,
+        ...publicFields,
         businessName: form.businessName?.trim() || 'Shilp Sahayak',
         email: form.email?.trim() || '',
         whatsappNumber: form.whatsappNumber?.trim() || '',
@@ -151,7 +143,12 @@ export function Settings() {
         expressShippingRate: Number(form.expressShippingRate) || 0,
         defaultCourierPartner: form.defaultCourierPartner?.trim() || 'Delhivery',
         upiId: form.upiId?.trim() || '',
-        maxCodOrderValue: Number(form.maxCodOrderValue) || 5000,
+        maxCodOrderValue: Number(publicFields.maxCodOrderValue) || 5000,
+      });
+
+      await updatePrivateSettings.mutateAsync({
+        notifications,
+        adminUsers,
       });
 
       setShowSuccess(true);
@@ -624,67 +621,7 @@ export function Settings() {
                   />
                 </div>
 
-                {/* Bank Account Details for B2B Clients */}
-                <div className="md:col-span-2 pt-3 border-t border-line space-y-3">
-                  <h3 className="font-display font-bold text-xs uppercase tracking-wider text-ink">
-                    Corporate & B2B Direct Bank Transfer (NEFT / RTGS)
-                  </h3>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block font-mono text-[10px] font-bold uppercase text-muted mb-1">
-                        Bank Name
-                      </label>
-                      <input
-                        type="text"
-                        value={form.bankAccountDetails?.bankName || ''}
-                        onChange={(e) => updateNestedBank('bankName', e.target.value)}
-                        placeholder="e.g. Axis Bank Ltd"
-                        className="w-full px-3 py-2 text-xs bg-white border border-line rounded-lg outline-none focus:border-accent"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-mono text-[10px] font-bold uppercase text-muted mb-1">
-                        Beneficiary Account Name
-                      </label>
-                      <input
-                        type="text"
-                        value={form.bankAccountDetails?.accountName || ''}
-                        onChange={(e) => updateNestedBank('accountName', e.target.value)}
-                        placeholder="e.g. Shilp Sahayak 3D Technologies Pvt Ltd"
-                        className="w-full px-3 py-2 text-xs bg-white border border-line rounded-lg outline-none focus:border-accent"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-mono text-[10px] font-bold uppercase text-muted mb-1">
-                        Account Number
-                      </label>
-                      <input
-                        type="text"
-                        value={form.bankAccountDetails?.accountNumber || ''}
-                        onChange={(e) => updateNestedBank('accountNumber', e.target.value)}
-                        placeholder="e.g. 924020012345678"
-                        className="w-full px-3 py-2 text-xs font-mono bg-white border border-line rounded-lg outline-none focus:border-accent"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-mono text-[10px] font-bold uppercase text-muted mb-1">
-                        IFSC Code
-                      </label>
-                      <input
-                        type="text"
-                        value={form.bankAccountDetails?.ifscCode || ''}
-                        onChange={(e) => updateNestedBank('ifscCode', e.target.value.toUpperCase())}
-                        placeholder="e.g. UTIB0000123"
-                        className="w-full px-3 py-2 text-xs font-mono bg-white border border-line rounded-lg outline-none focus:border-accent"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
+</div>
             </div>
           )}
 

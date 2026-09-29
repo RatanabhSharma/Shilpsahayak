@@ -179,13 +179,7 @@ export type QuoteRequest = {
 /* -------------------------------------------------------------------------- */
 
 export type PrivateSettings = {
-  bankAccountDetails?: {
-    accountName: string;
-    accountNumber: string;
-    ifscCode: string;
-    bankName: string;
-  };
-  notifications?: {
+notifications?: {
     newOrderAlerts: boolean;
     quoteAlerts: boolean;
     lowStockAlerts: boolean;
@@ -226,22 +220,8 @@ export type Settings = {
   upiId: string;
   codEnabled?: boolean;
   maxCodOrderValue?: number;
-  bankAccountDetails?: {
-    accountName?: string;
-    accountNumber?: string;
-    ifscCode?: string;
-    bankName?: string;
-  };
 
-  // Notifications
-  notifications?: {
-    newOrderAlerts?: boolean;
-    quoteAlerts?: boolean;
-    lowStockAlerts?: boolean;
-    alertEmailRecipient?: string;
-  };
-
-  // Admin Access
+// Admin Access
   adminUsers?: {
     email: string;
     role: string;
@@ -287,6 +267,7 @@ interface StoreState {
   quotes: QuoteRequest[];
 
   settings: Settings;
+  privateSettings: PrivateSettings | null;
 
   /* Cart */
   addToCart: (
@@ -357,6 +338,9 @@ interface StoreState {
   /* Settings */
   updateSettings: (
     partial: Partial<Settings>
+  ) => void;
+  updatePrivateSettings: (
+    partial: Partial<PrivateSettings>
   ) => void;
 }
 
@@ -431,6 +415,7 @@ export const useStore =
         quotes: [],
 
         settings: INITIAL_SETTINGS,
+        privateSettings: null,
 
         /* ------------------------------------------------------------------ */
         /* Add To Cart                                                         */
@@ -735,6 +720,15 @@ export const useStore =
           set((state) => ({
             settings: {
               ...state.settings,
+              ...partial
+            }
+          })),
+        updatePrivateSettings: (
+          partial
+        ) =>
+          set((state) => ({
+            privateSettings: {
+              ...(state.privateSettings || {} as PrivateSettings),
               ...partial
             }
           }))

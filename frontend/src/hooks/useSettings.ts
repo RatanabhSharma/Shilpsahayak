@@ -13,6 +13,7 @@ import {
 import { db } from '../lib/firebase';
 import {
   Settings,
+  PrivateSettings,
   useStore
 } from '../store';
 
@@ -44,6 +45,19 @@ const DEFAULT_SETTINGS: Settings = {
   codEnabled: true,
   maxCodOrderValue: 5000,
 
+};
+
+const DEFAULT_PRIVATE_SETTINGS: PrivateSettings = {
+  notifications: {
+    newOrderAlerts: true,
+    quoteAlerts: true,
+    lowStockAlerts: true,
+    alertEmailRecipient: 'info.shilpsahayak@gmail.com',
+  },
+  adminUsers: [
+    { email: 'admin@shilpsahayak.in', role: 'Super Admin', addedAt: '2025-01-01' },
+    { email: 'workshop@shilpsahayak.in', role: 'Workshop Manager', addedAt: '2025-02-15' },
+  ],
 };
 
 /**
