@@ -1171,9 +1171,9 @@ export function Account() {
                   </form>
                 )}
               </div>
-            </div>
 
-<div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
+
+              <div className="rounded-3xl border border-line bg-white p-7 shadow-soft">
                 <div className="flex items-center justify-between border-b border-line pb-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-soft text-accent">
@@ -1181,7 +1181,7 @@ export function Account() {
                     </div>
                     <div>
                       <h2 className="font-display text-xl font-bold text-ink">
-                        Primary Delivery Address
+                        Saved Address
                       </h2>
                       <span className="font-sans text-xs text-muted">Used to auto-populate checkout.</span>
                     </div>
@@ -1340,13 +1340,13 @@ export function Account() {
                 )}
               </div>
 
-              {/* Address History */}
+              {/* Saved Address */}
               <div className="mt-8 rounded-3xl border border-line bg-white p-7 shadow-soft">
                 <h3 className="font-display text-lg font-bold text-ink">
-                  Address History
+                  Saved Address
                 </h3>
                 <p className="font-sans text-xs text-muted">
-                  Previous delivery destinations logged for your account.
+                  Your saved delivery address for quick checkout.
                 </p>
 
                 {profile?.addressHistory && profile.addressHistory.length > 0 ? (
@@ -1380,6 +1380,8 @@ export function Account() {
               </div>
 
 
+
+            </div>
             <aside className="lg:col-span-5 space-y-6">
               <div className="rounded-3xl border border-line bg-white p-7 shadow-soft space-y-4">
                 <h3 className="font-display text-lg font-bold text-ink">
@@ -1411,7 +1413,7 @@ export function Account() {
                   We verify pin codes directly with Indian Postal & courier databases to prevent dispatch errors and transit delays.
                 </p>
               </div>
-</aside>
+            </aside>
           </div>
         )}
       </main>
