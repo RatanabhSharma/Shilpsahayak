@@ -30,6 +30,7 @@ import { ParsedModelResult } from '../../../services/model/modelTypes';
 import { ThreeModelViewer } from '../../custom-printing/ThreeModelViewer';
 import { StatusBadge } from '../shared/StatusBadge';
 import { ConfirmationDialog } from '../shared/ConfirmationDialog';
+import toast from 'react-hot-toast';
 
 export interface QuoteReviewDrawerProps {
   quote: Quote | null;
@@ -207,7 +208,7 @@ export const QuoteReviewDrawer: React.FC<QuoteReviewDrawerProps> = ({
 
   const handleSendQuoteClick = async () => {
     if (!adminPriceNum || adminPriceNum <= 0) {
-      alert('Please enter a valid quoted price greater than ₹0.');
+      toast('Please enter a valid quoted price greater than ₹0.');
       return;
     }
     try {
@@ -215,7 +216,7 @@ export const QuoteReviewDrawer: React.FC<QuoteReviewDrawerProps> = ({
       await onSendQuote(quote.id, adminPriceNum, expiryDays, adminNotesInput.trim());
     } catch (err: any) {
       console.error('Error in handleSendQuoteClick:', err);
-      alert(err?.message || 'Failed to send quote.');
+      toast.error(err?.message || 'Failed to send quote.');
     } finally {
       setIsSendingQuote(false);
     }

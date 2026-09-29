@@ -44,7 +44,7 @@ export function Reviews() {
   const { data: allReviews = [], isLoading } = useQuery({
     queryKey: ['adminReviews'],
     queryFn: async () => {
-      let results: ProductReview[] = [];
+      const results: ProductReview[] = [];
       const prodSnap = await getDocs(collection(db, 'products'));
       
       for (const prod of prodSnap.docs) {
@@ -122,7 +122,7 @@ export function Reviews() {
                     <p className="text-sm text-ink">"{r.reviewText}"</p>
                     
                     <div className="text-xs text-muted">
-                      Product: <span className="font-medium text-ink">{product?.name || r.productId}</span> • Order: <span className="font-mono">{r.orderId}</span>
+                      Product: <span className="font-medium text-ink">{product?.name || r.productId}</span> ï¿½ Order: <span className="font-mono">{r.orderId}</span>
                     </div>
                   </div>
 

@@ -176,7 +176,7 @@ export function useOrders() {
     queryKey: ['orders'],
 
     queryFn: async (): Promise<Order[]> => {
-      console.log('Loading ALL orders for admin...');
+      console.debug('Loading ALL orders for admin...');
 
       const ordersQuery = query(
         collection(db, 'orders'),
@@ -187,7 +187,7 @@ export function useOrders() {
         ordersQuery
       );
 
-      console.log(
+      console.debug(
         'Admin orders loaded:',
         snapshot.size
       );
@@ -231,7 +231,7 @@ export function useMyOrders(
         return [];
       }
 
-      console.log(
+      console.debug(
         'Loading customer orders for Firebase UID:',
         uid
       );
@@ -256,7 +256,7 @@ export function useMyOrders(
           )
         );
 
-        console.log(
+        console.debug(
           'Running customer orders query...'
         );
 
@@ -264,7 +264,7 @@ export function useMyOrders(
           ordersQuery
         );
 
-        console.log(
+        console.debug(
           'Customer orders returned:',
           snapshot.size
         );
@@ -275,7 +275,7 @@ export function useMyOrders(
               const data =
                 orderDoc.data();
 
-              console.log(
+              console.debug(
                 'Order found:',
                 {
                   id: orderDoc.id,
@@ -317,7 +317,7 @@ export function useMyOrders(
           }
         );
 
-        console.log(
+        console.debug(
           'Final customer orders:',
           orders
         );
@@ -425,7 +425,7 @@ export function useCreateOrder() {
       const customerId =
         orderData.customerId || currentUser.uid;
 
-      console.log(
+      console.debug(
         'Creating order for Firebase UID:',
         customerId
       );
@@ -474,7 +474,7 @@ export function useCreateOrder() {
         );
       }
 
-      console.log(
+      console.debug(
         'Order being written:',
         newOrder
       );
@@ -492,7 +492,7 @@ export function useCreateOrder() {
           newOrder
         );
 
-      console.log(
+      console.debug(
         'Order created successfully:',
         docRef.id
       );
@@ -1219,7 +1219,7 @@ export function useCancelOrder() {
       orderId: string;
       reason?: string;
     }) => {
-      console.log('Processing secure server cancellation for order:', orderId);
+      console.debug('Processing secure server cancellation for order:', orderId);
       const result = await cancelOrderRequest({ orderId, reason });
       return { orderId, status: result.status || 'Cancelled' };
     },

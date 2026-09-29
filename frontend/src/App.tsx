@@ -1,3 +1,4 @@
+import { Toaster } from 'react-hot-toast';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { StorefrontLayout } from './components/StorefrontLayout';
@@ -44,6 +45,7 @@ import { Reviews } from './pages/admin/Reviews';
 export function App() {
   return (
     <NotificationProvider>
+      <Toaster position="top-right" />
       <BrowserRouter>
         <ScrollToTop />
         <GlobalLoadingBar />

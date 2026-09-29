@@ -21,6 +21,7 @@ import {
   calculateCustomerQuote,
 } from '../../services/pricing/calculateQuote';
 import { formatINR } from '../../services/pricing/pricingUtils';
+import toast from 'react-hot-toast';
 
 export function PricingSettingsTab() {
   const { data: storedData, isLoading, isError } = usePricingSettings();
@@ -110,7 +111,7 @@ export function PricingSettingsTab() {
       setTimeout(() => setShowSaved(false), 3000);
     } catch (err) {
       console.error('Failed to save pricing configuration:', err);
-      alert('Failed to save pricing settings.');
+      toast.error('Failed to save pricing settings.');
     }
   };
 

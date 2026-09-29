@@ -3,6 +3,7 @@ import { Star, MessageSquare } from 'lucide-react';
 import { useProductReviews, useAddProductReview, useUserProductReview } from '../../hooks/useProductReviews';
 import { useMyOrders } from '../../hooks/useOrders';
 import { useAuth } from '../../hooks/useAuth';
+import toast from 'react-hot-toast';
 
 export function ProductReviewsSection({ productId, averageRating = 0, reviewCount = 0 }: { productId: string, averageRating?: number, reviewCount?: number }) {
   const { user } = useAuth();
@@ -39,7 +40,7 @@ export function ProductReviewsSection({ productId, averageRating = 0, reviewCoun
       setShowForm(false);
     } catch (err) {
       console.error(err);
-      alert('Failed to submit review. Your order may not have the productIds array (legacy orders).');
+      toast.error('Failed to submit review. Your order may not have the productIds array (legacy orders).');
     } finally {
       setIsSubmitting(false);
     }
@@ -104,7 +105,7 @@ export function ProductReviewsSection({ productId, averageRating = 0, reviewCoun
                   </div>
                   
                   <div className="mt-4 pt-4 border-t border-line flex items-center gap-3 text-xs text-muted">
-                    <span className="font-bold text-ink">— {review.userName}</span>
+                    <span className="font-bold text-ink">ï¿½ {review.userName}</span>
                     {review.verifiedPurchase && (
                       <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
                         <Star className="w-3 h-3 fill-green-600" /> Verified Purchase

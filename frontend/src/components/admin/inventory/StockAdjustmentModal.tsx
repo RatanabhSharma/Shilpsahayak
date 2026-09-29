@@ -7,6 +7,7 @@ import {
   Package,
 } from 'lucide-react';
 import { Product } from '../../../hooks/useProducts';
+import toast from 'react-hot-toast';
 import {
   useAdjustStock,
   InventoryAdjustmentReason,
@@ -88,7 +89,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
     e.preventDefault();
 
     if (calculatedDelta === 0) {
-      alert('The adjustment results in no change to stock (delta is 0).');
+      toast('The adjustment results in no change to stock (delta is 0).');
       return;
     }
 
@@ -107,7 +108,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
       onClose();
     } catch (err: any) {
       console.error('Failed to adjust stock:', err);
-      alert(err?.message || 'Failed to update stock and write log.');
+      toast.error(err?.message || 'Failed to update stock and write log.');
     }
   };
 

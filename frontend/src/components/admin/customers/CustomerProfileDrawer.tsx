@@ -16,6 +16,7 @@ import {
 import { Order } from '../../../hooks/useOrders';
 import { Quote } from '../../../hooks/useQuotes';
 import { StatusBadge } from '../shared/StatusBadge';
+import toast from 'react-hot-toast';
 
 export interface CustomerRecord {
   id: string; // uid or email
@@ -110,9 +111,9 @@ export const CustomerProfileDrawer: React.FC<CustomerProfileDrawerProps> = ({
         companyName: companyName.trim(),
         gstin: gstin.trim().toUpperCase(),
       });
-      alert('Customer CRM details updated successfully!');
+      toast.success('Customer CRM details updated successfully!');
     } catch (err: any) {
-      alert(err?.message || 'Failed to update CRM data.');
+      toast.error(err?.message || 'Failed to update CRM data.');
     } finally {
       setIsSaving(false);
     }

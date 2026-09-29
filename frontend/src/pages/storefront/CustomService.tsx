@@ -43,6 +43,7 @@ import {
   useStore,
 } from '../../store';
 import { Button, Card, Badge, Input, Textarea } from '../../components/ui';
+import toast from 'react-hot-toast';
 
 // Two top-level modes: technical (3D file) vs assisted (idea or reference image)
 type ServiceMode = '3d-model' | 'assisted';
@@ -226,7 +227,7 @@ export function CustomService() {
     }
 
     if (selectedFile.size > MAX_FILE_SIZE) {
-      alert('File is too large. Maximum supported size is 100MB.');
+      toast('File is too large. Maximum supported size is 100MB.');
       event.target.value = '';
       return;
     }
@@ -247,7 +248,7 @@ export function CustomService() {
       calculatePrice(calculatedVolume, material, infill, quantity);
     } catch (error) {
       console.error('Volume calculation failed:', error);
-      alert('Could not auto-calculate volume for this STL. You can still submit for engineering review.');
+      toast('Could not auto-calculate volume for this STL. You can still submit for engineering review.');
     } finally {
       setIsCalculating(false);
     }
@@ -261,31 +262,31 @@ export function CustomService() {
 
   const validateRequest = () => {
     if (mode === '3d-model' && !file) {
-      alert('Please upload a 3D file before submitting.');
+      toast('Please upload a 3D file before submitting.');
       return false;
     }
     if (mode === 'assisted' && assistedSub === 'has-reference' && !file) {
-      alert('Please upload your reference image before submitting.');
+      toast('Please upload your reference image before submitting.');
       return false;
     }
     if (mode === 'assisted' && !description.trim()) {
-      alert('Please describe your idea or project.');
+      toast('Please describe your idea or project.');
       return false;
     }
     if (!customerName.trim()) {
-      alert('Please enter your full name.');
+      toast('Please enter your full name.');
       return false;
     }
     if (!customerEmail.trim()) {
-      alert('Please enter your email address.');
+      toast('Please enter your email address.');
       return false;
     }
     if (!customerPhone.trim()) {
-      alert('Please enter your contact phone number.');
+      toast('Please enter your contact phone number.');
       return false;
     }
     if (quantity < 1) {
-      alert('Quantity must be at least 1.');
+      toast('Quantity must be at least 1.');
       return false;
     }
     return true;
@@ -338,7 +339,7 @@ export function CustomService() {
       setIsSuccess(true);
     } catch (error) {
       console.error('Failed to submit quote request:', error);
-      alert('Failed to submit your request. Please try again.');
+      toast.error('Failed to submit your request. Please try again.');
     } finally {
       setIsSubmitting(false);
       setUploadProgress(null);
@@ -349,7 +350,7 @@ export function CustomService() {
     if (!user || !file) return;
 
     if (estimatedPrice === null) {
-      alert('Estimated price could not be computed automatically. Please submit for an engineering quote.');
+      toast('Estimated price could not be computed automatically. Please submit for an engineering quote.');
       return;
     }
 
@@ -398,7 +399,7 @@ export function CustomService() {
       navigate('/cart');
     } catch (error) {
       console.error('Failed to add custom print to cart:', error);
-      alert('Could not add print to cart. Please try again.');
+      toast('Could not add print to cart. Please try again.');
     } finally {
       setIsSubmitting(false);
       setUploadProgress(null);

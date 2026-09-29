@@ -125,7 +125,7 @@ export function calculateColorDistance(hex1: string, hex2: string): number {
 export function checkAmsColorMatch(
   productionHex: string,
   amsHex: string,
-  threshold: number = 105
+  threshold = 105
 ): ColorMatchResult {
   const distance = calculateColorDistance(productionHex, amsHex);
   const isMatch = distance <= threshold;

@@ -16,6 +16,7 @@ import {
 
 // Phase 2 Shared Admin Components
 import { PageHeader } from '../../components/admin/shared/PageHeader';
+import toast from 'react-hot-toast';
 
 export function AdminHome() {
   const { data: products = [], isLoading: productsLoading } = useProducts();
@@ -73,7 +74,7 @@ export function AdminHome() {
       window.setTimeout(() => setShowSuccess(false), 3500);
     } catch (err: any) {
       console.error('Failed to save storefront settings:', err);
-      alert(err?.message || 'Failed to save storefront settings.');
+      toast.error(err?.message || 'Failed to save storefront settings.');
     } finally {
       setSaving(false);
     }

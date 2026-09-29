@@ -46,6 +46,7 @@ import { useSubmitQuote } from '../../hooks/useQuotes';
 import { SlicingSuccessResult, ColorAnalysis, UniversalModelAnalysis } from '../../services/model/slicingTypes';
 import { sendManualQuoteReceivedNotification } from '../../services/emailNotifications';
 import { useNotification } from '../../components/NotificationContext';
+import toast from 'react-hot-toast';
 
 
 export type StudioTab = 'upload' | 'configure' | 'estimate';
@@ -1198,7 +1199,7 @@ export function CustomPrinting() {
 
     // Pre-Order Validation: Authoritative slicer result is required before placing an order.
     if (isSlicing) {
-      alert('Please wait a moment while the production slicer finishes calculating the exact price.');
+      toast('Please wait a moment while the production slicer finishes calculating the exact price.');
       return;
     }
 
@@ -1218,38 +1219,38 @@ export function CustomPrinting() {
     const filamentVal = actualFilamentGrams ?? 0;
     if (filamentVal <= 0 && (!actualFilamentMm || actualFilamentMm <= 0)) {
       setSlicerResult(null);
-      alert('Authoritative filament data is missing from the slicer result.');
+      toast('Authoritative filament data is missing from the slicer result.');
       return;
     }
 
     const timeVal = actualPrintTimeSeconds ?? 0;
     if (timeVal <= 0) {
       setSlicerResult(null);
-      alert('Authoritative print duration is missing from the slicer result.');
+      toast('Authoritative print duration is missing from the slicer result.');
       return;
     }
 
     if (!actualDimensions || actualDimensions.x <= 0 || actualDimensions.y <= 0 || actualDimensions.z <= 0) {
       setSlicerResult(null);
-      alert('Authoritative model dimensions are missing from the slicer result.');
+      toast('Authoritative model dimensions are missing from the slicer result.');
       return;
     }
 
     if (exceedsBuildVolume || slicerResult.quote?.exceedsBuildVolume) {
       setSlicerResult(null);
-      alert('Model dimensions exceed the printer build envelope. Please request a Workshop Review.');
+      toast('Model dimensions exceed the printer build envelope. Please request a Workshop Review.');
       return;
     }
 
     if (!pricingData?.pricingConfig) {
       setSlicerResult(null);
-      alert('Pricing configuration is unavailable. Please refresh the page.');
+      toast('Pricing configuration is unavailable. Please refresh the page.');
       return;
     }
 
     if (!quoteBreakdown) {
       setSlicerResult(null);
-      alert('Quote has been invalidated. Please re-slice your model.');
+      toast('Quote has been invalidated. Please re-slice your model.');
       return;
     }
 
@@ -1391,7 +1392,7 @@ export function CustomPrinting() {
       console.error('Failed to prepare custom print order:', error);
       setIsSubmitting(false);
       setUploadProgress(null);
-      alert(error?.message || 'Failed to process 3D file for order. Please try requesting a quote.');
+      toast.error(error?.message || 'Failed to process 3D file for order. Please try requesting a quote.');
     }
   };
 
@@ -1405,7 +1406,7 @@ export function CustomPrinting() {
     const customerPhone = guestPhone.trim();
 
     if (!customerName || !customerEmail) {
-      alert('Please provide your name and email address.');
+      toast('Please provide your name and email address.');
       return;
     }
 
@@ -1546,7 +1547,7 @@ export function CustomPrinting() {
       console.error('Failed to submit quote request:', error);
       setIsSubmitting(false);
       setUploadProgress(null);
-      alert(error?.message || 'Failed to submit quote request. Please try again.');
+      toast.error(error?.message || 'Failed to submit quote request. Please try again.');
     }
   };
 

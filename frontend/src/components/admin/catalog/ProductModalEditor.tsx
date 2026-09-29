@@ -21,6 +21,7 @@ import {
 } from '../../../hooks/useProducts';
 import { uploadProductImage } from '../../../utils/uploadFile';
 import { cleanFirestorePayload } from '../../../utils/cleanFirestorePayload';
+import toast from 'react-hot-toast';
 
 export interface ProductModalEditorProps {
   isOpen: boolean;
@@ -296,19 +297,19 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
     e.preventDefault();
 
     if (!name.trim()) {
-      alert('Product name is required.');
+      toast('Product name is required.');
       setActiveTab('general');
       return;
     }
 
     if (!image.trim()) {
-      alert('Please upload or provide a primary product image.');
+      toast('Please upload or provide a primary product image.');
       setActiveTab('media');
       return;
     }
 
     if (image.startsWith('blob:') || image.startsWith('local:')) {
-      alert('The current image is a temporary session link that cannot be viewed by customers. Please re-upload the image or provide a direct image URL.');
+      toast('The current image is a temporary session link that cannot be viewed by customers. Please re-upload the image or provide a direct image URL.');
       setActiveTab('media');
       return;
     }
@@ -421,7 +422,7 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
       onClose();
     } catch (err: any) {
       console.error('Failed to save product:', err);
-      alert(err?.message || 'Failed to save product.');
+      toast.error(err?.message || 'Failed to save product.');
     } finally {
       setSaving(false);
     }
@@ -816,7 +817,7 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
                           );
                           setImage(url);
                         } catch (err: any) {
-                          alert(err?.message || 'Failed to upload image.');
+                          toast.error(err?.message || 'Failed to upload image.');
                         } finally {
                           setImageUploading(false);
                           setImageUploadProgress(null);
@@ -928,7 +929,7 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
                         const url = await uploadProductImage(file);
                         setImages((prev) => [...prev, url]);
                       } catch (err: any) {
-                        alert(err?.message || 'Failed to upload gallery image.');
+                        toast.error(err?.message || 'Failed to upload gallery image.');
                       }
                       e.target.value = '';
                     }}

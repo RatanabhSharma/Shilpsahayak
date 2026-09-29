@@ -48,7 +48,7 @@ export async function sendEmailNotification(payload: EmailDispatchPayload): Prom
       return '';
     }
 
-    console.log(`[EmailNotification] Queued ${payload.eventType} email for target ${payload.targetId} (Mail ID: ${data.mailId})`);
+    console.debug(`[EmailNotification] Queued ${payload.eventType} email for target ${payload.targetId} (Mail ID: ${data.mailId})`);
     return data.mailId || '';
   } catch (error) {
     console.error('[EmailNotification] Failed to dispatch email via Worker:', error);

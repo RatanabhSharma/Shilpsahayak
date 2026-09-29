@@ -235,7 +235,7 @@ export async function uploadFileToR2(
       if (onProgress) onProgress(100);
 
       const fullUrl = `${CLOUDFLARE_WORKER_URL}/file?key=${encodeURIComponent(response.key)}`;
-      console.log('File uploaded successfully to R2:', fullUrl);
+      console.debug('File uploaded successfully to R2:', fullUrl);
       resolve(fullUrl);
     });
 

@@ -466,7 +466,7 @@ export function Checkout() {
         },
         modal: {
           ondismiss: () => {
-            console.log('Customer dismissed/closed Razorpay Checkout.');
+            console.debug('Customer dismissed/closed Razorpay Checkout.');
             setPaymentUiState('cancelled');
           },
         },
