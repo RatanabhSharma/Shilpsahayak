@@ -3038,7 +3038,6 @@ export default {
         // Dispatch Email (ESCAPED)
         const mailPayload = {
           to: ["info.shilpsahayak@gmail.com"],
-          replyTo: rawEmail,
           message: {
             subject: `Contact Form: ${escapeHtml(rawSubject)}`,
             html: `
@@ -3080,3 +3079,4 @@ export default {
     );
   },
 } satisfies ExportedHandler<Env>;
+
