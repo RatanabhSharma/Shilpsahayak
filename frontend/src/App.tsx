@@ -41,6 +41,8 @@ import { Settings } from './pages/admin/Settings';
 import { Inquiries } from './pages/admin/Inquiries';
 import { AdminHome } from './pages/admin/AdminHome';
 import { Reviews } from './pages/admin/Reviews';
+import { Branding } from './pages/admin/Branding';
+import { MediaLibrary } from './pages/admin/MediaLibrary';
 
 export function App() {
   return (
@@ -109,7 +111,7 @@ export function App() {
           <Route path="inventory" element={<Inventory />} />
           <Route path="customers" element={<Customers />} />
           <Route path="inquiries" element={<Inquiries />} />
-          <Route path="settings" element={<Settings />} />
+          <Route path="settings" element={<Settings />} />`n          <Route path="branding" element={<Branding />} />`n          <Route path="media" element={<MediaLibrary />} />
         </Route>
 
         {/* Internal fallback. Vercel rewrite sends the request to the SPA. */}

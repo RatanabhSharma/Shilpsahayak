@@ -16,10 +16,39 @@ import {
   Layers,
   ChevronDown,
   Star,
+  Compass,
+  Palette,
+  Image,
+  Globe,
+  FileCheck,
+  Tag,
+  Megaphone,
+  FolderTree,
+  Sliders,
+  Bell,
+  ShieldCheck,
+  Truck,
+  Printer,
+  CreditCard,
+  Building2,
 } from 'lucide-react';
 import { BrandLogo } from './ui';
 import { auth } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
+
+interface NavItemConfig {
+  name: string;
+  path: string;
+  icon: any;
+  isComingSoon?: boolean;
+  badge?: string;
+  isSettingsTab?: boolean;
+}
+
+interface NavGroupConfig {
+  group: string;
+  items: NavItemConfig[];
+}
 
 export function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -41,56 +70,171 @@ export function AdminLayout() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const navItems = [
+  const navGroups: NavGroupConfig[] = [
     {
-      name: 'Dashboard',
-      path: '/admin/dashboard',
-      icon: LayoutDashboard,
+      group: 'OPERATIONS',
+      items: [
+        {
+          name: 'Dashboard',
+          path: '/admin/dashboard',
+          icon: LayoutDashboard,
+        },
+        {
+          name: 'Customer Orders',
+          path: '/admin/orders',
+          icon: ShoppingBag,
+        },
+        {
+          name: 'Custom CAD Quotes',
+          path: '/admin/quotes',
+          icon: FileText,
+        },
+        {
+          name: 'Customer Inquiries',
+          path: '/admin/inquiries',
+          icon: MessageSquare,
+        },
+        {
+          name: 'Reviews',
+          path: '/admin/reviews',
+          icon: Star,
+        },
+      ],
     },
     {
-      name: 'Storefront',
-      path: '/admin/home',
-      icon: Home,
+      group: 'CATALOGUE',
+      items: [
+        {
+          name: 'Products',
+          path: '/admin/catalog',
+          icon: Package,
+        },
+        {
+          name: 'Inventory',
+          path: '/admin/inventory',
+          icon: Layers,
+        },
+        {
+          name: 'Collections',
+          path: '#',
+          icon: FolderTree,
+          isComingSoon: true,
+          badge: 'Phase 7',
+        },
+      ],
     },
     {
-      name: 'Customer Orders',
-      path: '/admin/orders',
-      icon: ShoppingBag,
+      group: 'CUSTOMERS',
+      items: [
+        {
+          name: 'Customer Directory',
+          path: '/admin/customers',
+          icon: Users,
+        },
+      ],
     },
     {
-      name: 'Custom CAD Quotes',
-      path: '/admin/quotes',
-      icon: FileText,
+      group: 'STOREFRONT',
+      items: [
+        {
+          name: 'Homepage CMS',
+          path: '/admin/home',
+          icon: Home,
+        },
+        {
+          name: 'Branding & Assets',
+          path: '/admin/branding',
+          icon: Palette,
+        },
+        {
+          name: 'Navigation & Menus',
+          path: '#',
+          icon: Compass,
+          isComingSoon: true,
+          badge: 'Phase 4',
+        },
+        {
+          name: 'Media Library',
+          path: '#',
+          icon: Image,
+          isComingSoon: true,
+          badge: 'Phase 3',
+        },
+        {
+          name: 'SEO & Meta Tags',
+          path: '#',
+          icon: Globe,
+          isComingSoon: true,
+          badge: 'Phase 8',
+        },
+        {
+          name: 'Legal Policies',
+          path: '#',
+          icon: FileCheck,
+          isComingSoon: true,
+          badge: 'Phase 8',
+        },
+      ],
     },
     {
-      name: 'Catalog',
-      path: '/admin/catalog',
-      icon: Package,
+      group: 'MARKETING',
+      items: [
+        {
+          name: 'Coupons & Discounts',
+          path: '#',
+          icon: Tag,
+          isComingSoon: true,
+          badge: 'Phase 5',
+        },
+        {
+          name: 'Campaign Banners',
+          path: '#',
+          icon: Megaphone,
+          isComingSoon: true,
+          badge: 'Phase 6',
+        },
+      ],
     },
     {
-      name: 'Reviews',
-      path: '/admin/reviews',
-      icon: Star,
-    },
-    {
-      name: 'Inventory',
-      path: '/admin/inventory',
-      icon: Layers,
-    },
-    {
-      name: 'Customer Directory',
-      path: '/admin/customers',
-      icon: Users,
-    },
-    {
-      name: 'Inquiries',
-      path: '/admin/inquiries',
-      icon: MessageSquare,
-    },
-    {
-      name: 'Platform Settings',
-      path: '/admin/settings',
-      icon: Settings,
+      group: 'SETTINGS',
+      items: [
+        {
+          name: 'Business Information',
+          path: '/admin/settings?tab=business',
+          icon: Building2,
+          isSettingsTab: true,
+        },
+        {
+          name: 'Pricing & Slicing',
+          path: '/admin/settings?tab=pricing',
+          icon: Sliders,
+          isSettingsTab: true,
+        },
+        {
+          name: 'Printers & Profiles',
+          path: '/admin/settings?tab=printers',
+          icon: Printer,
+          isSettingsTab: true,
+        },
+        {
+          name: 'Shipping & Delivery',
+          path: '/admin/settings?tab=shipping',
+          icon: Truck,
+          isSettingsTab: true,
+        },
+        {
+          name: 'Operational Alerts',
+          path: '/admin/settings?tab=notifications',
+          icon: Bell,
+          isSettingsTab: true,
+        },
+        {
+          name: 'Admin Security',
+          path: '/admin/settings?tab=admin-access',
+          icon: ShieldCheck,
+          isSettingsTab: true,
+        },
+      ],
     },
   ];
 
@@ -103,7 +247,18 @@ export function AdminLayout() {
     navigate('/admin/login', { replace: true });
   };
 
-  const currentNav = navItems.find((item) => location.pathname.startsWith(item.path));
+  // Check active navigation link against current pathname & search query
+  const allNavItems = navGroups.flatMap((g) => g.items);
+  const currentNav = allNavItems.find((item) => {
+    if (item.isComingSoon) return false;
+    if (item.isSettingsTab) {
+      return (
+        location.pathname === '/admin/settings' &&
+        (location.search ? item.path.includes(location.search) : item.path.includes('tab=business'))
+      );
+    }
+    return location.pathname.startsWith(item.path);
+  });
 
   return (
     <div className="min-h-screen bg-paper flex font-sans text-ink">
@@ -115,14 +270,14 @@ export function AdminLayout() {
         />
       )}
 
-      {/* Sidebar - 240px wide */}
+      {/* Sidebar - 250px wide */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-60 bg-white border-r border-line transform transition-transform duration-200 ease-in-out ${
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-line transform transition-transform duration-200 ease-in-out ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         } flex flex-col`}
       >
         {/* Sidebar Header */}
-        <div className="h-16 flex items-center justify-between px-5 border-b border-line">
+        <div className="h-16 flex items-center justify-between px-5 border-b border-line shrink-0">
           <Link to="/admin/dashboard" className="flex items-center gap-2.5">
             <BrandLogo size="sm" showText={false} />
             <div>
@@ -142,36 +297,77 @@ export function AdminLayout() {
           </button>
         </div>
 
-        {/* Navigation Section Header & Items */}
-        <div className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          <p className="px-3 pb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
-            Menu
-          </p>
-          <nav className="space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname.startsWith(item.path);
-              return (
-                <Link
-                  key={item.name}
-                  to={item.path}
-                  onClick={() => setIsSidebarOpen(false)}
-                  className={`flex items-center px-3 py-2 rounded-lg font-sans text-xs font-medium transition-all ${
-                    isActive
-                      ? 'bg-accent text-white shadow-sm shadow-accent/25'
-                      : 'text-muted hover:text-ink hover:bg-shell'
-                  }`}
-                >
-                  <Icon
-                    className={`w-4 h-4 mr-2.5 shrink-0 ${
-                      isActive ? 'text-white' : 'text-muted'
-                    }`}
-                  />
-                  <span className="truncate">{item.name}</span>
-                </Link>
-              );
-            })}
-          </nav>
+        {/* Grouped Navigation List */}
+        <div className="flex-1 px-3 py-3 overflow-y-auto space-y-4">
+          {navGroups.map((group) => (
+            <div key={group.group} className="space-y-1">
+              <div className="px-3 pt-1 pb-1">
+                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted/80">
+                  {group.group}
+                </span>
+              </div>
+              <nav className="space-y-0.5">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+
+                  // Active check:
+                  let isActive = false;
+                  if (!item.isComingSoon) {
+                    if (item.isSettingsTab) {
+                      const currentTab = new URLSearchParams(location.search).get('tab') || 'business';
+                      isActive =
+                        location.pathname === '/admin/settings' &&
+                        item.path.includes(`tab=${currentTab}`);
+                    } else {
+                      isActive = location.pathname.startsWith(item.path);
+                    }
+                  }
+
+                  if (item.isComingSoon) {
+                    return (
+                      <div
+                        key={item.name}
+                        title={`Coming in ${item.badge || 'future phase'}`}
+                        className="flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium text-muted/50 cursor-not-allowed select-none group"
+                      >
+                        <div className="flex items-center min-w-0">
+                          <Icon className="w-4 h-4 mr-2.5 shrink-0 text-muted/40" />
+                          <span className="truncate">{item.name}</span>
+                        </div>
+                        {item.badge && (
+                          <span className="font-mono text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-shell text-muted/70 shrink-0">
+                            {item.badge}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.path}
+                      onClick={() => setIsSidebarOpen(false)}
+                      className={`flex items-center justify-between px-3 py-1.5 rounded-lg font-sans text-xs font-medium transition-all ${
+                        isActive
+                          ? 'bg-accent text-white shadow-xs font-semibold'
+                          : 'text-muted hover:text-ink hover:bg-shell'
+                      }`}
+                    >
+                      <div className="flex items-center min-w-0">
+                        <Icon
+                          className={`w-4 h-4 mr-2.5 shrink-0 ${
+                            isActive ? 'text-white' : 'text-muted'
+                          }`}
+                        />
+                        <span className="truncate">{item.name}</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          ))}
         </div>
       </aside>
 
@@ -291,5 +487,7 @@ export function AdminLayout() {
     </div>
   );
 }
+
+
 
 

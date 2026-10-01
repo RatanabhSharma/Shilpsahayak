@@ -8,6 +8,7 @@ import { Check, ChevronDown } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import brandLogoImg from '../assets/pictures/logo.png';
+import { useBrandingConfig } from '../hooks/useBranding';
 
 /* =========================================================
    Shared className utility
@@ -35,26 +36,30 @@ export function BrandLogo({
   className,
   size = 'md',
   showTagline = false,
-  taglineText = 'If you can imagine it, we can print it.',
+  taglineText,
   isDarkTheme = false,
   showText = true,
 }: BrandLogoProps) {
+  const { data: branding } = useBrandingConfig();
+  const currentTagline = taglineText || branding?.brandTagline || 'If you can imagine it, we can print it.';
+  const currentLogo = (isDarkTheme && branding?.darkLogoUrl) ? branding.darkLogoUrl : (branding?.primaryLogoUrl || brandLogoImg);
+
   const markSizes = {
-    sm: 'h-8 w-8 rounded-lg',
-    md: 'h-10 w-10 sm:h-11 sm:w-11 rounded-xl',
+    sm: 'h-7.5 w-7.5 sm:h-8 sm:w-8 rounded-lg',
+    md: 'h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl',
     lg: 'h-12 w-12 sm:h-14 sm:w-14 rounded-2xl',
     xl: 'h-16 w-16 sm:h-20 sm:w-20 rounded-2xl',
   };
 
   const titleSizes = {
-    sm: 'text-sm font-bold',
-    md: 'text-base sm:text-lg font-bold',
+    sm: 'text-[11px] sm:text-xs font-bold',
+    md: 'text-xs sm:text-base font-bold',
     lg: 'text-lg sm:text-xl font-bold',
     xl: 'text-2xl font-bold',
   };
 
   return (
-    <div className={cn('flex items-center gap-2.5 sm:gap-3 select-none group', className)}>
+    <div className={cn('flex items-center gap-2 sm:gap-2.5 select-none group min-w-0', className)}>
       {/* Official Company Logo Emblem */}
       <div
         className={cn(
@@ -65,7 +70,7 @@ export function BrandLogo({
         aria-hidden="true"
       >
         <img
-          src={brandLogoImg}
+          src={currentLogo}
           alt="Shilp Sahayak Logo"
           className="h-full w-full object-contain p-0.5"
           onError={(e) => {
@@ -76,10 +81,10 @@ export function BrandLogo({
       </div>
 
       {showText && (
-        <div className="flex flex-col">
+        <div className="flex flex-col min-w-0">
           <span
             className={cn(
-              'font-display tracking-tight leading-none',
+              'font-display tracking-tight leading-none truncate',
               isDarkTheme ? 'text-white' : 'text-ink',
               titleSizes[size]
             )}
@@ -94,7 +99,7 @@ export function BrandLogo({
                 isDarkTheme ? 'text-zinc-400' : 'text-muted'
               )}
             >
-              {taglineText}
+              {currentTagline}
             </span>
           )}
         </div>
