@@ -188,8 +188,15 @@ service cloud.firestore {
     // SETTINGS
     // =========================================================
     match /settings/{settingId} {
-      allow read: if settingId in ['business', 'settings', 'storefront', 'public', 'pricing', 'homepage'] || isAdmin();
+      allow read: if settingId in ['business', 'settings', 'storefront', 'public', 'pricing', 'homepage', 'branding', 'navigation'] || isAdmin();
       allow write: if isAdmin();
+    }
+
+    // =========================================================
+    // MEDIA LIBRARY
+    // =========================================================
+    match /media/{mediaId} {
+      allow read, write: if isAdmin();
     }
 
     // =========================================================

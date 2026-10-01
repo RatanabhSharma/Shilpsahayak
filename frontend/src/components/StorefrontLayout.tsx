@@ -33,6 +33,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
 import { useUserRole } from '../hooks/useUserRole';
 import { useProducts } from '../hooks/useProducts';
+import { useStorefrontConfig } from '../hooks/useHomepage';
+import { useNavigationConfig, DEFAULT_NAVIGATION_CONFIG } from '../hooks/useNavigation';
 import { BrandLogo } from './ui';
 import { CartDrawer } from './CartDrawer';
 
@@ -94,11 +96,16 @@ export function StorefrontLayout() {
      ---------------------------------------------------------- */
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      const top = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+      setIsScrolled(top > 15);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
+    document.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   /* ----------------------------------------------------------
@@ -126,10 +133,17 @@ export function StorefrontLayout() {
   const { isAdmin, loading: roleLoading } = useUserRole();
 
   /* ----------------------------------------------------------
-     Business settings
+     Business settings & Storefront CMS
      ---------------------------------------------------------- */
 
   const { data: settings } = useSettings();
+  const { data: storefrontConfig } = useStorefrontConfig();
+  const { data: navigationConfig } = useNavigationConfig();
+
+  // Announcement bar dismissible state in session/local storage
+  const bannerConfig = storefrontConfig?.announcement;
+  const isBannerActive = bannerConfig?.active && (storefrontConfig?.sectionVisibility?.announcement !== false);
+  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
 
   /* ----------------------------------------------------------
      Close mobile menu on route change
@@ -200,6 +214,14 @@ export function StorefrontLayout() {
     ? `https://wa.me/${whatsappNumber.replace(/\D/g, '')}`
     : '#';
 
+  // Dynamic navigation — fallback to hardcoded defaults when Firestore doc is absent
+  const nav = navigationConfig ?? DEFAULT_NAVIGATION_CONFIG;
+  const headerNavItems = nav.headerNav?.length ? nav.headerNav : DEFAULT_NAVIGATION_CONFIG.headerNav;
+  const footerQuickLinks = nav.footerQuickLinks?.length ? nav.footerQuickLinks : DEFAULT_NAVIGATION_CONFIG.footerQuickLinks;
+  const footerStudioLinks = nav.footerStudioLinks?.length ? nav.footerStudioLinks : DEFAULT_NAVIGATION_CONFIG.footerStudioLinks ?? [];
+  const footerSupportLinks = nav.footerSupportLinks?.length ? nav.footerSupportLinks : DEFAULT_NAVIGATION_CONFIG.footerSupportLinks;
+  const footerLegalLinks = nav.footerLegalLinks?.length ? nav.footerLegalLinks : DEFAULT_NAVIGATION_CONFIG.footerLegalLinks;
+
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { data: allProducts = [] } = useProducts();
@@ -261,52 +283,42 @@ export function StorefrontLayout() {
   const isAuthenticated = !authLoading && !!user;
   const showAdmin = !authLoading && !roleLoading && isAuthenticated && isAdmin;
 
-  // Transparent overlay only on the home page; all other pages always use solid navbar
+  // Transparent overlay only on the home page when at top and mobile menu is closed; all other pages always use solid navbar
   const isHomePage = location.pathname === '/';
-  const isTransparent = isHomePage && !isScrolled;
+  const isTransparent = isHomePage && !isScrolled && !isMobileMenuOpen;
 
   return (
     <div className="min-h-screen flex flex-col bg-paper text-ink">
       {/* ── Cookie Notice Banner ─────────────────────────────── */}
       {showCookieBanner && (
-        <div
-          role="region"
-          aria-label="Cookie notice"
-          aria-live="polite"
-          className="fixed bottom-0 left-0 right-0 z-[60] bg-dark border-t border-zinc-700 px-5 py-3 sm:px-8 lg:px-10"
-        >
-          <div className="mx-auto max-w-[1440px] flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
-            <p className="font-sans text-xs text-zinc-300 leading-relaxed">
-              🍪 We use only{' '}
-              <strong className="text-white">strictly necessary</strong> browser storage (Firebase
-              auth session &amp; cart) — no advertising or analytics cookies.{' '}
-              <Link
-                to="/cookie-policy"
-                className="text-accent hover:underline font-medium"
+          <div
+            role="region"
+            aria-label="Cookie notice"
+            aria-live="polite"
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-dark/95 backdrop-blur-md border-t border-zinc-700 px-3.5 py-2 sm:px-8 sm:py-2.5"
+          >
+            <div className="mx-auto max-w-[1440px] flex items-center justify-between gap-3">
+              <p className="font-sans text-[11px] sm:text-xs text-zinc-300 leading-snug">
+                Strictly necessary storage only (auth &amp; cart) — no advertising cookies.{' '}
+                <Link
+                  to="/privacy-policy"
+                  className="text-accent hover:underline font-medium ml-1"
+                  onClick={dismissCookieBanner}
+                >
+                  Privacy Policy
+                </Link>
+              </p>
+              <button
+                type="button"
                 onClick={dismissCookieBanner}
+                className="shrink-0 rounded-lg bg-zinc-700 hover:bg-zinc-600 px-3 py-1 font-mono text-[10px] sm:text-xs font-bold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
+                aria-label="Dismiss cookie notice"
               >
-                Learn more
-              </Link>
-              {' '}·{' '}
-              <Link
-                to="/privacy-policy"
-                className="text-accent hover:underline font-medium"
-                onClick={dismissCookieBanner}
-              >
-                Privacy Policy
-              </Link>
-            </p>
-            <button
-              type="button"
-              onClick={dismissCookieBanner}
-              className="shrink-0 self-start sm:self-auto rounded-xl bg-zinc-700 hover:bg-zinc-600 px-4 py-2 font-mono text-xs font-bold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
-              aria-label="Dismiss cookie notice"
-            >
-              Got it
-            </button>
+                Got it
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Accessibility Skip Link */}
       <a
@@ -316,50 +328,89 @@ export function StorefrontLayout() {
         Skip to content
       </a>
 
-      {/* Persistent Single Stacked Header: Navbar on Top */}
+      {/* Persistent Single Stacked Header: Announcement Bar + Navbar */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-50 w-full max-w-full transition-[background-color,border-color,box-shadow] duration-200 ease-out ${
           isTransparent
-            ? 'bg-transparent'
-            : 'bg-white/90 backdrop-blur-md shadow-sm border-b border-black/5'
+            ? 'bg-transparent border-transparent'
+            : 'bg-white/95 backdrop-blur-md shadow-sm border-b border-black/10'
         }`}
       >
-        <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-4 sm:px-6 lg:h-20 lg:px-10">
+        {/* Dynamic CMS Announcement Banner */}
+        {isBannerActive && !isBannerDismissed && bannerConfig?.text && (
+          <div
+            role="region"
+            aria-label="Announcement"
+            style={{
+              backgroundColor: bannerConfig.backgroundColorHex || '#111111',
+              color: bannerConfig.textColorHex || '#FFFFFF',
+            }}
+            className="w-full py-1.5 px-3 sm:px-6 text-center text-[11px] sm:text-xs font-mono font-medium flex items-center justify-between border-b border-white/10 shrink-0"
+          >
+            <div className="mx-auto flex items-center justify-center gap-2 flex-wrap">
+              <span>{bannerConfig.text}</span>
+              {bannerConfig.link && (
+                <Link
+                  to={bannerConfig.link}
+                  className="font-bold underline text-accent hover:opacity-90 transition-opacity ml-1"
+                >
+                  {bannerConfig.linkLabel || 'Learn More ➔'}
+                </Link>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsBannerDismissed(true)}
+              aria-label="Dismiss announcement"
+              className="p-1 hover:opacity-75 transition-opacity rounded-sm focus:outline-none focus:ring-1 focus:ring-accent ml-2 shrink-0 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        <div className="mx-auto flex h-16 max-w-[1440px] w-full items-center justify-between px-3 sm:px-6 lg:h-20 lg:px-10">
           {/* Logo */}
           <Link
             to="/"
             onClick={handleNavClick}
-            className="group flex items-center"
+            className="group flex items-center min-w-0 shrink mr-2"
             aria-label={`${businessName} home`}
           >
-            <BrandLogo size="md" />
+            <BrandLogo size="md" isDarkTheme={isTransparent} />
           </Link>
 
           {/* Desktop Navigation Links with Generous Spacing */}
           <nav
             aria-label="Primary navigation"
-            className="hidden items-center gap-6 lg:gap-8 xl:gap-10 lg:flex mx-8"
+            className="hidden items-center gap-4 lg:gap-6 xl:gap-8 lg:flex mx-4 xl:mx-8 min-w-0"
           >
-            {NAV_ITEMS.map((item) => (
+            {headerNavItems.map((item) => (
               <NavLink
-                key={item.path}
-                to={item.path}
-                end={item.end}
+                key={item.id}
+                to={item.href}
+                end={item.href === '/'}
                 onClick={handleNavClick}
+                {...(item.isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                 className={({ isActive }) =>
                   [
                     'relative py-2 text-sm font-display font-medium transition-colors group whitespace-nowrap',
                     isActive
                       ? 'text-accent font-semibold'
                       : isTransparent
-                      ? 'text-white/90 hover:text-white drop-shadow'
+                      ? 'text-white/90 hover:text-white drop-shadow-none shadow-solid-sm'
                       : 'text-ink/80 hover:text-accent',
                   ].join(' ')
                 }
               >
                 {({ isActive }) => (
                   <span className="relative flex items-center gap-1.5 py-1">
-                    {item.name}
+                    {item.label}
+                    {item.badge && (
+                      <span className="inline-flex items-center rounded-full bg-accent/10 px-1.5 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider text-accent">
+                        {item.badge}
+                      </span>
+                    )}
                     {/* Slide Underline Hover Effect */}
                     <span
                       className={`absolute bottom-0 left-0 h-[2px] w-full bg-accent transition-transform duration-300 origin-left ${
@@ -378,7 +429,7 @@ export function StorefrontLayout() {
                 className={({ isActive }) =>
                   [
                     'ml-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1',
-                    'font-mono text-[10px] font-bold uppercase tracking-wider',
+                    'font-mono text-[10px] font-bold uppercase tracking-wider shrink-0',
                     'transition-all duration-150',
                     isActive
                       ? 'border-accent bg-accent text-white shadow-sm'
@@ -393,38 +444,38 @@ export function StorefrontLayout() {
           </nav>
 
           {/* Header Action Buttons (Spacious Icon-only group) */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Search Icon Button */}
             <button
               type="button"
               onClick={() => setIsSearchOpen(true)}
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow' : 'text-ink hover:bg-shell'}`}
+              className={`inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl transition-colors shadow-solid-sm ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow-none shadow-solid-sm' : 'text-ink hover:bg-shell'}`}
               aria-label="Search products"
               title="Search products (Ctrl+K or ⌘K)"
             >
-              <Search className="h-5 w-5" />
+              <Search className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
 
             {/* User Auth / Account */}
             {authLoading ? (
-              <div className="h-10 w-10 animate-pulse rounded-full bg-shell" />
+              <div className="h-9 w-9 sm:h-10 sm:w-10 animate-pulse rounded-lg sm:rounded-xl bg-shell" />
             ) : isAuthenticated ? (
               <Link
                 to="/account"
-                className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow' : 'text-ink hover:bg-shell'}`}
+                className={`inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl transition-colors shadow-solid-sm ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow-none shadow-solid-sm' : 'text-ink hover:bg-shell'}`}
                 aria-label="My account"
                 title="My Account"
               >
-                <User className="h-5 w-5" />
+                <User className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
               </Link>
             ) : (
               <Link
                 to="/login"
-                className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow' : 'text-ink hover:bg-shell'}`}
+                className={`inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl transition-colors shadow-solid-sm ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow-none shadow-solid-sm' : 'text-ink hover:bg-shell'}`}
                 aria-label="Sign in"
                 title="Sign In"
               >
-                <User className="h-5 w-5" />
+                <User className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
               </Link>
             )}
 
@@ -432,13 +483,13 @@ export function StorefrontLayout() {
             <button
               type="button"
               onClick={openCart}
-              className={`relative inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow' : 'text-ink hover:bg-shell'}`}
+              className={`relative inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl transition-colors shadow-solid-sm ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow-none shadow-solid-sm' : 'text-ink hover:bg-shell'}`}
               aria-label={`Shopping cart with ${cartItemCount} items`}
               title="View Cart"
             >
-              <ShoppingBag className="h-5 w-5" aria-hidden="true" />
+              <ShoppingBag className="h-4.5 w-4.5 sm:h-5 sm:w-5" aria-hidden="true" />
               {cartItemCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-accent px-1 font-mono text-[10px] font-bold leading-none text-white shadow-sm animate-in zoom-in">
+                <span className="absolute -top-1 -right-1 flex h-4.5 min-w-[18px] sm:h-5 sm:min-w-[20px] items-center justify-center rounded-full bg-accent px-1 font-mono text-[9px] sm:text-[10px] font-bold leading-none text-white shadow-sm animate-in zoom-in">
                   {cartItemCount > 99 ? '99+' : cartItemCount}
                 </span>
               )}
@@ -448,15 +499,15 @@ export function StorefrontLayout() {
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors lg:hidden ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow' : 'text-ink hover:bg-shell'}`}
+              className={`inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl transition-colors shadow-solid-sm lg:hidden ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow-none shadow-solid-sm' : 'text-ink hover:bg-shell'}`}
               aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={isMobileMenuOpen}
               aria-controls="mobile-navigation"
             >
               {isMobileMenuOpen ? (
-                <X className="h-5 w-5" aria-hidden="true" />
+                <X className="h-4.5 w-4.5 sm:h-5 sm:w-5" aria-hidden="true" />
               ) : (
-                <Menu className="h-5 w-5" aria-hidden="true" />
+                <Menu className="h-4.5 w-4.5 sm:h-5 sm:w-5" aria-hidden="true" />
               )}
             </button>
           </div>
@@ -471,18 +522,19 @@ export function StorefrontLayout() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="overflow-hidden border-t border-line bg-paper lg:hidden"
+              className="overflow-hidden border-t border-line bg-paper lg:hidden max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain"
             >
               <nav
                 aria-label="Mobile navigation"
-                className="mx-auto max-w-[1440px] px-5 py-5 sm:px-8 space-y-2"
+                className="mx-auto max-w-[1440px] px-4 py-4 sm:px-8 sm:py-5 space-y-2"
               >
-                {NAV_ITEMS.map((item) => (
+                {headerNavItems.map((item) => (
                   <NavLink
-                    key={item.path}
-                    to={item.path}
-                    end={item.end}
+                    key={item.id}
+                    to={item.href}
+                    end={item.href === '/'}
                     onClick={handleNavClick}
+                    {...(item.isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                     className={({ isActive }) =>
                       [
                         'flex items-center justify-between rounded-xl px-4 py-3 text-sm font-display font-semibold transition-colors',
@@ -494,7 +546,14 @@ export function StorefrontLayout() {
                   >
                     {({ isActive }) => (
                       <>
-                        <span>{item.name}</span>
+                        <span className="flex items-center gap-2">
+                          {item.label}
+                          {item.badge && (
+                            <span className="inline-flex items-center rounded-full bg-accent/10 px-1.5 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider text-accent">
+                              {item.badge}
+                            </span>
+                          )}
+                        </span>
                         {isActive ? (
                           <span className="h-2 w-2 rounded-full bg-accent" />
                         ) : (
@@ -612,84 +671,63 @@ export function StorefrontLayout() {
                 Collections
               </h3>
               <ul className="space-y-2 text-xs sm:text-sm font-sans text-zinc-400">
-                <li>
-                  <Link to="/shop" className="hover:text-white transition-colors">
-                    All 3D Pieces
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/shop?category=Lamps%20%26%20Lighting" className="hover:text-white transition-colors">
-                    Lamps & Lithophanes
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/shop?category=Desk%20Decor" className="hover:text-white transition-colors">
-                    Desk & Workspace
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/shop?category=Keychains" className="hover:text-white transition-colors">
-                    Keychains & Gifts
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/reach-us" className="text-accent hover:text-accent-light transition-colors font-medium">
-                    Custom Inquiries
-                  </Link>
-                </li>
+                {footerQuickLinks.map((link) => (
+                  <li key={link.id}>
+                    {link.isExternal ? (
+                      <a href={link.href} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link to={link.href} className="hover:text-white transition-colors">
+                        {link.label}
+                      </Link>
+                    )}
+                  </li>
+                ))}
               </ul>
             </div>
 
-            {/* Column 3: Studio & Services */}
+            {/* Column 3: Studio */}
             <div className="space-y-3">
               <h3 className="font-mono text-xs font-bold uppercase tracking-[0.14em] text-zinc-300">
                 Studio
               </h3>
               <ul className="space-y-2 text-xs sm:text-sm font-sans text-zinc-400">
-                <li>
-                  <Link to="/our-story" className="hover:text-white transition-colors">
-                    Studio Philosophy
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/reach-us?type=corporate" className="hover:text-white transition-colors">
-                    Corporate & Bulk
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/our-story" className="hover:text-white transition-colors">
-                    About Workshop
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/reach-us" className="hover:text-white transition-colors">
-                    Contact & Inquiries
-                  </Link>
-                </li>
+                {footerStudioLinks.map((link) => (
+                  <li key={link.id}>
+                    {link.isExternal ? (
+                      <a href={link.href} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link to={link.href} className="hover:text-white transition-colors">
+                        {link.label}
+                      </Link>
+                    )}
+                  </li>
+                ))}
               </ul>
             </div>
 
-            {/* Column 4: Account & Support */}
+            {/* Column 4: Support */}
             <div className="space-y-3">
               <h3 className="font-mono text-xs font-bold uppercase tracking-[0.14em] text-zinc-300">
                 Support
               </h3>
               <ul className="space-y-2 text-xs sm:text-sm font-sans text-zinc-400">
-                <li>
-                  <Link to="/account" className="hover:text-white transition-colors">
-                    Track Orders
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/account" className="hover:text-white transition-colors">
-                    CAD Quotes
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/reach-us" className="hover:text-white transition-colors">
-                    Shipping & Delivery
-                  </Link>
-                </li>
+                {footerSupportLinks.map((link) => (
+                  <li key={link.id}>
+                    {link.isExternal ? (
+                      <a href={link.href} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link to={link.href} className="hover:text-white transition-colors">
+                        {link.label}
+                      </Link>
+                    )}
+                  </li>
+                ))}
                 {businessEmail && (
                   <li>
                     <a href={`mailto:${businessEmail}`} className="hover:text-white transition-colors font-mono text-xs">
@@ -701,19 +739,28 @@ export function StorefrontLayout() {
             </div>
           </div>
 
-          {/* Minimal Copyright Strip with Legal Links */}
+          {/* Minimal Copyright Strip with Dynamic Legal Links */}
           <div className="mt-12 sm:mt-16 flex flex-col gap-3 border-t border-zinc-800/80 pt-6 sm:flex-row sm:items-center sm:justify-between text-xs text-zinc-500 font-mono">
             <p>
               © {currentYear} {businessName}. All rights reserved.
             </p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px]">
-              <Link to="/privacy-policy" className="hover:text-zinc-300 transition-colors">Privacy Policy</Link>
-              <span className="text-zinc-700 hidden sm:inline">·</span>
-              <Link to="/terms-and-conditions" className="hover:text-zinc-300 transition-colors">Terms &amp; Conditions</Link>
-              <span className="text-zinc-700 hidden sm:inline">·</span>
-              <Link to="/refund-policy" className="hover:text-zinc-300 transition-colors">Refund Policy</Link>
-              <span className="text-zinc-700 hidden sm:inline">·</span>
-              <Link to="/cookie-policy" className="hover:text-zinc-300 transition-colors">Cookie Policy</Link>
+              {footerLegalLinks.map((link, idx) => (
+                <>
+                  {link.isExternal ? (
+                    <a key={link.id} href={link.href} target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors">
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link key={link.id} to={link.href} className="hover:text-zinc-300 transition-colors">
+                      {link.label}
+                    </Link>
+                  )}
+                  {idx < footerLegalLinks.length - 1 && (
+                    <span className="text-zinc-700 hidden sm:inline">·</span>
+                  )}
+                </>
+              ))}
             </div>
           </div>
         </div>

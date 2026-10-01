@@ -148,10 +148,8 @@ export function AdminLayout() {
         },
         {
           name: 'Navigation & Menus',
-          path: '#',
-          icon: Compass,
-          isComingSoon: true,
-          badge: 'Phase 4',
+            path: '/admin/navigation',
+            icon: Compass,
         },
         {
           name: 'Media Library',
@@ -487,6 +485,8 @@ export function AdminLayout() {
     </div>
   );
 }
+
+
 
 
 

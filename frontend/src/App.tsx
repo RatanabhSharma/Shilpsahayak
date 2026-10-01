@@ -43,6 +43,7 @@ import { AdminHome } from './pages/admin/AdminHome';
 import { Reviews } from './pages/admin/Reviews';
 import { Branding } from './pages/admin/Branding';
 import { MediaLibrary } from './pages/admin/MediaLibrary';
+import { Navigation } from './pages/admin/Navigation';
 
 export function App() {
   return (
@@ -111,7 +112,7 @@ export function App() {
           <Route path="inventory" element={<Inventory />} />
           <Route path="customers" element={<Customers />} />
           <Route path="inquiries" element={<Inquiries />} />
-          <Route path="settings" element={<Settings />} />`n          <Route path="branding" element={<Branding />} />`n          <Route path="media" element={<MediaLibrary />} />
+          <Route path="settings" element={<Settings />} />`n          <Route path="branding" element={<Branding />} />`n          <Route path="media" element={<MediaLibrary />} />`n          <Route path="navigation" element={<Navigation />} />
         </Route>
 
         {/* Internal fallback. Vercel rewrite sends the request to the SPA. */}
@@ -144,6 +145,8 @@ export function App() {
     </NotificationProvider>
   );
 }
+
+
 
 
 
