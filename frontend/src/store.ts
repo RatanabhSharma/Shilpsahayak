@@ -185,17 +185,12 @@ notifications?: {
     lowStockAlerts: boolean;
     alertEmailRecipient: string;
   };
-  adminUsers?: {
-    email: string;
-    role: string;
-    addedAt: string;
-  }[];
+
 };
 
 export type Settings = {
   // Business Information
   businessName: string;
-  logoUrl?: string;
   email: string;
   phone: string;
   whatsappNumber: string;
@@ -222,11 +217,7 @@ export type Settings = {
   maxCodOrderValue?: number;
 
 // Admin Access
-  adminUsers?: {
-    email: string;
-    role: string;
-    addedAt: string;
-  }[];
+
 };
 
 const INITIAL_SETTINGS: Settings = {

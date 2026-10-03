@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useSettings } from '../../hooks/useSettings';
 import { Cookie } from 'lucide-react';
 
 /* ============================================================
@@ -7,6 +8,10 @@ import { Cookie } from 'lucide-react';
    ============================================================ */
 
 export function CookiePolicy() {
+  const { data: settings } = useSettings();
+  const email = settings?.email || 'info.shilpsahayak@gmail.com';
+  const businessAddress = settings?.address || 'Patiala, Punjab - 147001, India';
+  const businessName = settings?.businessName || 'Shilp Sahayak';
   return (
     <div className="min-h-screen bg-paper text-ink pt-16 lg:pt-20">
       {/* Page Header */}
@@ -69,8 +74,8 @@ export function CookiePolicy() {
 
               <p>The only browser storage we use is:</p>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs border-collapse">
+              <div className="overflow-x-auto w-full max-w-full border border-line rounded-xl">
+                <table className="w-full text-xs border-collapse min-w-[500px]">
                   <thead>
                     <tr className="bg-shell text-left">
                       <th className="border border-line px-3 py-2 font-bold text-ink">Storage</th>
@@ -155,14 +160,16 @@ export function CookiePolicy() {
                     link: 'https://www.cloudflare.com/privacypolicy/',
                   },
                 ].map((item) => (
-                  <li key={item.name} className="flex items-start gap-3 rounded-xl border border-line bg-white p-3">
-                    <span className="font-bold text-ink w-40 shrink-0">{item.name}</span>
-                    <span className="text-muted flex-1">{item.type}</span>
+                  <li key={item.name} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-3 rounded-xl border border-line bg-white p-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0">
+                      <span className="font-bold text-ink sm:w-36 shrink-0">{item.name}</span>
+                      <span className="text-muted">{item.type}</span>
+                    </div>
                     <a
                       href={item.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-accent hover:underline font-mono text-[10px] shrink-0"
+                      className="text-accent hover:underline font-mono text-[10px] shrink-0 self-start sm:self-auto"
                     >
                       Privacy Policy ↗
                     </a>
@@ -215,9 +222,7 @@ export function CookiePolicy() {
             <div className="rounded-2xl border border-accent/30 bg-accent-soft p-5 text-xs space-y-2">
               <p className="font-bold text-ink text-sm">Questions about cookies?</p>
               <p>
-                <a href="mailto:info.shilpsahayak@gmail.com" className="text-accent font-mono hover:underline">
-                  info.shilpsahayak@gmail.com
-                </a>
+                <a href="mailto:" className="text-accent font-mono hover:underline">{email}</a>
               </p>
               <p className="text-muted">
                 Shilp Sahayak · Patiala, Punjab — 147001, India

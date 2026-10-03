@@ -165,8 +165,7 @@ function ToastContainer({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss:
   return createPortal(
     <div
       aria-label="Notifications"
-      className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"
-      style={{ maxWidth: 'min(calc(100vw - 2rem), 380px)' }}
+      className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none max-w-[calc(100%-2rem)] sm:max-w-[380px]"
     >
       {toasts.map((item) => (
         <div key={item.id} className="pointer-events-auto">

@@ -102,7 +102,7 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Card className="flex h-full flex-col justify-between overflow-hidden transition-transform transition-shadow duration-300 group-hover/card:-translate-y-2 group-hover/card:shadow-xl group-hover/card:border-accent/40 border-line bg-white rounded-2xl hover:will-change-transform">
+      <Card className="flex h-full flex-col justify-between overflow-hidden transition-transform transition-shadow duration-300 group-hover/card:-translate-y-1.5 group-hover/card:shadow-solid-lg group-hover/card:border-accent/40 border border-ink/80 sm:border-2 sm:border-ink bg-white rounded-xl sm:rounded-2xl shadow-solid-sm hover:will-change-transform">
           {/* Image Container with Shimmer Sweep */}
           <div className="relative aspect-square w-full overflow-hidden bg-shell shine-sweep-container">
             <img
@@ -119,15 +119,15 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
             />
 
             {/* Badges Overlay */}
-            <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start z-10">
+            <div className="absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 flex flex-wrap gap-1 items-start z-10 max-w-[calc(100%-48px)]">
               {product.isCustomizable && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-black/80 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-sm shadow-xs border border-white/10">
-                  <Sparkles className="w-2.5 h-2.5 text-accent" />
+                <span className="inline-flex items-center gap-0.5 rounded bg-black/80 px-1.5 py-0.5 font-mono text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur-sm shadow-xs border border-white/10">
+                  <Sparkles className="w-2 h-2 text-accent" />
                   Custom
                 </span>
               )}
               {product.featured && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-white shadow-xs">
+                <span className="inline-flex items-center rounded bg-accent px-1.5 py-0.5 font-mono text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-white shadow-xs">
                   Featured
                 </span>
               )}
@@ -135,67 +135,68 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
 
             {/* Discount Badge */}
             {discountPercent > 0 && (
-              <span className="absolute top-2.5 right-2.5 rounded-full bg-emerald-600 px-2 py-0.5 font-mono text-[9px] font-bold text-white shadow-xs">
+              <span className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 rounded bg-emerald-600 px-1.5 py-0.5 font-mono text-[8px] sm:text-[9px] font-bold text-white shadow-xs">
                 {discountPercent}% OFF
               </span>
             )}
           </div>
 
           {/* Product Details Content */}
-          <div className="flex flex-1 flex-col justify-between p-3.5 sm:p-4 space-y-3">
-            <div className="space-y-1">
+          <div className="flex flex-1 flex-col justify-between p-2.5 sm:p-4 space-y-2 sm:space-y-3">
+            <div className="space-y-0.5 sm:space-y-1">
               <div className="flex items-center justify-between gap-1">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-muted truncate">
+                <span className="font-mono text-[9px] sm:text-[10px] uppercase tracking-wider text-muted truncate">
                   {product.category || 'Precision 3D'}
                 </span>
                 <div className="flex items-center gap-0.5 text-amber-500 shrink-0">
                   {product.reviewCount ? (
                     <>
-                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                      <span className="font-mono text-[10px] font-bold">{product.averageRating?.toFixed(1) || '0.0'} ({product.reviewCount})</span>
+                      <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-amber-400 text-amber-400" />
+                      <span className="font-mono text-[9px] sm:text-[10px] font-bold">{product.averageRating?.toFixed(1) || '0.0'} ({product.reviewCount})</span>
                     </>
                   ) : (
-                    <span className="font-mono text-[10px] font-bold text-muted">No reviews</span>
+                    <span className="font-mono text-[9px] sm:text-[10px] font-bold text-muted">No reviews</span>
                   )}
                 </div>
               </div>
-              <h3 className="font-display text-sm font-bold text-ink line-clamp-1 group-hover/card:text-accent transition-colors">
+              <h3 className="font-display text-xs sm:text-sm font-bold text-ink line-clamp-2 min-h-[2rem] sm:min-h-[2.5rem] group-hover/card:text-accent transition-colors leading-snug">
                 {product.name}
               </h3>
             </div>
 
             {/* Price & Action Row */}
-            <div className="mt-auto space-y-3 pt-3 border-t border-line/60">
-              <div className="flex items-baseline gap-2 font-mono">
-                <span className="text-sm sm:text-base font-bold text-ink">
-                  {hasVariantPrices ? 'From ' : ''}₹{regularPrice.toLocaleString('en-IN')}
+            <div className="mt-auto space-y-2 sm:space-y-3 pt-2 sm:pt-3 border-t border-line/60">
+              <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 font-mono">
+                <span className="text-xs sm:text-base font-bold text-ink whitespace-nowrap">
+                  {hasVariantPrices && <span className="text-[10px] text-muted font-normal mr-0.5">From</span>}
+                  ₹{regularPrice.toLocaleString('en-IN')}
                 </span>
                 {compareAtPrice > regularPrice && (
-                  <span className="text-[11px] text-muted line-through">
+                  <span className="text-[10px] sm:text-[11px] text-muted line-through whitespace-nowrap">
                     ₹{compareAtPrice.toLocaleString('en-IN')}
                   </span>
                 )}
               </div>
 
-              {/* Action Buttons: Add & Buy (Stacked mobile, side-by-side desktop) */}
-              <div className="flex flex-col sm:grid sm:grid-cols-2 gap-2 mt-3">
+              {/* Action Buttons: Responsive Side-by-Side row */}
+              <div className="grid grid-cols-2 gap-1.5 sm:gap-2 mt-2 sm:mt-3">
                 <button
                   type="button"
                   onClick={handleQuickAdd}
-                  className="flex items-center justify-center gap-1.5 min-h-[40px] sm:min-h-[36px] w-full rounded-md border border-line bg-white font-sans text-[11px] font-bold text-ink hover:bg-shell active:scale-95 transition-all duration-150 cursor-pointer shadow-xs"
+                  className="flex items-center justify-center gap-1 min-h-[34px] sm:min-h-[36px] w-full rounded-lg border border-line bg-white font-sans text-[10px] sm:text-[11px] font-bold text-ink hover:bg-shell active:scale-95 transition-all duration-150 cursor-pointer shadow-solid-sm px-1"
                   title={cartQuantity > 0 ? 'Increase quantity' : 'Add to cart'}
                 >
-                  <ShoppingBag className="w-4 h-4" />
-                  <span>{cartQuantity > 0 ? `IN CART � ${cartQuantity}` : 'ADD TO CART'}</span>
+                  <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{cartQuantity > 0 ? `IN (${cartQuantity})` : 'ADD'}</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleBuyNow}
-                  className="flex items-center justify-center gap-1.5 min-h-[40px] sm:min-h-[36px] w-full rounded-md bg-accent text-white font-sans text-[11px] font-bold shadow-xs hover:bg-accent-hover active:scale-95 transition-all duration-150 cursor-pointer"
+                  className="flex items-center justify-center gap-1 min-h-[34px] sm:min-h-[36px] w-full rounded-lg bg-accent text-white font-sans text-[10px] sm:text-[11px] font-bold shadow-solid-sm hover:bg-accent-hover active:scale-95 transition-all duration-150 cursor-pointer px-1"
                   title="Buy now"
                 >
-                  <Zap className="w-4 h-4 fill-white" />
-                  <span>BUY NOW</span>
+                  <Zap className="w-3.5 h-3.5 fill-white shrink-0" />
+                  <span>BUY</span>
                 </button>
               </div>
             </div>

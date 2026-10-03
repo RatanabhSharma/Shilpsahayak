@@ -79,6 +79,16 @@ service cloud.firestore {
       }
     }
 
+
+    // =========================================================
+    // INVENTORY LOGS
+    // =========================================================
+    match /inventory_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false; // Logs should be immutable
+    }
+
     // =========================================================
     // CATEGORIES
     // =========================================================
@@ -205,6 +215,13 @@ service cloud.firestore {
     match /inquiries/{inquiryId} {
       allow create: if false; // Worker handles this
       allow read, update, delete: if isAdmin();
+    }
+
+    // =========================================================
+    // COUPONS
+    // =========================================================
+    match /coupons/{couponId} {
+      allow read, write: if isAdmin();
     }
   }
 }

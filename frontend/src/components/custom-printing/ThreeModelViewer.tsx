@@ -243,6 +243,9 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
     }
 
     originalMaterialsMapRef.current.clear();
+    
+    console.log('[ThreeModelViewer] Props:', { modelResult, geometry, object3d });
+
     if (!modelResult && !geometry && !object3d) return;
 
     let displayObj: THREE.Object3D | null = null;
@@ -595,7 +598,7 @@ export const ThreeModelViewer: React.FC<ThreeModelViewerProps> = ({
       : null);
 
   return (
-    <div className="relative w-full h-[320px] sm:h-[400px] md:h-[450px] bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-inner flex items-center justify-center">
+    <div className="relative w-full aspect-[4/3] xs:aspect-[16/10] sm:aspect-auto sm:h-[380px] md:h-[450px] min-h-[220px] max-h-[500px] bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-inner flex items-center justify-center">
       {/* 3D WebGL Canvas Container */}
       <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 

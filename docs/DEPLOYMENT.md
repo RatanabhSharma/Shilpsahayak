@@ -6,10 +6,9 @@
 - **Output Directory**: `dist`
 - **Environment**: Requires all `VITE_` variables to be set in the Vercel project settings.
 
-## Slicer Service
-- **Platform**: Render (or any Docker-compatible host)
-- **Deployment Method**: Dockerfile provided in `slicer-service/`.
-- **Requirements**: The deployment environment *must* have PrusaSlicer and Bambu Studio CLI binaries installed. If deploying via Docker, the `Dockerfile` must install these dependencies alongside Python and FastAPI.
+## Slicer Service [ARCHIVED]
+- **Status**: The slicer service is archived in `future-tasks/slicer/` and is NOT required for the active application.
+- **Historical Requirements**: Requires PrusaSlicer and Bambu Studio CLI binaries if reactivated.
 
 ## R2 Worker
 - **Platform**: Cloudflare Workers

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useSettings } from '../../hooks/useSettings';
 import { FileText, ArrowRight } from 'lucide-react';
 
 /* ============================================================
@@ -44,6 +45,10 @@ const TOC_ITEMS = [
 ];
 
 export function TermsAndConditions() {
+  const { data: settings } = useSettings();
+  const email = settings?.email || 'info.shilpsahayak@gmail.com';
+  const businessAddress = settings?.address || 'Patiala, Punjab - 147001, India';
+  const businessName = settings?.businessName || 'Shilp Sahayak';
   return (
     <div className="min-h-screen bg-paper text-ink pt-16 lg:pt-20">
       {/* Page Header */}
@@ -251,8 +256,8 @@ export function TermsAndConditions() {
                 ['Custom resin / detailed prints', '10–16 business days'],
                 ['Bulk / enterprise orders', 'Timeline communicated on quote confirmation'],
               ].map(([type, timeline]) => (
-                <li key={type} className="flex gap-3 rounded-xl border border-line bg-white p-3">
-                  <span className="font-bold text-ink shrink-0 min-w-[180px]">{type}</span>
+                <li key={type} className="flex flex-col sm:flex-row gap-1 sm:gap-3 rounded-xl border border-line bg-white p-3">
+                  <span className="font-bold text-ink shrink-0 sm:min-w-[180px]">{type}</span>
                   <span className="text-muted">{timeline}</span>
                 </li>
               ))}
@@ -376,12 +381,10 @@ export function TermsAndConditions() {
             <div className="rounded-2xl border border-accent/30 bg-accent-soft p-5 space-y-2 text-xs">
               <p className="font-bold text-ink text-sm">Shilp Sahayak — Legal</p>
               <p>
-                <a href="mailto:info.shilpsahayak@gmail.com" className="text-accent font-mono hover:underline">
-                  info.shilpsahayak@gmail.com
-                </a>
+                <a href="mailto:" className="text-accent font-mono hover:underline">{email}</a>
               </p>
               <p className="text-muted">
-                Workshop: Patiala, Punjab — 147001, India
+                {businessAddress}
                 <br />
                 WhatsApp: available via the chat button on our Platform
               </p>

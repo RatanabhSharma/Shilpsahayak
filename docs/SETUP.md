@@ -6,7 +6,6 @@
 - Docker (optional, for deploying the slicer service)
 - Firebase Account (with Firestore, Auth, Storage configured)
 - Cloudflare Account (for R2 and Workers)
-- PrusaSlicer and Bambu Studio installed (if running the Slicer Service locally)
 
 ## 1. Frontend Setup
 1. Navigate to the `frontend/` directory.

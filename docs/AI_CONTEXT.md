@@ -4,7 +4,7 @@
 
 **Project:** Shilp Sahayak
 **Description:** A precision 3D fabrication and e-commerce platform based in Patiala, Punjab, India.
-**Application Type:** Monorepo containing a Web App (React SPA), API Service (FastAPI), and Edge Worker (Cloudflare).
+**Application Type:** Monorepo containing a Web App (React SPA), Cloudflare Worker (Edge API).
 **Primary Purpose:** Allows customers to browse a 3D printing catalog or upload custom 3D models for instant, authoritative quotes and automated slicing.
 **Current Implementation Status:** Active development. Core frontend, custom printing workflow, and authoritative slicing API are implemented.
 
@@ -14,9 +14,9 @@
 
 | Area | Technology | Version | Notes |
 |---|---|---|---|
-| Language | TypeScript, Python | TS ^5.5.4, Py 3.12 | TS for frontend/worker, Python for slicer backend |
+| Language | TypeScript | TS ^5.5.4 | TS for frontend and Cloudflare worker |
 | Frontend | React + Vite + TailwindCSS | ^18.3.1, ^5.4.21 | Uses Three.js for 3D model rendering |
-| Backend | FastAPI + Uvicorn | 0.115.6 | Interfaces with PrusaSlicer & Bambu Studio CLI |
+| Backend | Cloudflare Worker (TypeScript) | - | Handles Payments, Uploads, Coupons |
 | Database | Firebase Firestore | ^12.16.0 | NoSQL cloud database |
 | Authentication | Firebase Auth | ^12.16.0 | Phone-based authentication primarily |
 | State Management | Zustand | latest | `shilp-sahayak-store` localStorage persistence |
@@ -27,17 +27,16 @@
 
 ## 3. Architecture at a Glance
 
-The project uses a 3-tier architecture. The Frontend communicates directly with Firestore for catalog and order management. For custom 3D printing workflows, the Frontend uploads files to Cloudflare R2 via the R2 Worker, then submits a slicing job to the Python Slicer Service. The Slicer Service performs authoritative slicing, pricing, and generates immutable quotes.
+The project uses a 3-tier architecture. The Frontend communicates directly with Firestore for catalog and order management. For custom 3D printing workflows, the Frontend uploads files to Cloudflare R2 via the R2 Worker, then the quote remains in 'pending' status for manual review. The Admin reviews the uploaded model and assigns a manual price and status via the Admin CMS.
 
 ```mermaid
 flowchart TD
     User -->|Web UI| Frontend
     Frontend <-->|Auth & DB| Firebase[Firebase Auth & Firestore]
     Frontend -->|Upload/Download| R2Worker[Cloudflare R2 Worker]
-    Frontend -->|Slicing & Pricing| SlicerAPI[Slicer Service FastAPI]
     
     R2Worker <-->|Object Storage| R2[Cloudflare R2]
-    SlicerAPI <-->|Local Execution| CLI[PrusaSlicer / Bambu CLI]
+    %% Slicer logic archived to future-tasks/slicer/
     SlicerAPI -->|Authoritative Quote| Frontend
 ```
 
@@ -49,9 +48,7 @@ flowchart TD
 |---|---|---|
 | `frontend/src/App.tsx` | Main frontend entry and routing | Adding new pages, checking route protection |
 | `frontend/src/store.ts` | Zustand state management | Global state, Cart logic, LocalStorage persistence |
-| `slicer-service/app/main.py` | FastAPI entry point & endpoints | API routes, background slicing pipeline |
-| `slicer-service/app/pricing_engine.py`| Authoritative server-side pricing | Changing cost calculations and quote generation |
-| `slicer-service/app/slicer_adapters/` | External slicer integrations | Modifying Bambu/Prusa CLI arguments |
+| `future-tasks/slicer/` | Archived Slicer Service | Automatic pricing (Deferred) |
 | `shilp-sahayak-r2/src/index.ts` | Cloudflare Worker entry point | Modifying file upload limits, CORS, JWT Auth |
 | `firestore.rules` | Database security rules | Changing DB read/write permissions |
 
@@ -60,14 +57,14 @@ flowchart TD
 ## 5. Core Modules
 
 ## Module: Slicing Pipeline (Backend)
-**Location:** `slicer-service/app/`
+**Location:** `future-tasks/slicer/` (Archived)
 **Purpose:** Handles end-to-end processing of 3D models.
 **Responsibilities:**
 - File inspection & mesh validation
 - Routing (Single vs Multicolor vs Manual Review)
-- Slicer execution (PrusaSlicer or Bambu Studio)
+- *Archived* Slicer execution
 - Quote generation
-**Depends on:** PrusaSlicer/Bambu Studio CLI
+**Depends on:** None (Archived)
 **Important files:** `main.py` (orchestrator), `slicer_router.py`, `pricing_engine.py`, `quote_store.py`
 
 ## Module: Custom Printing (Frontend)
@@ -93,7 +90,7 @@ flowchart TD
 
 | Feature | Entry Point | Main Logic | Data/API | Important Files |
 |---|---|---|---|---|
-| Shilp Studio (Custom Prints) | `/shilp-studio` | `slicer-service/app/main.py` | `POST /api/slice/jobs` | `CustomPrinting.tsx`, `slicingClient.ts` |
+| Shilp Studio | `/shilp-studio` | `shilp-sahayak-r2/src/index.ts` | Manual Quoting (Admin UI) | `CustomPrinting.tsx` |
 | E-commerce Catalog | `/shop` | `frontend/src/store.ts` | Firestore `products` | `Catalog.tsx`, `ProductCard.tsx` |
 | Admin Dashboard | `/admin/dashboard` | Protected React Routes | Firestore | `AdminLayout.tsx`, `ProtectedRoute.tsx` |
 | Checkout & Orders | `/checkout` | `frontend/src/store.ts` | Firestore `orders` | `Checkout.tsx` |
@@ -112,7 +109,7 @@ Frontend requests R2 upload via R2 Worker (Firebase JWT Auth)
     ↓
 R2 Worker returns R2 Object Key
     ↓
-Frontend POSTs `/api/slice/jobs` to Slicer Service
+Frontend POSTs `/upload` to Cloudflare Worker
     ↓
 Slicer Service downloads file, inspects, slices (CLI), and prices
     ↓
@@ -143,9 +140,8 @@ The project uses Cloud Firestore (NoSQL).
 
 | Method | Route | Purpose | Auth | Implementation |
 |---|---|---|---|---|
-| POST | `/api/slice/jobs` | Submit 3D model for slicing | None (Internal) | `slicer-service/app/main.py` |
-| GET | `/api/slice/jobs/{id}`| Poll for job completion & quote | None (Internal) | `slicer-service/app/main.py` |
-| POST | `/api/orders/payment` | Create server-side payment order | None | `slicer-service/app/payment_engine.py` |
+| POST | `/upload` | Submit 3D model to R2 | None | `shilp-sahayak-r2/src/index.ts` |
+| POST | `/api/payment/create-order` | Create Razorpay order | None | `shilp-sahayak-r2/src/index.ts` |
 | POST | `/upload` | Secure file upload to R2 | Firebase JWT | `shilp-sahayak-r2/src/index.ts` |
 | GET | `/file?key=` | Download 3D model from R2 | Public | `shilp-sahayak-r2/src/index.ts` |
 
@@ -169,8 +165,8 @@ The project uses Cloud Firestore (NoSQL).
 |---|---|---|---|
 | Firebase | Auth, Firestore database | `frontend/src/lib/firebase.ts` | `VITE_FIREBASE_*` env vars |
 | Cloudflare R2 | 3D Model object storage | `shilp-sahayak-r2/src/index.ts` | `wrangler.jsonc` |
-| Bambu Studio CLI | Multicolor slicing | `slicer-service/app/slicer_adapters/` | Deployed in environment |
-| PrusaSlicer | Single color slicing | `slicer-service/app/slice_core.py` | Deployed in environment |
+| Bambu Studio CLI | (Archived) | `future-tasks/slicer/` | - |
+| PrusaSlicer | (Archived) | `future-tasks/slicer/` | - |
 
 ---
 
@@ -181,7 +177,6 @@ The project uses Cloud Firestore (NoSQL).
 | `VITE_FIREBASE_API_KEY` | Connects frontend to Firebase | Yes | Frontend |
 | `VITE_CLOUDFLARE_WORKER_URL` | Routes frontend & slicer to R2 Worker | Yes | Frontend & Slicer |
 | `ALLOWED_ORIGINS` | CORS configuration for Slicer API | Yes | Slicer Service |
-| `PRUSASLICER_PATH` | Path to PrusaSlicer executable | No (falls back) | Slicer Service |
 
 *See `docs/ENVIRONMENT_VARIABLES.md` for full list.*
 
@@ -194,7 +189,7 @@ The project uses Cloud Firestore (NoSQL).
 npm run dev
 
 # Start Slicer Service API (Port 8000)
-# (Requires: source slicer-service/venv/bin/activate)
+
 npm run slicer:dev
 
 # Start Cloudflare Worker local dev (Port 8787)
@@ -213,14 +208,14 @@ npm run build
 
 *   **Frontend:** React Functional components, strict TypeScript, Tailwind utility classes.
 *   **State:** Zustand for global client state (Cart, Settings). Context/Hooks (`useProducts`) for Firestore synchronization.
-*   **Backend:** Python 3.12 FastAPI, type-hinted, BackgroundTasks for async slicing, Pydantic for validation.
+*   **Backend:** Cloudflare Worker (TypeScript, Hono), type-hinted.
 *   **Monorepo:** Organized as NPM Workspaces in the root `package.json`.
 
 ---
 
 ## 15. Important Invariants
 
-*   **Pricing Authority:** The client NEVER dictates the final price of a custom print. The frontend calculates an "estimate", but the Slicer Service calculates the **authoritative immutable quote**. `POST /api/orders/payment` explicitly ignores `clientPrice`.
+*   **Pricing Authority:** Pricing is manually assigned by an Admin in the Admin CMS (`QuoteReviewDrawer.tsx`).
 *   **Cart Identity:** Custom 3D prints in the cart use a composite key (`productId::variantId::customNotes::fileUrl`) to prevent identical base models with different uploaded files from merging quantities.
 *   **File Isolation:** The R2 Worker enforces that users can only delete files under their specific `quotes/{uid}/` prefix.
 *   **Build Envelope:** Slicer service strictly enforces that a model's dimensions do not exceed the selected printer's build envelope.
@@ -233,8 +228,8 @@ npm run build
 |---|---|---|
 | Add Storefront Page | `frontend/src/pages/storefront/` | `App.tsx`, `StorefrontLayout.tsx` |
 | Add Admin Page | `frontend/src/pages/admin/` | `App.tsx`, `AdminLayout.tsx` |
-| Modify Slicer Routing | `slicer-service/app/slicer_router.py` | `file_inspector.py` |
-| Update Quote Pricing | `slicer-service/app/pricing_engine.py` | Admin Settings panel in UI |
+| Modify Slicer Routing | Archived | `future-tasks/slicer/` |
+| Update Quote Pricing | Admin UI / Firestore | `QuoteReviewDrawer.tsx` |
 | Change Upload Limits | `shilp-sahayak-r2/src/index.ts` | `MAX_FILE_SIZE` constant |
 
 ---
@@ -254,8 +249,6 @@ npm run build
 | Path | Generated By | Should AI Edit? |
 |---|---|---|
 | `frontend/dist/` | Vite build process | No |
-| `slicer-service/venv/` | Python venv | No |
-| `slicer-service/storage/` | Slicer API (uploaded temp files) | No |
 | `scratch/` | Debugging and E2E scripts | Yes, for testing purposes |
 
 ---
@@ -263,7 +256,7 @@ npm run build
 ## 19. Testing Strategy
 
 *   **Frontend:** `vitest` for unit tests (pricing logic, utils). Located alongside files or in `__tests__/` dirs.
-*   **Backend:** `pytest` in `slicer-service/tests/`.
+*   **Backend:** Worker typechecks via `wrangler types`.
 *   **E2E:** Puppeteer scripts in `e2e/` (testing the upload/slicing workflow).
 
 *For full details, see `docs/TESTING.md`.*
@@ -305,9 +298,11 @@ Before modifying code:
 4. Understand dependencies (e.g., changing pricing in the frontend means checking the backend `pricing_engine.py` to ensure parity).
 5. Search for all usages of the code being changed using exact path matches.
 6. Make the smallest change necessary.
-7. Preserve existing architecture and conventions (e.g., Zustand for state, FastAPI BackgroundTasks for async work).
+7. Preserve existing architecture and conventions (e.g., Zustand for state, Cloudflare Workers for edge compute).
 8. Do not invent APIs, services, environment variables, or database structures.
 9. Do not expose secrets or API keys.
 10. Update relevant documentation if the architecture or data flow changes.
 11. Report anything uncertain (`NEEDS VERIFICATION`) rather than guessing.
+
+
 

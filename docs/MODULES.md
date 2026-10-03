@@ -10,7 +10,7 @@ This document outlines the key modules across all three services.
 - `lib/`: Utility functions and Firebase configuration.
 
 ## Slicer Service (`slicer-service/`)
-- `main.py`: Application entry point, FastAPI router, and API definitions.
+- `main.py`: (Archived) Application entry point.
 - `pricing_engine.py`: Core logic for calculating cost based on material, print time, and configuration.
 - `slicer_router.py`: Determines how a job should be sliced (single material, multicolor, manual review).
 - `printer_eligibility.py`: Logic to check if a model fits within a printer's build volume.
@@ -20,3 +20,5 @@ This document outlines the key modules across all three services.
 
 ## R2 Worker (`shilp-sahayak-r2/`)
 - `src/index.ts`: The main Cloudflare Worker logic handling routing, auth validation, and R2 bindings.
+
+

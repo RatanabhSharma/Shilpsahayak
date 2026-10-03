@@ -37,7 +37,7 @@ export function CartDrawer() {
       />
 
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
-        <aside className="w-screen max-w-full sm:max-w-md bg-paper shadow-2xl flex flex-col border-l border-line cart-drawer-enter">
+        <aside className="w-full max-w-full sm:max-w-md bg-paper shadow-2xl flex flex-col border-l border-line cart-drawer-enter">
           {/* Top Bar */}
           <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-line bg-white">
             <div className="flex items-center gap-2.5">
@@ -190,13 +190,13 @@ export function CartDrawer() {
                 <div className="flex justify-between text-muted">
                   <span>Estimated Shipping</span>
                   <span className="font-mono font-semibold text-ink">
-                    {subtotal >= freeThreshold ? 'FREE' : `₹${settings.shippingFlatRate || 150}`}
+                    {subtotal >= freeThreshold ? 'FREE' : `₹${settings.shippingFlatRate ?? 150}`}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm font-bold text-ink pt-2 border-t border-line">
                   <span className="font-display">Total</span>
                   <span className="font-mono text-accent text-base">
-                    ₹{(subtotal + (subtotal >= freeThreshold ? 0 : (settings.shippingFlatRate || 150))).toFixed(2)}
+                    ₹{(subtotal + (subtotal >= freeThreshold ? 0 : (settings.shippingFlatRate ?? 150))).toFixed(2)}
                   </span>
                 </div>
               </div>

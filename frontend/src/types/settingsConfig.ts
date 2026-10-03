@@ -108,6 +108,7 @@ export interface StorefrontHero {
   heroVideoUrl?: string;
   heroPosterUrl?: string;
   enableVideo?: boolean;
+  showVideoTextOverlay?: boolean;
 }
 
 export interface StorefrontSectionVisibility {

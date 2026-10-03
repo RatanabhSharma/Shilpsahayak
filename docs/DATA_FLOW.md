@@ -7,22 +7,14 @@ sequenceDiagram
     participant User
     participant Frontend
     participant R2_Worker
-    participant Slicer_Service
+    %% participant Slicer_Service (Archived)
     participant Firestore
     
     User->>Frontend: Upload Model & Configure Settings
     Frontend->>R2_Worker: Upload file to Cloudflare R2
     R2_Worker-->>Frontend: Return File URL
-    Frontend->>Slicer_Service: Submit Job (File URL + Config)
-    Slicer_Service-->>Frontend: Job ID
-    
-    loop Polling
-        Frontend->>Slicer_Service: Poll Job Status
-        Slicer_Service-->>Frontend: Status Update
-    end
-    
-    Slicer_Service-->>Frontend: Job Complete + Quote
-    Frontend->>Firestore: Save Quote Snapshot
+    Frontend->>Firestore: Save Quote (Pending)
+    Admin->>Firestore: Review Quote & Assign Price (Manual)
     Frontend->>User: Display Price & Add to Cart Option
 ```
 
@@ -33,11 +25,11 @@ sequenceDiagram
     participant User
     participant Frontend
     participant PaymentGateway
-    participant Slicer_Service
+    %% participant Slicer_Service (Archived)
     participant Firestore
     
     User->>Frontend: Click Checkout in Cart
-    Frontend->>Slicer_Service: Request Payment Intent (/api/orders/payment)
+    Frontend->>Cloudflare_Worker: Request Payment Intent (/api/payment/create-order)
     Slicer_Service-->>Frontend: Return Order ID / Gateway Session
     Frontend->>PaymentGateway: Redirect / Open Widget
     User->>PaymentGateway: Enter Payment Details
@@ -47,3 +39,6 @@ sequenceDiagram
     Frontend->>Firestore: Fetch Updated Order Status
     Frontend->>User: Show Order Confirmation
 ```
+
+
+

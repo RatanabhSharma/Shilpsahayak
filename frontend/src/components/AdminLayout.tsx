@@ -35,6 +35,7 @@ import {
 import { BrandLogo } from './ui';
 import { auth } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
+import { useSettings } from '../hooks/useSettings';
 
 interface NavItemConfig {
   name: string;
@@ -43,6 +44,7 @@ interface NavItemConfig {
   isComingSoon?: boolean;
   badge?: string;
   isSettingsTab?: boolean;
+  children?: Omit<NavItemConfig, 'children'>[];
 }
 
 interface NavGroupConfig {
@@ -53,9 +55,13 @@ interface NavGroupConfig {
 export function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({ Settings: true });
   const userMenuRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const { data: settings } = useSettings();
+  const businessName = settings?.businessName || 'Shilp Sahayak';
+  const businessAddress = settings?.address || 'Patiala Studio';
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -70,15 +76,17 @@ export function AdminLayout() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const navGroups: NavGroupConfig[] = [
+    const navItems: NavItemConfig[] = [
     {
-      group: 'OPERATIONS',
-      items: [
-        {
-          name: 'Dashboard',
-          path: '/admin/dashboard',
-          icon: LayoutDashboard,
-        },
+      name: 'Dashboard',
+      path: '/admin/dashboard',
+      icon: LayoutDashboard,
+    },
+    {
+      name: 'Operations',
+      path: '/admin/orders',
+      icon: ShoppingBag,
+      children: [
         {
           name: 'Customer Orders',
           path: '/admin/orders',
@@ -102,8 +110,10 @@ export function AdminLayout() {
       ],
     },
     {
-      group: 'CATALOGUE',
-      items: [
+      name: 'Catalogue',
+      path: '/admin/catalog',
+      icon: Package,
+      children: [
         {
           name: 'Products',
           path: '/admin/catalog',
@@ -114,18 +124,13 @@ export function AdminLayout() {
           path: '/admin/inventory',
           icon: Layers,
         },
-        {
-          name: 'Collections',
-          path: '#',
-          icon: FolderTree,
-          isComingSoon: true,
-          badge: 'Phase 7',
-        },
       ],
     },
     {
-      group: 'CUSTOMERS',
-      items: [
+      name: 'Customers',
+      path: '/admin/customers',
+      icon: Users,
+      children: [
         {
           name: 'Customer Directory',
           path: '/admin/customers',
@@ -134,68 +139,39 @@ export function AdminLayout() {
       ],
     },
     {
-      group: 'STOREFRONT',
-      items: [
+      name: 'Storefront',
+      path: '/admin/home',
+      icon: Home,
+      children: [
         {
           name: 'Homepage CMS',
           path: '/admin/home',
           icon: Home,
         },
         {
-          name: 'Branding & Assets',
+          name: 'Branding',
           path: '/admin/branding',
           icon: Palette,
         },
-        {
-          name: 'Navigation & Menus',
-            path: '/admin/navigation',
-            icon: Compass,
-        },
-        {
-          name: 'Media Library',
-          path: '#',
-          icon: Image,
-          isComingSoon: true,
-          badge: 'Phase 3',
-        },
-        {
-          name: 'SEO & Meta Tags',
-          path: '#',
-          icon: Globe,
-          isComingSoon: true,
-          badge: 'Phase 8',
-        },
-        {
-          name: 'Legal Policies',
-          path: '#',
-          icon: FileCheck,
-          isComingSoon: true,
-          badge: 'Phase 8',
-        },
       ],
     },
     {
-      group: 'MARKETING',
-      items: [
+      name: 'Marketing',
+      path: '/admin/coupons',
+      icon: Tag,
+      children: [
         {
           name: 'Coupons & Discounts',
-          path: '#',
+          path: '/admin/coupons',
           icon: Tag,
-          isComingSoon: true,
-          badge: 'Phase 5',
-        },
-        {
-          name: 'Campaign Banners',
-          path: '#',
-          icon: Megaphone,
-          isComingSoon: true,
-          badge: 'Phase 6',
         },
       ],
     },
     {
-      group: 'SETTINGS',
-      items: [
+      name: 'Settings',
+      path: '/admin/settings',
+      icon: Settings,
+      children: [
         {
           name: 'Business Information',
           path: '/admin/settings?tab=business',
@@ -226,12 +202,6 @@ export function AdminLayout() {
           icon: Bell,
           isSettingsTab: true,
         },
-        {
-          name: 'Admin Security',
-          path: '/admin/settings?tab=admin-access',
-          icon: ShieldCheck,
-          isSettingsTab: true,
-        },
       ],
     },
   ];
@@ -246,8 +216,9 @@ export function AdminLayout() {
   };
 
   // Check active navigation link against current pathname & search query
-  const allNavItems = navGroups.flatMap((g) => g.items);
+    const allNavItems = navItems.flatMap((item) => [item, ...(item.children || [])]);
   const currentNav = allNavItems.find((item) => {
+    if (item.children) return false;
     if (item.isComingSoon) return false;
     if (item.isSettingsTab) {
       return (
@@ -280,7 +251,7 @@ export function AdminLayout() {
             <BrandLogo size="sm" showText={false} />
             <div>
               <span className="font-display text-base font-bold text-ink block leading-tight tracking-tight">
-                Shilp Sahayak
+                {businessName}
               </span>
               <span className="font-mono text-[9px] font-semibold uppercase tracking-wider text-accent">
                 Admin Control
@@ -295,77 +266,150 @@ export function AdminLayout() {
           </button>
         </div>
 
-        {/* Grouped Navigation List */}
-        <div className="flex-1 px-3 py-3 overflow-y-auto space-y-4">
-          {navGroups.map((group) => (
-            <div key={group.group} className="space-y-1">
-              <div className="px-3 pt-1 pb-1">
-                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted/80">
-                  {group.group}
-                </span>
-              </div>
-              <nav className="space-y-0.5">
-                {group.items.map((item) => {
-                  const Icon = item.icon;
+                {/* Hierarchical Navigation List */}
+        <div className="flex-1 px-3 py-3 overflow-y-auto space-y-1">
+          <nav className="space-y-0.5">
+            {navItems.map((item) => {
+              const Icon = item.icon;
 
-                  // Active check:
-                  let isActive = false;
-                  if (!item.isComingSoon) {
-                    if (item.isSettingsTab) {
-                      const currentTab = new URLSearchParams(location.search).get('tab') || 'business';
-                      isActive =
-                        location.pathname === '/admin/settings' &&
-                        item.path.includes(`tab=${currentTab}`);
-                    } else {
-                      isActive = location.pathname.startsWith(item.path);
-                    }
+              if (item.children) {
+                const isAnyChildActive = item.children.some(child => {
+                  if (child.isSettingsTab) {
+                    const currentTab = new URLSearchParams(location.search).get('tab') || 'business';
+                    return location.pathname === '/admin/settings' && child.path.includes(`tab=${currentTab}`);
                   }
-
-                  if (item.isComingSoon) {
-                    return (
-                      <div
-                        key={item.name}
-                        title={`Coming in ${item.badge || 'future phase'}`}
-                        className="flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium text-muted/50 cursor-not-allowed select-none group"
-                      >
-                        <div className="flex items-center min-w-0">
-                          <Icon className="w-4 h-4 mr-2.5 shrink-0 text-muted/40" />
-                          <span className="truncate">{item.name}</span>
-                        </div>
-                        {item.badge && (
-                          <span className="font-mono text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-shell text-muted/70 shrink-0">
-                            {item.badge}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <Link
-                      key={item.name}
-                      to={item.path}
-                      onClick={() => setIsSidebarOpen(false)}
-                      className={`flex items-center justify-between px-3 py-1.5 rounded-lg font-sans text-xs font-medium transition-all ${
-                        isActive
-                          ? 'bg-accent text-white shadow-xs font-semibold'
-                          : 'text-muted hover:text-ink hover:bg-shell'
+                  return location.pathname.startsWith(child.path);
+                });
+                
+                const isOpen = openMenus[item.name] ?? isAnyChildActive;
+                
+                return (
+                  <div key={item.name} className="space-y-0.5">
+                    <button
+                      onClick={() => setOpenMenus(prev => ({ ...prev, [item.name]: !isOpen }))}
+                      className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg font-sans text-xs font-medium transition-all ${
+                        isAnyChildActive ? 'text-accent font-semibold' : 'text-muted hover:text-ink hover:bg-shell'
                       }`}
                     >
                       <div className="flex items-center min-w-0">
-                        <Icon
-                          className={`w-4 h-4 mr-2.5 shrink-0 ${
-                            isActive ? 'text-white' : 'text-muted'
-                          }`}
-                        />
+                        <Icon className={`w-4 h-4 mr-2.5 shrink-0 ${isAnyChildActive ? 'text-accent' : 'text-muted'}`} />
                         <span className="truncate">{item.name}</span>
                       </div>
-                    </Link>
-                  );
-                })}
-              </nav>
-            </div>
-          ))}
+                      <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {isOpen && (
+                      <div className="pl-5 pr-1 space-y-0.5 mt-0.5">
+                        {item.children.map(child => {
+                          const ChildIcon = child.icon;
+                          let isChildActive = false;
+                          if (child.isSettingsTab) {
+                            const currentTab = new URLSearchParams(location.search).get('tab') || 'business';
+                            isChildActive = location.pathname === '/admin/settings' && child.path.includes(`tab=${currentTab}`);
+                          } else {
+                            isChildActive = location.pathname.startsWith(child.path);
+                          }
+                          
+                          if (child.isComingSoon) {
+                            return (
+                              <div
+                                key={child.name}
+                                title={`Coming in ${child.badge || 'future phase'}`}
+                                className="flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium text-muted/50 cursor-not-allowed select-none group"
+                              >
+                                <div className="flex items-center min-w-0">
+                                  <ChildIcon className="w-4 h-4 mr-2.5 shrink-0 text-muted/40" />
+                                  <span className="truncate">{child.name}</span>
+                                </div>
+                                {child.badge && (
+                                  <span className="font-mono text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-shell text-muted/70 shrink-0">
+                                    {child.badge}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <Link
+                              key={child.name}
+                              to={child.path}
+                              onClick={() => setIsSidebarOpen(false)}
+                              className={`flex items-center justify-between px-3 py-1.5 rounded-lg font-sans text-xs font-medium transition-all ${
+                                isChildActive
+                                  ? 'bg-accent text-white shadow-xs font-semibold'
+                                  : 'text-muted hover:text-ink hover:bg-shell'
+                              }`}
+                            >
+                              <div className="flex items-center min-w-0">
+                                <ChildIcon className={`w-4 h-4 mr-2.5 shrink-0 ${isChildActive ? 'text-white' : 'text-muted'}`} />
+                                <span className="truncate">{child.name}</span>
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              // Active check for standalone item:
+              let isActive = false;
+              if (!item.isComingSoon) {
+                if (item.isSettingsTab) {
+                  const currentTab = new URLSearchParams(location.search).get('tab') || 'business';
+                  isActive =
+                    location.pathname === '/admin/settings' &&
+                    item.path.includes(`tab=${currentTab}`);
+                } else {
+                  isActive = location.pathname.startsWith(item.path);
+                }
+              }
+
+              if (item.isComingSoon) {
+                return (
+                  <div
+                    key={item.name}
+                    title={`Coming in ${item.badge || 'future phase'}`}
+                    className="flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium text-muted/50 cursor-not-allowed select-none group"
+                  >
+                    <div className="flex items-center min-w-0">
+                      <Icon className="w-4 h-4 mr-2.5 shrink-0 text-muted/40" />
+                      <span className="truncate">{item.name}</span>
+                    </div>
+                    {item.badge && (
+                      <span className="font-mono text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-shell text-muted/70 shrink-0">
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  onClick={() => setIsSidebarOpen(false)}
+                  className={`flex items-center justify-between px-3 py-1.5 rounded-lg font-sans text-xs font-medium transition-all ${
+                    isActive
+                      ? 'bg-accent text-white shadow-xs font-semibold'
+                      : 'text-muted hover:text-ink hover:bg-shell'
+                  }`}
+                >
+                  <div className="flex items-center min-w-0">
+                    <Icon
+                      className={`w-4 h-4 mr-2.5 shrink-0 ${
+                        isActive ? 'text-white' : 'text-muted'
+                      }`}
+                    />
+                    <span className="truncate">{item.name}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </nav>
         </div>
       </aside>
 
@@ -416,7 +460,7 @@ export function AdminLayout() {
                   <p className="text-xs font-semibold text-ink leading-tight group-hover:text-accent transition-colors">
                     Workshop Admin
                   </p>
-                  <p className="font-mono text-[10px] text-muted">Patiala Studio</p>
+                  <p className="font-mono text-[10px] text-muted">{businessName}</p>
                 </div>
 
                 <div className="h-8 w-8 rounded-lg bg-accent text-white font-mono font-bold text-xs flex items-center justify-center shadow-xs shadow-accent/20 shrink-0">
@@ -435,7 +479,7 @@ export function AdminLayout() {
                 <div className="absolute right-0 mt-2 w-56 rounded-xl border border-line bg-white py-1.5 shadow-lg z-50 font-sans text-xs">
                   <div className="px-3.5 py-2.5 border-b border-line">
                     <p className="font-semibold text-ink">Workshop Administrator</p>
-                    <p className="font-mono text-[10px] text-muted mt-0.5">Patiala Studio Console</p>
+                    <p className="font-mono text-[10px] text-muted mt-0.5">{businessName} Console</p>
                   </div>
 
                   <div className="py-1">

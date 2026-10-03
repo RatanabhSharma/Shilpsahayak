@@ -7,12 +7,7 @@
 4. Changes are immediately saved to Firestore and reflected on the `/shop` route.
 
 ## How to modify Custom Slicing Pricing
-Pricing logic is governed by Admin settings and the `pricing_engine.py` backend.
-1. Admin modifies filament costs or markup multipliers in the Admin Dashboard (`/admin/settings` or `/admin/inventory`).
-2. These settings are stored in Firestore.
-3. The Slicer Service validates against the live Admin pricing config (Step E of the pipeline) when processing new jobs.
+Currently, Custom Slicing pricing is applied manually by the Admin via `QuoteReviewDrawer.tsx`.
 
-## How to update Slicer Logic
-1. Modify `slicer-service/slicer_router.py` to change how jobs are routed.
-2. Update `slicer_result_validator.py` if changing expected outputs from PrusaSlicer/Bambu Studio.
-3. Restart the Python service.
+## How to update Slicer Logic [ARCHIVED]
+The automated slicer service is deferred to `future-tasks/slicer/`. Update its routing (`slicer_router.py`) or validators if reactivated in the future.

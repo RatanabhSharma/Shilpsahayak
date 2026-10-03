@@ -12,7 +12,7 @@
 
 ## API Security (Slicer Service)
 - CORS is configured via the `ALLOWED_ORIGINS` environment variable.
-- Important actions (like accepting a quote or creating a payment intent) require validation of the user's intent and authorization, though specific endpoint security depends on the token validation implementation in the FastAPI routes.
+- Important actions (like accepting a quote or creating a payment intent) require validation of the user's intent and authorization in the Cloudflare Worker via Firebase JWTs.
 - The `clientPrice` parameter in the payment endpoint is explicitly ignored by the backend to prevent price tampering; the backend relies on the authoritative quote.
 
 ## Idempotency

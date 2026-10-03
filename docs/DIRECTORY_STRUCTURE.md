@@ -16,8 +16,7 @@
 │   ├── tailwind.config.js     # Tailwind CSS configuration
 │   └── vite.config.ts         # Vite bundler configuration
 │
-├── slicer-service/            # Python FastAPI Slicer Backend
-│   ├── main.py                # FastAPI app and API endpoints
+├── future-tasks/slicer/       # Archived Python FastAPI Slicer Backend
 │   ├── pricing_engine.py      # Calculates authoritative quotes
 │   ├── slicer_router.py       # Routes jobs to specific slicer logic
 │   ├── printer_eligibility.py # Checks if model fits printer dimensions
@@ -38,6 +37,6 @@
 
 ## Detailed Explanations
 - **frontend/**: Contains all code for the React application. Separates components and pages, with routing handled in `App.tsx` and state managed via Zustand.
-- **slicer-service/**: Contains the Python microservice. Key business logic (slicing routing, eligibility, pricing) is isolated in specific modules.
+- **future-tasks/slicer/**: Contains the archived Python microservice. Deferred from active production.
 - **shilp-sahayak-r2/**: Contains the lightweight Cloudflare Worker script that interfaces with R2 storage.
 - **docs/**: Comprehensive documentation for the overall project.

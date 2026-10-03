@@ -15,7 +15,7 @@
 | Lucide React | Icons | 0.522.0 | Frontend |
 | Tanstack React Query | Server State | ^5.101.2 | Frontend |
 | Python | Language | 3.12 | Slicer Service |
-| FastAPI | API Framework | 0.115.6 | Slicer Service |
+| FastAPI | [ARCHIVED] | - | Deferred API Framework |
 | Uvicorn | ASGI Server | 0.32.1 | Slicer Service |
 | Pydantic | Validation | 2.10.3 | Slicer Service |
 | Cloudflare Workers | Edge Runtime | - | R2 Worker |
@@ -23,4 +23,4 @@
 | jose | JWT verification | - | R2 Worker |
 | Vitest | Testing | ^2.1.9 | Frontend |
 | Puppeteer | E2E Testing | ^25.9.0 | Frontend |
-| PrusaSlicer / Bambu Studio | Slicer Binaries | - | Slicer Service (external dependencies) |
+| PrusaSlicer / Bambu Studio | [ARCHIVED] | - | Deferred external dependencies |

@@ -350,9 +350,14 @@ export function Home() {
   // Pure vertical translation for desktop only; no GPU texture rescaling (scale) during scroll
   const heroParallaxY = useTransform(scrollYProgress, [0, 1], ['0%', '18%']);
 
-  /* Hero Media & Content (Video / GIF with Poster fallback) */
+  /* Hero Content & Media Resolution from Storefront CMS */
+  const heroConfig = homepageSettings?.hero;
+  const isVideoEnabled = heroConfig?.enableVideo !== false;
+  const showHeroText = !isVideoEnabled || heroConfig?.showVideoTextOverlay === true;
+
   const heroMediaUrl = useMemo(() => {
-    const custom = homepageSettings?.heroVideoUrl?.trim();
+    if (!isVideoEnabled) return '';
+    const custom = (heroConfig?.heroVideoUrl || homepageSettings?.heroVideoUrl)?.trim();
     if (
       custom &&
       !custom.includes('mixkit.co') &&
@@ -362,9 +367,10 @@ export function Home() {
       return custom;
     }
     return demoVideo;
-  }, [homepageSettings?.heroVideoUrl]);
+  }, [heroConfig?.heroVideoUrl, homepageSettings?.heroVideoUrl, isVideoEnabled]);
 
   const isHeroVideo = useMemo(() => {
+    if (!isVideoEnabled || !heroMediaUrl) return false;
     return (
       heroMediaUrl === demoVideo ||
       /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(heroMediaUrl) ||
@@ -372,7 +378,10 @@ export function Home() {
       heroMediaUrl.endsWith('.webm') ||
       heroMediaUrl.startsWith('data:video')
     );
-  }, [heroMediaUrl]);
+  }, [heroMediaUrl, isVideoEnabled]);
+
+  const heroPosterImage = heroConfig?.heroPosterUrl?.trim() || undefined;
+  const sectionVisibility = homepageSettings?.sectionVisibility;
 
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
@@ -402,8 +411,6 @@ export function Home() {
     return () => observer.disconnect();
   }, []);
 
-  const heroPosterImage =
-    '/images/logo.png';
 
   const featuredProducts = useMemo(() => {
     const configuredIds = homepageSettings?.featuredProductIds ?? [];
@@ -479,9 +486,10 @@ export function Home() {
       {/* =====================================================
           1. CINEMATIC FULL-BLEED VIDEO HERO WITH PARALLAX SCROLL
       ====================================================== */}
+      {sectionVisibility?.hero !== false && (
       <section
         ref={heroRef}
-        className="relative overflow-hidden bg-[#0d0d0f] aspect-video sm:aspect-auto sm:h-[580px] lg:h-[680px] w-full"
+        className="relative overflow-hidden bg-[#0d0d0f] min-h-[580px] sm:h-[580px] lg:h-[680px] w-full flex items-end justify-center pb-16 sm:pb-24 pt-32"
       >
         {/* Parallax Background Stage (Video / GIF / High-Res Poster) */}
         <motion.div
@@ -521,14 +529,77 @@ export function Home() {
 
         {/* Multi-Stop Cinematic Scrim Overlays for Depth Transition */}
         <div
-          className="absolute inset-0 z-[1] bg-gradient-to-t from-[#0d0d0f] via-[#0d0d0f]/50 to-transparent pointer-events-none"
+          className="absolute inset-0 z-[1] bg-gradient-to-t from-[#0d0d0f] via-[#0d0d0f]/80 to-transparent pointer-events-none"
         />
-        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#0d0d0f]/60 to-transparent z-[1] pointer-events-none" />
+        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#0d0d0f]/80 to-transparent z-[1] pointer-events-none" />
+
+        {/* Dynamic CMS Hero Content Overlay */}
+        {(heroConfig?.headline || heroConfig?.badgeText || heroConfig?.primaryCtaText) && (
+          <div className="relative z-10 max-w-[900px] mx-auto px-5 sm:px-8 lg:px-10 text-center flex flex-col items-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="space-y-4 sm:space-y-5"
+            >
+              {showHeroText && (
+                <>
+                  {heroConfig?.badgeText && (
+                    <div className="flex justify-center">
+                      <span className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-3 py-1 sm:px-4 sm:py-1.5 font-mono text-[10px] sm:text-xs font-bold text-white backdrop-blur-md shadow-xs">
+                        <Sparkles className="w-3.5 h-3.5 text-accent" />
+                        <span className="tracking-wide uppercase">
+                          {heroConfig.badgeText}
+                        </span>
+                      </span>
+                    </div>
+                  )}
+
+                  {heroConfig?.headline && (
+                    <h1 className="font-display text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight">
+                      {heroConfig.headline}
+                    </h1>
+                  )}
+
+                  {heroConfig?.subheadline && (
+                    <p className="font-sans text-xs sm:text-base text-zinc-300 max-w-xl mx-auto leading-relaxed">
+                      {heroConfig.subheadline}
+                    </p>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-2">
+                    {heroConfig?.primaryCtaText && (
+                      <Link
+                        to={heroConfig?.primaryCtaLink || '/shilp-studio'}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-accent hover:bg-accent-dark text-white font-mono text-xs sm:text-sm font-bold transition-all shadow-xs active:scale-95"
+                      >
+                        <UploadCloud className="w-4 h-4" />
+                        <span>{heroConfig.primaryCtaText}</span>
+                      </Link>
+                    )}
+
+                    {heroConfig?.secondaryCtaText && (
+                      <Link
+                        to={heroConfig?.secondaryCtaLink || '/shop'}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-white/30 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white font-mono text-xs sm:text-sm font-bold transition-all active:scale-95"
+                      >
+                        <Box className="w-4 h-4" />
+                        <span>{heroConfig.secondaryCtaText}</span>
+                      </Link>
+                    )}
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </div>
+        )}
       </section>
+      )}
 
       {/* =====================================================
           2. INFINITE TICKER TRUST STRIP
       ====================================================== */}
+      {sectionVisibility?.trustMarquee !== false && (
       <div className="relative overflow-hidden bg-dark text-white border-y border-white/10 py-3 select-none">
         <div className="animate-marquee flex items-center gap-8 whitespace-nowrap">
           {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, idx) => {
@@ -543,10 +614,12 @@ export function Home() {
           })}
         </div>
       </div>
+      )}
 
       {/* =====================================================
           3. FEATURED PRODUCTS (FEATURED 3D CREATIONS)
       ====================================================== */}
+      {sectionVisibility?.featuredProducts !== false && (
       <motion.section
         variants={fadeInUp}
         initial="hidden"
@@ -637,7 +710,7 @@ export function Home() {
               {extendedFeaturedProducts.map((product) => (
                 <div
                   key={product._carouselKey}
-                  className="w-[240px] xs:w-[260px] sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)] shrink-0"
+                  className="w-[240px] xs:w-[250px] sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)] shrink-0"
                 >
                   <ProductCard product={product} />
                 </div>
@@ -646,25 +719,27 @@ export function Home() {
           )}
         </div>
       </motion.section>
+      )}
 
       {/* =====================================================
           4. CUSTOM 3D PRINTING + THREE.JS INTERACTIVE 3D CAD ENGINE
       ====================================================== */}
+      {sectionVisibility?.shilpStudioPromo !== false && (
       <motion.section
         variants={fadeInUp}
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-40px' }}
         style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 650px' }}
-        className="bg-[#F0F4F8] py-14 border-t border-line"
+        className="bg-[#F0F4F8] py-8 sm:py-14 border-t border-line"
       >
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-          <div className="relative rounded-3xl overflow-hidden border border-zinc-800 bg-[#0e0e11] grid-plate p-6 sm:p-10 lg:p-14 text-white shadow-2xl">
-            <div className="relative z-10 grid gap-10 lg:grid-cols-2 lg:items-center">
+          <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-ink bg-[#0e0e11] grid-plate p-4 sm:p-8 lg:p-12 text-white shadow-solid-md sm:shadow-solid-xl">
+            <div className="relative z-10 grid gap-6 lg:gap-10 lg:grid-cols-2 lg:items-center">
               {/* Left Column: Interactive Three.js 3D Viewport */}
               <div className="space-y-4">
-                <Hero3DCanvas className="h-[360px] sm:h-[420px] w-full" />
-                <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 px-2">
+                <Hero3DCanvas className="w-full aspect-[4/3] xs:aspect-[16/10] sm:aspect-auto sm:h-[380px] lg:h-[420px]" />
+                <div className="flex items-center justify-between text-[10px] sm:text-[11px] font-mono text-zinc-400 px-1 sm:px-2">
                   <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
                     <CheckCircle2 className="w-3.5 h-3.5" /> WebGL Hardware Accelerated
                   </span>
@@ -695,22 +770,22 @@ export function Home() {
 
                 {/* 3-Step Visual CAD Pipeline */}
                 <div className="grid grid-cols-3 gap-2.5 pt-1 font-mono text-[11px]">
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-3 text-center space-y-1 group/step hover:border-accent/40 transition-colors">
+                  <div className="rounded-xl border-2 border-ink bg-zinc-900/80 p-3 text-center space-y-1 group/step hover:border-accent/40 transition-colors">
                     <span className="text-accent font-bold block text-xs group-hover/step:scale-105 transition-transform">01. Upload</span>
                     <span className="text-zinc-400 text-[10px]">STL / OBJ / 3MF</span>
                   </div>
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-3 text-center space-y-1 group/step hover:border-accent/40 transition-colors">
+                  <div className="rounded-xl border-2 border-ink bg-zinc-900/80 p-3 text-center space-y-1 group/step hover:border-accent/40 transition-colors">
                     <span className="text-accent font-bold block text-xs group-hover/step:scale-105 transition-transform">02. Configure</span>
                     <span className="text-zinc-400 text-[10px]">Material &amp; Infill</span>
                   </div>
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-3 text-center space-y-1 group/step hover:border-accent/40 transition-colors">
+                  <div className="rounded-xl border-2 border-ink bg-zinc-900/80 p-3 text-center space-y-1 group/step hover:border-accent/40 transition-colors">
                     <span className="text-accent font-bold block text-xs group-hover/step:scale-105 transition-transform">03. Fabricate</span>
                     <span className="text-zinc-400 text-[10px]">Fast Dispatch</span>
                   </div>
                 </div>
 
                 {/* Interactive Material Selector Tabs */}
-                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4 space-y-3">
+                <div className="rounded-xl sm:rounded-2xl border border-ink/80 sm:border-2 sm:border-ink bg-zinc-900/80 p-3 sm:p-4 space-y-2 sm:space-y-3">
                   <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
                     <span className="font-mono text-xs font-bold uppercase tracking-wider text-zinc-300">
                       Material Matrix
@@ -726,7 +801,7 @@ export function Home() {
                         onClick={() => setSelectedMaterial(mat.id)}
                         aria-pressed={selectedMaterial === mat.id}
                         aria-label={`Select ${mat.name} material`}
-                        className={`py-1.5 px-1 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer ${
+                        className={`py-1 px-0.5 sm:py-1.5 sm:px-1 rounded-lg sm:rounded-xl font-mono text-[10px] sm:text-xs font-bold transition-all cursor-pointer ${
                           selectedMaterial === mat.id
                             ? 'bg-white text-ink shadow-md scale-105'
                             : 'bg-zinc-800/80 text-zinc-400 hover:text-white'
@@ -747,11 +822,11 @@ export function Home() {
                       transition={{ duration: 0.2 }}
                       className="grid grid-cols-2 gap-2 text-[11px] font-mono"
                     >
-                      <div className="bg-zinc-950/60 p-2.5 rounded-xl border border-zinc-800">
+                      <div className="bg-zinc-950/60 p-2.5 rounded-xl border-2 border-ink">
                         <span className="text-zinc-500 block text-[9px]">DENSITY</span>
                         <span className="text-white font-bold">{activeMaterialData.density}</span>
                       </div>
-                      <div className="bg-zinc-950/60 p-2.5 rounded-xl border border-zinc-800">
+                      <div className="bg-zinc-950/60 p-2.5 rounded-xl border-2 border-ink">
                         <span className="text-zinc-500 block text-[9px]">TEXTURE</span>
                         <span className="text-white font-bold truncate block">{activeMaterialData.finish}</span>
                       </div>
@@ -782,10 +857,12 @@ export function Home() {
           </div>
         </div>
       </motion.section>
+      )}
 
       {/* =====================================================
           5. SHOP BY COLLECTION (CURATED CATEGORIES)
       ====================================================== */}
+      {sectionVisibility?.categories !== false && (
       <motion.section
         variants={fadeInUp}
         initial="hidden"
@@ -876,7 +953,7 @@ export function Home() {
                   >
                     <div className="relative aspect-[4/3] w-full overflow-hidden bg-shell shine-sweep-container">
                       <img
-                        src={cat.image || '/images/logo.png'}
+                        src={cat.image || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='}
                         alt={cat.name}
                         className="h-full w-full object-cover transition-all duration-700 group-hover/cat:scale-108"
                       />
@@ -904,11 +981,12 @@ export function Home() {
           </div>
         </div>
       </motion.section>
+      )}
 
       {/* =====================================================
           6. SOCIAL PROOF (REVIEWS)
       ====================================================== */}
-      {reviews.length > 0 && (
+      {sectionVisibility?.reviews !== false && reviews.length > 0 && (
         <motion.section
           variants={fadeInUp}
           initial="hidden"
@@ -962,13 +1040,14 @@ export function Home() {
       {/* =====================================================
           7. FINAL MEMORABLE CTA SECTION
       ====================================================== */}
+      {sectionVisibility?.finalCta !== false && (
       <motion.section
         variants={fadeInUp}
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-40px' }}
         style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 350px' }}
-        className="py-20 bg-white border-t border-line text-center"
+        className="py-10 sm:py-20 bg-white border-t border-line text-center"
       >
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
           <div className="max-w-2xl mx-auto space-y-6">
@@ -1008,6 +1087,7 @@ export function Home() {
           </div>
         </div>
       </motion.section>
+      )}
     </div>
   );
 }

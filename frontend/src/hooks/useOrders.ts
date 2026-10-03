@@ -129,6 +129,9 @@ export type Order = {
 
   total: number;
   subtotal?: number;
+  discount?: number;
+  couponCode?: string;
+  couponType?: string;
   shippingFee?: number;
   shippingCost?: number;
   taxAmount?: number;

@@ -40,9 +40,19 @@ export function BrandLogo({
   isDarkTheme = false,
   showText = true,
 }: BrandLogoProps) {
-  const { data: branding } = useBrandingConfig();
+  const { data: branding, isLoading } = useBrandingConfig();
   const currentTagline = taglineText || branding?.brandTagline || 'If you can imagine it, we can print it.';
-  const currentLogo = (isDarkTheme && branding?.darkLogoUrl) ? branding.darkLogoUrl : (branding?.primaryLogoUrl || brandLogoImg);
+  
+  let currentLogo = '';
+  if (!isLoading) {
+    if (isDarkTheme && branding?.darkLogoUrl) {
+      currentLogo = branding.darkLogoUrl;
+    } else if (branding?.primaryLogoUrl) {
+      currentLogo = branding.primaryLogoUrl;
+    } else {
+      currentLogo = brandLogoImg;
+    }
+  }
 
   const markSizes = {
     sm: 'h-7.5 w-7.5 sm:h-8 sm:w-8 rounded-lg',
@@ -69,15 +79,17 @@ export function BrandLogo({
         )}
         aria-hidden="true"
       >
-        <img
-          src={currentLogo}
-          alt="Shilp Sahayak Logo"
-          className="h-full w-full object-contain p-0.5"
-          onError={(e) => {
-            const target = e.currentTarget;
-            target.style.display = 'none';
-          }}
-        />
+        {currentLogo && (
+          <img
+            src={currentLogo}
+            alt="Shilp Sahayak Logo"
+            className="h-full w-full object-contain p-0.5"
+            onError={(e) => {
+              const target = e.currentTarget;
+              target.style.display = 'none';
+            }}
+          />
+        )}
       </div>
 
       {showText && (

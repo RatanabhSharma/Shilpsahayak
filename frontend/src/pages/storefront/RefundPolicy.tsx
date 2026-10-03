@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useSettings } from '../../hooks/useSettings';
 import { RotateCcw, ArrowRight, CheckCircle2, XCircle } from 'lucide-react';
 
 /* ============================================================
@@ -38,6 +39,10 @@ const TOC_ITEMS = [
 ];
 
 export function RefundPolicy() {
+  const { data: settings } = useSettings();
+  const email = settings?.email || 'info.shilpsahayak@gmail.com';
+  const businessAddress = settings?.address || 'Patiala, Punjab - 147001, India';
+  const businessName = settings?.businessName || 'Shilp Sahayak';
   return (
     <div className="min-h-screen bg-paper text-ink pt-16 lg:pt-20">
       {/* Page Header */}
@@ -267,8 +272,8 @@ export function RefundPolicy() {
                 ['Prepaid orders (bank transfer / UPI)', 'Refund to original payment account within 5–10 business days'],
                 ['Replacement orders', 'Re-dispatched within 5–7 business days after verification'],
               ].map(([method, timeline]) => (
-                <li key={method} className="flex gap-3 rounded-xl border border-line bg-white p-3">
-                  <span className="font-bold text-ink shrink-0 w-[200px]">{method}</span>
+                <li key={method} className="flex flex-col sm:flex-row gap-1 sm:gap-3 rounded-xl border border-line bg-white p-3">
+                  <span className="font-bold text-ink shrink-0 sm:w-[200px]">{method}</span>
                   <span className="text-muted">{timeline}</span>
                 </li>
               ))}
@@ -303,9 +308,7 @@ export function RefundPolicy() {
             <div className="rounded-2xl border border-accent/30 bg-accent-soft p-5 space-y-2 text-xs">
               <p className="font-bold text-ink text-sm">Shilp Sahayak — Returns &amp; Refunds</p>
               <p>
-                <a href="mailto:info.shilpsahayak@gmail.com" className="text-accent font-mono hover:underline">
-                  info.shilpsahayak@gmail.com
-                </a>
+                <a href="mailto:" className="text-accent font-mono hover:underline">{email}</a>
               </p>
               <p className="text-muted">
                 WhatsApp: available via the chat button on our Platform

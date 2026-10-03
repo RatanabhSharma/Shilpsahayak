@@ -807,7 +807,7 @@ export function Catalog() {
       </section>
 
       {/* Main Content Area */}
-      <main className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+      <main className="mx-auto max-w-[1440px] px-3.5 py-6 sm:px-8 lg:px-10 lg:py-10">
         <div className="grid gap-10 lg:grid-cols-[260px_minmax(0,1fr)]">
           {/* Desktop Filter Sidebar */}
           <aside className="hidden lg:block" aria-label="Product filters">
@@ -862,39 +862,41 @@ export function Catalog() {
                 )}
               </div>
 
-              {/* Mobile Filter Button */}
-              <Button
-                type="button"
-                variant="outline"
-                className="bg-white lg:hidden font-semibold"
-                onClick={() => setIsFilterOpen((prev) => !prev)}
-              >
-                <Filter className="mr-2 h-4 w-4 text-accent" />
-                Filters
-                {hasActiveFilters && (
-                  <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 font-mono text-[10px] font-bold text-white">
-                    {activeFilterChips.length}
-                  </span>
-                )}
-              </Button>
+              {/* Mobile Filter & Sort Row (Side-by-side on mobile) */}
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="bg-white lg:hidden font-semibold w-full justify-center text-xs py-2 px-2.5 h-10"
+                    onClick={() => setIsFilterOpen((prev) => !prev)}
+                  >
+                    <Filter className="mr-1.5 h-3.5 w-3.5 text-accent shrink-0" />
+                    <span className="truncate">Filters</span>
+                    {hasActiveFilters && (
+                      <span className="ml-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 font-mono text-[9px] font-bold text-white">
+                        {activeFilterChips.length}
+                      </span>
+                    )}
+                  </Button>
 
-              {/* Sort Selector */}
-              <div className="flex items-center gap-2">
-                <span className="hidden whitespace-nowrap font-mono text-xs font-semibold text-muted sm:inline">
-                  Sort:
-                </span>
-                <Select
-                  value={sortParam}
-                  onChange={handleSortChange}
-                  className="w-full sm:w-[190px] font-medium"
-                  options={[
-                    { value: 'featured', label: 'Featured First' },
-                    { value: 'newest', label: 'Newest Arrivals' },
-                    { value: 'price-low', label: 'Price: Low to High' },
-                    { value: 'price-high', label: 'Price: High to Low' },
-                  ]}
-                />
-              </div>
+                  {/* Sort Selector */}
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <span className="hidden whitespace-nowrap font-mono text-xs font-semibold text-muted sm:inline">
+                      Sort:
+                    </span>
+                    <Select
+                      value={sortParam}
+                      onChange={handleSortChange}
+                      className="w-full sm:w-[190px] font-medium text-xs"
+                      options={[
+                        { value: 'featured', label: 'Featured First' },
+                        { value: 'newest', label: 'Newest Arrivals' },
+                        { value: 'price-low', label: 'Price: Low to High' },
+                        { value: 'price-high', label: 'Price: High to Low' },
+                      ]}
+                    />
+                  </div>
+                </div>
             </div>
 
             {/* Mobile Filter Drawer */}
@@ -995,7 +997,7 @@ export function Catalog() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.4 }}
-                className="mt-7 grid w-full gap-3.5 sm:gap-6 grid-cols-2 xl:grid-cols-3"
+                className="mt-5 sm:mt-7 grid w-full gap-2.5 xs:gap-3.5 sm:gap-6 grid-cols-2 xl:grid-cols-3"
               >
                 {filteredProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />

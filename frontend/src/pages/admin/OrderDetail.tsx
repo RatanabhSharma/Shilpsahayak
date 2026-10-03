@@ -36,6 +36,7 @@ import {
   ReturnStatus,
   RefundStatus,
 } from '../../hooks/useOrders';
+import { useSettings } from '../../hooks/useSettings';
 import {
   PageHeader,
   StatusBadge,
@@ -132,6 +133,7 @@ export function getCourierTrackingUrl(courier: string, awb: string): string | nu
 export function OrderDetail() {
   const { id } = useParams<{ id: string }>();
   const { data: order, isLoading, isError, refetch } = useOrder(id);
+  const { data: settings } = useSettings();
 
   const updateStatus = useUpdateOrderStatus();
   const updatePayment = useUpdatePaymentStatus();
@@ -661,9 +663,17 @@ export function OrderDetail() {
               <div className="flex justify-between items-center text-muted">
                 <span>Items Subtotal</span>
                 <span className="font-mono font-semibold text-ink">
-                  ₹{Number(order.total || 0).toLocaleString('en-IN')}
+                  ₹{Number(order.subtotal ?? order.total ?? 0).toLocaleString('en-IN')}
                 </span>
               </div>
+              {order.discount && order.discount > 0 ? (
+                <div className="flex justify-between items-center text-muted">
+                  <span>Discount {order.couponCode ? `(${order.couponCode})` : ''}</span>
+                  <span className="font-mono font-semibold text-rose-600">
+                    -₹{Number(order.discount).toLocaleString('en-IN')}
+                  </span>
+                </div>
+              ) : null}
               <div className="flex justify-between items-center text-muted">
                 <span>Shipping & Handling</span>
                 <span className="font-mono font-semibold text-emerald-600">
@@ -980,7 +990,7 @@ export function OrderDetail() {
               3D Prototyping & Custom Fabrication Studio
             </p>
             <p className="text-[10px] text-zinc-500 mt-1">
-              Patiala, Punjab, India · Contact: info.shilpsahayak@gmail.com
+              {settings?.address || 'Patiala, Punjab, India'} • Contact: {settings?.email || 'info.shilpsahayak@gmail.com'}
             </p>
           </div>
           <div className="text-right">

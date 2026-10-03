@@ -13,11 +13,10 @@ import {
   Save,
   Layers,
   Bell,
-  ShieldCheck,
-  Users,
   Key,
 } from 'lucide-react';
 
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Settings as SettingsType,
   PrivateSettings,
@@ -41,11 +40,18 @@ type SettingsTab =
   | 'pricing'
   | 'printers'
   | 'shipping'
-  | 'notifications'
-  | 'admin-access';
+  | 'notifications';
 
 export function Settings() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('business');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const urlTab = new URLSearchParams(location.search).get('tab') as SettingsTab | null;
+  const activeTab = urlTab || 'business';
+
+  const setActiveTab = (tab: SettingsTab) => {
+    navigate(`/admin/settings?tab=${tab}`, { replace: true });
+  };
+
   const localSettings = useStore((state) => state.settings);
   const { user } = useAuth();
   const { role } = useUserRole();
@@ -122,7 +128,9 @@ export function Settings() {
     e.preventDefault();
 
     try {
-      const { notifications, adminUsers, ...publicFields } = form;
+      const { notifications, ...publicFields } = form;
+      // @ts-ignore
+      delete publicFields.adminUsers;
 
       await updateSettings.mutateAsync({
         ...publicFields,
@@ -152,7 +160,6 @@ export function Settings() {
           lowStockAlerts: true,
           alertEmailRecipient: 'info.shilpsahayak@gmail.com',
         },
-        adminUsers: adminUsers ?? [],
       });
 
       setShowSuccess(true);
@@ -198,7 +205,6 @@ export function Settings() {
     { id: 'printers', label: 'Printers & Production Profiles', icon: Key },
     { id: 'shipping', label: 'Shipping & Delivery', icon: Truck },
     { id: 'notifications', label: 'Operational Alerts', icon: Bell },
-    { id: 'admin-access', label: 'Admin Access & Security', icon: ShieldCheck },
   ];
 
   return (
@@ -628,85 +634,7 @@ export function Settings() {
             </div>
           )}
 
-          {/* TAB 6: ADMIN ACCESS & SECURITY */}
-          {activeTab === 'admin-access' && (
-            <div className="rounded-xl border border-line bg-white p-6 shadow-xs space-y-5">
-              <div className="flex items-center gap-2.5 border-b border-line pb-3">
-                <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-700 shrink-0">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="font-display text-base font-bold text-ink">
-                    Admin Access & Role-Based Permissions
-                  </h2>
-                  <p className="text-xs text-muted">
-                    Active admin sessions, role verification, and workshop team access controls.
-                  </p>
-                </div>
-              </div>
-
-              {/* Active Admin Session Card */}
-              <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/50 space-y-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] font-bold uppercase text-purple-800">
-                    Active Authenticated Session
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 font-mono text-[10px] font-bold">
-                    Role: {role ? role.toUpperCase() : 'ADMIN'}
-                  </span>
-                </div>
-                <p className="text-ink font-semibold">{user?.email || 'Admin User'}</p>
-                <p className="font-mono text-[10px] text-muted">
-                  Firebase UID: {user?.uid || 'System Admin'}
-                </p>
-              </div>
-
-              {/* Admin Team List */}
-              <div className="space-y-3 pt-2">
-                <h3 className="font-display font-bold text-xs uppercase tracking-wider text-ink">
-                  Workshop Admin Team Members
-                </h3>
-
-                <div className="divide-y divide-line border border-line rounded-lg overflow-hidden">
-                  {(form.adminUsers || [
-                    { email: 'admin@shilpsahayak.in', role: 'Super Admin', addedAt: '2025-01-01' },
-                    { email: 'workshop@shilpsahayak.in', role: 'Workshop Manager', addedAt: '2025-02-15' },
-                  ]).map((adminMember, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3.5 flex items-center justify-between gap-3 text-xs"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <Users className="w-4 h-4 text-muted" />
-                        <div>
-                          <p className="font-semibold text-ink">{adminMember.email}</p>
-                          <p className="font-mono text-[10px] text-muted">Added {adminMember.addedAt}</p>
-                        </div>
-                      </div>
-                      <span className="px-2.5 py-0.5 rounded-md bg-shell border border-line font-mono text-[11px] font-bold text-ink">
-                        {adminMember.role}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Security Recommendations */}
-              <div className="p-4 rounded-lg bg-shell/70 border border-line text-xs space-y-1.5 text-muted">
-                <p className="font-bold text-ink flex items-center gap-1.5">
-                  <Key className="w-3.5 h-3.5 text-accent" />
-                  <span>Security & Access Guidelines</span>
-                </p>
-                <p className="text-[11px] leading-relaxed">
-                  · Access to the Shilp Sahayak Admin Console is guarded by Firebase Authentication and custom claims verification.
-                </p>
-                <p className="text-[11px] leading-relaxed">
-                  · Always enforce two-factor authentication on administrative Google accounts and rotate passwords periodically.
-                </p>
-              </div>
-            </div>
-          )}
-        </form>
+          </form>
       )}
     </div>
   );

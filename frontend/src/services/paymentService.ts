@@ -32,6 +32,7 @@ export interface CreatePaymentOrderInput {
   shippingAddress: ShippingAddressInput;
   purchaseMode: 'cart' | 'buy_now';
   notes?: string;
+  couponCode?: string;
   clientCalculatedTotal?: number;
 }
 

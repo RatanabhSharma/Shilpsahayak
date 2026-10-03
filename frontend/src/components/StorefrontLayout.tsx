@@ -33,7 +33,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
 import { useUserRole } from '../hooks/useUserRole';
 import { useProducts } from '../hooks/useProducts';
-import { useStorefrontConfig } from '../hooks/useHomepage';
+import { useHomepage } from '../hooks/useHomepage';
 import { useNavigationConfig, DEFAULT_NAVIGATION_CONFIG } from '../hooks/useNavigation';
 import { BrandLogo } from './ui';
 import { CartDrawer } from './CartDrawer';
@@ -137,12 +137,12 @@ export function StorefrontLayout() {
      ---------------------------------------------------------- */
 
   const { data: settings } = useSettings();
-  const { data: storefrontConfig } = useStorefrontConfig();
+  const { data: storefrontConfig } = useHomepage();
   const { data: navigationConfig } = useNavigationConfig();
 
   // Announcement bar dismissible state in session/local storage
-  const bannerConfig = storefrontConfig?.announcement;
-  const isBannerActive = bannerConfig?.active && (storefrontConfig?.sectionVisibility?.announcement !== false);
+  const bannerConfig = (storefrontConfig as any)?.announcement;
+  const isBannerActive = bannerConfig?.active && ((storefrontConfig as any)?.sectionVisibility?.announcement !== false);
   const [isBannerDismissed, setIsBannerDismissed] = useState(false);
 
   /* ----------------------------------------------------------

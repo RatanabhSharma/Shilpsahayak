@@ -1234,6 +1234,9 @@ export async function parse3DFromUrl(
         arrayBuffer = await blob.arrayBuffer();
       }
     } else {
+      if (url.startsWith('blob:')) {
+        throw new Error('This file was saved with an ephemeral session URL and is no longer available.');
+      }
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Failed to load file from storage (HTTP ${response.status})`);

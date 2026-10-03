@@ -143,7 +143,150 @@ export function AdminHome() {
         </div>
       )}
 
-      {/* FEATURED COLLECTIONS & SHILP STUDIO PROMO */}
+      
+        {/* HERO CONFIGURATION */}
+        <div className="p-5 rounded-2xl border border-line bg-white shadow-2xs space-y-4">
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent block">
+            Hero Configuration
+          </span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                Badge Text
+              </label>
+              <input
+                type="text"
+                value={form.hero?.badgeText || ''}
+                onChange={(e) => setForm({ ...form, hero: { ...form.hero!, badgeText: e.target.value } })}
+                placeholder="Shilp Sahayak - 3D Printing"
+                className="w-full px-3 py-2 text-xs bg-white border border-line rounded-xl outline-none focus:border-accent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                Hero Video URL
+              </label>
+              <input
+                type="text"
+                value={form.hero?.heroVideoUrl || ''}
+                onChange={(e) => setForm({ ...form, hero: { ...form.hero!, heroVideoUrl: e.target.value } })}
+                placeholder="/videos/demo_video2.mp4"
+                className="w-full px-3 py-2 text-xs bg-white border border-line rounded-xl outline-none focus:border-accent"
+              />
+            </div>
+
+            {/* Enable / Disable Hero Video */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-2">
+                Hero Video
+              </label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, hero: { ...form.hero!, enableVideo: true } })}
+                  className={`px-4 py-2 rounded-xl text-xs font-mono font-bold border transition-all ${
+                    form.hero?.enableVideo !== false
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                      : 'bg-white text-muted border-line hover:border-accent hover:text-accent'
+                  }`}
+                >
+                  ✓ Enable Video
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, hero: { ...form.hero!, enableVideo: false } })}
+                  className={`px-4 py-2 rounded-xl text-xs font-mono font-bold border transition-all ${
+                    form.hero?.enableVideo === false
+                      ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                      : 'bg-white text-muted border-line hover:border-rose-400 hover:text-rose-500'
+                  }`}
+                >
+                  ✕ Disable Video
+                </button>
+                <span className="text-xs text-muted font-sans">
+                  {form.hero?.enableVideo !== false
+                    ? 'Video is currently enabled on the storefront hero.'
+                    : 'Video is disabled — hero shows a static image fallback.'}
+                </span>
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                Headline
+              </label>
+              <input
+                type="text"
+                value={form.hero?.headline || ''}
+                onChange={(e) => setForm({ ...form, hero: { ...form.hero!, headline: e.target.value } })}
+                placeholder="Bring Your Ideas to Life in 3D"
+                className="w-full px-3 py-2 text-xs font-bold text-ink bg-white border border-line rounded-xl outline-none focus:border-accent"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                Subheadline
+              </label>
+              <input
+                type="text"
+                value={form.hero?.subheadline || ''}
+                onChange={(e) => setForm({ ...form, hero: { ...form.hero!, subheadline: e.target.value } })}
+                placeholder="Upload your custom models..."
+                className="w-full px-3 py-2 text-xs text-ink bg-white border border-line rounded-xl outline-none focus:border-accent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                Primary CTA Text
+              </label>
+              <input
+                type="text"
+                value={form.hero?.primaryCtaText || ''}
+                onChange={(e) => setForm({ ...form, hero: { ...form.hero!, primaryCtaText: e.target.value } })}
+                placeholder="Upload 3D Model"
+                className="w-full px-3 py-2 text-xs bg-white border border-line rounded-xl outline-none focus:border-accent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                Primary CTA Link
+              </label>
+              <input
+                type="text"
+                value={form.hero?.primaryCtaLink || ''}
+                onChange={(e) => setForm({ ...form, hero: { ...form.hero!, primaryCtaLink: e.target.value } })}
+                placeholder="/shilp-studio"
+                className="w-full px-3 py-2 text-xs bg-white border border-line rounded-xl outline-none focus:border-accent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                Secondary CTA Text
+              </label>
+              <input
+                type="text"
+                value={form.hero?.secondaryCtaText || ''}
+                onChange={(e) => setForm({ ...form, hero: { ...form.hero!, secondaryCtaText: e.target.value } })}
+                placeholder="Shop Collection"
+                className="w-full px-3 py-2 text-xs bg-white border border-line rounded-xl outline-none focus:border-accent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                Secondary CTA Link
+              </label>
+              <input
+                type="text"
+                value={form.hero?.secondaryCtaLink || ''}
+                onChange={(e) => setForm({ ...form, hero: { ...form.hero!, secondaryCtaLink: e.target.value } })}
+                placeholder="/shop"
+                className="w-full px-3 py-2 text-xs bg-white border border-line rounded-xl outline-none focus:border-accent"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* FEATURED COLLECTIONS & SHILP STUDIO PROMO */}
       <div className="space-y-6">
         {/* Section Titles */}
         <div className="p-5 rounded-2xl border border-line bg-white shadow-2xs space-y-4">

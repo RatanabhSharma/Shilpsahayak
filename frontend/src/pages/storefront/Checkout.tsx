@@ -130,6 +130,16 @@ export function Checkout() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [orderId, setOrderId] = useState('');
 
+  const [couponCodeInput, setCouponCodeInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    type: string;
+    discountAmount: number;
+    discountValue?: number;
+  } | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState('');
+
   const [savedForm] = useState<{
     name?: string;
     email?: string;
@@ -208,7 +218,7 @@ export function Checkout() {
   const formRef = useRef<HTMLFormElement>(null);
 
   const handleFieldBlur = (e: React.FocusEvent<HTMLFormElement>) => {
-    const target = e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+    const target = e.target as unknown as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
     if (target.name) {
       setTouched(prev => ({ ...prev, [target.name]: true }));
       if (formRef.current) {
@@ -217,7 +227,7 @@ export function Checkout() {
     }
   };
 
-  const handleFieldChange = (e: React.ChangeEvent<HTMLFormElement>) => {
+  const handleFieldChange = () => {
     if (formRef.current) {
       validateForm(new FormData(formRef.current));
     }
@@ -255,8 +265,57 @@ export function Checkout() {
 
   const shippingRate = settings?.shippingFlatRate ?? 150;
   const freeShippingThreshold = settings?.freeShippingThreshold ?? 499;
-  const shipping = subtotal >= freeShippingThreshold ? 0 : shippingRate;
-  const total = subtotal + shipping;
+  let shipping = subtotal >= freeShippingThreshold ? 0 : shippingRate;
+  
+  if (appliedCoupon?.type === 'free_shipping') {
+    shipping = 0;
+  }
+  
+  const discountAmount = appliedCoupon?.discountAmount || 0;
+  const total = Math.max(0, subtotal - discountAmount + shipping);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCodeInput.trim()) return;
+    if (!user) {
+      setCouponError('Please login to apply coupons');
+      return;
+    }
+    setIsApplyingCoupon(true);
+    setCouponError('');
+    try {
+      const userStr = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
+      const token = userStr ? JSON.parse(userStr).token : await user?.getIdToken();
+      
+      const res = await fetch(`${import.meta.env.VITE_CLOUDFLARE_WORKER_URL}/api/coupons/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          couponCode: couponCodeInput.trim(),
+          subtotal
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAppliedCoupon(data.coupon);
+        setCouponCodeInput('');
+      } else {
+        setCouponError(data.error || 'Invalid coupon');
+        setAppliedCoupon(null);
+      }
+    } catch (e) {
+      setCouponError('Failed to validate coupon');
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError('');
+  };
 
   const validateForm = (formData: FormData) => {
     const nextErrors: Record<string, string> = {};
@@ -442,6 +501,7 @@ export function Checkout() {
         shippingAddress: orderDataToPlace.shippingAddress,
         purchaseMode: effectivePurchaseMode,
         notes: orderDataToPlace.notes,
+        couponCode: appliedCoupon?.code,
         clientCalculatedTotal: total,
       });
 
@@ -1168,6 +1228,52 @@ export function Checkout() {
                 })}
               </div>
 
+              {/* Coupon Code Section */}
+              <div className="border-t border-line pt-4">
+                {!appliedCoupon ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        name="coupon"
+                        placeholder="Discount code"
+                        value={couponCodeInput}
+                        onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase())}
+                        disabled={isApplyingCoupon}
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={isApplyingCoupon || !couponCodeInput.trim()}
+                        isLoading={isApplyingCoupon}
+                        onClick={handleApplyCoupon}
+                        className="shrink-0"
+                      >
+                        Apply
+                      </Button>
+                    </div>
+                    {couponError && (
+                      <p className="text-xs font-semibold text-rose-600">{couponError}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      <span className="font-mono text-sm font-bold text-emerald-800">
+                        {appliedCoupon.code}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveCoupon}
+                      className="text-xs font-semibold text-emerald-600 hover:text-emerald-800 underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* Price Breakdown */}
               <div className="divide-y divide-line border-t border-line pt-4 text-xs font-sans space-y-2">
                 <div className="flex justify-between pt-2">
@@ -1176,6 +1282,15 @@ export function Checkout() {
                     ₹{subtotal.toLocaleString('en-IN')}
                   </span>
                 </div>
+
+                {appliedCoupon && appliedCoupon.discountAmount > 0 && (
+                  <div className="flex justify-between pt-2">
+                    <span className="text-emerald-700 font-bold">Discount ({appliedCoupon.code})</span>
+                    <span className="font-mono font-bold text-emerald-700">
+                      -₹{appliedCoupon.discountAmount.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                )}
 
                 <div className="flex justify-between pt-2">
                   <span className="text-muted">Pan-India Courier</span>

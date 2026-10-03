@@ -327,6 +327,16 @@ export const QuoteReviewDrawer: React.FC<QuoteReviewDrawerProps> = ({
                       geometry={parsedModel?.geometry || null}
                       colorHex={colorHex}
                       colorReplacements={quote.colorReplacements}
+                      colorMode={
+                        quote.colorReplacements &&
+                        Object.keys(quote.colorReplacements).length > 0
+                          ? 'single'
+                          : 'original'
+                      }
+                      isMultiColor={
+                        !!quote.colorReplacements &&
+                        Object.keys(quote.colorReplacements).length > 1
+                      }
                       isLoading={isLoadingModel}
                       error={modelError}
                       dimensions={parsedModel?.dimensions}

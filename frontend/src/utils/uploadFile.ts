@@ -61,7 +61,7 @@ export async function saveModelLocally(key: string, file: File | Blob): Promise<
   } catch (err) {
     console.warn('[Storage] Could not persist model in IndexedDB:', err);
   }
-  return URL.createObjectURL(file);
+  return key;
 }
 
 export async function getModelLocally(key: string): Promise<Blob | null> {
@@ -450,8 +450,12 @@ export async function uploadProductImage(
 export async function deleteUploadedFile(fileKey: string): Promise<void> {
   if (!fileKey) return;
 
-  if (fileKey.startsWith('local:') || fileKey.startsWith('blob:')) {
+  if (fileKey.startsWith('local:')) {
     await deleteModelLocally(fileKey);
+    return;
+  }
+  if (fileKey.startsWith('blob:')) {
+    // blob URLs are ephemeral and don't persist in IndexedDB or R2
     return;
   }
 

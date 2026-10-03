@@ -11,7 +11,7 @@ npm run test
 ```
 
 ## Backend / Slicer Service Testing
-- **Framework**: Pytest (standard for Python/FastAPI, though not explicitly listed in stack, it is the convention).
+- **Framework (Archived Slicer)**: Pytest (standard for Python/FastAPI).
 - Needs verification on specific test directory structure within `slicer-service/`.
 
 *TODO: Needs verification on exact test running commands and coverage for backend.*

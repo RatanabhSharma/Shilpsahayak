@@ -13,8 +13,8 @@ The Shilp Sahayak platform relies on several key external integrations.
 
 ## Slicing Engines (Local/System Dependencies)
 The `slicer-service` heavily relies on two external binaries installed on the host machine:
-- **PrusaSlicer CLI**: Used for slicing jobs targeting Prusa machines or standard single-material prints.
-- **Bambu Studio CLI**: Used for slicing jobs targeting Bambu Lab machines, particularly for multicolor prints.
 
 ## Payment Gateway
-- Payments are processed via external gateways. Webhooks are handled at `/api/webhooks/payment` in the `slicer-service`. The specific gateway (e.g., Razorpay, Stripe) is configured via environment variables and admin settings.
+- Payments are processed via external gateways. Webhooks are handled at `/api/payment/webhook` in the Cloudflare Worker (`shilp-sahayak-r2`). The specific gateway (e.g., Razorpay, Stripe) is configured via environment variables and admin settings.
+
+

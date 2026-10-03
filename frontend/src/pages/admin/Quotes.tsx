@@ -412,10 +412,6 @@ export function Quotes() {
       queryClient.invalidateQueries({ queryKey: ['quotes'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
 
-      // Dispatch order confirmation email asynchronously
-      sendOrderConfirmationNotification(newOrderPayload as any).catch((err) =>
-        console.error('[Notification] Failed to send offline order confirmation email:', err)
-      );
 
       if (selectedQuote && selectedQuote.id === quote.id) {
         setSelectedQuote((prev) =>

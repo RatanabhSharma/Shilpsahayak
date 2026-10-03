@@ -53,20 +53,12 @@ const STRICT_ALLOWED_ORIGINS = new Set([
 
 function isAllowedOrigin(origin: string | null, requestUrl?: string): boolean {
   if (!origin) return true;
-  // Only allow localhost if the request itself is targeting localhost / local development
+  // Allow localhost / 127.0.0.1 origins for local development
   if (
     origin.startsWith("http://localhost:") ||
     origin.startsWith("http://127.0.0.1:")
   ) {
-    if (requestUrl) {
-      try {
-        const u = new URL(requestUrl);
-        if (u.hostname === "localhost" || u.hostname === "127.0.0.1") {
-          return true;
-        }
-      } catch {}
-    }
-    return false;
+    return true;
   }
   return STRICT_ALLOWED_ORIGINS.has(origin);
 }
@@ -693,7 +685,8 @@ export async function calculateOrderPricing(
   projectId: string,
   apiKey?: string,
   authToken?: string,
-  uid?: string
+  uid?: string,
+  couponCode?: string
 ): Promise<CalculatedPricing> {
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error("Order must contain at least one item.");
@@ -849,15 +842,95 @@ export async function calculateOrderPricing(
     });
   }
 
+  // 2.5 Authoritative Coupon Validation & Discount
+  let discountAmount = 0;
+  let appliedCoupon: any = null;
+
+  if (couponCode) {
+    const code = couponCode.toUpperCase().trim();
+    try {
+      const qUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery?key=${apiKey}`;
+      const qRes = await fetch(qUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
+        body: JSON.stringify({
+          structuredQuery: {
+            from: [{ collectionId: "coupons" }],
+            where: {
+              fieldFilter: {
+                field: { fieldPath: "code" },
+                op: "EQUAL",
+                value: { stringValue: code }
+              }
+            },
+            limit: 1
+          }
+        })
+      });
+
+      if (qRes.ok) {
+        const qData: any = await qRes.json();
+        if (qData && qData.length > 0 && qData[0].document) {
+          const coupon = fromFirestoreFields(qData[0].document.fields || {});
+          coupon.id = qData[0].document.name.split("/").pop();
+          
+          if (coupon.active !== false) {
+            const now = Date.now();
+            const start = coupon.startDate ? new Date(coupon.startDate).getTime() : 0;
+            const end = coupon.endDate ? new Date(coupon.endDate).getTime() : Infinity;
+
+            if (now >= start && now <= end) {
+              if (
+                (!coupon.totalUsageLimit || (coupon.currentUsageCount || 0) < coupon.totalUsageLimit) &&
+                (!coupon.minimumOrderValue || subtotal >= coupon.minimumOrderValue)
+              ) {
+                appliedCoupon = coupon;
+                // Guard: reject misconfigured percentage coupons
+                if (coupon.discountType === 'percentage' && ((coupon.discountValue || 0) < 0 || (coupon.discountValue || 0) > 100)) {
+                  appliedCoupon = null;
+                } else if (coupon.discountType === 'percentage') {
+                  const rawDiscount = subtotal * ((coupon.discountValue || 0) / 100);
+                  discountAmount = coupon.maximumDiscountAmount
+                    ? Math.min(rawDiscount, coupon.maximumDiscountAmount)
+                    : rawDiscount;
+                } else if (coupon.discountType === 'fixed_amount') {
+                  discountAmount = Math.min(coupon.discountValue || 0, subtotal);
+                } else if (coupon.discountType === 'free_shipping') {
+                  shippingFlatRate = 0;
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Coupon validation failed:", e);
+    }
+  }
+
   // 3. Authoritative shipping calculation
-  const shipping = subtotal >= freeShippingThreshold ? 0 : shippingFlatRate;
-  const total = subtotal + shipping;
+  let shipping = subtotal >= freeShippingThreshold ? 0 : shippingFlatRate;
+  
+  if (appliedCoupon?.discountType === 'free_shipping') {
+      shipping = 0;
+  }
+
+  let total = subtotal - discountAmount + shipping;
+  if (total < 0) total = 0;
 
   return {
     subtotal,
     shipping,
     total,
     verifiedItems,
+    ...(appliedCoupon ? {
+      discount: discountAmount,
+      couponCode: appliedCoupon.code,
+      couponType: appliedCoupon.discountType
+    } : {})
   };
 }
 
@@ -1088,6 +1161,7 @@ export default {
           shippingAddress,
           purchaseMode = "cart",
           notes = "",
+          couponCode,
           clientCalculatedTotal,
         } = body || {};
 
@@ -1123,7 +1197,8 @@ export default {
           projectId,
           apiKey,
           firestoreToken,
-          uid
+          uid,
+          couponCode
         );
 
         // Reject client price manipulation attempts
@@ -1239,6 +1314,9 @@ export default {
           subtotal: pricing.subtotal,
           shipping: pricing.shipping,
           total: pricing.total,
+          discount: (pricing as any).discount || 0,
+          couponCode: (pricing as any).couponCode || null,
+          couponType: (pricing as any).couponType || null,
           purchaseMode,
           notes,
           date: dateNow,
@@ -1352,6 +1430,8 @@ export default {
             subtotal: pricing.subtotal,
             shipping: pricing.shipping,
             total: pricing.total,
+            discount: (pricing as any).discount || 0,
+            couponCode: (pricing as any).couponCode || null,
           },
         });
       } catch (error: any) {
@@ -1363,6 +1443,133 @@ export default {
             error: error?.message || "Failed to create payment order.",
           },
           400
+        );
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // COUPON VALIDATION: CLIENT VERIFICATION (POST /api/coupons/validate)
+    // ------------------------------------------------------------------------
+    if (request.method === "POST" && pathname === "/api/coupons/validate") {
+      let uid: string;
+      try {
+        uid = await authenticateUser(request);
+      } catch (authErr: any) {
+        return jsonResponse(
+          request,
+          { success: false, error: "Authentication required." },
+          401
+        );
+      }
+
+      try {
+        const body: any = await request.json();
+        const { couponCode, subtotal } = body || {};
+
+        if (!couponCode || typeof subtotal !== 'number') {
+          return jsonResponse(request, { success: false, error: "Missing couponCode or subtotal" }, 400);
+        }
+
+        let firestoreToken: string;
+        try {
+          firestoreToken = await getPrivilegedFirestoreAccessToken(env);
+        } catch (tokenErr: any) {
+          console.error("Service account token error in validate:", tokenErr?.message);
+          return jsonResponse(request, { success: false, error: "Server configuration error." }, 500);
+        }
+
+        const code = couponCode.toUpperCase().trim();
+        const qUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery?key=${apiKey}`;
+        const qRes = await fetch(qUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${firestoreToken}`,
+          },
+          body: JSON.stringify({
+            structuredQuery: {
+              from: [{ collectionId: "coupons" }],
+              where: {
+                fieldFilter: {
+                  field: { fieldPath: "code" },
+                  op: "EQUAL",
+                  value: { stringValue: code }
+                }
+              },
+              limit: 1
+            }
+          })
+        });
+
+        if (!qRes.ok) {
+          return jsonResponse(request, { success: false, error: "Failed to validate coupon" }, 500);
+        }
+
+        const qData: any = await qRes.json();
+        if (!qData || qData.length === 0 || !qData[0].document) {
+          return jsonResponse(request, { success: false, error: "Invalid coupon code" }, 404);
+        }
+
+        const coupon = fromFirestoreFields(qData[0].document.fields || {});
+        
+        if (coupon.active === false) {
+          return jsonResponse(request, { success: false, error: "This coupon is no longer active" }, 400);
+        }
+
+        const now = Date.now();
+        const start = coupon.startDate ? new Date(coupon.startDate).getTime() : 0;
+        const end = coupon.endDate ? new Date(coupon.endDate).getTime() : Infinity;
+
+        if (now < start) {
+          return jsonResponse(request, { success: false, error: "This coupon is not active yet" }, 400);
+        }
+        if (now > end) {
+          return jsonResponse(request, { success: false, error: "This coupon has expired" }, 400);
+        }
+        
+        if (coupon.totalUsageLimit && (coupon.currentUsageCount || 0) >= coupon.totalUsageLimit) {
+          return jsonResponse(request, { success: false, error: "This coupon has reached its usage limit" }, 400);
+        }
+
+        if (coupon.minimumOrderValue && subtotal < coupon.minimumOrderValue) {
+          return jsonResponse(request, { 
+            success: false, 
+            error: `Minimum order value of ₹${coupon.minimumOrderValue} required` 
+          }, 400);
+        }
+
+        // Server-side percentage range guard
+        if (coupon.discountType === 'percentage' && ((coupon.discountValue || 0) < 0 || (coupon.discountValue || 0) > 100)) {
+          return jsonResponse(request, { success: false, error: "Invalid coupon configuration" }, 400);
+        }
+
+        let discountAmount = 0;
+        if (coupon.discountType === 'percentage') {
+          const rawDiscount = subtotal * ((coupon.discountValue || 0) / 100);
+          discountAmount = coupon.maximumDiscountAmount
+            ? Math.min(rawDiscount, coupon.maximumDiscountAmount)
+            : rawDiscount;
+        } else if (coupon.discountType === 'fixed_amount') {
+          discountAmount = Math.min(coupon.discountValue || 0, subtotal);
+        } else if (coupon.discountType === 'free_shipping') {
+          discountAmount = 0;
+        }
+
+        return jsonResponse(request, {
+          success: true,
+          coupon: {
+            code: coupon.code,
+            type: coupon.discountType,
+            discountAmount: Math.floor(discountAmount),
+            discountValue: coupon.discountValue
+          }
+        });
+
+      } catch (error: any) {
+        return jsonResponse(
+          request,
+          { success: false, error: error?.message || "Validation failed." },
+          500
         );
       }
     }

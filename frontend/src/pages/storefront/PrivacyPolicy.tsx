@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useSettings } from '../../hooks/useSettings';
 import { ShieldCheck, ArrowRight } from 'lucide-react';
 
 /* ============================================================
@@ -42,6 +43,10 @@ const TOC_ITEMS = [
 ];
 
 export function PrivacyPolicy() {
+  const { data: settings } = useSettings();
+  const email = settings?.email || 'info.shilpsahayak@gmail.com';
+  const businessAddress = settings?.address || 'Patiala, Punjab - 147001, India';
+  const businessName = settings?.businessName || 'Shilp Sahayak';
   return (
     <div className="min-h-screen bg-paper text-ink pt-16 lg:pt-20">
       {/* Page Header */}
@@ -119,14 +124,12 @@ export function PrivacyPolicy() {
               <p>
                 Privacy inquiries:{' '}
                 <a
-                  href="mailto:info.shilpsahayak@gmail.com"
+                  href="mailto:"
                   className="text-accent font-mono hover:underline"
-                >
-                  info.shilpsahayak@gmail.com
-                </a>
+                >{email}</a>
               </p>
               <p className="mt-1 text-muted">
-                Workshop: Patiala, Punjab — 147001, India
+                {businessAddress}
               </p>
             </div>
           </Section>
@@ -321,8 +324,8 @@ export function PrivacyPolicy() {
                 ['Contact form submissions', 'Deleted after 12 months'],
                 ['Authentication session tokens', 'Until you log out or the token expires (Firebase default: 1 hour, refreshed automatically while active)'],
               ].map(([item, period]) => (
-                <li key={item} className="flex gap-3 rounded-xl border border-line bg-white p-3">
-                  <span className="font-bold text-ink shrink-0 w-[180px]">{item}</span>
+                <li key={item} className="flex flex-col sm:flex-row gap-1 sm:gap-3 rounded-xl border border-line bg-white p-3">
+                  <span className="font-bold text-ink shrink-0 sm:w-[180px]">{item}</span>
                   <span className="text-muted">{period}</span>
                 </li>
               ))}
@@ -349,9 +352,7 @@ export function PrivacyPolicy() {
             </ul>
             <p>
               To exercise any right, email{' '}
-              <a href="mailto:info.shilpsahayak@gmail.com" className="text-accent font-mono hover:underline">
-                info.shilpsahayak@gmail.com
-              </a>{' '}
+              <a href="mailto:" className="text-accent font-mono hover:underline">{email}</a>{' '}
               with subject line <em>&ldquo;Data Rights Request — [Your Name]&rdquo;</em>. We will
               respond within <strong className="text-ink">30 days</strong>.
             </p>
@@ -376,9 +377,7 @@ export function PrivacyPolicy() {
             <p>
               No system is 100% secure. If you discover a security vulnerability, please report it
               responsibly to{' '}
-              <a href="mailto:info.shilpsahayak@gmail.com" className="text-accent font-mono hover:underline">
-                info.shilpsahayak@gmail.com
-              </a>
+              <a href="mailto:" className="text-accent font-mono hover:underline">{email}</a>
               .
             </p>
           </Section>
@@ -412,11 +411,9 @@ export function PrivacyPolicy() {
               <p>
                 <strong className="text-ink">Shilp Sahayak — Privacy & Grievance</strong>
                 <br />
-                <a href="mailto:info.shilpsahayak@gmail.com" className="text-accent font-mono hover:underline">
-                  info.shilpsahayak@gmail.com
-                </a>
+                <a href="mailto:" className="text-accent font-mono hover:underline">{email}</a>
                 <br />
-                Workshop: Patiala, Punjab — 147001, India
+                {businessAddress}
                 <br />
                 <span className="text-muted">Response time: within 30 days</span>
               </p>

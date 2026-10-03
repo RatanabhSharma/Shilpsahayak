@@ -98,7 +98,9 @@ export function exportOrdersToCsv(orders: Order[]) {
       order.shippingStatus || 'Not shipped',
       order.courierPartner || '—',
       order.trackingNumber || '—',
-      order.address || '—',
+      (typeof order.shippingAddress === 'object' && order.shippingAddress !== null
+        ? [order.shippingAddress.line1, order.shippingAddress.line2, order.shippingAddress.city, order.shippingAddress.state, order.shippingAddress.pincode].filter(Boolean).join(', ')
+        : order.shippingAddress || order.address || '—'),
       order.notes || '—',
     ];
   });
@@ -285,23 +287,42 @@ export function exportIndiaPostCsv(orders: Order[]) {
   ];
 
   const rows = orders.map((o) => {
-    // Attempt to extract Pincode from address (usually 6 digits)
-    const address = o.shippingAddress || '';
-    const pinMatch = address.match(/\b\d{6}\b/);
-    const pincode = pinMatch ? pinMatch[0] : '';
-    
-    // Attempt to extract State (basic heuristics if not explicitly structured)
-    const stateMatch = address.match(/(Punjab|Delhi|Maharashtra|Haryana|Karnataka|Tamil Nadu|Gujarat|Rajasthan|Uttar Pradesh|Kerala|West Bengal|Bihar|Madhya Pradesh|Andhra Pradesh|Telangana)/i);
-    const state = stateMatch ? stateMatch[0] : '';
-    
+    let addressStr = '';
+    let pincode = '';
+    let state = '';
+    let city = '';
+    let line1 = '';
+
+    // Safely normalize shipping address (handle both legacy string and modern object)
+    if (typeof o.shippingAddress === 'object' && o.shippingAddress !== null) {
+      pincode = o.shippingAddress.pincode || '';
+      state = o.shippingAddress.state || '';
+      city = o.shippingAddress.city || '';
+      const l1 = o.shippingAddress.line1 || '';
+      const l2 = o.shippingAddress.line2 || '';
+      addressStr = [l1, l2, city, state, pincode].filter(Boolean).join(', ');
+      line1 = [l1, l2].filter(Boolean).join(', ').replace(/,/g, ' ');
+    } else {
+      addressStr = String(o.shippingAddress || o.address || '');
+      // Attempt to extract Pincode from address (usually 6 digits)
+      const pinMatch = addressStr.match(/\b\d{6}\b/);
+      pincode = pinMatch ? pinMatch[0] : '';
+      
+      // Attempt to extract State (basic heuristics if not explicitly structured)
+      const stateMatch = addressStr.match(/(Punjab|Delhi|Maharashtra|Haryana|Karnataka|Tamil Nadu|Gujarat|Rajasthan|Uttar Pradesh|Kerala|West Bengal|Bihar|Madhya Pradesh|Andhra Pradesh|Telangana)/i);
+      state = stateMatch ? stateMatch[0] : '';
+      
+      line1 = addressStr.replace(/,/g, ' ');
+    }
+
     // For Weight, we estimate 500g if not specified, since mostly 3D prints
     const weightGms = 500; 
 
     return [
       o.customerName || 'Customer',
-      address.replace(/,/g, ' '),
+      line1 || '—',
       '', // Address line 2 (optional)
-      '', // City (can be manually filled or parsed if strict format)
+      city || '', // City (can be manually filled or parsed if strict format)
       state,
       pincode,
       (o.customerPhone || '').replace(/\D/g, '').slice(-10),
