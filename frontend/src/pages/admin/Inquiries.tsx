@@ -1,8 +1,24 @@
-import React, { useState, useEffect } from "react";
-import { collection, query, orderBy, onSnapshot, updateDoc, doc } from "firebase/firestore";
+import { useState, useEffect } from "react";
+import { collection, query, orderBy, onSnapshot, updateDoc, doc, Timestamp } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { PageHeader, DataTable, StatusBadge } from "../../components/admin/shared";
-import { Mail, MessageSquare, Clock, CheckCircle2, X } from "lucide-react";
+import { Mail, X } from "lucide-react";
+import { toast } from "react-hot-toast";
+
+function formatInquiryDate(value: unknown): string {
+  const date =
+    value instanceof Timestamp
+      ? value.toDate()
+      : value instanceof Date
+        ? value
+        : typeof value === "string" || typeof value === "number"
+          ? new Date(value)
+          : null;
+
+  return date && Number.isFinite(date.getTime())
+    ? date.toLocaleDateString()
+    : "—";
+}
 
 export function Inquiries() {
   const [inquiries, setInquiries] = useState<any[]>([]);
@@ -18,31 +34,49 @@ export function Inquiries() {
     return unsub;
   }, []);
 
+  useEffect(() => {
+    if (!selectedInquiry) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedInquiry(null);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedInquiry]);
+
   const markAsRead = async (id: string) => {
-    await updateDoc(doc(db, "inquiries", id), { status: "read" });
+    try {
+      await updateDoc(doc(db, "inquiries", id), { status: "read" });
+    } catch (error) {
+      console.error("Failed to mark inquiry as read:", error);
+      toast.error("Could not mark this inquiry as read. Please try again.");
+    }
   };
 
   const columns = [
     {
       header: "Status",
-      cell: (item: any) => (
+      key: "status",
+      render: (item: any) => (
         <StatusBadge
           status={item.status === "unread" ? "New" : "Read"}
-          variant={item.status === "unread" ? "success" : "default"}
         />
       ),
     },
     {
       header: "Date",
-      cell: (item: any) => (
+      key: "date",
+      render: (item: any) => (
         <span className="text-xs text-muted">
-          {new Date(item.createdAt).toLocaleDateString()}
+          {formatInquiryDate(item.createdAt)}
         </span>
       ),
     },
     {
       header: "Customer",
-      cell: (item: any) => (
+      key: "customer",
+      render: (item: any) => (
         <div>
           <p className="font-bold text-ink">{item.name}</p>
           <p className="text-muted text-[10px]">{item.email}</p>
@@ -51,7 +85,8 @@ export function Inquiries() {
     },
     {
       header: "Subject",
-      cell: (item: any) => (
+      key: "subject",
+      render: (item: any) => (
         <span className="text-sm font-medium text-ink max-w-[200px] truncate block">
           {item.subject}
         </span>
@@ -59,7 +94,8 @@ export function Inquiries() {
     },
     {
       header: "Action",
-      cell: (item: any) => (
+      key: "action",
+      render: (item: any) => (
         <button
           onClick={() => {
             setSelectedInquiry(item);
@@ -78,7 +114,6 @@ export function Inquiries() {
       <PageHeader
         title="Customer Inquiries"
         description="View messages submitted via the Contact Us form."
-        icon={MessageSquare}
       />
 
       <div className="bg-white border border-line rounded-2xl shadow-2xs overflow-hidden">
@@ -93,15 +128,22 @@ export function Inquiries() {
 
       {selectedInquiry && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="inquiry-dialog-title"
+            className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+          >
             <div className="flex items-center justify-between p-5 border-b border-line">
               <div className="flex items-center gap-2">
                 <Mail className="w-5 h-5 text-accent" />
-                <h3 className="font-display font-bold text-ink text-lg">Inquiry Details</h3>
+                <h3 id="inquiry-dialog-title" className="font-display font-bold text-ink text-lg">Inquiry Details</h3>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedInquiry(null)}
                 className="p-2 hover:bg-shell rounded-full text-muted transition-colors"
+                aria-label="Close inquiry details"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -143,6 +185,7 @@ export function Inquiries() {
             </div>
             <div className="p-4 bg-shell border-t border-line flex justify-end">
               <button
+                type="button"
                 onClick={() => setSelectedInquiry(null)}
                 className="px-4 py-2 bg-white border border-line rounded-xl text-xs font-bold text-ink hover:border-accent transition-colors"
               >

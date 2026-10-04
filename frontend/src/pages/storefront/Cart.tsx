@@ -38,8 +38,8 @@ export function Cart() {
     0
   );
 
-  const shippingRate = settings?.shippingFlatRate ?? 150;
-  const freeShippingThreshold = settings?.freeShippingThreshold ?? 499;
+  const shippingRate = settings?.shippingFlatRate ?? 99;
+  const freeShippingThreshold = settings?.freeShippingThreshold ?? 999;
 
   const shipping =
     subtotal >= freeShippingThreshold || subtotal === 0 ? 0 : shippingRate;

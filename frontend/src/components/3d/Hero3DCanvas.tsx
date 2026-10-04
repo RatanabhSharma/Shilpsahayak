@@ -135,13 +135,13 @@ export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
     window.addEventListener('resize', handleResize);
 
     // Animation Loop with Visibility Gating (IntersectionObserver)
-    const clock = new THREE.Clock();
+    let animationStartTime = 0;
     let isVisible = false;
 
     const animate = () => {
       if (!isVisible) return;
       animFrameIdRef.current = requestAnimationFrame(animate);
-      const elapsedTime = clock.getElapsedTime();
+      const elapsedTime = (performance.now() - animationStartTime) / 1000;
 
       // Smooth mouse interpolation
       mouseRef.current.x += (mouseRef.current.targetX - mouseRef.current.x) * 0.06;
@@ -176,7 +176,7 @@ export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
         const nowVisible = entry.isIntersecting;
         if (nowVisible && !isVisible) {
           isVisible = true;
-          clock.start();
+          animationStartTime = performance.now();
           animate();
         } else if (!nowVisible && isVisible) {
           isVisible = false;
@@ -379,7 +379,6 @@ export function Hero3DCanvas({ className = '' }: Hero3DCanvasProps) {
     </div>
   );
 }
-
 
 
 

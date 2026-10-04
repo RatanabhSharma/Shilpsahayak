@@ -1,4 +1,5 @@
 import {
+  Fragment,
   useEffect,
   useMemo,
   useState,
@@ -14,7 +15,7 @@ import {
   ArrowRight,
   Menu,
   ShieldCheck,
-  ShoppingBag,
+  ShoppingCart,
   User,
   X,
   Phone,
@@ -22,6 +23,10 @@ import {
   Search,
   MessageCircle,
   Instagram,
+  Youtube,
+  Linkedin,
+  Twitter,
+  Github,
 } from 'lucide-react';
 import {
   AnimatePresence,
@@ -34,6 +39,7 @@ import { useSettings } from '../hooks/useSettings';
 import { useUserRole } from '../hooks/useUserRole';
 import { useProducts } from '../hooks/useProducts';
 import { useHomepage } from '../hooks/useHomepage';
+import { useBrandingConfig } from '../hooks/useBranding';
 import { useNavigationConfig, DEFAULT_NAVIGATION_CONFIG } from '../hooks/useNavigation';
 import { BrandLogo } from './ui';
 import { CartDrawer } from './CartDrawer';
@@ -137,6 +143,7 @@ export function StorefrontLayout() {
      ---------------------------------------------------------- */
 
   const { data: settings } = useSettings();
+  const { data: brandingConfig } = useBrandingConfig();
   const { data: storefrontConfig } = useHomepage();
   const { data: navigationConfig } = useNavigationConfig();
 
@@ -298,7 +305,7 @@ export function StorefrontLayout() {
             className="fixed bottom-0 left-0 right-0 z-[60] bg-dark/95 backdrop-blur-md border-t border-zinc-700 px-3.5 py-2 sm:px-8 sm:py-2.5"
           >
             <div className="mx-auto max-w-[1440px] flex items-center justify-between gap-3">
-              <p className="font-sans text-[11px] sm:text-xs text-zinc-300 leading-snug">
+              <p className="font-sans text-xs text-zinc-300 leading-snug">
                 Strictly necessary storage only (auth &amp; cart) — no advertising cookies.{' '}
                 <Link
                   to="/privacy-policy"
@@ -311,7 +318,7 @@ export function StorefrontLayout() {
               <button
                 type="button"
                 onClick={dismissCookieBanner}
-                className="shrink-0 rounded-lg bg-zinc-700 hover:bg-zinc-600 px-3 py-1 font-mono text-[10px] sm:text-xs font-bold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
+                className="shrink-0 min-h-[36px] rounded-lg bg-zinc-700 hover:bg-zinc-600 px-3.5 py-1.5 font-mono text-xs font-bold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer flex items-center justify-center"
                 aria-label="Dismiss cookie notice"
               >
                 Got it
@@ -449,33 +456,33 @@ export function StorefrontLayout() {
             <button
               type="button"
               onClick={() => setIsSearchOpen(true)}
-              className={`inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl transition-colors shadow-solid-sm ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow-none shadow-solid-sm' : 'text-ink hover:bg-shell'}`}
+              className={`inline-flex h-10 w-10 sm:h-10 sm:w-10 items-center justify-center rounded-xl transition-colors shadow-solid-sm active:scale-95 ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow-none shadow-solid-sm' : 'text-ink hover:bg-shell'}`}
               aria-label="Search products"
               title="Search products (Ctrl+K or ⌘K)"
             >
-              <Search className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+              <Search className="h-5 w-5" />
             </button>
 
             {/* User Auth / Account */}
             {authLoading ? (
-              <div className="h-9 w-9 sm:h-10 sm:w-10 animate-pulse rounded-lg sm:rounded-xl bg-shell" />
+              <div className="h-10 w-10 sm:h-10 sm:w-10 animate-pulse rounded-xl bg-shell" />
             ) : isAuthenticated ? (
               <Link
                 to="/account"
-                className={`inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl transition-colors shadow-solid-sm ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow-none shadow-solid-sm' : 'text-ink hover:bg-shell'}`}
+                className={`inline-flex h-10 w-10 sm:h-10 sm:w-10 items-center justify-center rounded-xl transition-colors shadow-solid-sm active:scale-95 ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow-none shadow-solid-sm' : 'text-ink hover:bg-shell'}`}
                 aria-label="My account"
                 title="My Account"
               >
-                <User className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+                <User className="h-5 w-5" />
               </Link>
             ) : (
               <Link
                 to="/login"
-                className={`inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl transition-colors shadow-solid-sm ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow-none shadow-solid-sm' : 'text-ink hover:bg-shell'}`}
+                className={`inline-flex h-10 w-10 sm:h-10 sm:w-10 items-center justify-center rounded-xl transition-colors shadow-solid-sm active:scale-95 ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow-none shadow-solid-sm' : 'text-ink hover:bg-shell'}`}
                 aria-label="Sign in"
                 title="Sign In"
               >
-                <User className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+                <User className="h-5 w-5" />
               </Link>
             )}
 
@@ -483,11 +490,11 @@ export function StorefrontLayout() {
             <button
               type="button"
               onClick={openCart}
-              className={`relative inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl transition-colors shadow-solid-sm ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow-none shadow-solid-sm' : 'text-ink hover:bg-shell'}`}
+              className={`relative inline-flex h-10 w-10 sm:h-10 sm:w-10 items-center justify-center rounded-xl transition-colors shadow-solid-sm active:scale-95 ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow-none shadow-solid-sm' : 'text-ink hover:bg-shell'}`}
               aria-label={`Shopping cart with ${cartItemCount} items`}
               title="View Cart"
             >
-              <ShoppingBag className="h-4.5 w-4.5 sm:h-5 sm:w-5" aria-hidden="true" />
+              <ShoppingCart className="h-5 w-5" aria-hidden="true" />
               {cartItemCount > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-4.5 min-w-[18px] sm:h-5 sm:min-w-[20px] items-center justify-center rounded-full bg-accent px-1 font-mono text-[9px] sm:text-[10px] font-bold leading-none text-white shadow-sm animate-in zoom-in">
                   {cartItemCount > 99 ? '99+' : cartItemCount}
@@ -499,15 +506,15 @@ export function StorefrontLayout() {
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-              className={`inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl transition-colors shadow-solid-sm lg:hidden ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow-none shadow-solid-sm' : 'text-ink hover:bg-shell'}`}
+              className={`inline-flex h-10 w-10 sm:h-10 sm:w-10 items-center justify-center rounded-xl transition-colors shadow-solid-sm active:scale-95 lg:hidden ${isTransparent ? 'text-white hover:bg-white/10 drop-shadow-none shadow-solid-sm' : 'text-ink hover:bg-shell'}`}
               aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={isMobileMenuOpen}
               aria-controls="mobile-navigation"
             >
               {isMobileMenuOpen ? (
-                <X className="h-4.5 w-4.5 sm:h-5 sm:w-5" aria-hidden="true" />
+                <X className="h-5 w-5" aria-hidden="true" />
               ) : (
-                <Menu className="h-4.5 w-4.5 sm:h-5 sm:w-5" aria-hidden="true" />
+                <Menu className="h-5 w-5" aria-hidden="true" />
               )}
             </button>
           </div>
@@ -625,41 +632,87 @@ export function StorefrontLayout() {
               </p>
 
               {/* Social Media = Icons Only */}
-              <div className="flex items-center gap-2 pt-1">
-                <a
-                  href="https://instagram.com/shilpsahayak"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Instagram"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-zinc-700 hover:text-white transition-colors"
-                >
-                  <Instagram className="h-4 w-4" />
-                </a>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                {brandingConfig?.socialLinks?.instagram && (
+                  <a
+                    href={brandingConfig.socialLinks.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Instagram"
+                    className="flex h-10 w-10 sm:h-9 sm:w-9 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-zinc-700 hover:text-white transition-colors"
+                  >
+                    <Instagram className="h-4.5 w-4.5 sm:h-4 sm:w-4" />
+                  </a>
+                )}
+                {brandingConfig?.socialLinks?.youtube && (
+                  <a
+                    href={brandingConfig.socialLinks.youtube}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="YouTube"
+                    className="flex h-10 w-10 sm:h-9 sm:w-9 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-zinc-700 hover:text-white transition-colors"
+                  >
+                    <Youtube className="h-4.5 w-4.5 sm:h-4 sm:w-4" />
+                  </a>
+                )}
+                {brandingConfig?.socialLinks?.linkedin && (
+                  <a
+                    href={brandingConfig.socialLinks.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="LinkedIn"
+                    className="flex h-10 w-10 sm:h-9 sm:w-9 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-zinc-700 hover:text-white transition-colors"
+                  >
+                    <Linkedin className="h-4.5 w-4.5 sm:h-4 sm:w-4" />
+                  </a>
+                )}
+                {brandingConfig?.socialLinks?.twitter && (
+                  <a
+                    href={brandingConfig.socialLinks.twitter}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Twitter / X"
+                    className="flex h-10 w-10 sm:h-9 sm:w-9 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-zinc-700 hover:text-white transition-colors"
+                  >
+                    <Twitter className="h-4.5 w-4.5 sm:h-4 sm:w-4" />
+                  </a>
+                )}
+                {brandingConfig?.socialLinks?.github && (
+                  <a
+                    href={brandingConfig.socialLinks.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="GitHub"
+                    className="flex h-10 w-10 sm:h-9 sm:w-9 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-zinc-700 hover:text-white transition-colors"
+                  >
+                    <Github className="h-4.5 w-4.5 sm:h-4 sm:w-4" />
+                  </a>
+                )}
                 <a
                   href={whatsappLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="WhatsApp"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-emerald-500/50 hover:text-[#25D366] transition-colors"
+                  className="flex h-10 w-10 sm:h-9 sm:w-9 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-emerald-500/50 hover:text-[#25D366] transition-colors"
                 >
-                  <MessageCircle className="h-4 w-4" />
+                  <MessageCircle className="h-4.5 w-4.5 sm:h-4 sm:w-4" />
                 </a>
                 {businessEmail && (
                   <a
                     href={`mailto:${businessEmail}`}
                     aria-label="Email studio"
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-zinc-700 hover:text-white transition-colors"
+                    className="flex h-10 w-10 sm:h-9 sm:w-9 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-zinc-700 hover:text-white transition-colors"
                   >
-                    <Mail className="h-4 w-4" />
+                    <Mail className="h-4.5 w-4.5 sm:h-4 sm:w-4" />
                   </a>
                 )}
                 {businessPhone && (
                   <a
                     href={`tel:${businessPhone.replace(/\s+/g, '')}`}
                     aria-label="Call studio"
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-zinc-700 hover:text-white transition-colors"
+                    className="flex h-10 w-10 sm:h-9 sm:w-9 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-zinc-700 hover:text-white transition-colors"
                   >
-                    <Phone className="h-4 w-4" />
+                    <Phone className="h-4.5 w-4.5 sm:h-4 sm:w-4" />
                   </a>
                 )}
               </div>
@@ -746,7 +799,7 @@ export function StorefrontLayout() {
             </p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px]">
               {footerLegalLinks.map((link, idx) => (
-                <>
+                <Fragment key={link.id}>
                   {link.isExternal ? (
                     <a key={link.id} href={link.href} target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors">
                       {link.label}
@@ -759,7 +812,7 @@ export function StorefrontLayout() {
                   {idx < footerLegalLinks.length - 1 && (
                     <span className="text-zinc-700 hidden sm:inline">·</span>
                   )}
-                </>
+                </Fragment>
               ))}
             </div>
           </div>
@@ -877,7 +930,6 @@ export function StorefrontLayout() {
     </div>
   );
 }
-
 
 
 

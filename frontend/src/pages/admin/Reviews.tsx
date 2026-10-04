@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { collection, query, orderBy, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { useState } from 'react';
+import { collection, query, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { Search, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { ProductReview, ReviewStatus } from '../../hooks/useProductReviews';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product } from '../../store';

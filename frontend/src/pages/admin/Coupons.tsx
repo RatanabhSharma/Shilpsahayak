@@ -7,7 +7,6 @@ import { EmptyState } from '../../components/admin/shared/EmptyState';
 import { ConfirmationDialog } from '../../components/admin/shared/ConfirmationDialog';
 import { toast } from 'react-hot-toast';
 import { formatINR } from '../../services/pricing/pricingUtils';
-import { Modal } from '../../components/ui/Modal'; // Adjust import if Modal doesn't exist here
 
 export function Coupons() {
   const { data: coupons = [], isLoading, isError, refetch } = useCoupons();
@@ -284,15 +283,15 @@ export function Coupons() {
         <ConfirmationDialog
           isOpen={true}
           title="Delete Coupon"
-          message={`Are you sure you want to delete the coupon ${deleteConfirm.code}? This action cannot be undone.`}
-          confirmLabel="Delete"
-          cancelLabel="Cancel"
+          description={`Are you sure you want to delete the coupon ${deleteConfirm.code}? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
           onConfirm={async () => {
             await deleteCoupon.mutateAsync(deleteConfirm.id);
             setDeleteConfirm(null);
             toast.success('Coupon deleted');
           }}
-          onCancel={() => setDeleteConfirm(null)}
+          onClose={() => setDeleteConfirm(null)}
           variant="danger"
         />
       )}

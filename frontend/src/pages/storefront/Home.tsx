@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 
 import { useProducts } from '../../hooks/useProducts';
-import { useHomepage } from '../../hooks/useHomepage';
+import { useHomepage, DEFAULT_HOMEPAGE_SETTINGS } from '../../hooks/useHomepage';
 import { useSettings } from '../../hooks/useSettings';
 import { useReviews } from '../../hooks/useReviews';
 import { buttonVariants } from '../../components/ui';
@@ -309,7 +309,7 @@ function useInfiniteLoopCarousel({
 
 export function Home() {
   const { data: products = [], isLoading } = useProducts();
-  const { data: homepageSettings } = useHomepage();
+  const { data: homepageSettings, isLoading: isHomepageLoading } = useHomepage();
   const { data: settings } = useSettings();
   const { data: reviews = [] } = useReviews();
   const prefersReducedMotion = useReducedMotion();
@@ -351,13 +351,28 @@ export function Home() {
   const heroParallaxY = useTransform(scrollYProgress, [0, 1], ['0%', '18%']);
 
   /* Hero Content & Media Resolution from Storefront CMS */
-  const heroConfig = homepageSettings?.hero;
-  const isVideoEnabled = heroConfig?.enableVideo !== false;
-  const showHeroText = !isVideoEnabled || heroConfig?.showVideoTextOverlay === true;
+  const rawHero = homepageSettings?.hero;
+  const defaultHero = DEFAULT_HOMEPAGE_SETTINGS.hero;
+  const heroConfig = useMemo(() => ({
+    badgeText: rawHero?.badgeText?.trim() || defaultHero.badgeText,
+    headline: rawHero?.headline?.trim() || defaultHero.headline,
+    subheadline: rawHero?.subheadline?.trim() || defaultHero.subheadline,
+    primaryCtaText: rawHero?.primaryCtaText?.trim() || defaultHero.primaryCtaText,
+    primaryCtaLink: rawHero?.primaryCtaLink?.trim() || defaultHero.primaryCtaLink,
+    secondaryCtaText: rawHero?.secondaryCtaText?.trim() || defaultHero.secondaryCtaText,
+    secondaryCtaLink: rawHero?.secondaryCtaLink?.trim() || defaultHero.secondaryCtaLink,
+    heroVideoUrl: rawHero?.heroVideoUrl?.trim() || defaultHero.heroVideoUrl,
+    heroPosterUrl: rawHero?.heroPosterUrl?.trim() || defaultHero.heroPosterUrl,
+    enableVideo: rawHero?.enableVideo ?? defaultHero.enableVideo,
+    showVideoTextOverlay: rawHero?.showVideoTextOverlay ?? defaultHero.showVideoTextOverlay,
+  }), [rawHero, defaultHero]);
+
+  const isVideoEnabled = heroConfig.enableVideo !== false;
+  const showHeroText = !isVideoEnabled || heroConfig.showVideoTextOverlay !== false;
 
   const heroMediaUrl = useMemo(() => {
     if (!isVideoEnabled) return '';
-    const custom = (heroConfig?.heroVideoUrl || homepageSettings?.heroVideoUrl)?.trim();
+    const custom = heroConfig?.heroVideoUrl?.trim();
     if (
       custom &&
       !custom.includes('mixkit.co') &&
@@ -366,8 +381,10 @@ export function Home() {
     ) {
       return custom;
     }
+    // Do not eagerly load or start the 4.4MB bundled demo video while homepage config is loading
+    if (isHomepageLoading) return '';
     return demoVideo;
-  }, [heroConfig?.heroVideoUrl, homepageSettings?.heroVideoUrl, isVideoEnabled]);
+  }, [heroConfig?.heroVideoUrl, isVideoEnabled, isHomepageLoading]);
 
   const isHeroVideo = useMemo(() => {
     if (!isVideoEnabled || !heroMediaUrl) return false;
@@ -381,7 +398,8 @@ export function Home() {
   }, [heroMediaUrl, isVideoEnabled]);
 
   const heroPosterImage = heroConfig?.heroPosterUrl?.trim() || undefined;
-  const sectionVisibility = homepageSettings?.sectionVisibility;
+  // Guard section visibility during cold initial loading so disabled sections do not flash on screen
+  const sectionVisibility = isHomepageLoading ? undefined : homepageSettings?.sectionVisibility;
 
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
@@ -489,7 +507,7 @@ export function Home() {
       {sectionVisibility?.hero !== false && (
       <section
         ref={heroRef}
-        className="relative overflow-hidden bg-[#0d0d0f] min-h-[580px] sm:h-[580px] lg:h-[680px] w-full flex items-end justify-center pb-16 sm:pb-24 pt-32"
+        className="relative overflow-hidden bg-[#0d0d0f] min-h-[420px] sm:min-h-0 sm:h-[580px] lg:h-[680px] w-full flex items-end justify-center pb-8 pt-20 sm:pb-24 sm:pt-32"
       >
         {/* Parallax Background Stage (Video / GIF / High-Res Poster) */}
         <motion.div
@@ -512,18 +530,22 @@ export function Home() {
             >
               <source src={heroMediaUrl} type="video/webm" />
               <source src={heroMediaUrl} type="video/mp4" />
-              <img
-                src={heroPosterImage}
-                alt="Shilp Sahayak 3D Fabrication Studio"
-                className="w-full h-full object-cover object-center"
-              />
+              {heroPosterImage && (
+                <img
+                  src={heroPosterImage}
+                  alt="Shilp Sahayak 3D Fabrication Studio"
+                  className="w-full h-full object-cover object-center"
+                />
+              )}
             </video>
-          ) : (
+          ) : (heroMediaUrl || heroPosterImage) ? (
             <img
               src={heroMediaUrl || heroPosterImage}
               alt="Shilp Sahayak 3D Fabrication Studio"
               className="w-full h-full object-cover object-center"
             />
+          ) : (
+            <div className="w-full h-full bg-[#0d0d0f]" />
           )}
         </motion.div>
 
@@ -653,18 +675,18 @@ export function Home() {
               <button
                 type="button"
                 onClick={featuredCarousel.stepPrev}
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
                 aria-label="Previous products"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-5 w-5" />
               </button>
               <button
                 type="button"
                 onClick={featuredCarousel.stepNext}
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
                 aria-label="Next products"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-5 w-5" />
               </button>
             </div>
           </div>
@@ -710,7 +732,7 @@ export function Home() {
               {extendedFeaturedProducts.map((product) => (
                 <div
                   key={product._carouselKey}
-                  className="w-[240px] xs:w-[250px] sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)] shrink-0"
+                  className="w-[min(260px,85vw)] sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)] shrink-0"
                 >
                   <ProductCard product={product} />
                 </div>
@@ -768,8 +790,7 @@ export function Home() {
                   Upload your 3D CAD file for instant geometric volume analysis, theoretical weight calculation, and workshop pricing.
                 </p>
 
-                {/* 3-Step Visual CAD Pipeline */}
-                <div className="grid grid-cols-3 gap-2.5 pt-1 font-mono text-[11px]">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 font-mono text-[11px]">
                   <div className="rounded-xl border-2 border-ink bg-zinc-900/80 p-3 text-center space-y-1 group/step hover:border-accent/40 transition-colors">
                     <span className="text-accent font-bold block text-xs group-hover/step:scale-105 transition-transform">01. Upload</span>
                     <span className="text-zinc-400 text-[10px]">STL / OBJ / 3MF</span>
@@ -793,7 +814,7 @@ export function Home() {
                     <span className="font-mono text-[10px] text-zinc-500">Tap to switch</span>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-1.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                     {MATERIALS_PREVIEW.map((mat) => (
                       <button
                         key={mat.id}
@@ -819,8 +840,7 @@ export function Home() {
                       initial={{ opacity: 0, y: 4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.2 }}
-                      className="grid grid-cols-2 gap-2 text-[11px] font-mono"
+                      className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono"
                     >
                       <div className="bg-zinc-950/60 p-2.5 rounded-xl border-2 border-ink">
                         <span className="text-zinc-500 block text-[9px]">DENSITY</span>
@@ -834,10 +854,10 @@ export function Home() {
                   </AnimatePresence>
                 </div>
 
-                <div className="flex flex-wrap gap-3 pt-1">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-1">
                   <Link
                     to={homepageSettings?.customPromoButtonLink || '/shilp-studio'}
-                    className={buttonVariants({ variant: 'primary', size: 'md' })}
+                    className={`w-full sm:w-auto ${buttonVariants({ variant: 'primary', size: 'md' })}`}
                   >
                     <UploadCloud className="w-4 h-4" />
                     <span>{homepageSettings?.customPromoButtonText || 'Launch Shilp Studio'}</span>
@@ -846,7 +866,7 @@ export function Home() {
                     href={whatsappLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={buttonVariants({ variant: 'whatsapp', size: 'md' })}
+                    className={`w-full sm:w-auto ${buttonVariants({ variant: 'whatsapp', size: 'md' })}`}
                   >
                     <MessageSquare className="w-4 h-4" />
                     <span>Consult on WhatsApp</span>
@@ -891,18 +911,18 @@ export function Home() {
                 <button
                   type="button"
                   onClick={categoryCarousel.stepPrev}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
                   aria-label="Previous categories"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-5 w-5" />
                 </button>
                 <button
                   type="button"
                   onClick={categoryCarousel.stepNext}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-ink shadow-xs active:scale-95 transition-all"
                   aria-label="Next categories"
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-5 w-5" />
                 </button>
               </div>
             </div>
@@ -945,7 +965,7 @@ export function Home() {
               {extendedCategories.map((cat) => (
                 <div
                   key={cat._carouselKey}
-                  className="w-[220px] xs:w-[240px] sm:w-[280px] lg:w-[320px] shrink-0"
+                  className="w-[min(260px,85vw)] sm:w-[280px] lg:w-[320px] shrink-0"
                 >
                   <Link
                     to={`/shop?category=${encodeURIComponent(cat.name)}`}
@@ -1008,11 +1028,11 @@ export function Home() {
               </p>
             </div>
 
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {reviews.slice(0, 6).map((r, idx) => (
                 <div
                   key={r.id || idx}
-                  className="rounded-2xl bg-white p-6 border border-line shadow-2xs space-y-4 flex flex-col justify-between hover:shadow-card hover:-translate-y-1 transition-all duration-300"
+                  className="rounded-xl sm:rounded-2xl bg-white p-4 sm:p-6 border border-line shadow-2xs space-y-3 sm:space-y-4 flex flex-col justify-between hover:shadow-card hover:-translate-y-1 transition-all duration-300"
                 >
                   <div className="space-y-3">
                     <div className="flex items-center gap-1 text-amber-400">
@@ -1060,17 +1080,17 @@ export function Home() {
             <p className="font-sans text-xs sm:text-sm text-muted max-w-md mx-auto leading-relaxed">
               Explore our ready-to-ship 3D printed catalog or upload your CAD file for custom fabrication.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 pt-2">
               <Link
                 to="/shop"
-                className={buttonVariants({ variant: 'primary', size: 'lg' })}
+                className={`w-full sm:w-auto ${buttonVariants({ variant: 'primary', size: 'lg' })}`}
               >
                 <span>Shop Catalog</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 to="/shilp-studio"
-                className={buttonVariants({ variant: 'secondary', size: 'lg' })}
+                className={`w-full sm:w-auto ${buttonVariants({ variant: 'secondary', size: 'lg' })}`}
               >
                 <span>Start a Custom Print</span>
               </Link>
@@ -1078,7 +1098,7 @@ export function Home() {
                 href={whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={buttonVariants({ variant: 'outline', size: 'lg' })}
+                className={`w-full sm:w-auto ${buttonVariants({ variant: 'outline', size: 'lg' })}`}
               >
                 <MessageSquare className="w-4 h-4" />
                 <span>Chat on WhatsApp</span>
@@ -1091,5 +1111,3 @@ export function Home() {
     </div>
   );
 }
-
-

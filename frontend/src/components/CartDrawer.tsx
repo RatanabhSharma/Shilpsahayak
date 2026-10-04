@@ -190,13 +190,13 @@ export function CartDrawer() {
                 <div className="flex justify-between text-muted">
                   <span>Estimated Shipping</span>
                   <span className="font-mono font-semibold text-ink">
-                    {subtotal >= freeThreshold ? 'FREE' : `₹${settings.shippingFlatRate ?? 150}`}
+                    {subtotal >= freeThreshold ? 'FREE' : `₹${settings?.shippingFlatRate ?? 99}`}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm font-bold text-ink pt-2 border-t border-line">
                   <span className="font-display">Total</span>
                   <span className="font-mono text-accent text-base">
-                    ₹{(subtotal + (subtotal >= freeThreshold ? 0 : (settings.shippingFlatRate ?? 150))).toFixed(2)}
+                    ₹{(subtotal + (subtotal >= freeThreshold ? 0 : (settings?.shippingFlatRate ?? 99))).toFixed(2)}
                   </span>
                 </div>
               </div>

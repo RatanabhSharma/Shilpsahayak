@@ -179,18 +179,23 @@ export type QuoteRequest = {
 /* -------------------------------------------------------------------------- */
 
 export type PrivateSettings = {
-notifications?: {
+  notifications?: {
     newOrderAlerts: boolean;
     quoteAlerts: boolean;
     lowStockAlerts: boolean;
     alertEmailRecipient: string;
   };
-
+  adminUsers?: Array<{
+    email: string;
+    role: string;
+    addedAt: string;
+  }>;
 };
 
 export type Settings = {
   // Business Information
   businessName: string;
+  logoUrl?: string;
   email: string;
   phone: string;
   whatsappNumber: string;
@@ -228,10 +233,10 @@ const INITIAL_SETTINGS: Settings = {
   address:
     'Patiala, Punjab',
 
-  shippingFlatRate: 150,
-  freeShippingThreshold: 499,
+  shippingFlatRate: 99,
+  freeShippingThreshold: 999,
 
-  upiId: 'shilpsahayak@okhdfcbank'
+  upiId: 'shilpsahayak@okaxis'
 };
 
 /* -------------------------------------------------------------------------- */
@@ -769,5 +774,4 @@ export const useStore =
       }
     )
   );
-
 

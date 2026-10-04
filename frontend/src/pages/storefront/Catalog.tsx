@@ -997,7 +997,7 @@ export function Catalog() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.4 }}
-                className="mt-5 sm:mt-7 grid w-full gap-2.5 xs:gap-3.5 sm:gap-6 grid-cols-2 xl:grid-cols-3"
+                className="mt-5 sm:mt-7 grid w-full gap-3 sm:gap-6 grid-cols-[repeat(auto-fill,minmax(145px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(240px,1fr))]"
               >
                 {filteredProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />

@@ -33,7 +33,7 @@ export function StatCard({
   return (
     <div
       onClick={onClick}
-      className={`rounded-xl border bg-white p-5 shadow-xs transition-all ${
+      className={`rounded-xl border bg-white p-3.5 sm:p-5 shadow-xs transition-all ${
         danger
           ? 'border-rose-200 bg-rose-50/30'
           : warning
@@ -41,10 +41,10 @@ export function StatCard({
           : 'border-line hover:border-accent/30'
       } ${isClickable ? 'cursor-pointer hover:shadow-sm' : ''} ${className}`}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0 flex-1">
           <p
-            className={`font-mono text-[10px] font-bold uppercase tracking-wider ${
+            className={`font-mono text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${
               danger
                 ? 'text-rose-700'
                 : warning
@@ -55,7 +55,7 @@ export function StatCard({
             {title}
           </p>
           <p
-            className={`mt-2 font-mono text-2xl font-bold tracking-tight truncate ${
+            className={`mt-1 sm:mt-2 font-mono text-lg sm:text-2xl font-bold tracking-tight truncate ${
               danger
                 ? 'text-rose-600'
                 : warning

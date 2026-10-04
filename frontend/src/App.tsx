@@ -7,6 +7,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { CustomerRoute } from './components/CustomerRoute';
 import { GlobalLoadingBar } from './components/loading/GlobalLoadingBar';
 import { ScrollToTop } from './components/ScrollToTop';
+import { DynamicFavicon } from './components/DynamicFavicon';
 import { NotificationProvider } from './components/NotificationContext';
 
 // Storefront
@@ -50,6 +51,7 @@ export function App() {
     <NotificationProvider>
       <Toaster position="top-right" />
       <BrowserRouter>
+        <DynamicFavicon />
         <ScrollToTop />
         <GlobalLoadingBar />
         <Routes>

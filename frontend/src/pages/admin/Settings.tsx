@@ -9,7 +9,6 @@ import {
   Loader2,
   Store,
   Truck,
-  CreditCard,
   Save,
   Layers,
   Bell,
@@ -29,8 +28,6 @@ import {
   usePrivateSettings,
   useUpdatePrivateSettings
 } from '../../hooks/useSettings';
-import { useAuth } from '../../hooks/useAuth';
-import { useUserRole } from '../../hooks/useUserRole';
 import { PricingSettingsTab } from '../../components/admin/PricingSettingsTab';
 import { PrinterProfilesTab } from '../../components/admin/PrinterProfilesTab';
 import { useNotification } from '../../components/NotificationContext';
@@ -53,8 +50,6 @@ export function Settings() {
   };
 
   const localSettings = useStore((state) => state.settings);
-  const { user } = useAuth();
-  const { role } = useUserRole();
   const notify = useNotification();
 
   const { data: firestoreSettings, isLoading: isLoadingPub, isError: isErrorPub, refetch: refetchPub } = useSettings();

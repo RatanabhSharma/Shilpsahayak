@@ -58,7 +58,7 @@ export function DataTable<T>({
   return (
     <div className={`rounded-xl border border-line bg-white shadow-xs overflow-hidden flex flex-col ${className}`}>
       <div className="overflow-x-auto min-h-[160px]">
-        <table className="w-full border-collapse">
+        <table className="w-full min-w-max border-collapse">
           <thead>
             <tr className="bg-shell/50 border-b border-line text-[10px] font-mono font-bold uppercase tracking-wider text-muted select-none">
               {columns.map((col) => {

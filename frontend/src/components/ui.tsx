@@ -41,7 +41,9 @@ export function BrandLogo({
   showText = true,
 }: BrandLogoProps) {
   const { data: branding, isLoading } = useBrandingConfig();
-  const currentTagline = taglineText || branding?.brandTagline || 'If you can imagine it, we can print it.';
+  const currentTagline =
+    taglineText ||
+    (isLoading ? '' : branding?.brandTagline || 'If you can imagine it, we can print it.');
   
   let currentLogo = '';
   if (!isLoading) {
@@ -55,7 +57,7 @@ export function BrandLogo({
   }
 
   const markSizes = {
-    sm: 'h-7.5 w-7.5 sm:h-8 sm:w-8 rounded-lg',
+    sm: 'h-8 w-8 sm:h-8 sm:w-8 rounded-lg',
     md: 'h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl',
     lg: 'h-12 w-12 sm:h-14 sm:w-14 rounded-2xl',
     xl: 'h-16 w-16 sm:h-20 sm:w-20 rounded-2xl',

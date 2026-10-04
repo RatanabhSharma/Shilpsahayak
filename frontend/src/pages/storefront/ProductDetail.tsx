@@ -588,19 +588,19 @@ export function ProductDetail() {
 
                 {/* Price Display */}
                 <div className="mt-5 flex flex-col gap-2 border-y border-line py-4">
-                  <div className="flex items-baseline justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1.5">
                     <div>
                       <span className="font-mono text-xs text-muted block uppercase">Price</span>
-                      <div className="flex items-baseline gap-2.5">
-                        <span className="font-mono text-3xl font-bold text-ink">
+                      <div className="flex flex-wrap items-baseline gap-2 sm:gap-2.5">
+                        <span className="font-mono text-2xl sm:text-3xl font-bold text-ink">
                           ₹{currentPrice.toLocaleString('en-IN')}
                         </span>
                         {discountPercent > 0 && currentOriginalPrice > currentPrice && (
                           <>
-                            <span className="font-mono text-sm text-muted line-through">
+                            <span className="font-mono text-xs sm:text-sm text-muted line-through">
                               ₹{currentOriginalPrice.toLocaleString('en-IN')}
                             </span>
-                            <span className="rounded-full bg-emerald-600 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-white shadow-sm">
+                            <span className="rounded-full bg-emerald-600 px-2.5 py-0.5 font-mono text-xs font-bold uppercase text-white shadow-sm">
                               Save {discountPercent}%
                             </span>
                           </>
@@ -608,7 +608,7 @@ export function ProductDetail() {
                       </div>
                     </div>
 
-                    <span className="font-mono text-xs text-accent font-semibold">
+                    <span className="font-mono text-[11px] sm:text-xs text-accent font-semibold">
                       {settings?.freeShippingThreshold ? `Free shipping > ₹${settings.freeShippingThreshold}` : 'Free shipping on qualified orders'}
                     </span>
                   </div>

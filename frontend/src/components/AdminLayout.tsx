@@ -16,20 +16,12 @@ import {
   Layers,
   ChevronDown,
   Star,
-  Compass,
   Palette,
-  Image,
-  Globe,
-  FileCheck,
   Tag,
-  Megaphone,
-  FolderTree,
   Sliders,
   Bell,
-  ShieldCheck,
   Truck,
   Printer,
-  CreditCard,
   Building2,
 } from 'lucide-react';
 import { BrandLogo } from './ui';
@@ -47,11 +39,6 @@ interface NavItemConfig {
   children?: Omit<NavItemConfig, 'children'>[];
 }
 
-interface NavGroupConfig {
-  group: string;
-  items: NavItemConfig[];
-}
-
 export function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -61,7 +48,6 @@ export function AdminLayout() {
   const navigate = useNavigate();
   const { data: settings } = useSettings();
   const businessName = settings?.businessName || 'Shilp Sahayak';
-  const businessAddress = settings?.address || 'Patiala Studio';
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -218,7 +204,7 @@ export function AdminLayout() {
   // Check active navigation link against current pathname & search query
     const allNavItems = navItems.flatMap((item) => [item, ...(item.children || [])]);
   const currentNav = allNavItems.find((item) => {
-    if (item.children) return false;
+    if ('children' in item && item.children) return false;
     if (item.isComingSoon) return false;
     if (item.isSettingsTab) {
       return (
@@ -419,11 +405,11 @@ export function AdminLayout() {
         <header className="h-16 bg-white/90 backdrop-blur-md border-b border-line flex items-center justify-between px-5 sm:px-8 sticky top-0 z-30">
           <div className="flex items-center gap-3">
             <button
-              className="lg:hidden p-1.5 text-muted hover:text-ink hover:bg-shell rounded-lg"
+              className="lg:hidden inline-flex h-10 w-10 shrink-0 items-center justify-center text-ink hover:bg-shell rounded-lg"
               onClick={() => setIsSidebarOpen(true)}
               aria-label="Open navigation menu"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-6 h-6" />
             </button>
             <div className="flex items-center gap-2">
               <span className="font-mono text-xs font-medium text-muted">Admin</span>
@@ -529,8 +515,6 @@ export function AdminLayout() {
     </div>
   );
 }
-
-
 
 
 

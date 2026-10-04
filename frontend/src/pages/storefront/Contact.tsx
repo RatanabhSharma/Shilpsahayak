@@ -104,7 +104,7 @@ export function Contact() {
               <span className="font-mono text-xs font-bold uppercase tracking-wider text-muted block mb-3">
                 How We Can Help
               </span>
-              <ul className="space-y-2 font-sans text-xs text-muted">
+              <ul className="space-y-2 font-sans text-xs sm:text-sm text-muted">
                 <li className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 rounded-full bg-accent" />
                   <span>CAD file design & slicing feasibility</span>
@@ -215,16 +215,19 @@ export function Contact() {
 
               {/* Studio Address Card */}
               {address && (
-                <div className="flex items-start gap-4 rounded-3xl border border-line bg-white p-5 shadow-soft">
+                <div className="flex items-start gap-4 rounded-3xl border border-line bg-white/70 p-5 shadow-soft">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-shell text-ink">
                     <MapPin className="h-6 w-6 text-accent" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-display text-base font-bold text-ink">Workshop Studio</h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-display text-base font-bold text-ink">Workshop Studio</h3>
+                      <Badge variant="default">Location</Badge>
+                    </div>
                     <p className="font-sans text-xs text-muted mt-1 leading-relaxed">
                       {address}
                     </p>
-                    <div className="flex items-center gap-1.5 mt-2 font-mono text-[11px] text-muted">
+                    <div className="flex items-center gap-1.5 mt-2 font-mono text-xs text-muted">
                       <Clock className="h-3.5 w-3.5" />
                       <span>Mon - Sat: 9:00 AM – 7:00 PM IST</span>
                     </div>
@@ -248,7 +251,7 @@ export function Contact() {
                 rel="noopener noreferrer"
                 className="inline-block"
               >
-                <Button size="sm" variant="primary" className="bg-emerald-600 hover:bg-emerald-700 border-emerald-600">
+                <Button size="md" variant="primary" className="min-h-[40px] bg-emerald-600 hover:bg-emerald-700 border-emerald-600">
                   <span>Chat on WhatsApp</span>
                   <ArrowRight className="ml-1 h-3.5 w-3.5" />
                 </Button>
@@ -350,7 +353,7 @@ export function Contact() {
                     )}
 
                     <div className="flex flex-col gap-4 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
-                      <p className="font-mono text-[11px] text-muted leading-relaxed max-w-sm">
+                      <p className="font-mono text-xs text-muted leading-relaxed max-w-sm">
                         🔒 Your details will only be used to respond to this inquiry and will be
                         kept confidential. See our{' '}
                         <a
@@ -366,9 +369,10 @@ export function Contact() {
 
                       <Button
                         type="submit"
-                        size="md"
+                        size="lg"
                         variant="primary"
                         disabled={submitting}
+                        className="w-full sm:w-auto min-h-[42px] font-bold"
                       >
                         {submitting ? (
                           <>

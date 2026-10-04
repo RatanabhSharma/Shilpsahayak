@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Palette, CheckCircle2, Loader2, Image as ImageIcon, Link as LinkIcon, Trash2 } from 'lucide-react';
+import { CheckCircle2, Loader2, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { useBrandingConfig, useUpdateBrandingConfig } from '../../hooks/useBranding';
 import { useNotification } from '../../components/NotificationContext';
 import { Button, Input } from '../../components/ui';
@@ -172,6 +172,38 @@ export function Branding() {
                   <div className="relative shrink-0">
                     <Input type="file" accept="image/*" onChange={(e) => handleUpload(e, 'darkLogoUrl')} className="absolute inset-0 opacity-0 cursor-pointer w-full" disabled={isUploading.darkLogoUrl} />
                     <Button variant="secondary" type="button" isLoading={isUploading.darkLogoUrl}>Upload</Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Favicon */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted font-mono">Favicon (Browser Tab Icon)</label>
+              <div className="flex flex-col gap-3">
+                {form.faviconUrl ? (
+                  <div className="relative group rounded-xl border border-line bg-shell flex items-center justify-center p-4 min-h-[120px]">
+                    <img src={form.faviconUrl} alt="Favicon" className="h-10 w-10 object-contain rounded-md" />
+                    <button type="button" onClick={() => handleRemove('faviconUrl')} className="absolute top-2 right-2 p-1.5 bg-white rounded-lg shadow-sm border border-line opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:bg-red-50">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-line bg-shell flex flex-col items-center justify-center p-6 min-h-[120px]">
+                    <ImageIcon className="w-6 h-6 text-muted mb-2" />
+                    <span className="text-xs text-muted">Default favicon (/images/logo.png)</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Input 
+                    placeholder="https://..." 
+                    value={form.faviconUrl || ''} 
+                    onChange={e => setForm({...form, faviconUrl: e.target.value})}
+                    className="flex-1"
+                  />
+                  <div className="relative shrink-0">
+                    <Input type="file" accept="image/png,image/x-icon,image/svg+xml,image/jpeg,image/webp,.ico" onChange={(e) => handleUpload(e, 'faviconUrl')} className="absolute inset-0 opacity-0 cursor-pointer w-full" disabled={isUploading.faviconUrl} />
+                    <Button variant="secondary" type="button" isLoading={isUploading.faviconUrl}>Upload</Button>
                   </div>
                 </div>
               </div>

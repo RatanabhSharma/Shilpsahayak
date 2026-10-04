@@ -528,7 +528,7 @@ export function CustomService() {
             {/* Quick Specs Pill Badges */}
             <div className="grid grid-cols-3 gap-3 rounded-2xl border border-line bg-shell p-4 lg:col-span-5">
               <div>
-                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-muted block">
                   Build Envelope
                 </span>
                 <span className="font-display text-xs sm:text-sm font-bold text-ink">
@@ -537,7 +537,7 @@ export function CustomService() {
               </div>
 
               <div>
-                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-muted block">
                   Turnaround
                 </span>
                 <span className="font-display text-xs sm:text-sm font-bold text-ink">
@@ -546,7 +546,7 @@ export function CustomService() {
               </div>
 
               <div>
-                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted block">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-muted block">
                   Supported Files
                 </span>
                 <span className="font-display text-xs sm:text-sm font-bold text-ink">
@@ -657,7 +657,7 @@ export function CustomService() {
                         }`}>
                           <Icon className="h-5 w-5" />
                         </div>
-                        <span className={`mt-0.5 rounded-full px-2 py-0.5 font-mono text-[10px] font-bold ${
+                        <span className={`mt-0.5 rounded-full px-2.5 py-0.5 font-mono text-xs font-bold ${
                           isActive ? 'bg-accent text-white' : 'bg-line text-muted'
                         }`}>
                           {item.badge}

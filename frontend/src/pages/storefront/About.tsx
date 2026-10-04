@@ -98,11 +98,11 @@ export function About() {
 
                 <div className="grid grid-cols-2 gap-4 border-t border-zinc-800 pt-5 text-xs font-mono">
                   <div>
-                    <span className="text-zinc-500 block text-[10px] uppercase">Fabrication</span>
+                    <span className="text-zinc-500 block text-xs uppercase font-semibold">Fabrication</span>
                     <span className="font-bold text-accent text-base">FDM & SLA</span>
                   </div>
                   <div>
-                    <span className="text-zinc-500 block text-[10px] uppercase">Quality</span>
+                    <span className="text-zinc-500 block text-xs uppercase font-semibold">Quality</span>
                     <span className="font-bold text-white text-base">Hand-Checked</span>
                   </div>
                 </div>
@@ -124,7 +124,7 @@ export function About() {
             </h2>
           </div>
 
-          <div className="lg:col-span-8 space-y-4 font-sans text-xs sm:text-sm text-muted leading-relaxed">
+          <div className="lg:col-span-8 space-y-4 font-sans text-sm sm:text-base text-muted leading-relaxed max-w-3xl">
             <p>
               A 3D printer is only as good as the engineering discipline behind it. Orientation, infill patterns, cooling curves, nozzle temperatures, and mechanical calibration dictate whether a printed gear can withstand high torque or if an architectural scale model will display crisp facade details.
             </p>
@@ -201,7 +201,7 @@ export function About() {
                     className="flex items-start gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4"
                   >
                     <CheckCircle2 className="h-5 w-5 shrink-0 text-accent mt-0.5" />
-                    <span className="font-sans text-xs text-zinc-300 leading-relaxed font-medium">
+                    <span className="font-sans text-xs sm:text-sm text-zinc-300 leading-relaxed font-medium">
                       {principle}
                     </span>
                   </div>

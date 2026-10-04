@@ -21,7 +21,6 @@ import {
   QuoteStatus,
   Quote,
 } from '../../hooks/useQuotes';
-import { useCreateOrder } from '../../hooks/useOrders';
 import { useAuth } from '../../hooks/useAuth';
 import { doc, collection, runTransaction } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -94,7 +93,6 @@ export function Quotes() {
 
   const updateQuote = useUpdateQuote();
   const deleteQuote = useDeleteQuote();
-  const createOrder = useCreateOrder();
   const notify = useNotification();
 
   // Search & Filter state

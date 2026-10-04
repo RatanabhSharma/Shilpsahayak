@@ -263,8 +263,8 @@ export function Checkout() {
     0
   );
 
-  const shippingRate = settings?.shippingFlatRate ?? 150;
-  const freeShippingThreshold = settings?.freeShippingThreshold ?? 499;
+  const shippingRate = settings?.shippingFlatRate ?? 99;
+  const freeShippingThreshold = settings?.freeShippingThreshold ?? 999;
   let shipping = subtotal >= freeShippingThreshold ? 0 : shippingRate;
   
   if (appliedCoupon?.type === 'free_shipping') {
