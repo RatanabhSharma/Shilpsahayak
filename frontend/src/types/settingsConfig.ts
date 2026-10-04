@@ -103,10 +103,15 @@ export interface StorefrontHero {
   subheadline: string;
   primaryCtaText: string;
   primaryCtaLink: string;
+  enablePrimaryCta?: boolean;
   secondaryCtaText: string;
   secondaryCtaLink: string;
+  enableSecondaryCta?: boolean;
   heroVideoUrl?: string;
   heroPosterUrl?: string;
+  heroImageUrl?: string;
+  heroImageMode?: 'image' | 'slideshow';
+  heroSlideshowImageUrls?: string[];
   enableVideo?: boolean;
   showVideoTextOverlay?: boolean;
 }
@@ -131,6 +136,7 @@ export interface StorefrontConfig {
   customPromoTitle?: string;
   customPromoButtonText?: string;
   customPromoButtonLink?: string;
+  customPromoButtonEnabled?: boolean;
   sectionVisibility?: Partial<StorefrontSectionVisibility>;
   updatedAt?: string;
   updatedBy?: string;

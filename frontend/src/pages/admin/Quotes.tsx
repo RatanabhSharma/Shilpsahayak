@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -109,6 +109,13 @@ export function Quotes() {
   const [quoteToConvert, setQuoteToConvert] = useState<Quote | null>(null);
   const [quoteToDelete, setQuoteToDelete] = useState<Quote | null>(null);
   const [isConverting, setIsConverting] = useState(false);
+
+  useEffect(() => {
+    setSelectedQuote((current) => {
+      if (!current) return current;
+      return quotes.find((quote) => quote.id === current.id) || current;
+    });
+  }, [quotes]);
 
   // Metrics calculation
   const metrics = useMemo(() => {

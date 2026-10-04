@@ -195,7 +195,6 @@ export type PrivateSettings = {
 export type Settings = {
   // Business Information
   businessName: string;
-  logoUrl?: string;
   email: string;
   phone: string;
   whatsappNumber: string;
@@ -774,4 +773,3 @@ export const useStore =
       }
     )
   );
-

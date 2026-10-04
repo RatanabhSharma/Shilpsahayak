@@ -7,7 +7,6 @@ import React, {
 import { Check, ChevronDown } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import brandLogoImg from '../assets/pictures/logo.png';
 import { useBrandingConfig } from '../hooks/useBranding';
 
 /* =========================================================
@@ -51,8 +50,6 @@ export function BrandLogo({
       currentLogo = branding.darkLogoUrl;
     } else if (branding?.primaryLogoUrl) {
       currentLogo = branding.primaryLogoUrl;
-    } else {
-      currentLogo = brandLogoImg;
     }
   }
 

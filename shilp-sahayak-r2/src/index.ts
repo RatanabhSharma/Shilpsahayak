@@ -37,6 +37,8 @@ const ALLOWED_EXTENSIONS = [
   ".jpg",
   ".jpeg",
   ".webp",
+  ".mp4",
+  ".webm",
 ];
 
 const STRICT_ALLOWED_ORIGINS = new Set([
@@ -2324,13 +2326,34 @@ export default {
         }
 
         const extension = getFileExtension(fileName);
+        const isHeroVideo = extension === ".mp4" || extension === ".webm";
+
+        if (isHeroVideo) {
+          if (!authHeader || uid === "guest") {
+            return jsonResponse(
+              request,
+              { success: false, error: "Authentication required for hero video uploads." },
+              401
+            );
+          }
+
+          const adminToken = await getPrivilegedFirestoreAccessToken(env);
+          const userDoc = await getFirestoreDoc(projectId, "users", uid, apiKey, adminToken);
+          if (userDoc?.role !== "admin") {
+            return jsonResponse(
+              request,
+              { success: false, error: "Only admins can upload hero videos." },
+              403
+            );
+          }
+        }
 
         if (!ALLOWED_EXTENSIONS.includes(extension)) {
           return jsonResponse(
             request,
             {
               success: false,
-              error: "Unsupported file type. Allowed files: STL, OBJ and 3MF.",
+              error: "Unsupported file type. Allowed files: STL, OBJ, 3MF, ZIP, PNG, JPG, JPEG, WEBP, MP4 and WEBM.",
             },
             400
           );
@@ -3322,5 +3345,4 @@ export default {
     );
   },
 } satisfies ExportedHandler<Env>;
-
 

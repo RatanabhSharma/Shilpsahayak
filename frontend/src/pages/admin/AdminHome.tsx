@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import {
   CheckCircle2,
   Loader2,
   Save,
   ExternalLink,
+  Plus,
+  Trash2,
+  Upload,
 } from 'lucide-react';
 
 import { useProducts } from '../../hooks/useProducts';
@@ -16,6 +19,7 @@ import {
 
 // Phase 2 Shared Admin Components
 import { PageHeader } from '../../components/admin/shared/PageHeader';
+import { uploadHeroVideo, uploadProductImage } from '../../utils/uploadFile';
 import toast from 'react-hot-toast';
 
 export function AdminHome() {
@@ -26,6 +30,9 @@ export function AdminHome() {
   const [form, setForm] = useState<HomepageSettings>(DEFAULT_HOMEPAGE_SETTINGS);
   const [showSuccess, setShowSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isUploadingHeroVideo, setIsUploadingHeroVideo] = useState(false);
+  const [isUploadingHeroImage, setIsUploadingHeroImage] = useState(false);
+  const [isUploadingHeroSlide, setIsUploadingHeroSlide] = useState(false);
 
   const activeProducts = useMemo(
     () => products.filter((product) => product.active !== false),
@@ -38,9 +45,75 @@ export function AdminHome() {
     setForm({
       ...DEFAULT_HOMEPAGE_SETTINGS,
       ...savedSettings,
+      hero: {
+        ...DEFAULT_HOMEPAGE_SETTINGS.hero,
+        ...savedSettings.hero,
+      },
       featuredProductIds: [...savedSettings.featuredProductIds],
     });
   }, [savedSettings]);
+
+  const handleHeroImageUpload = async (
+    event: ChangeEvent<HTMLInputElement>,
+    target: 'image' | 'slideshow'
+  ) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (!file) return;
+
+    const setUploading = target === 'image' ? setIsUploadingHeroImage : setIsUploadingHeroSlide;
+    setUploading(true);
+    try {
+      const url = await uploadProductImage(file);
+      setForm((current) => ({
+        ...current,
+        hero: {
+          ...current.hero,
+          ...(target === 'image'
+            ? { heroImageUrl: url }
+            : { heroSlideshowImageUrls: [...(current.hero.heroSlideshowImageUrls || []), url] }),
+        },
+      }));
+    } catch (error) {
+      console.error('Failed to upload homepage hero image:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to upload hero image.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeHeroSlide = (index: number) => {
+    setForm((current) => ({
+      ...current,
+      hero: {
+        ...current.hero,
+        heroSlideshowImageUrls: (current.hero.heroSlideshowImageUrls || []).filter(
+          (_, slideIndex) => slideIndex !== index
+        ),
+      },
+    }));
+  };
+
+  const handleHeroVideoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (!file) return;
+
+    setIsUploadingHeroVideo(true);
+    try {
+      const url = await uploadHeroVideo(file);
+      setForm((current) => ({
+        ...current,
+        hero: { ...current.hero, heroVideoUrl: url },
+      }));
+      toast.success('Hero video uploaded. Publish changes to make it live.');
+    } catch (error) {
+      console.error('Failed to upload homepage hero video:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to upload hero video.');
+    } finally {
+      setIsUploadingHeroVideo(false);
+    }
+  };
 
   // Toggle Products
   const toggleProduct = (
@@ -173,6 +246,20 @@ export function AdminHome() {
                 placeholder="/videos/demo_video2.mp4"
                 className="w-full px-3 py-2 text-xs bg-white border border-line rounded-xl outline-none focus:border-accent"
               />
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-line bg-white px-3 py-2 text-xs font-mono font-bold text-ink hover:border-accent">
+                  <Upload className="h-4 w-4 text-accent" />
+                  {isUploadingHeroVideo ? 'Uploading video…' : 'Upload MP4/WebM'}
+                  <input
+                    type="file"
+                    accept="video/mp4,video/webm,.mp4,.webm"
+                    className="sr-only"
+                    disabled={isUploadingHeroVideo}
+                    onChange={(event) => void handleHeroVideoUpload(event)}
+                  />
+                </label>
+                <span className="text-[11px] text-muted">MP4 or WebM, up to 100 MB</span>
+              </div>
             </div>
 
             {/* Enable / Disable Hero Video */}
@@ -180,7 +267,7 @@ export function AdminHome() {
               <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-2">
                 Hero Video
               </label>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, hero: { ...form.hero!, enableVideo: true } })}
@@ -206,10 +293,95 @@ export function AdminHome() {
                 <span className="text-xs text-muted font-sans">
                   {form.hero?.enableVideo !== false
                     ? 'Video is currently enabled on the storefront hero.'
-                    : 'Video is disabled — hero shows a static image fallback.'}
+                    : 'Video is disabled — choose a still image or slideshow below.'}
                 </span>
               </div>
             </div>
+
+            {form.hero?.enableVideo === false && (
+              <div className="md:col-span-2 rounded-xl border border-line bg-shell/30 p-4 space-y-4">
+                <div>
+                  <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1">
+                    Static Hero Display
+                  </label>
+                  <select
+                    value={form.hero?.heroImageMode || 'image'}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        hero: {
+                          ...form.hero!,
+                          heroImageMode: event.target.value as 'image' | 'slideshow',
+                        },
+                      })
+                    }
+                    className="w-full max-w-sm px-3 py-2 text-xs bg-white border border-line rounded-xl outline-none focus:border-accent"
+                  >
+                    <option value="image">Single static image</option>
+                    <option value="slideshow">Slideshow</option>
+                  </select>
+                </div>
+
+                {form.hero?.heroImageMode !== 'slideshow' ? (
+                  <div className="flex flex-wrap items-center gap-3">
+                    {form.hero?.heroImageUrl && (
+                      <img
+                        src={form.hero.heroImageUrl}
+                        alt="Current static hero"
+                        className="h-16 w-28 rounded-lg border border-line bg-white object-cover"
+                      />
+                    )}
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-line bg-white px-3 py-2 text-xs font-mono font-bold text-ink hover:border-accent">
+                      <Upload className="h-4 w-4 text-accent" />
+                      {isUploadingHeroImage ? 'Uploading…' : 'Upload image'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        disabled={isUploadingHeroImage}
+                        onChange={(event) => void handleHeroImageUpload(event, 'image')}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-accent px-3 py-2 text-xs font-mono font-bold text-white hover:bg-accent-dark">
+                      <Plus className="h-4 w-4" />
+                      {isUploadingHeroSlide ? 'Uploading…' : 'Add slideshow image'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        disabled={isUploadingHeroSlide}
+                        onChange={(event) => void handleHeroImageUpload(event, 'slideshow')}
+                      />
+                    </label>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {(form.hero?.heroSlideshowImageUrls || []).map((url, index) => (
+                        <div key={`${url}-${index}`} className="relative">
+                          <img
+                            src={url}
+                            alt={`Hero slideshow image ${index + 1}`}
+                            className="h-24 w-full rounded-lg border border-line bg-white object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeHeroSlide(index)}
+                            aria-label={`Remove slideshow image ${index + 1}`}
+                            className="absolute right-1 top-1 rounded-md bg-white/95 p-1 text-rose-600 shadow-sm hover:bg-rose-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    {(form.hero?.heroSlideshowImageUrls || []).length === 0 && (
+                      <p className="text-xs text-muted">Add at least one image. Slides advance every five seconds.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="md:col-span-2">
               <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1">
@@ -236,15 +408,22 @@ export function AdminHome() {
               />
             </div>
             <div>
-              <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1">
-                Primary CTA Text
+              <label className="mb-1 flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-muted">
+                <input
+                  type="checkbox"
+                  checked={form.hero?.enablePrimaryCta !== false}
+                  onChange={(e) => setForm({ ...form, hero: { ...form.hero!, enablePrimaryCta: e.target.checked } })}
+                  className="accent-[#ff4d00]"
+                />
+                Show Primary CTA
               </label>
               <input
                 type="text"
                 value={form.hero?.primaryCtaText || ''}
                 onChange={(e) => setForm({ ...form, hero: { ...form.hero!, primaryCtaText: e.target.value } })}
                 placeholder="Upload 3D Model"
-                className="w-full px-3 py-2 text-xs bg-white border border-line rounded-xl outline-none focus:border-accent"
+                disabled={form.hero?.enablePrimaryCta === false}
+                className="w-full px-3 py-2 text-xs bg-white border border-line rounded-xl outline-none focus:border-accent disabled:bg-shell disabled:text-muted"
               />
             </div>
             <div>
@@ -260,15 +439,22 @@ export function AdminHome() {
               />
             </div>
             <div>
-              <label className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1">
-                Secondary CTA Text
+              <label className="mb-1 flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-muted">
+                <input
+                  type="checkbox"
+                  checked={form.hero?.enableSecondaryCta !== false}
+                  onChange={(e) => setForm({ ...form, hero: { ...form.hero!, enableSecondaryCta: e.target.checked } })}
+                  className="accent-[#ff4d00]"
+                />
+                Show Secondary CTA
               </label>
               <input
                 type="text"
                 value={form.hero?.secondaryCtaText || ''}
                 onChange={(e) => setForm({ ...form, hero: { ...form.hero!, secondaryCtaText: e.target.value } })}
                 placeholder="Shop Collection"
-                className="w-full px-3 py-2 text-xs bg-white border border-line rounded-xl outline-none focus:border-accent"
+                disabled={form.hero?.enableSecondaryCta === false}
+                className="w-full px-3 py-2 text-xs bg-white border border-line rounded-xl outline-none focus:border-accent disabled:bg-shell disabled:text-muted"
               />
             </div>
             <div>
@@ -394,7 +580,15 @@ export function AdminHome() {
             
             <div>
               <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
-                CTA Button Text
+                <span className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.customPromoButtonEnabled !== false}
+                    onChange={(e) => setForm({ ...form, customPromoButtonEnabled: e.target.checked })}
+                    className="accent-[#ff4d00]"
+                  />
+                  Show CTA Button
+                </span>
               </label>
               <div className="flex gap-2">
                 <input
@@ -404,7 +598,8 @@ export function AdminHome() {
                     setForm({ ...form, customPromoButtonText: e.target.value })
                   }
                   placeholder="Explore Collection"
-                  className="w-full px-3 py-2 text-xs font-mono text-ink bg-white border border-line rounded-xl outline-none focus:border-accent"
+                  disabled={form.customPromoButtonEnabled === false}
+                  className="w-full px-3 py-2 text-xs font-mono text-ink bg-white border border-line rounded-xl outline-none focus:border-accent disabled:bg-shell disabled:text-muted"
                 />
               </div>
             </div>

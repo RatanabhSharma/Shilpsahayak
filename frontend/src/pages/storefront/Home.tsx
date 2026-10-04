@@ -364,16 +364,42 @@ export function Home() {
     subheadline: rawHero?.subheadline?.trim() || defaultHero.subheadline,
     primaryCtaText: rawHero?.primaryCtaText?.trim() || defaultHero.primaryCtaText,
     primaryCtaLink: rawHero?.primaryCtaLink?.trim() || defaultHero.primaryCtaLink,
+    enablePrimaryCta: rawHero?.enablePrimaryCta ?? defaultHero.enablePrimaryCta,
     secondaryCtaText: rawHero?.secondaryCtaText?.trim() || defaultHero.secondaryCtaText,
     secondaryCtaLink: rawHero?.secondaryCtaLink?.trim() || defaultHero.secondaryCtaLink,
+    enableSecondaryCta: rawHero?.enableSecondaryCta ?? defaultHero.enableSecondaryCta,
     heroVideoUrl: rawHero?.heroVideoUrl?.trim() || defaultHero.heroVideoUrl,
-    heroPosterUrl: rawHero?.heroPosterUrl?.trim() || defaultHero.heroPosterUrl,
+    heroImageUrl: rawHero?.heroImageUrl?.trim() || rawHero?.heroPosterUrl?.trim() || defaultHero.heroImageUrl,
+    heroImageMode: rawHero?.heroImageMode ?? defaultHero.heroImageMode,
+    heroSlideshowImageUrls: rawHero?.heroSlideshowImageUrls || defaultHero.heroSlideshowImageUrls || [],
     enableVideo: rawHero?.enableVideo ?? defaultHero.enableVideo,
     showVideoTextOverlay: rawHero?.showVideoTextOverlay ?? defaultHero.showVideoTextOverlay,
   }), [rawHero, defaultHero]);
 
   const isVideoEnabled = heroConfig.enableVideo !== false;
   const showHeroText = !isVideoEnabled || heroConfig.showVideoTextOverlay !== false;
+  const heroSlides = useMemo(
+    () => heroConfig.heroSlideshowImageUrls.filter((url) => url.trim()),
+    [heroConfig.heroSlideshowImageUrls]
+  );
+  const [activeHeroSlide, setActiveHeroSlide] = useState(0);
+
+  useEffect(() => {
+    setActiveHeroSlide(0);
+    if (isVideoEnabled || heroConfig.heroImageMode !== 'slideshow' || heroSlides.length < 2) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setActiveHeroSlide((current) => (current + 1) % heroSlides.length);
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [heroConfig.heroImageMode, heroSlides, isVideoEnabled]);
+
+  const staticHeroImage = heroConfig.heroImageMode === 'slideshow' && heroSlides.length > 0
+    ? heroSlides[activeHeroSlide % heroSlides.length]
+    : heroConfig.heroImageUrl || '/images/logo.jpg';
 
   const heroMediaUrl = useMemo(() => {
     if (!isVideoEnabled) return '';
@@ -402,7 +428,6 @@ export function Home() {
     );
   }, [heroMediaUrl, isVideoEnabled]);
 
-  const heroPosterImage = heroConfig?.heroPosterUrl?.trim() || undefined;
   // Guard section visibility during cold initial loading so disabled sections do not flash on screen
   const sectionVisibility = isHomepageLoading ? undefined : homepageSettings?.sectionVisibility;
 
@@ -550,22 +575,19 @@ export function Home() {
               muted
               playsInline
               preload="auto"
-              poster={heroPosterImage}
               className="w-full h-full object-cover object-center pointer-events-none"
             >
-              <source src={heroMediaUrl} type="video/webm" />
-              <source src={heroMediaUrl} type="video/mp4" />
-              {heroPosterImage && (
-                <img
-                  src={heroPosterImage}
-                  alt="Shilp Sahayak 3D Fabrication Studio"
-                  className="w-full h-full object-cover object-center"
-                />
-              )}
+              <source src={heroMediaUrl} />
             </video>
-          ) : (heroMediaUrl || heroPosterImage) ? (
+          ) : isVideoEnabled && heroMediaUrl ? (
             <img
-              src={heroMediaUrl || heroPosterImage}
+              src={heroMediaUrl}
+              alt="Shilp Sahayak 3D Fabrication Studio"
+              className="w-full h-full object-cover object-center"
+            />
+          ) : !isVideoEnabled ? (
+            <img
+              src={staticHeroImage}
               alt="Shilp Sahayak 3D Fabrication Studio"
               className="w-full h-full object-cover object-center"
             />
@@ -628,7 +650,7 @@ export function Home() {
                   )}
 
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-2">
-                    {heroConfig?.primaryCtaText && (
+                    {heroConfig?.enablePrimaryCta !== false && heroConfig?.primaryCtaText && (
                       <Link
                         to={heroConfig?.primaryCtaLink || '/shilp-studio'}
                         className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-accent hover:bg-accent-dark text-white font-mono text-xs sm:text-sm font-bold transition-all shadow-xs active:scale-95"
@@ -638,7 +660,7 @@ export function Home() {
                       </Link>
                     )}
 
-                    {heroConfig?.secondaryCtaText && (
+                    {heroConfig?.enableSecondaryCta !== false && heroConfig?.secondaryCtaText && (
                       <Link
                         to={heroConfig?.secondaryCtaLink || '/shop'}
                         className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-white/30 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white font-mono text-xs sm:text-sm font-bold transition-all active:scale-95"
@@ -921,7 +943,7 @@ export function Home() {
                 <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-1">
                   {isHomepageLoading ? (
                     <span className="h-11 w-44 rounded-xl bg-white/10 animate-pulse" aria-hidden="true" />
-                  ) : (
+                  ) : homepageSettings?.customPromoButtonEnabled !== false ? (
                     <Link
                       to={homepageSettings?.customPromoButtonLink || '/shilp-studio'}
                       className={`w-full sm:w-auto ${buttonVariants({ variant: 'primary', size: 'md' })}`}
@@ -929,7 +951,7 @@ export function Home() {
                       <UploadCloud className="w-4 h-4" />
                       <span>{homepageSettings?.customPromoButtonText || 'Launch Shilp Studio'}</span>
                     </Link>
-                  )}
+                  ) : null}
                   <a
                     href={whatsappLink}
                     target="_blank"

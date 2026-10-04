@@ -312,19 +312,6 @@ export function Settings() {
 
                 <div>
                   <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
-                    Brand Logo Asset URL
-                  </label>
-                  <input
-                    type="url"
-                    value={form.logoUrl || ''}
-                    onChange={(e) => updateField('logoUrl', e.target.value)}
-                    placeholder="https://.../logo.png"
-                    className="w-full px-3 py-2 text-xs font-mono text-ink bg-white border border-line rounded-lg outline-none focus:border-accent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
                     Support Email *
                   </label>
                   <input

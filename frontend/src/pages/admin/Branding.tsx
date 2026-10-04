@@ -191,7 +191,7 @@ export function Branding() {
                 ) : (
                   <div className="rounded-xl border border-dashed border-line bg-shell flex flex-col items-center justify-center p-6 min-h-[120px]">
                     <ImageIcon className="w-6 h-6 text-muted mb-2" />
-                    <span className="text-xs text-muted">Default favicon (/images/logo.png)</span>
+                    <span className="text-xs text-muted">No favicon configured. Set one below to use it in browser tabs.</span>
                   </div>
                 )}
                 <div className="flex items-center gap-2">

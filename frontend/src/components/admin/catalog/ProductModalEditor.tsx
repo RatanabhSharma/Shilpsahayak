@@ -37,6 +37,7 @@ export type EditorTab =
   | 'media'
   | 'pricing'
   | 'inventory'
+  | 'variants'
   | 'shipping'
   | 'seo';
 
@@ -162,7 +163,7 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
 
       setStock(product.stock || 0);
       setLowStockThreshold(product.lowStockThreshold ?? 5);
-      setHasVariants(!!product.hasVariants);
+      setHasVariants(!!product.hasVariants || Boolean(product.variants?.length));
       setVariants(
         (product.variants || []).map((v) => ({
           ...v,
@@ -451,7 +452,7 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
           </button>
         </div>
 
-        {/* 6-Tab Navigation Bar */}
+        {/* 7-Tab Navigation Bar */}
         <div className="px-6 bg-white border-b border-line flex items-center gap-1 overflow-x-auto shrink-0 scrollbar-none">
           <button
             type="button"
@@ -516,6 +517,24 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
             <span className="ml-1 px-1.5 py-0.2 rounded-full bg-slate-100 text-[10px]">
               {totalStock} in stock
             </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('variants')}
+            className={`inline-flex items-center gap-2 py-3 px-3.5 border-b-2 text-xs font-mono font-bold transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'variants'
+                ? 'border-accent text-accent'
+                : 'border-transparent text-muted hover:text-ink hover:border-slate-300'
+            }`}
+          >
+            <Package className="w-3.5 h-3.5" />
+            <span>Variants</span>
+            {hasVariants && (
+              <span className="ml-1 px-1.5 py-0.2 rounded-full bg-slate-100 text-[10px]">
+                {variants.length}
+              </span>
+            )}
           </button>
 
           <button
@@ -1106,9 +1125,10 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
           )}
 
           {/* TAB 4: INVENTORY & VARIANTS */}
-          {activeTab === 'inventory' && (
+          {(activeTab === 'inventory' || activeTab === 'variants') && (
             <div className="space-y-6">
               {/* SKU & Single Stock */}
+              {activeTab === 'inventory' && (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -1171,8 +1191,10 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
                   </span>
                 </div>
               </div>
+              )}
 
               {/* Variants Toggle */}
+              {activeTab === 'variants' && (
               <div className="pt-2 border-t border-line space-y-4">
                 <div className="flex items-center justify-between p-4 rounded-xl border border-line bg-shell/40">
                   <div>
@@ -1291,6 +1313,7 @@ export const ProductModalEditor: React.FC<ProductModalEditorProps> = ({
                   </div>
                 )}
               </div>
+              )}
             </div>
           )}
 

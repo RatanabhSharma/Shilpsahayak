@@ -160,7 +160,9 @@ function validateFile(file: File): void {
 export async function uploadFileToR2(
   file: File,
   userId?: string,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  allowLocalFallback = true,
+  timeoutMs = 15000
 ): Promise<string> {
   const user = auth.currentUser;
   const effectiveUserId = userId || user?.uid || 'guest';
@@ -189,7 +191,7 @@ export async function uploadFileToR2(
     }
   }
 
-  return new Promise<string>((resolve) => {
+  return new Promise<string>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     const uploadUrl = `${CLOUDFLARE_WORKER_URL}/upload`;
     let completed = false;
@@ -197,6 +199,10 @@ export async function uploadFileToR2(
     const handleFailure = async (reason: string) => {
       if (completed) return;
       completed = true;
+      if (!allowLocalFallback) {
+        reject(new Error(reason));
+        return;
+      }
       const fallbackUrl = await fallbackToLocal(reason);
       resolve(fallbackUrl);
     };
@@ -252,7 +258,7 @@ export async function uploadFileToR2(
     });
 
     // 15-second timeout to quickly recover if worker is offline
-    xhr.timeout = 15000;
+    xhr.timeout = timeoutMs;
 
     try {
       xhr.open('POST', uploadUrl, true);
@@ -276,6 +282,28 @@ export async function upload3DFile(
 ): Promise<string> {
   validateFile(file);
   return uploadFileToR2(file, userId, onProgress);
+}
+
+export async function uploadHeroVideo(
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<string> {
+  if (!file) throw new Error('No video selected.');
+
+  const extension = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+  if (!['.mp4', '.webm'].includes(extension)) {
+    throw new Error('Unsupported video type. Please upload an MP4 or WebM file.');
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error('Video file is too large. Maximum allowed size is 100 MB.');
+  }
+
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('You must be logged in as an admin to upload a hero video.');
+  }
+
+  return uploadFileToR2(file, user.uid, onProgress, false, 120000);
 }
 
 /**
@@ -592,5 +620,4 @@ export async function uploadProductCustomFile(
     fileSize: file.size,
   };
 }
-
 

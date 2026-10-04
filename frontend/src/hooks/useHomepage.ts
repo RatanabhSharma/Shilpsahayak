@@ -12,10 +12,15 @@ const DEFAULT_HERO: StorefrontHero = {
   subheadline: 'Upload your custom models for instant pricing and professional fabrication.',
   primaryCtaText: 'Upload 3D Model',
   primaryCtaLink: '/shilp-studio',
+  enablePrimaryCta: true,
   secondaryCtaText: 'Shop Collection',
   secondaryCtaLink: '/shop',
+  enableSecondaryCta: true,
   heroVideoUrl: '/videos/demo_video2.mp4',
   heroPosterUrl: '',
+  heroImageUrl: '/images/logo.jpg',
+  heroImageMode: 'image',
+  heroSlideshowImageUrls: [],
   enableVideo: true,
   showVideoTextOverlay: true,
 };
@@ -39,6 +44,7 @@ export const DEFAULT_HOMEPAGE_SETTINGS: StorefrontConfig = {
   customPromoTitle: 'Have a 3D Model? Upload your STL & get an instant quote.',
   customPromoButtonText: 'Explore Collection',
   customPromoButtonLink: '/shop',
+  customPromoButtonEnabled: true,
   sectionVisibility: DEFAULT_VISIBILITY,
 };
 
@@ -67,6 +73,7 @@ export function useHomepage() {
         hero: {
           ...DEFAULT_HERO,
           ...data.hero,
+          heroSlideshowImageUrls: normaliseStringArray(data.hero?.heroSlideshowImageUrls),
         },
         featuredTitle: typeof data.featuredTitle === 'string' ? data.featuredTitle : DEFAULT_HOMEPAGE_SETTINGS.featuredTitle,
         featuredSubtitle: typeof data.featuredSubtitle === 'string' ? data.featuredSubtitle : DEFAULT_HOMEPAGE_SETTINGS.featuredSubtitle,
@@ -74,6 +81,7 @@ export function useHomepage() {
         customPromoTitle: typeof data.customPromoTitle === 'string' ? data.customPromoTitle : DEFAULT_HOMEPAGE_SETTINGS.customPromoTitle,
         customPromoButtonText: typeof data.customPromoButtonText === 'string' ? data.customPromoButtonText : DEFAULT_HOMEPAGE_SETTINGS.customPromoButtonText,
         customPromoButtonLink: typeof data.customPromoButtonLink === 'string' ? data.customPromoButtonLink : DEFAULT_HOMEPAGE_SETTINGS.customPromoButtonLink,
+        customPromoButtonEnabled: typeof data.customPromoButtonEnabled === 'boolean' ? data.customPromoButtonEnabled : DEFAULT_HOMEPAGE_SETTINGS.customPromoButtonEnabled,
         sectionVisibility: {
           ...DEFAULT_VISIBILITY,
           ...data.sectionVisibility,

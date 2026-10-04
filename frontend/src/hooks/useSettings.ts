@@ -22,7 +22,6 @@ const PRIVATE_SETTINGS_DOCUMENT_ID = 'private';
 
 const DEFAULT_SETTINGS: Settings = {
   businessName: 'Shilp Sahayak',
-  logoUrl: '',
   whatsappNumber: '+91 98765 43210',
   email: 'info.shilpsahayak@gmail.com',
   phone: '+91 98765 43210',

@@ -111,38 +111,53 @@ export const QuoteReviewDrawer: React.FC<QuoteReviewDrawerProps> = ({
       setAdminPriceInput(quote.adminPrice || quote.systemEstimatedPrice || quote.estimatedPrice || '');
       setAdminNotesInput(quote.adminNotes || quote.adminAdjustmentReason || '');
       setExpiryDays(7);
-      setModelError(null);
-      setParsedModel(null);
-
-      const isStl =
-        quote.fileName?.toLowerCase().endsWith('.stl') ||
-        quote.fileUrl?.toLowerCase().includes('.stl') ||
-        quote.requestType === '3d-model';
-
-      if (quote.fileUrl && isStl) {
-        setIsLoadingModel(true);
-        parseSTLFromUrl(quote.fileUrl, quote.fileName || 'model.stl')
-          .then((result) => {
-            if (result.success) {
-              setParsedModel(result);
-              setModelError(null);
-            } else {
-              setParsedModel(null);
-              setModelError(result.errorMessage || 'Failed to parse 3D geometry.');
-            }
-          })
-          .catch((err) => {
-            setParsedModel(null);
-            setModelError(err?.message || 'Failed to download 3D file.');
-          })
-          .finally(() => {
-            setIsLoadingModel(false);
-          });
-      } else {
-        setIsLoadingModel(false);
-      }
     }
   }, [quote]);
+
+  useEffect(() => {
+    setParsedModel(null);
+    setModelError(null);
+
+    const fileUrl = quote?.fileUrl;
+    const fileName = quote?.fileName;
+    const requestType = quote?.requestType;
+    const isStl =
+      fileName?.toLowerCase().endsWith('.stl') ||
+      fileUrl?.toLowerCase().includes('.stl') ||
+      requestType === '3d-model';
+
+    if (!fileUrl || !isStl) {
+      setIsLoadingModel(false);
+      return;
+    }
+
+    let isCurrentRequest = true;
+    setIsLoadingModel(true);
+
+    parseSTLFromUrl(fileUrl, fileName || 'model.stl')
+      .then((result) => {
+        if (!isCurrentRequest) return;
+        if (result.success) {
+          setParsedModel(result);
+          setModelError(null);
+        } else {
+          setParsedModel(null);
+          setModelError(result.errorMessage || 'Failed to parse 3D geometry.');
+        }
+      })
+      .catch((err) => {
+        if (!isCurrentRequest) return;
+        setParsedModel(null);
+        setModelError(err?.message || 'Failed to download 3D file.');
+      })
+      .finally(() => {
+        if (isCurrentRequest) setIsLoadingModel(false);
+      });
+
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [quote?.fileUrl, quote?.fileName, quote?.requestType]);
 
   // Handle ESC key
   useEffect(() => {
@@ -233,7 +248,7 @@ export const QuoteReviewDrawer: React.FC<QuoteReviewDrawerProps> = ({
         {/* Drawer Container */}
         <div className="relative w-full max-w-3xl bg-white h-full shadow-2xl flex flex-col z-10 overflow-hidden border-l border-line animate-in slide-in-from-right duration-300">
           {/* Drawer Header */}
-          <div className="px-6 py-4 border-b border-line bg-shell/50 flex items-center justify-between gap-4 shrink-0">
+          <div className="px-3 sm:px-6 py-4 border-b border-line bg-shell/50 flex items-center justify-between gap-2 sm:gap-4 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0">
                 <FileBox className="w-5 h-5" />
@@ -257,11 +272,11 @@ export const QuoteReviewDrawer: React.FC<QuoteReviewDrawerProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               <select
                 value={quote.status}
                 onChange={(e) => onUpdateStatus(quote.id, e.target.value as QuoteStatus)}
-                className="py-1.5 px-3 rounded-lg border border-line bg-white text-xs font-mono font-semibold text-ink outline-none focus:border-accent cursor-pointer"
+                className="w-[min(132px,34vw)] sm:w-auto min-w-0 py-1.5 px-2 sm:px-3 rounded-lg border border-line bg-white text-xs font-mono font-semibold text-ink outline-none focus:border-accent cursor-pointer"
                 title="Change quote status"
               >
                 {QUOTE_STATUS_OPTIONS.map((opt) => (
@@ -274,7 +289,8 @@ export const QuoteReviewDrawer: React.FC<QuoteReviewDrawerProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-lg text-muted hover:text-ink hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Close quote details"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted hover:text-ink hover:bg-slate-100 transition-colors cursor-pointer"
                 title="Close drawer"
               >
                 <X className="w-5 h-5" />
