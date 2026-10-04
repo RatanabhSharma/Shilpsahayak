@@ -81,7 +81,9 @@ export function BrandLogo({
         )}
         aria-hidden="true"
       >
-        {currentLogo && (
+        {isLoading ? (
+          <div className="h-full w-full animate-pulse bg-zinc-300/80" />
+        ) : currentLogo ? (
           <img
             src={currentLogo}
             alt="Shilp Sahayak Logo"
@@ -91,7 +93,7 @@ export function BrandLogo({
               target.style.display = 'none';
             }}
           />
-        )}
+        ) : null}
       </div>
 
       {showText && (
@@ -711,5 +713,3 @@ export function Select({
     </div>
   );
 }
-
-

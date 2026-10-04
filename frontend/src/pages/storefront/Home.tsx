@@ -23,7 +23,7 @@ import { useSettings } from '../../hooks/useSettings';
 import { useReviews } from '../../hooks/useReviews';
 import { buttonVariants } from '../../components/ui';
 import { ProductCard } from '../../components/product/ProductCard';
-import { FeaturedProductSkeleton } from '../../components/loading/ProductSkeleton';
+import { ProductCardSkeleton } from '../../components/loading/ProductSkeleton';
 import { Hero3DCanvas } from '../../components/3d/Hero3DCanvas';
 import demoVideo from '../../assets/videos/demo_video2.mp4';
 
@@ -309,7 +309,12 @@ function useInfiniteLoopCarousel({
 
 export function Home() {
   const { data: products = [], isLoading } = useProducts();
-  const { data: homepageSettings, isLoading: isHomepageLoading } = useHomepage();
+  const {
+    data: homepageSettings,
+    isLoading: isHomepageLoading,
+    isError: isHomepageError,
+    refetch: refetchHomepage,
+  } = useHomepage();
   const { data: settings } = useSettings();
   const { data: reviews = [] } = useReviews();
   const prefersReducedMotion = useReducedMotion();
@@ -499,12 +504,32 @@ export function Home() {
     enableAutoplay: true,
   });
 
+  if (isHomepageError && !homepageSettings) {
+    return (
+      <div
+        className="flex min-h-[50vh] flex-col items-center justify-center gap-4 bg-[#F0F4F8] px-6 text-center"
+        role="alert"
+      >
+        <p className="font-sans text-sm text-muted">
+          Homepage settings could not be loaded. Check your connection and try again.
+        </p>
+        <button
+          type="button"
+          onClick={() => void refetchHomepage()}
+          className={buttonVariants({ variant: 'secondary', size: 'sm' })}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-[#F0F4F8] text-ink selection:bg-accent-soft selection:text-accent w-full min-h-screen overflow-x-clip">
       {/* =====================================================
           1. CINEMATIC FULL-BLEED VIDEO HERO WITH PARALLAX SCROLL
       ====================================================== */}
-      {sectionVisibility?.hero !== false && (
+      {sectionVisibility?.hero === true && (
       <section
         ref={heroRef}
         className="relative overflow-hidden bg-[#0d0d0f] min-h-[420px] sm:min-h-0 sm:h-[580px] lg:h-[680px] w-full flex items-end justify-center pb-8 pt-20 sm:pb-24 sm:pt-32"
@@ -545,7 +570,7 @@ export function Home() {
               className="w-full h-full object-cover object-center"
             />
           ) : (
-            <div className="w-full h-full bg-[#0d0d0f]" />
+            <div className="w-full h-full bg-gradient-to-br from-[#19191d] via-[#0d0d0f] to-black" />
           )}
         </motion.div>
 
@@ -556,7 +581,20 @@ export function Home() {
         <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#0d0d0f]/80 to-transparent z-[1] pointer-events-none" />
 
         {/* Dynamic CMS Hero Content Overlay */}
-        {(heroConfig?.headline || heroConfig?.badgeText || heroConfig?.primaryCtaText) && (
+        {isHomepageLoading ? (
+          <div
+            className="relative z-10 w-full max-w-[900px] mx-auto px-5 sm:px-8 lg:px-10 flex flex-col items-center gap-4 text-center"
+            aria-hidden="true"
+          >
+            <div className="h-6 w-48 rounded-full bg-white/10 animate-pulse" />
+            <div className="h-8 sm:h-10 w-4/5 max-w-[560px] rounded-lg bg-white/10 animate-pulse" />
+            <div className="h-4 w-3/5 max-w-[440px] rounded-md bg-white/10 animate-pulse" />
+            <div className="mt-2 flex gap-3">
+              <div className="h-11 w-36 rounded-xl bg-white/10 animate-pulse" />
+              <div className="h-11 w-36 rounded-xl bg-white/10 animate-pulse" />
+            </div>
+          </div>
+        ) : (heroConfig?.headline || heroConfig?.badgeText || heroConfig?.primaryCtaText) && (
           <div className="relative z-10 max-w-[900px] mx-auto px-5 sm:px-8 lg:px-10 text-center flex flex-col items-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -621,7 +659,7 @@ export function Home() {
       {/* =====================================================
           2. INFINITE TICKER TRUST STRIP
       ====================================================== */}
-      {sectionVisibility?.trustMarquee !== false && (
+      {sectionVisibility?.trustMarquee === true && (
       <div className="relative overflow-hidden bg-dark text-white border-y border-white/10 py-3 select-none">
         <div className="animate-marquee flex items-center gap-8 whitespace-nowrap">
           {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, idx) => {
@@ -641,7 +679,7 @@ export function Home() {
       {/* =====================================================
           3. FEATURED PRODUCTS (FEATURED 3D CREATIONS)
       ====================================================== */}
-      {sectionVisibility?.featuredProducts !== false && (
+      {sectionVisibility?.featuredProducts === true && (
       <motion.section
         variants={fadeInUp}
         initial="hidden"
@@ -655,12 +693,21 @@ export function Home() {
             <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
               FEATURED PRODUCTS
             </span>
-            <h2 className="mt-1 font-display text-2xl sm:text-4xl font-bold tracking-tight text-ink">
-              {homepageSettings?.featuredTitle || 'Featured Products'}
-            </h2>
-            <p className="mt-1 font-sans text-xs sm:text-sm text-muted">
-              {homepageSettings?.featuredSubtitle || 'Handcrafted 3D lighting, workspace decor, and custom creations.'}
-            </p>
+            {isHomepageLoading ? (
+              <div className="mt-2 space-y-2" aria-hidden="true">
+                <div className="h-8 sm:h-10 w-64 max-w-full rounded-md bg-zinc-200/80 animate-pulse" />
+                <div className="h-4 w-80 max-w-full rounded-md bg-zinc-200/80 animate-pulse" />
+              </div>
+            ) : (
+              <>
+                <h2 className="mt-1 font-display text-2xl sm:text-4xl font-bold tracking-tight text-ink">
+                  {homepageSettings?.featuredTitle || DEFAULT_HOMEPAGE_SETTINGS.featuredTitle}
+                </h2>
+                <p className="mt-1 font-sans text-xs sm:text-sm text-muted">
+                  {homepageSettings?.featuredSubtitle || DEFAULT_HOMEPAGE_SETTINGS.featuredSubtitle}
+                </p>
+              </>
+            )}
           </div>
 
           <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
@@ -714,8 +761,18 @@ export function Home() {
             <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
 
-          {isLoading ? (
-            <FeaturedProductSkeleton />
+          {isLoading || isHomepageLoading ? (
+            <div className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-hidden pb-4">
+              {Array.from({ length: 4 }, (_, index) => (
+                <div
+                  key={index}
+                  className="w-[min(260px,85vw)] sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)] shrink-0"
+                  aria-hidden="true"
+                >
+                  <ProductCardSkeleton />
+                </div>
+              ))}
+            </div>
           ) : (
             <div
               ref={featuredCarousel.containerRef}
@@ -746,7 +803,7 @@ export function Home() {
       {/* =====================================================
           4. CUSTOM 3D PRINTING + THREE.JS INTERACTIVE 3D CAD ENGINE
       ====================================================== */}
-      {sectionVisibility?.shilpStudioPromo !== false && (
+      {sectionVisibility?.shilpStudioPromo === true && (
       <motion.section
         variants={fadeInUp}
         initial="hidden"
@@ -775,17 +832,24 @@ export function Home() {
                   <Sparkles className="w-3.5 h-3.5" />
                   Instant STL Slicer &amp; Estimator
                 </span>
-                <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight">
-                  {homepageSettings?.customPromoTitle || (
-                    <>
-                      Have a 3D Model?
-                      <br />
-                      <span className="text-zinc-300 text-2xl sm:text-3xl lg:text-4xl font-normal block mt-1">
-                        Upload your CAD file &amp; get an instant quote.
-                      </span>
-                    </>
-                  )}
-                </h2>
+                {isHomepageLoading ? (
+                  <div className="space-y-3" aria-hidden="true">
+                    <div className="h-9 sm:h-11 w-4/5 rounded-md bg-white/10 animate-pulse" />
+                    <div className="h-8 w-3/5 rounded-md bg-white/10 animate-pulse" />
+                  </div>
+                ) : (
+                  <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight">
+                    {homepageSettings?.customPromoTitle || (
+                      <>
+                        Have a 3D Model?
+                        <br />
+                        <span className="text-zinc-300 text-2xl sm:text-3xl lg:text-4xl font-normal block mt-1">
+                          Upload your CAD file &amp; get an instant quote.
+                        </span>
+                      </>
+                    )}
+                  </h2>
+                )}
                 <p className="font-sans text-xs sm:text-sm text-zinc-300 max-w-lg leading-relaxed">
                   Upload your 3D CAD file for instant geometric volume analysis, theoretical weight calculation, and workshop pricing.
                 </p>
@@ -855,13 +919,17 @@ export function Home() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-1">
-                  <Link
-                    to={homepageSettings?.customPromoButtonLink || '/shilp-studio'}
-                    className={`w-full sm:w-auto ${buttonVariants({ variant: 'primary', size: 'md' })}`}
-                  >
-                    <UploadCloud className="w-4 h-4" />
-                    <span>{homepageSettings?.customPromoButtonText || 'Launch Shilp Studio'}</span>
-                  </Link>
+                  {isHomepageLoading ? (
+                    <span className="h-11 w-44 rounded-xl bg-white/10 animate-pulse" aria-hidden="true" />
+                  ) : (
+                    <Link
+                      to={homepageSettings?.customPromoButtonLink || '/shilp-studio'}
+                      className={`w-full sm:w-auto ${buttonVariants({ variant: 'primary', size: 'md' })}`}
+                    >
+                      <UploadCloud className="w-4 h-4" />
+                      <span>{homepageSettings?.customPromoButtonText || 'Launch Shilp Studio'}</span>
+                    </Link>
+                  )}
                   <a
                     href={whatsappLink}
                     target="_blank"
@@ -882,7 +950,7 @@ export function Home() {
       {/* =====================================================
           5. SHOP BY COLLECTION (CURATED CATEGORIES)
       ====================================================== */}
-      {sectionVisibility?.categories !== false && (
+      {sectionVisibility?.categories === true && (
       <motion.section
         variants={fadeInUp}
         initial="hidden"
@@ -950,23 +1018,35 @@ export function Home() {
               <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
 
-            <div
-              ref={categoryCarousel.containerRef}
-              onScroll={categoryCarousel.handleScroll}
-              onMouseEnter={() => categoryCarousel.setIsHovered(true)}
-              onMouseLeave={() => categoryCarousel.setIsHovered(false)}
-              onTouchStart={categoryCarousel.handleTouchStart}
-              onTouchEnd={categoryCarousel.handleTouchEnd}
-              onFocusCapture={() => categoryCarousel.setIsHovered(true)}
-              onBlurCapture={() => categoryCarousel.setIsHovered(false)}
-              className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-none overscroll-x-contain"
-              style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
-            >
-              {extendedCategories.map((cat) => (
-                <div
-                  key={cat._carouselKey}
-                  className="w-[min(260px,85vw)] sm:w-[280px] lg:w-[320px] shrink-0"
-                >
+            {isLoading ? (
+              <div
+                className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-hidden pb-4"
+                aria-hidden="true"
+              >
+                {Array.from({ length: 4 }, (_, index) => (
+                  <div key={index} className="w-[min(260px,85vw)] sm:w-[280px] lg:w-[320px] shrink-0">
+                    <div className="aspect-[4/3] w-full animate-pulse rounded-2xl bg-zinc-200/80" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div
+                ref={categoryCarousel.containerRef}
+                onScroll={categoryCarousel.handleScroll}
+                onMouseEnter={() => categoryCarousel.setIsHovered(true)}
+                onMouseLeave={() => categoryCarousel.setIsHovered(false)}
+                onTouchStart={categoryCarousel.handleTouchStart}
+                onTouchEnd={categoryCarousel.handleTouchEnd}
+                onFocusCapture={() => categoryCarousel.setIsHovered(true)}
+                onBlurCapture={() => categoryCarousel.setIsHovered(false)}
+                className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-none overscroll-x-contain"
+                style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
+              >
+                {extendedCategories.map((cat) => (
+                  <div
+                    key={cat._carouselKey}
+                    className="w-[min(260px,85vw)] sm:w-[280px] lg:w-[320px] shrink-0"
+                  >
                   <Link
                     to={`/shop?category=${encodeURIComponent(cat.name)}`}
                     className="group/cat relative block w-full overflow-hidden rounded-2xl border border-line bg-white shadow-soft transition-all duration-300 hover:shadow-card hover:-translate-y-1.5 hover:border-accent/40"
@@ -995,9 +1075,10 @@ export function Home() {
                       </div>
                     </div>
                   </Link>
-                </div>
-              ))}
-            </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </motion.section>
@@ -1006,7 +1087,7 @@ export function Home() {
       {/* =====================================================
           6. SOCIAL PROOF (REVIEWS)
       ====================================================== */}
-      {sectionVisibility?.reviews !== false && reviews.length > 0 && (
+      {sectionVisibility?.reviews === true && reviews.length > 0 && (
         <motion.section
           variants={fadeInUp}
           initial="hidden"
@@ -1060,7 +1141,7 @@ export function Home() {
       {/* =====================================================
           7. FINAL MEMORABLE CTA SECTION
       ====================================================== */}
-      {sectionVisibility?.finalCta !== false && (
+      {sectionVisibility?.finalCta === true && (
       <motion.section
         variants={fadeInUp}
         initial="hidden"
