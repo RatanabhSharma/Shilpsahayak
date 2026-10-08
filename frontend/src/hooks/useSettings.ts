@@ -96,8 +96,8 @@ export function useSettings() {
     },
 
     staleTime: 5 * 60 * 1000,
-
-    initialData: localSettings
+    initialData: localSettings,
+    initialDataUpdatedAt: 0,
   });
 }
 

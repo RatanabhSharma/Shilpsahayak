@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
-import type { NavigationConfig, NavLinkItem } from '../types/settingsConfig';
+import type { NavigationConfig } from '../types/settingsConfig';
 
 const NAVIGATION_DOCUMENT_ID = 'navigation';
 
@@ -56,6 +56,8 @@ export function useNavigationConfig() {
         ...navSnap.data(),
       } as NavigationConfig;
     },
+    initialData: DEFAULT_NAVIGATION_CONFIG,
+    initialDataUpdatedAt: 0,
     staleTime: 5 * 60 * 1000, // 5 minutes cache
   });
 }

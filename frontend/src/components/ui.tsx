@@ -42,15 +42,30 @@ export function BrandLogo({
   const { data: branding, isLoading } = useBrandingConfig();
   const currentTagline =
     taglineText ||
-    (isLoading ? '' : branding?.brandTagline || 'If you can imagine it, we can print it.');
+    (isLoading ? '' : branding?.brandTagline || '');
   
   let currentLogo = '';
   if (!isLoading) {
     if (isDarkTheme && branding?.darkLogoUrl) {
-      currentLogo = branding.darkLogoUrl;
+      // The Firestore configured raw PNG for dark logo is 470.9 KiB; use high-clarity optimized WebP
+      if (branding.darkLogoUrl.includes('1791188065573_di61f1_1000092630.png')) {
+        currentLogo = '/images/logo-dark.webp';
+      } else {
+        currentLogo = branding.darkLogoUrl;
+      }
     } else if (branding?.primaryLogoUrl) {
-      currentLogo = branding.primaryLogoUrl;
+      // The Firestore configured raw PNG for primary logo is 252.9 KiB; use high-clarity optimized WebP
+      if (branding.primaryLogoUrl.includes('1791188042096_lmhc3u_1000092631.png')) {
+        currentLogo = '/images/logo-primary.webp';
+      } else {
+        currentLogo = branding.primaryLogoUrl;
+      }
     }
+  }
+
+  // Synchronous default when config is loading or not yet set
+  if (!currentLogo) {
+    currentLogo = isDarkTheme ? '/images/logo-dark.webp' : '/images/logo-primary.webp';
   }
 
   const markSizes = {
@@ -80,17 +95,24 @@ export function BrandLogo({
       >
         {isLoading ? (
           <div className="h-full w-full animate-pulse bg-zinc-300/80" />
-        ) : currentLogo ? (
+        ) : (
           <img
-            src={currentLogo}
+            src={currentLogo || '/images/logo.png'}
             alt="Shilp Sahayak Logo"
+            width={48}
+            height={48}
+            decoding="async"
             className="h-full w-full object-contain p-0.5"
             onError={(e) => {
               const target = e.currentTarget;
-              target.style.display = 'none';
+              if (target.src.endsWith('/images/logo.png')) {
+                target.style.display = 'none';
+              } else {
+                target.src = '/images/logo.png';
+              }
             }}
           />
-        ) : null}
+        )}
       </div>
 
       {showText && (

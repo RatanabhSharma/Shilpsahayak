@@ -12,7 +12,7 @@ export const DEFAULT_BRANDING_CONFIG: BrandingConfig = {
   symbolIconUrl: '',
   primaryColorHex: '#6d28d9',
   accentColorHex: '#a855f7',
-  brandTagline: 'If you can imagine it, we can print it.',
+  brandTagline: '',
   socialLinks: {
     instagram: '',
     whatsapp: '',
@@ -20,6 +20,7 @@ export const DEFAULT_BRANDING_CONFIG: BrandingConfig = {
     linkedin: '',
     twitter: '',
     github: '',
+    email: '',
   },
 };
 
@@ -46,6 +47,8 @@ export function useBrandingConfig() {
         }
       } as BrandingConfig;
     },
+    initialData: DEFAULT_BRANDING_CONFIG,
+    initialDataUpdatedAt: 0,
     staleTime: 5 * 60 * 1000,
   });
 }

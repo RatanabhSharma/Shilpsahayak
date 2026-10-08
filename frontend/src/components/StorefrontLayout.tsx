@@ -212,14 +212,10 @@ export function StorefrontLayout() {
      ---------------------------------------------------------- */
 
   const businessName = settings?.businessName || 'Shilp Sahayak';
-  const businessEmail = settings?.email || '';
-  const whatsappNumber = settings?.whatsappNumber || '';
   const businessPhone = settings?.phone || '';
   const businessAddress = settings?.address || '';
-
-  const whatsappLink = whatsappNumber
-    ? `https://wa.me/${whatsappNumber.replace(/\D/g, '')}`
-    : '#';
+  const socialLinks = brandingConfig?.socialLinks;
+  const businessEmail = socialLinks?.email || '';
 
   // Dynamic navigation — fallback to hardcoded defaults when Firestore doc is absent
   const nav = navigationConfig ?? DEFAULT_NAVIGATION_CONFIG;
@@ -627,15 +623,15 @@ export function StorefrontLayout() {
                 <BrandLogo isDarkTheme={true} size="md" />
               </Link>
               <p className="text-xs text-zinc-500 font-sans leading-relaxed">
-                Bespoke 3D Fabrication Studio<br />
-                {businessAddress || 'Patiala, Punjab, India'}
+                  {brandingConfig?.brandTagline && <>{brandingConfig.brandTagline}<br /></>}
+                  {businessAddress}
               </p>
 
               {/* Social Media = Icons Only */}
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                {brandingConfig?.socialLinks?.instagram && (
+                  {socialLinks?.instagram && (
                   <a
-                    href={brandingConfig.socialLinks.instagram}
+                      href={socialLinks.instagram}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Instagram"
@@ -644,9 +640,9 @@ export function StorefrontLayout() {
                     <Instagram className="h-4.5 w-4.5 sm:h-4 sm:w-4" />
                   </a>
                 )}
-                {brandingConfig?.socialLinks?.youtube && (
+                {socialLinks?.youtube && (
                   <a
-                    href={brandingConfig.socialLinks.youtube}
+                    href={socialLinks.youtube}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="YouTube"
@@ -655,9 +651,9 @@ export function StorefrontLayout() {
                     <Youtube className="h-4.5 w-4.5 sm:h-4 sm:w-4" />
                   </a>
                 )}
-                {brandingConfig?.socialLinks?.linkedin && (
+                {socialLinks?.linkedin && (
                   <a
-                    href={brandingConfig.socialLinks.linkedin}
+                    href={socialLinks.linkedin}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="LinkedIn"
@@ -666,9 +662,9 @@ export function StorefrontLayout() {
                     <Linkedin className="h-4.5 w-4.5 sm:h-4 sm:w-4" />
                   </a>
                 )}
-                {brandingConfig?.socialLinks?.twitter && (
+                {socialLinks?.twitter && (
                   <a
-                    href={brandingConfig.socialLinks.twitter}
+                    href={socialLinks.twitter}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Twitter / X"
@@ -677,9 +673,9 @@ export function StorefrontLayout() {
                     <Twitter className="h-4.5 w-4.5 sm:h-4 sm:w-4" />
                   </a>
                 )}
-                {brandingConfig?.socialLinks?.github && (
+                {socialLinks?.github && (
                   <a
-                    href={brandingConfig.socialLinks.github}
+                    href={socialLinks.github}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="GitHub"
@@ -688,18 +684,20 @@ export function StorefrontLayout() {
                     <Github className="h-4.5 w-4.5 sm:h-4 sm:w-4" />
                   </a>
                 )}
-                <a
-                  href={whatsappLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="WhatsApp"
-                  className="flex h-10 w-10 sm:h-9 sm:w-9 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-emerald-500/50 hover:text-[#25D366] transition-colors"
-                >
-                  <MessageCircle className="h-4.5 w-4.5 sm:h-4 sm:w-4" />
-                </a>
-                {businessEmail && (
+                {socialLinks?.whatsapp && (
                   <a
-                    href={`mailto:${businessEmail}`}
+                    href={socialLinks.whatsapp}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="WhatsApp"
+                    className="flex h-10 w-10 sm:h-9 sm:w-9 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-emerald-500/50 hover:text-[#25D366] transition-colors"
+                  >
+                    <MessageCircle className="h-4.5 w-4.5 sm:h-4 sm:w-4" />
+                  </a>
+                )}
+                {socialLinks?.email && (
+                  <a
+                    href={`mailto:${socialLinks.email}`}
                     aria-label="Email studio"
                     className="flex h-10 w-10 sm:h-9 sm:w-9 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-zinc-700 hover:text-white transition-colors"
                   >
@@ -930,6 +928,5 @@ export function StorefrontLayout() {
     </div>
   );
 }
-
 
 

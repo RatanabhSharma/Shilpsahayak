@@ -18,7 +18,7 @@ export function Branding() {
     primaryColorHex: '#6d28d9',
     accentColorHex: '#a855f7',
     brandTagline: '',
-    socialLinks: { instagram: '', whatsapp: '', youtube: '', linkedin: '', twitter: '', github: '' },
+    socialLinks: { instagram: '', whatsapp: '', youtube: '', linkedin: '', twitter: '', github: '', email: '' },
   });
 
   const [showSuccess, setShowSuccess] = useState(false);
@@ -209,7 +209,7 @@ export function Branding() {
               </div>
             </div>
 
-            <Input label="Brand Tagline" placeholder="If you can imagine it, we can print it." value={form.brandTagline || ''} onChange={e => setForm({...form, brandTagline: e.target.value})} className="sm:col-span-2" />
+            <Input label="Brand Tagline" value={form.brandTagline || ''} onChange={e => setForm({...form, brandTagline: e.target.value})} className="sm:col-span-2" />
           </div>
         </section>
 
@@ -223,6 +223,7 @@ export function Branding() {
             <Input label="LinkedIn" placeholder="https://linkedin.com/in/..." value={form.socialLinks?.linkedin || ''} onChange={e => setForm({...form, socialLinks: {...form.socialLinks, linkedin: e.target.value}})} />
             <Input label="Twitter / X" placeholder="https://x.com/..." value={form.socialLinks?.twitter || ''} onChange={e => setForm({...form, socialLinks: {...form.socialLinks, twitter: e.target.value}})} />
             <Input label="GitHub" placeholder="https://github.com/..." value={form.socialLinks?.github || ''} onChange={e => setForm({...form, socialLinks: {...form.socialLinks, github: e.target.value}})} />
+            <Input label="Email" type="email" placeholder="name@example.com" value={form.socialLinks?.email || ''} onChange={e => setForm({...form, socialLinks: {...form.socialLinks, email: e.target.value}})} />
           </div>
         </section>
 

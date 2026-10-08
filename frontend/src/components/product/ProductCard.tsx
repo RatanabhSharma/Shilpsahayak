@@ -7,9 +7,10 @@ import { Card } from '../ui';
 interface ProductCardProps {
   product: Product;
   className?: string;
+  priority?: boolean;
 }
 
-export function ProductCard({ product, className = '' }: ProductCardProps) {
+export function ProductCard({ product, className = '', priority = false }: ProductCardProps) {
   const addToCart = useStore((state) => state.addToCart);
   const setPurchaseMode = useStore((state) => state.setPurchaseMode);
   const setBuyNowItem = useStore((state) => state.setBuyNowItem);
@@ -107,7 +108,9 @@ export function ProductCard({ product, className = '' }: ProductCardProps) {
             <img
               src={displayImage}
               alt={product.name}
-              loading="lazy"
+              loading={priority ? 'eager' : 'lazy'}
+              decoding="async"
+              fetchPriority={priority ? 'high' : 'auto'}
               onError={(e) => {
                 const img = e.currentTarget;
                 if (img.dataset.fallbackApplied) return;

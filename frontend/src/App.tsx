@@ -10,40 +10,42 @@ import { ScrollToTop } from './components/ScrollToTop';
 import { DynamicFavicon } from './components/DynamicFavicon';
 import { NotificationProvider } from './components/NotificationContext';
 
+import { lazy, Suspense } from 'react';
+import { LoadingState } from './components/admin/shared/LoadingState';
+
 // Storefront
 import { Home } from './pages/storefront/Home';
-import { Catalog } from './pages/storefront/Catalog';
-import { ProductDetail } from './pages/storefront/ProductDetail';
-import { Cart } from './pages/storefront/Cart';
-import { Checkout } from './pages/storefront/Checkout';
-// CustomPrinting route paused: import { CustomPrinting } from './pages/storefront/CustomPrinting';
-import { CustomPrinting } from './pages/storefront/CustomPrinting';
-import { About } from './pages/storefront/About';
-import { Contact } from './pages/storefront/Contact';
-import { Login } from './pages/storefront/Login';
-import { Account } from './pages/storefront/Account';
+const Catalog = lazy(() => import('./pages/storefront/Catalog').then(m => ({ default: m.Catalog })));
+const ProductDetail = lazy(() => import('./pages/storefront/ProductDetail').then(m => ({ default: m.ProductDetail })));
+const Cart = lazy(() => import('./pages/storefront/Cart').then(m => ({ default: m.Cart })));
+const Checkout = lazy(() => import('./pages/storefront/Checkout').then(m => ({ default: m.Checkout })));
+const CustomPrinting = lazy(() => import('./pages/storefront/CustomPrinting').then(m => ({ default: m.CustomPrinting })));
+const About = lazy(() => import('./pages/storefront/About').then(m => ({ default: m.About })));
+const Contact = lazy(() => import('./pages/storefront/Contact').then(m => ({ default: m.Contact })));
+const Login = lazy(() => import('./pages/storefront/Login').then(m => ({ default: m.Login })));
+const Account = lazy(() => import('./pages/storefront/Account').then(m => ({ default: m.Account })));
 
 // Legal Pages
-import { PrivacyPolicy } from './pages/storefront/PrivacyPolicy';
-import { TermsAndConditions } from './pages/storefront/TermsAndConditions';
-import { RefundPolicy } from './pages/storefront/RefundPolicy';
-import { CookiePolicy } from './pages/storefront/CookiePolicy';
+const PrivacyPolicy = lazy(() => import('./pages/storefront/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
+const TermsAndConditions = lazy(() => import('./pages/storefront/TermsAndConditions').then(m => ({ default: m.TermsAndConditions })));
+const RefundPolicy = lazy(() => import('./pages/storefront/RefundPolicy').then(m => ({ default: m.RefundPolicy })));
+const CookiePolicy = lazy(() => import('./pages/storefront/CookiePolicy').then(m => ({ default: m.CookiePolicy })));
 
 // Admin
-import { AdminLogin } from './pages/admin/AdminLogin';
-import { Dashboard } from './pages/admin/Dashboard';
-import { Orders } from './pages/admin/Orders';
-import { OrderDetail } from './pages/admin/OrderDetail';
-import { Quotes } from './pages/admin/Quotes';
-import { Catalog as AdminCatalog } from './pages/admin/Catalog';
-import { Inventory } from './pages/admin/Inventory';
-import { Customers } from './pages/admin/Customers';
-import { Settings } from './pages/admin/Settings';
-import { Inquiries } from './pages/admin/Inquiries';
-import { AdminHome } from './pages/admin/AdminHome';
-import { Reviews } from './pages/admin/Reviews';
-import { Branding } from './pages/admin/Branding';
-import { Coupons } from './pages/admin/Coupons';
+const AdminLogin = lazy(() => import('./pages/admin/AdminLogin').then(m => ({ default: m.AdminLogin })));
+const Dashboard = lazy(() => import('./pages/admin/Dashboard').then(m => ({ default: m.Dashboard })));
+const Orders = lazy(() => import('./pages/admin/Orders').then(m => ({ default: m.Orders })));
+const OrderDetail = lazy(() => import('./pages/admin/OrderDetail').then(m => ({ default: m.OrderDetail })));
+const Quotes = lazy(() => import('./pages/admin/Quotes').then(m => ({ default: m.Quotes })));
+const AdminCatalog = lazy(() => import('./pages/admin/Catalog').then(m => ({ default: m.Catalog })));
+const Inventory = lazy(() => import('./pages/admin/Inventory').then(m => ({ default: m.Inventory })));
+const Customers = lazy(() => import('./pages/admin/Customers').then(m => ({ default: m.Customers })));
+const Settings = lazy(() => import('./pages/admin/Settings').then(m => ({ default: m.Settings })));
+const Inquiries = lazy(() => import('./pages/admin/Inquiries').then(m => ({ default: m.Inquiries })));
+const AdminHome = lazy(() => import('./pages/admin/AdminHome').then(m => ({ default: m.AdminHome })));
+const Reviews = lazy(() => import('./pages/admin/Reviews').then(m => ({ default: m.Reviews })));
+const Branding = lazy(() => import('./pages/admin/Branding').then(m => ({ default: m.Branding })));
+const Coupons = lazy(() => import('./pages/admin/Coupons').then(m => ({ default: m.Coupons })));
 
 
 export function App() {
@@ -57,10 +59,10 @@ export function App() {
         <Routes>
         <Route path="/" element={<StorefrontLayout />}>
           <Route index element={<Home />} />
-          <Route path="shop" element={<Catalog />} />
-          <Route path="product/:id" element={<ProductDetail />} />
-          <Route path="cart" element={<Cart />} />
-          <Route path="checkout" element={<Checkout />} />
+          <Route path="shop" element={<Suspense fallback={<LoadingState message="Loading catalog..." />}><Catalog /></Suspense>} />
+          <Route path="product/:id" element={<Suspense fallback={<LoadingState message="Loading product..." />}><ProductDetail /></Suspense>} />
+          <Route path="cart" element={<Suspense fallback={<LoadingState message="Loading cart..." />}><Cart /></Suspense>} />
+          <Route path="checkout" element={<Suspense fallback={<LoadingState message="Preparing checkout..." />}><Checkout /></Suspense>} />
 
           {/* Legacy & Relocated Routes */}
           <Route path="catalog" element={<Navigate to="/shop" replace />} />
@@ -68,55 +70,58 @@ export function App() {
           <Route path="contact" element={<Navigate to="/reach-us" replace />} />
 
           {/* Shilp Studio: Custom 3D-printing workflow */}
-          <Route path="shilp-studio" element={<CustomPrinting />} />
+          <Route path="shilp-studio" element={<Suspense fallback={<LoadingState message="Launching Shilp Studio..." />}><CustomPrinting /></Suspense>} />
           <Route path="custom-printing" element={<Navigate to="/shilp-studio" replace />} />
           <Route path="custom-service" element={<Navigate to="/shilp-studio" replace />} />
 
-          <Route path="our-story" element={<About />} />
-          <Route path="reach-us" element={<Contact />} />
-          <Route path="login" element={<Login />} />
+          <Route path="our-story" element={<Suspense fallback={<LoadingState message="Loading..." />}><About /></Suspense>} />
+          <Route path="reach-us" element={<Suspense fallback={<LoadingState message="Loading..." />}><Contact /></Suspense>} />
+          <Route path="login" element={<Suspense fallback={<LoadingState message="Loading..." />}><Login /></Suspense>} />
 
           <Route
             path="account"
             element={
               <CustomerRoute>
-                <Account />
+                <Suspense fallback={<LoadingState message="Loading account..." />}>
+                  <Account />
+                </Suspense>
               </CustomerRoute>
             }
           />
 
           {/* Legal Pages */}
-          <Route path="privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="terms-and-conditions" element={<TermsAndConditions />} />
-          <Route path="refund-policy" element={<RefundPolicy />} />
-          <Route path="cookie-policy" element={<CookiePolicy />} />
+          <Route path="privacy-policy" element={<Suspense fallback={<LoadingState message="Loading..." />}><PrivacyPolicy /></Suspense>} />
+          <Route path="terms-and-conditions" element={<Suspense fallback={<LoadingState message="Loading..." />}><TermsAndConditions /></Suspense>} />
+          <Route path="refund-policy" element={<Suspense fallback={<LoadingState message="Loading..." />}><RefundPolicy /></Suspense>} />
+          <Route path="cookie-policy" element={<Suspense fallback={<LoadingState message="Loading..." />}><CookiePolicy /></Suspense>} />
         </Route>
 
-        <Route path="/admin/login" element={<AdminLogin />} />
-
+        <Route path="/admin/login" element={<Suspense fallback={<LoadingState message="Loading admin..." />}><AdminLogin /></Suspense>} />
 
         <Route
           path="/admin"
           element={
             <ProtectedRoute>
-              <AdminLayout />
+              <Suspense fallback={<LoadingState message="Loading dashboard..." />}>
+                <AdminLayout />
+              </Suspense>
             </ProtectedRoute>
           }
         >
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="home" element={<AdminHome />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="orders" element={<Orders />} />
-          <Route path="orders/:id" element={<OrderDetail />} />
-          <Route path="quotes" element={<Quotes />} />
-          <Route path="reviews" element={<Reviews />} />
-          <Route path="catalog" element={<AdminCatalog />} />
-          <Route path="inventory" element={<Inventory />} />
-          <Route path="customers" element={<Customers />} />
-          <Route path="inquiries" element={<Inquiries />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="branding" element={<Branding />} />
-          <Route path="coupons" element={<Coupons />} />
+          <Route path="home" element={<Suspense fallback={<LoadingState message="Loading..." />}><AdminHome /></Suspense>} />
+          <Route path="dashboard" element={<Suspense fallback={<LoadingState message="Loading..." />}><Dashboard /></Suspense>} />
+          <Route path="orders" element={<Suspense fallback={<LoadingState message="Loading..." />}><Orders /></Suspense>} />
+          <Route path="orders/:id" element={<Suspense fallback={<LoadingState message="Loading..." />}><OrderDetail /></Suspense>} />
+          <Route path="quotes" element={<Suspense fallback={<LoadingState message="Loading..." />}><Quotes /></Suspense>} />
+          <Route path="reviews" element={<Suspense fallback={<LoadingState message="Loading..." />}><Reviews /></Suspense>} />
+          <Route path="catalog" element={<Suspense fallback={<LoadingState message="Loading..." />}><AdminCatalog /></Suspense>} />
+          <Route path="inventory" element={<Suspense fallback={<LoadingState message="Loading..." />}><Inventory /></Suspense>} />
+          <Route path="customers" element={<Suspense fallback={<LoadingState message="Loading..." />}><Customers /></Suspense>} />
+          <Route path="inquiries" element={<Suspense fallback={<LoadingState message="Loading..." />}><Inquiries /></Suspense>} />
+          <Route path="settings" element={<Suspense fallback={<LoadingState message="Loading..." />}><Settings /></Suspense>} />
+          <Route path="branding" element={<Suspense fallback={<LoadingState message="Loading..." />}><Branding /></Suspense>} />
+          <Route path="coupons" element={<Suspense fallback={<LoadingState message="Loading..." />}><Coupons /></Suspense>} />
         </Route>
 
         {/* Internal fallback. Vercel rewrite sends the request to the SPA. */}

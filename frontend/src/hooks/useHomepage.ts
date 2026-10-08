@@ -89,6 +89,8 @@ export function useHomepage() {
         announcement: data.announcement, // Keep optional
       };
     },
+    initialData: DEFAULT_HOMEPAGE_SETTINGS,
+    initialDataUpdatedAt: 0,
     staleTime: 5 * 60 * 1000,
   });
 }

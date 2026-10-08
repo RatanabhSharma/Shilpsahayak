@@ -65,6 +65,7 @@ export interface BrandingConfig {
     linkedin?: string;
     twitter?: string;
     github?: string;
+    email?: string;
   };
   updatedAt?: string;
   updatedBy?: string;

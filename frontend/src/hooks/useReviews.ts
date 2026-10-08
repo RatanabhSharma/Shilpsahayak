@@ -32,6 +32,8 @@ export function useReviews() {
         return [];
       }
     },
+    placeholderData: [],
+    staleTime: 5 * 60 * 1000,
   });
 }
 

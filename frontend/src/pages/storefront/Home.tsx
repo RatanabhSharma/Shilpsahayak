@@ -22,9 +22,10 @@ import { useHomepage, DEFAULT_HOMEPAGE_SETTINGS } from '../../hooks/useHomepage'
 import { useSettings } from '../../hooks/useSettings';
 import { useReviews } from '../../hooks/useReviews';
 import { buttonVariants } from '../../components/ui';
+import { lazy, Suspense } from 'react';
 import { ProductCard } from '../../components/product/ProductCard';
 import { ProductCardSkeleton } from '../../components/loading/ProductSkeleton';
-import { Hero3DCanvas } from '../../components/3d/Hero3DCanvas';
+const Hero3DCanvas = lazy(() => import('../../components/3d/Hero3DCanvas').then(m => ({ default: m.Hero3DCanvas })));
 import demoVideo from '../../assets/videos/demo_video2.mp4';
 
 /* ============================================================
@@ -345,6 +346,25 @@ export function Home() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  /* Lazy Mount Three.js CAD Viewport when near viewport */
+  const cadViewportRef = useRef<HTMLDivElement>(null);
+  const [isCadInView, setIsCadInView] = useState(false);
+  useEffect(() => {
+    const el = cadViewportRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsCadInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '300px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   /* Scroll-Linked Hero Parallax & Depth Transitions */
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
@@ -369,6 +389,7 @@ export function Home() {
     secondaryCtaLink: rawHero?.secondaryCtaLink?.trim() || defaultHero.secondaryCtaLink,
     enableSecondaryCta: rawHero?.enableSecondaryCta ?? defaultHero.enableSecondaryCta,
     heroVideoUrl: rawHero?.heroVideoUrl?.trim() || defaultHero.heroVideoUrl,
+    heroPosterUrl: rawHero?.heroPosterUrl?.trim() || defaultHero.heroPosterUrl || '',
     heroImageUrl: rawHero?.heroImageUrl?.trim() || rawHero?.heroPosterUrl?.trim() || defaultHero.heroImageUrl,
     heroImageMode: rawHero?.heroImageMode ?? defaultHero.heroImageMode,
     heroSlideshowImageUrls: rawHero?.heroSlideshowImageUrls || defaultHero.heroSlideshowImageUrls || [],
@@ -401,8 +422,48 @@ export function Home() {
     ? heroSlides[activeHeroSlide % heroSlides.length]
     : heroConfig.heroImageUrl || '/images/logo.jpg';
 
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
+
+  useEffect(() => {
+    // Respect prefers-reduced-motion
+    if (prefersReducedMotion) return;
+
+    // Do not download video automatically if saveData is enabled
+    if (typeof navigator !== 'undefined' && (navigator as any).connection?.saveData) {
+      return;
+    }
+
+    // Trigger video load on first user interaction or when main thread is idle after first paint
+    const activateVideo = () => {
+      setShouldLoadVideo(true);
+      window.removeEventListener('scroll', activateVideo);
+      window.removeEventListener('mousemove', activateVideo);
+      window.removeEventListener('touchstart', activateVideo);
+    };
+
+    window.addEventListener('scroll', activateVideo, { passive: true, once: true });
+    window.addEventListener('mousemove', activateVideo, { passive: true, once: true });
+    window.addEventListener('touchstart', activateVideo, { passive: true, once: true });
+
+    // Idle fallback after critical paint (3.5 seconds)
+    const t = setTimeout(() => {
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(() => setShouldLoadVideo(true));
+      } else {
+        setShouldLoadVideo(true);
+      }
+    }, 3500);
+
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('scroll', activateVideo);
+      window.removeEventListener('mousemove', activateVideo);
+      window.removeEventListener('touchstart', activateVideo);
+    };
+  }, [prefersReducedMotion]);
+
   const heroMediaUrl = useMemo(() => {
-    if (!isVideoEnabled) return '';
+    if (!isVideoEnabled || prefersReducedMotion) return '';
     const custom = heroConfig?.heroVideoUrl?.trim();
     if (
       custom &&
@@ -410,15 +471,15 @@ export function Home() {
       custom !== '/videos/hero-print.webm' &&
       !custom.startsWith('/videos/demo_video')
     ) {
-      return custom;
+      return shouldLoadVideo ? custom : '';
     }
-    // Do not eagerly load or start the 4.4MB bundled demo video while homepage config is loading
-    if (isHomepageLoading) return '';
+    // Defer demo video loading until after initial critical render
+    if (!shouldLoadVideo) return '';
     return demoVideo;
-  }, [heroConfig?.heroVideoUrl, isVideoEnabled, isHomepageLoading]);
+  }, [heroConfig?.heroVideoUrl, isVideoEnabled, prefersReducedMotion, shouldLoadVideo]);
 
   const isHeroVideo = useMemo(() => {
-    if (!isVideoEnabled || !heroMediaUrl) return false;
+    if (!isVideoEnabled || !heroMediaUrl || prefersReducedMotion) return false;
     return (
       heroMediaUrl === demoVideo ||
       /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(heroMediaUrl) ||
@@ -426,10 +487,10 @@ export function Home() {
       heroMediaUrl.endsWith('.webm') ||
       heroMediaUrl.startsWith('data:video')
     );
-  }, [heroMediaUrl, isVideoEnabled]);
+  }, [heroMediaUrl, isVideoEnabled, prefersReducedMotion]);
 
-  // Guard section visibility during cold initial loading so disabled sections do not flash on screen
-  const sectionVisibility = isHomepageLoading ? undefined : homepageSettings?.sectionVisibility;
+  // Section visibility is synchronously available from default settings and hydrated by Firestore CMS
+  const sectionVisibility = homepageSettings?.sectionVisibility ?? DEFAULT_HOMEPAGE_SETTINGS.sectionVisibility;
 
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
@@ -502,6 +563,7 @@ export function Home() {
       featuredProducts.map((p, idx) => ({
         ...p,
         _carouselKey: `feat-${p.id || idx}-set-${setIdx}`,
+        _isLcpCandidate: idx === 0 && setIdx === 1,
       }))
     ).flat();
   }, [featuredProducts]);
@@ -574,14 +636,15 @@ export function Home() {
               loop
               muted
               playsInline
-              preload="auto"
+              preload="none"
+              poster={heroConfig?.heroPosterUrl || staticHeroImage}
               className="w-full h-full object-cover object-center pointer-events-none"
             >
               <source src={heroMediaUrl} />
             </video>
-          ) : isVideoEnabled && heroMediaUrl ? (
+          ) : isVideoEnabled ? (
             <img
-              src={heroMediaUrl}
+              src={heroConfig?.heroPosterUrl || staticHeroImage}
               alt="Shilp Sahayak 3D Fabrication Studio"
               className="w-full h-full object-cover object-center"
             />
@@ -603,20 +666,7 @@ export function Home() {
         <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#0d0d0f]/80 to-transparent z-[1] pointer-events-none" />
 
         {/* Dynamic CMS Hero Content Overlay */}
-        {isHomepageLoading ? (
-          <div
-            className="relative z-10 w-full max-w-[900px] mx-auto px-5 sm:px-8 lg:px-10 flex flex-col items-center gap-4 text-center"
-            aria-hidden="true"
-          >
-            <div className="h-6 w-48 rounded-full bg-white/10 animate-pulse" />
-            <div className="h-8 sm:h-10 w-4/5 max-w-[560px] rounded-lg bg-white/10 animate-pulse" />
-            <div className="h-4 w-3/5 max-w-[440px] rounded-md bg-white/10 animate-pulse" />
-            <div className="mt-2 flex gap-3">
-              <div className="h-11 w-36 rounded-xl bg-white/10 animate-pulse" />
-              <div className="h-11 w-36 rounded-xl bg-white/10 animate-pulse" />
-            </div>
-          </div>
-        ) : (heroConfig?.headline || heroConfig?.badgeText || heroConfig?.primaryCtaText) && (
+        {(heroConfig?.headline || heroConfig?.badgeText || heroConfig?.primaryCtaText) && (
           <div className="relative z-10 max-w-[900px] mx-auto px-5 sm:px-8 lg:px-10 text-center flex flex-col items-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -715,21 +765,12 @@ export function Home() {
             <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
               FEATURED PRODUCTS
             </span>
-            {isHomepageLoading ? (
-              <div className="mt-2 space-y-2" aria-hidden="true">
-                <div className="h-8 sm:h-10 w-64 max-w-full rounded-md bg-zinc-200/80 animate-pulse" />
-                <div className="h-4 w-80 max-w-full rounded-md bg-zinc-200/80 animate-pulse" />
-              </div>
-            ) : (
-              <>
-                <h2 className="mt-1 font-display text-2xl sm:text-4xl font-bold tracking-tight text-ink">
-                  {homepageSettings?.featuredTitle || DEFAULT_HOMEPAGE_SETTINGS.featuredTitle}
-                </h2>
-                <p className="mt-1 font-sans text-xs sm:text-sm text-muted">
-                  {homepageSettings?.featuredSubtitle || DEFAULT_HOMEPAGE_SETTINGS.featuredSubtitle}
-                </p>
-              </>
-            )}
+            <h2 className="mt-1 font-display text-2xl sm:text-4xl font-bold tracking-tight text-ink">
+              {homepageSettings?.featuredTitle || DEFAULT_HOMEPAGE_SETTINGS.featuredTitle}
+            </h2>
+            <p className="mt-1 font-sans text-xs sm:text-sm text-muted">
+              {homepageSettings?.featuredSubtitle || DEFAULT_HOMEPAGE_SETTINGS.featuredSubtitle}
+            </p>
           </div>
 
           <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
@@ -783,7 +824,7 @@ export function Home() {
             <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
 
-          {isLoading || isHomepageLoading ? (
+          {extendedFeaturedProducts.length === 0 ? (
             <div className="-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0 flex gap-4 sm:gap-6 overflow-hidden pb-4">
               {Array.from({ length: 4 }, (_, index) => (
                 <div
@@ -813,7 +854,7 @@ export function Home() {
                   key={product._carouselKey}
                   className="w-[min(260px,85vw)] sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)] shrink-0"
                 >
-                  <ProductCard product={product} />
+                  <ProductCard product={product} priority={(product as any)._isLcpCandidate} />
                 </div>
               ))}
             </div>
@@ -839,7 +880,26 @@ export function Home() {
             <div className="relative z-10 grid gap-6 lg:gap-10 lg:grid-cols-2 lg:items-center">
               {/* Left Column: Interactive Three.js 3D Viewport */}
               <div className="space-y-4">
-                <Hero3DCanvas className="w-full aspect-[4/3] xs:aspect-[16/10] sm:aspect-auto sm:h-[380px] lg:h-[420px]" />
+                <div ref={cadViewportRef}>
+                  {isCadInView ? (
+                    <Suspense
+                      fallback={
+                        <div className="w-full aspect-[4/3] xs:aspect-[16/10] sm:aspect-auto sm:h-[380px] lg:h-[420px] rounded-xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-center">
+                          <div className="h-8 w-8 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+                        </div>
+                      }
+                    >
+                      <Hero3DCanvas className="w-full aspect-[4/3] xs:aspect-[16/10] sm:aspect-auto sm:h-[380px] lg:h-[420px]" />
+                    </Suspense>
+                  ) : (
+                    <div className="w-full aspect-[4/3] xs:aspect-[16/10] sm:aspect-auto sm:h-[380px] lg:h-[420px] rounded-xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-center">
+                      <div className="flex flex-col items-center gap-2 text-zinc-500 font-mono text-xs">
+                        <Box className="w-6 h-6 animate-pulse text-accent" />
+                        <span>Interactive 3D Viewport</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <div className="flex items-center justify-between text-[10px] sm:text-[11px] font-mono text-zinc-400 px-1 sm:px-2">
                   <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
                     <CheckCircle2 className="w-3.5 h-3.5" /> WebGL Hardware Accelerated

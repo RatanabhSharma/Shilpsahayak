@@ -192,6 +192,8 @@ export function useProducts() {
         (a.name || '').localeCompare(b.name || '')
       );
     },
+    initialData: INITIAL_CATALOG_PRODUCTS,
+    initialDataUpdatedAt: 0,
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
