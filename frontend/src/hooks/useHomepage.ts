@@ -7,22 +7,22 @@ import type { StorefrontConfig, StorefrontHero, StorefrontSectionVisibility } fr
 export type HomepageSettings = StorefrontConfig;
 
 const DEFAULT_HERO: StorefrontHero = {
-  badgeText: 'Shilp Sahayak - 3D Printing',
-  headline: 'Bring Your Ideas to Life in 3D',
-  subheadline: 'Upload your custom models for instant pricing and professional fabrication.',
-  primaryCtaText: 'Upload 3D Model',
-  primaryCtaLink: '/shilp-studio',
-  enablePrimaryCta: true,
-  secondaryCtaText: 'Shop Collection',
-  secondaryCtaLink: '/shop',
-  enableSecondaryCta: true,
+  badgeText: '',
+  headline: '',
+  subheadline: '',
+  primaryCtaText: '',
+  primaryCtaLink: '',
+  enablePrimaryCta: false,
+  secondaryCtaText: '',
+  secondaryCtaLink: '',
+  enableSecondaryCta: false,
   heroVideoUrl: '/videos/demo_video2.mp4',
   heroPosterUrl: '',
-  heroImageUrl: '/images/logo.jpg',
+  heroImageUrl: '',
   heroImageMode: 'image',
   heroSlideshowImageUrls: [],
   enableVideo: true,
-  showVideoTextOverlay: true,
+  showVideoTextOverlay: false,
 };
 
 const DEFAULT_VISIBILITY: StorefrontSectionVisibility = {

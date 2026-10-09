@@ -82,6 +82,16 @@ export function AdminHome() {
     }
   };
 
+  const removeHeroImage = () => {
+    setForm((current) => ({
+      ...current,
+      hero: {
+        ...current.hero,
+        heroImageUrl: '',
+      },
+    }));
+  };
+
   const removeHeroSlide = (index: number) => {
     setForm((current) => ({
       ...current,
@@ -325,15 +335,25 @@ export function AdminHome() {
                 {form.hero?.heroImageMode !== 'slideshow' ? (
                   <div className="flex flex-wrap items-center gap-3">
                     {form.hero?.heroImageUrl && (
-                      <img
-                        src={form.hero.heroImageUrl}
-                        alt="Current static hero"
-                        className="h-16 w-28 rounded-lg border border-line bg-white object-cover"
-                      />
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={form.hero.heroImageUrl}
+                          alt="Current static hero"
+                          className="h-16 w-28 rounded-lg border border-line bg-white object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={removeHeroImage}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-rose-200 bg-rose-50 text-xs font-mono font-bold text-rose-700 hover:bg-rose-100 hover:border-rose-300 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>Remove Image</span>
+                        </button>
+                      </div>
                     )}
                     <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-line bg-white px-3 py-2 text-xs font-mono font-bold text-ink hover:border-accent">
                       <Upload className="h-4 w-4 text-accent" />
-                      {isUploadingHeroImage ? 'Uploading…' : 'Upload image'}
+                      {isUploadingHeroImage ? 'Uploading…' : form.hero?.heroImageUrl ? 'Replace image' : 'Upload image'}
                       <input
                         type="file"
                         accept="image/*"

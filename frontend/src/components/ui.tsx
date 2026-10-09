@@ -45,26 +45,22 @@ export function BrandLogo({
     (isLoading ? '' : branding?.brandTagline || '');
   
   let currentLogo = '';
-  if (!isLoading) {
-    if (isDarkTheme && branding?.darkLogoUrl) {
-      // The Firestore configured raw PNG for dark logo is 470.9 KiB; use high-clarity optimized WebP
+  if (!isLoading && branding) {
+    if (isDarkTheme && branding.darkLogoUrl?.trim()) {
       if (branding.darkLogoUrl.includes('1791188065573_di61f1_1000092630.png')) {
         currentLogo = '/images/logo-dark.webp';
       } else {
-        currentLogo = branding.darkLogoUrl;
+        currentLogo = branding.darkLogoUrl.trim();
       }
-    } else if (branding?.primaryLogoUrl) {
-      // The Firestore configured raw PNG for primary logo is 252.9 KiB; use high-clarity optimized WebP
+    } else if (branding.primaryLogoUrl?.trim()) {
       if (branding.primaryLogoUrl.includes('1791188042096_lmhc3u_1000092631.png')) {
         currentLogo = '/images/logo-primary.webp';
       } else {
-        currentLogo = branding.primaryLogoUrl;
+        currentLogo = branding.primaryLogoUrl.trim();
       }
     }
-  }
-
-  // Synchronous default when config is loading or not yet set
-  if (!currentLogo) {
+  } else if (isLoading) {
+    // Only while loading branding config, supply the standard mark
     currentLogo = isDarkTheme ? '/images/logo-dark.webp' : '/images/logo-primary.webp';
   }
 
@@ -84,36 +80,33 @@ export function BrandLogo({
 
   return (
     <div className={cn('flex items-center gap-2 sm:gap-2.5 select-none group min-w-0', className)}>
-      {/* Official Company Logo Emblem */}
-      <div
-        className={cn(
-          'relative flex items-center justify-center overflow-hidden border shadow-soft transition-transform duration-300 group-hover:scale-105 shrink-0',
-          markSizes[size],
-          isDarkTheme ? 'border-zinc-800 bg-white/95 ring-1 ring-white/10' : 'bg-white border-line'
-        )}
-        aria-hidden="true"
-      >
-        {isLoading ? (
-          <div className="h-full w-full animate-pulse bg-zinc-300/80" />
-        ) : (
-          <img
-            src={currentLogo || '/images/logo.png'}
-            alt="Shilp Sahayak Logo"
-            width={48}
-            height={48}
-            decoding="async"
-            className="h-full w-full object-contain p-0.5"
-            onError={(e) => {
-              const target = e.currentTarget;
-              if (target.src.endsWith('/images/logo.png')) {
-                target.style.display = 'none';
-              } else {
-                target.src = '/images/logo.png';
-              }
-            }}
-          />
-        )}
-      </div>
+      {/* Official Company Logo Emblem (Rendered when a logo is configured) */}
+      {currentLogo ? (
+        <div
+          className={cn(
+            'relative flex items-center justify-center overflow-hidden border shadow-soft transition-transform duration-300 group-hover:scale-105 shrink-0',
+            markSizes[size],
+            isDarkTheme ? 'border-zinc-800 bg-white/95 ring-1 ring-white/10' : 'bg-white border-line'
+          )}
+          aria-hidden="true"
+        >
+          {isLoading ? (
+            <div className="h-full w-full animate-pulse bg-zinc-300/80" />
+          ) : (
+            <img
+              src={currentLogo}
+              alt="Shilp Sahayak Logo"
+              width={48}
+              height={48}
+              decoding="async"
+              className="h-full w-full object-contain p-0.5"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          )}
+        </div>
+      ) : null}
 
       {showText && (
         <div className="flex flex-col min-w-0">

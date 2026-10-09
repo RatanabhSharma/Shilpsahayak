@@ -390,7 +390,7 @@ export function Home() {
     enableSecondaryCta: rawHero?.enableSecondaryCta ?? defaultHero.enableSecondaryCta,
     heroVideoUrl: rawHero?.heroVideoUrl?.trim() || defaultHero.heroVideoUrl,
     heroPosterUrl: rawHero?.heroPosterUrl?.trim() || defaultHero.heroPosterUrl || '',
-    heroImageUrl: rawHero?.heroImageUrl?.trim() || rawHero?.heroPosterUrl?.trim() || defaultHero.heroImageUrl,
+    heroImageUrl: rawHero?.heroImageUrl !== undefined ? (rawHero.heroImageUrl?.trim() || '') : (rawHero?.heroPosterUrl?.trim() || defaultHero.heroImageUrl || ''),
     heroImageMode: rawHero?.heroImageMode ?? defaultHero.heroImageMode,
     heroSlideshowImageUrls: rawHero?.heroSlideshowImageUrls || defaultHero.heroSlideshowImageUrls || [],
     enableVideo: rawHero?.enableVideo ?? defaultHero.enableVideo,
@@ -420,13 +420,13 @@ export function Home() {
 
   const staticHeroImage = heroConfig.heroImageMode === 'slideshow' && heroSlides.length > 0
     ? heroSlides[activeHeroSlide % heroSlides.length]
-    : heroConfig.heroImageUrl || '/images/logo.jpg';
+    : heroConfig.heroImageUrl || '';
 
   const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
 
   useEffect(() => {
-    // Respect prefers-reduced-motion
-    if (prefersReducedMotion) return;
+    // If video is disabled in CMS or user prefers reduced motion, do not load or schedule video
+    if (!isVideoEnabled || prefersReducedMotion) return;
 
     // Do not download video automatically if saveData is enabled
     if (typeof navigator !== 'undefined' && (navigator as any).connection?.saveData) {
@@ -460,7 +460,7 @@ export function Home() {
       window.removeEventListener('mousemove', activateVideo);
       window.removeEventListener('touchstart', activateVideo);
     };
-  }, [prefersReducedMotion]);
+  }, [isVideoEnabled, prefersReducedMotion]);
 
   const heroMediaUrl = useMemo(() => {
     if (!isVideoEnabled || prefersReducedMotion) return '';
@@ -637,18 +637,24 @@ export function Home() {
               muted
               playsInline
               preload="none"
-              poster={heroConfig?.heroPosterUrl || staticHeroImage}
+              poster={
+                heroConfig?.heroPosterUrl && !heroConfig.heroPosterUrl.includes('logo')
+                  ? heroConfig.heroPosterUrl
+                  : staticHeroImage && !staticHeroImage.includes('logo')
+                    ? staticHeroImage
+                    : undefined
+              }
               className="w-full h-full object-cover object-center pointer-events-none"
             >
               <source src={heroMediaUrl} />
             </video>
-          ) : isVideoEnabled ? (
+          ) : isVideoEnabled && heroConfig?.heroPosterUrl && !heroConfig.heroPosterUrl.includes('logo') ? (
             <img
-              src={heroConfig?.heroPosterUrl || staticHeroImage}
+              src={heroConfig.heroPosterUrl}
               alt="Shilp Sahayak 3D Fabrication Studio"
               className="w-full h-full object-cover object-center"
             />
-          ) : !isVideoEnabled ? (
+          ) : !isVideoEnabled && staticHeroImage && !staticHeroImage.includes('logo') ? (
             <img
               src={staticHeroImage}
               alt="Shilp Sahayak 3D Fabrication Studio"
