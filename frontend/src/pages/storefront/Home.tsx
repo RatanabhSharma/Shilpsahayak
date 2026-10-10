@@ -758,11 +758,7 @@ export function Home() {
           3. FEATURED PRODUCTS (FEATURED 3D CREATIONS)
       ====================================================== */}
       {sectionVisibility?.featuredProducts === true && (
-      <motion.section
-        variants={fadeInUp}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-40px' }}
+      <section
         className="bg-[#F0F4F8] py-12 sm:py-14"
       >
         {/* Section Header */}
@@ -866,7 +862,7 @@ export function Home() {
             </div>
           )}
         </div>
-      </motion.section>
+      </section>
       )}
 
       {/* =====================================================
