@@ -122,5 +122,25 @@ describe('cleanFirestorePayload', () => {
     expect(cleaned).not.toHaveProperty('costPrice');
     expect(cleaned.costPrice).not.toBe(0);
   });
-});
 
+  it('verifies hero.enableVideo boolean false is explicitly preserved and not omitted or truthy', () => {
+    const storefrontPayload = {
+      hero: {
+        badgeText: '',
+        headline: '',
+        enableVideo: false,
+        heroVideoUrl: '/videos/demo_video2.mp4',
+        heroImageUrl: '',
+      },
+      featuredProductIds: ['p1', 'p2'],
+      updatedAt: '2026-10-10T10:00:00.000Z',
+      updatedBy: 'test-admin',
+    };
+
+    const cleaned = cleanFirestorePayload(storefrontPayload);
+    expect(cleaned.hero.enableVideo).toBe(false);
+    expect(cleaned.hero.enableVideo).not.toBe(true);
+    expect(typeof cleaned.hero.enableVideo).toBe('boolean');
+    expect(cleaned.hero.heroImageUrl).toBe('');
+  });
+});

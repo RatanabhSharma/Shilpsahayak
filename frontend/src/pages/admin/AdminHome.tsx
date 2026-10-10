@@ -148,6 +148,10 @@ export function AdminHome() {
     try {
       await updateHomepage.mutateAsync({
         ...form,
+        hero: {
+          ...(form.hero || DEFAULT_HOMEPAGE_SETTINGS.hero),
+          enableVideo: form.hero?.enableVideo === true,
+        },
         featuredProductIds: form.featuredProductIds.filter((id) =>
           activeProducts.some((product) => product.id === id)
         ),
@@ -280,7 +284,15 @@ export function AdminHome() {
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setForm({ ...form, hero: { ...form.hero!, enableVideo: true } })}
+                  onClick={() =>
+                    setForm((current) => ({
+                      ...current,
+                      hero: {
+                        ...(current.hero || DEFAULT_HOMEPAGE_SETTINGS.hero),
+                        enableVideo: true,
+                      },
+                    }))
+                  }
                   className={`px-4 py-2 rounded-xl text-xs font-mono font-bold border transition-all ${
                     form.hero?.enableVideo !== false
                       ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
@@ -291,7 +303,15 @@ export function AdminHome() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setForm({ ...form, hero: { ...form.hero!, enableVideo: false } })}
+                  onClick={() =>
+                    setForm((current) => ({
+                      ...current,
+                      hero: {
+                        ...(current.hero || DEFAULT_HOMEPAGE_SETTINGS.hero),
+                        enableVideo: false,
+                      },
+                    }))
+                  }
                   className={`px-4 py-2 rounded-xl text-xs font-mono font-bold border transition-all ${
                     form.hero?.enableVideo === false
                       ? 'bg-rose-600 text-white border-rose-600 shadow-xs'

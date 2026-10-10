@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
+import { cleanFirestorePayload } from '../utils/cleanFirestorePayload';
 import type { StorefrontConfig, StorefrontHero, StorefrontSectionVisibility } from '../types/settingsConfig';
 
 // Re-export type so consumers don't break if they import it from here
@@ -100,9 +101,22 @@ export function useUpdateHomepage() {
 
   return useMutation({
     mutationFn: async (settings: StorefrontConfig) => {
+      const currentUser = auth.currentUser;
       const ref = doc(db, 'settings', HOMEPAGE_DOCUMENT_ID);
-      await setDoc(ref, settings, { merge: true });
-      return settings;
+
+      const payload: StorefrontConfig = {
+        ...settings,
+        hero: {
+          ...settings.hero,
+          enableVideo: settings.hero.enableVideo === true,
+        },
+        updatedAt: new Date().toISOString(),
+        ...(currentUser?.uid ? { updatedBy: currentUser.uid } : {}),
+      };
+
+      const sanitizedPayload = cleanFirestorePayload(payload);
+      await setDoc(ref, sanitizedPayload, { merge: true });
+      return sanitizedPayload;
     },
     onSuccess: (settings) => {
       queryClient.setQueryData(homepageKey, settings);
